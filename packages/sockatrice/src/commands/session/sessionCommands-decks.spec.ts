@@ -1,4 +1,3 @@
-// Session-scope deck sharing and public-deck commands (Cockatrice 3.1, #7241).
 
 vi.mock('../../WebClient');
 

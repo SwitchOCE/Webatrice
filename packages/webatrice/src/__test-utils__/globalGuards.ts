@@ -17,13 +17,10 @@ export function withMockLocation(overrides: Partial<Location>): () => void {
 }
 
 export interface MockColorSchemeMedia {
-  /** Flips the operating system's preference and fires `change` on every live query. */
   setPrefersDark: (dark: boolean) => void;
   restore: () => void;
 }
 
-// @critical jsdom has no `window.matchMedia`; this installs one answering only
-// `(prefers-color-scheme: dark)`. Always invoke `restore`.
 export function withMockColorSchemeMedia(prefersDark: boolean): MockColorSchemeMedia {
   const original = Object.getOwnPropertyDescriptor(window, 'matchMedia');
   const listeners = new Set<(event: MediaQueryListEvent) => void>();

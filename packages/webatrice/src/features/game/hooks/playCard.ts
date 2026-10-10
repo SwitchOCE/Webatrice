@@ -10,10 +10,8 @@ import {
 import { readCardPlacement } from '../components/battlefield/Battlefield/readCardPlacement';
 import { applyInvertY } from '../components/battlefield/Battlefield/gridMath';
 
-// Oracle importer: 0 = land, 1 = other permanent, 2 = creature, 3 = instant/sorcery.
 const TABLEROW_LAND = 0;
 
-// tableRow=3 → stack; 0/1/2 → battlefield with per-row default. isInverted = useBattlefield's flag.
 export async function playCardViaTableRow({
   webClient,
   gameId,
@@ -53,7 +51,6 @@ export async function playCardViaTableRow({
     return ZoneName.STACK;
   }
 
-  // Visual row from the owner's view; inverted once for a mirrored board.
   const wireY = applyInvertY(placement.visualY, isInverted);
 
   webClient.request.game.moveCard(gameId, {
@@ -62,8 +59,6 @@ export async function playCardViaTableRow({
     cardsToMove: { card: [{ cardId: card.id, faceDown, ...playedCardFields(cardDatabase, faceDown) }] },
     targetPlayerId: sourcePlayerId,
     targetZone: ZoneName.TABLE,
-    // Desktop's PlayerActions::playCard sends x = -1: the server picks the column
-    // (getFreeGridColumn), stacking a card onto a same-named one.
     x: -1,
     y: wireY,
     isReversed: false,
@@ -92,7 +87,6 @@ export async function autoPlayCard(args: {
   faceDown: boolean;
   isInverted: boolean;
   judgeTargetId?: number;
-  /** The "Play all nonlands onto the stack" preference; desktop's default is on. */
   playToStack?: boolean;
 }): Promise<ZoneNameValue> {
   const { webClient, gameId, sourcePlayerId, sourceZone, card, faceDown, judgeTargetId, playToStack = true } = args;

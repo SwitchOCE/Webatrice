@@ -197,14 +197,12 @@ describe('useGameShortcuts', () => {
     expect(registrations.has('game.reverseTurn')).toBe(true);
   });
 
-  // Every game-scope action in the catalogue has a handler: one registered
-  // here, or handled where their target lives.
   it('registers a handler for every game shortcut in the catalogue', () => {
     setup();
     const elsewhere = new Set([
-      'game.moveCardDialog', // card-focus scoped in useCardFocus, not a global registration
-      'chat.focus', // the game chat input
-      'game.hideRevealedCard', // the open IncomingRevealDialog
+      'game.moveCardDialog',
+      'chat.focus',
+      'game.hideRevealedCard',
     ]);
     const unhandled = allActionIds.filter(
       (id) => defaults[id].scope === ShortcutScope.GAME && !elsewhere.has(id) && !registrations.has(id),

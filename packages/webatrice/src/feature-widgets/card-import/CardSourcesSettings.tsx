@@ -22,17 +22,10 @@ const buildTemplateSchema = (t: TFunction) => z.object({
 type TemplateValues = z.infer<ReturnType<typeof buildTemplateSchema>>;
 
 export interface CardSourcesSettingsProps {
-  /** Id of the element naming this editor (the Settings row label). */
   labelId?: string;
-  /** Id of the element describing it (the Settings row description). */
   describedBy?: string;
 }
 
-/**
- * Picture URL template editor — desktop's "URL Download Priority" group on the
- * Card Sources settings page. The Settings page supplies the heading and the
- * description; each change is saved immediately, as on desktop.
- */
 const CardSourcesSettings = ({ labelId, describedBy }: CardSourcesSettingsProps) => {
   const { t } = useTranslation();
   const sources = usePictureUrlTemplates();
@@ -59,7 +52,6 @@ const CardSourcesSettings = ({ labelId, describedBy }: CardSourcesSettingsProps)
     setMessage(null);
   };
 
-  // One roving tab stop; arrows, Home/End move the selection, Space or Enter selects.
   const { getRowProps } = useGridRows({
     keys: sources.templates.map((_, index) => String(index)),
     selectedKey: selected === null ? null : String(selected),

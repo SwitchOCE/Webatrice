@@ -17,9 +17,6 @@ if (typeof globalThis.ResizeObserver === 'undefined') {
 if (typeof Element !== 'undefined' && !Element.prototype.scrollIntoView) {
   Element.prototype.scrollIntoView = function scrollIntoView() {};
 }
-// The VM pool runs each spec in jsdom's own global, whose crypto has no
-// `subtle`. Sockatrice hashes login passwords with crypto.subtle, as a
-// browser in a secure context does, and sends them in plain text without it.
 if (!globalThis.crypto?.subtle) {
   Object.defineProperty(globalThis, 'crypto', { value: webcrypto, configurable: true });
 }

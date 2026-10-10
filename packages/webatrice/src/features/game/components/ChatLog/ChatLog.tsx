@@ -72,8 +72,6 @@ const SEGMENT_CLASS: Record<LogSegment['kind'], string> = {
  * backgrounds so consecutive log lines are visually separable.
  */
 export default function ChatLog() {
-  // A report opened from a name in this log attaches the game and its chat,
-  // as desktop does for a report raised from a game's ChatView.
   const gameId = useGameId();
   const messages = useAppSelector((state) => (gameId != null ? games.Selectors.getMessages(state, gameId) : undefined));
   const getChatContext = useCallback(() => gameChatContext(messages ?? []), [messages]);
@@ -102,16 +100,13 @@ function ChatLogView() {
     canChat,
     chatDisabledReason,
   } = useGameLog({ gameId, listRef });
-  // Players and spectators, as desktop's TabGame adds each to its completer as they join.
   const names = useMemo(
     () => Object.values(players ?? {}).flatMap((player) => player.properties.userInfo?.name ?? []),
     [players],
   );
   const mention = useMentionCompleter({ names, value: draft, onValueChange: setDraft, inputRef });
   const stampGameTime = usePreference('useGameTime');
-  // A replay is a recording: desktop's replay tab has no say box at all.
   const readOnly = useGameReadOnly();
-  // Composite disabled state — no active game OR spectator-can't-chat OR replay.
   const inputDisabled = gameId == null || !canChat || readOnly;
 
   // Cockatrice-parity focus-chat shortcut (Shift+Enter). Registered
@@ -155,20 +150,9 @@ function ChatLogView() {
         )}
       </div>
 
-      {/* Messages — scrollable, pinned to bottom by useGameLog unless
-           the user has scrolled up. Rows alternate bg to visually
-           separate consecutive lines (Cockatrice does the same with
-           its zebra-striped log).
-           A polite live region (desktop has none; an accessibility
-           addition): screen readers read each new line once, so draws,
-           moves, life changes and opponents' chat are heard as they
-           happen. Rows keep their key for life (logRowKey), so trimming
-           the oldest lines never re-reads the rest. */}
       <div
         ref={listRef}
         role="log"
-        // A tab stop in every browser, so the log can be scrolled from
-        // the keyboard (Chrome and Firefox already focus scrollers).
         tabIndex={0}
         aria-live="polite"
         aria-relevant="additions"
@@ -182,12 +166,7 @@ function ChatLogView() {
         {messages.map((m, idx) => {
           const isEvent = m.kind === 'event';
           const senderName = m.senderName ?? players?.[m.playerId]?.properties.userInfo?.name;
-          // An empty name reads as the seat, like an unknown one.
           const name = senderName || t('GameLog.player.number', { id: m.playerId });
-          // Per-message stamp, Cockatrice-style `[HH:MM:SS]`: the user's
-          // local clock (desktop's `QDateTime::currentDateTime()`), or with
-          // "Use game time instead of local time in game logs" the game time
-          // the line was logged at (MessageLogWidget::getCurrentTime).
           const stamp = stampGameTime && m.gameSeconds !== undefined
             ? `[${formatElapsed(m.gameSeconds)}]`
             : m.timeReceived
@@ -273,8 +252,6 @@ function ChatLogView() {
         })}
       </div>
 
-      {/* Input — submits on Enter via the form's onSubmit. Named by its
-           sr-only label alone. */}
       <form
         onSubmit={handleSubmit}
         hidden={readOnly}

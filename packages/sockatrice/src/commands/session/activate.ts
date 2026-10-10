@@ -32,7 +32,6 @@ export function activate(options: ConnectTarget & ActivateParams, password?: str
       },
     },
     onError: (_responseCode, _raw, failure) => {
-      // A dropped connection has already reported its own status; only settle the dialog.
       if (failure !== CommandFailure.Disconnected) {
         updateStatus(StatusEnum.DISCONNECTED, 'Account Activation Failed');
         disconnect();

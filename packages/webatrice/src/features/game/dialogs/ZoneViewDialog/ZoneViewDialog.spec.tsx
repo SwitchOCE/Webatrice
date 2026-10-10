@@ -23,7 +23,6 @@ vi.mock('../../../../services/cards/catalog/lookup', () => ({
 const OPT = makeCard({ id: 7, name: 'Opt' });
 const DURESS = makeCard({ id: 8, name: 'Duress' });
 
-/** Player 1 (local, "Trajer") and player 2 ("Opp"), each with `zone`. */
 type ZoneSpec = {
   name: NonNullable<Parameters<typeof makeZoneEntry>[0]['name']>;
   cards?: ServerInfo_Card[];
@@ -137,7 +136,6 @@ describe('ZoneViewDialog', () => {
 
     it('opens at "Maximum initial height for card view window"', () => {
       renderView({ playerId: 1, zoneName: ZoneName.GRAVE }, { name: ZoneName.GRAVE, cards: [OPT], cardCount: 1 });
-      // 14 rows of a 12.6rem (201.6 px) card: 15 thirds and 5 px.
       expect(dialogHeight()).toBe('1013px');
     });
 
@@ -154,8 +152,6 @@ describe('ZoneViewDialog', () => {
     });
 
     it('opens no taller than its cards need', () => {
-      // A flex-1 viewport cannot report a scrollHeight below its clientHeight.
-      // Its intrinsic child can: a short pile inside a much taller viewport.
       vi.spyOn(HTMLElement.prototype, 'clientHeight', 'get').mockImplementation(function clientHeight() {
         return this.classList.contains('overflow-auto') ? 900 : 450;
       });
@@ -169,11 +165,9 @@ describe('ZoneViewDialog', () => {
     it('switches to the expanded height on a title bar double-click', () => {
       renderView({ playerId: 1, zoneName: ZoneName.GRAVE }, { name: ZoneName.GRAVE, cards: [OPT], cardCount: 1 });
       const content = panel(GRAVE).querySelector<HTMLElement>('.overflow-auto')!;
-      // jsdom has no layout: the card area reports the height the view opened at.
       content.getBoundingClientRect = () => new DOMRect(0, 0, 900, 1013);
       panel(GRAVE).getBoundingClientRect = () => new DOMRect(0, 0, 900, 1013);
       fireEvent.doubleClick(screen.getByRole('heading', { name: GRAVE }));
-      // 20 rows: 21 thirds of 201.6 px and 5 px.
       expect(dialogHeight()).toBe('1416px');
     });
 
@@ -192,7 +186,6 @@ describe('ZoneViewDialog', () => {
       content.getBoundingClientRect = () => new DOMRect(0, 0, 900, 1416);
       panel(GRAVE).getBoundingClientRect = () => new DOMRect(0, 0, 900, 1416);
       fireEvent.doubleClick(expand);
-      // A double-click on the button is not the title bar's double-click.
       expect(dialogHeight()).toBe('1416px');
       fireEvent.click(expand);
       expect(dialogHeight()).toBe('1013px');
@@ -215,7 +208,6 @@ describe('ZoneViewDialog', () => {
       const settings = await getSettings();
       settingsStore.setValue(Object.assign(settings, { cardViewInitialRowsMax: 8, cardViewExpandedRowsMax: 5 }));
       renderView({ playerId: 1, zoneName: ZoneName.GRAVE }, { name: ZoneName.GRAVE, cards: [OPT], cardCount: 1 });
-      // 8 rows: 9 thirds of 201.6 px and 5 px.
       expect(dialogHeight()).toBe('610px');
       const content = panel(GRAVE).querySelector<HTMLElement>('.overflow-auto')!;
       content.getBoundingClientRect = () => new DOMRect(0, 0, 900, 610);

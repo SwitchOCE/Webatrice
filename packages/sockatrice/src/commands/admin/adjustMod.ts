@@ -3,9 +3,6 @@ import { Command_AdjustMod_ext, Command_AdjustModSchema } from '../../generated'
 import { WebClient } from '../../WebClient';
 import type { RequestId } from '../../types/RequestId';
 
-// Servatrice changes a role only when its flag is present (cmdAdjustMod's
-// has_should_be_*), so an undefined flag leaves that role untouched.
-/** Echo the client-only identity on both outcomes; omission preserves legacy callback arity. */
 export function adjustMod(
   userName: string, shouldBeMod?: boolean, shouldBeJudge?: boolean, shouldBeDeveloper?: boolean,
   ...correlation: [requestId?: RequestId]

@@ -37,11 +37,6 @@ import {
   stubThirdPartyFetch,
 } from './deckHelpers';
 
-// Characterization of the deck editor route: the deck is downloaded over the
-// real Sockatrice command path, every edit lands as an autosaved
-// Command_DeckUpload whose `.cod` payload is decoded and asserted, and the
-// third-party lookups (Scryfall, Commander Spellbook) are served by a fake.
-
 const DECK_ID = 5;
 
 const MODERN_DECK = codXml({
@@ -79,7 +74,6 @@ beforeEach(async () => {
   clearDeckEditorCache();
   clearDecksListCache();
   clearBracketSourceCaches();
-  // Most specs exercise the bracket estimate; the consent spec asks first.
   await writeBracketLookupsMode(CommanderSpellbookIntegration.Automatic);
   fetchMock = stubThirdPartyFetch();
   stubImagePreload();
@@ -119,7 +113,6 @@ function uploads(): ParsedDeck[] {
   return findAllSessionCommands(Command_DeckUpload_ext).map((c) => parseCod(c.value.deckList));
 }
 
-/** Waits for an autosave whose decoded `.cod` satisfies `predicate`. */
 async function autosaved(predicate: (deck: ParsedDeck) => boolean): Promise<ParsedDeck> {
   let match: ParsedDeck | undefined;
   await waitFor(() => {
@@ -133,7 +126,6 @@ function card(deck: ParsedDeck, name: string) {
   return deck.cards.find((c) => c.name === name);
 }
 
-/** The deck-list row (`role="row"`) holding the card's name button. */
 function cardRow(cardName: string): HTMLElement {
   return screen.getByRole('button', { name: cardName }).closest<HTMLElement>('[role="row"]')!;
 }
@@ -142,12 +134,10 @@ function rowActions(cardName: string) {
   return within(cardRow(cardName)).getByRole('button', { name: 'DeckEditor.rowActions.trigger' });
 }
 
-/** The quick-add suggestions listbox, once suggestions have loaded. */
 function suggestionList(): Promise<HTMLElement> {
   return screen.findByRole('listbox', { name: 'DeckEditor.quickAdd.listLabel' });
 }
 
-/** Section heading text as rendered: the section key followed by its card total. */
 function sections(...entries: [string, number][]): string[] {
   return entries.map(([section, total]) => `DeckEditor.section.${section}${total}`);
 }
@@ -172,7 +162,6 @@ describe('DeckEditor (integration)', () => {
     );
     expect(await screen.findByText('DeckBracket.title', {}, { timeout: 3000 })).toBeInTheDocument();
 
-    // Spellbook gets the main deck and the commander, never the sideboard.
     const spellbook = fetchCalls(fetchMock, 'https://backend.commanderspellbook.com/find-my-combos/');
     expect(spellbook).toHaveLength(1);
     const body = JSON.parse(String(spellbook[0][1]?.body));
@@ -193,7 +182,6 @@ describe('DeckEditor (integration)', () => {
     await openDeck(COMMANDER_DECK);
 
     expect(await screen.findByText('DeckBracket.consent.prompt')).toBeInTheDocument();
-    // The price still autosaves from the card lookup; no bracket is computed or saved.
     const saved = await autosaved((d) => d.meta.priceUsd === 24.75);
     expect(saved.bracketAssessment).toBeUndefined();
     expect(fetchCalls(fetchMock, 'https://backend.commanderspellbook.com/')).toEqual([]);
@@ -230,7 +218,6 @@ describe('DeckEditor (integration)', () => {
 
       expect(await screen.findByText('DeckBracket.partialTitle', {}, { timeout: 3000 })).toBeInTheDocument();
       expect(screen.getByText('DeckBracket.sourceUnavailable')).toBeInTheDocument();
-      // The price still autosaves; the degraded bracket never does.
       await autosaved((d) => d.meta.priceUsd === 24.75);
       expect(bracketUploads()).toEqual([]);
 
@@ -303,13 +290,11 @@ describe('DeckEditor (integration)', () => {
       })));
     });
     expect(await screen.findByText('DeckSidebar.saved')).toBeInTheDocument();
-    // The ack's tree item updates the deck tree in place; no list refetch.
     expect(findAllSessionCommands(Command_DeckList_ext).length).toBe(listRequestsBefore);
   });
 
   it('does not upload when nothing changed', async () => {
     await openDeck(MODERN_DECK);
-    // Opening caches the computed price into the deck: one real change.
     await autosaved((d) => d.meta.priceUsd !== undefined);
     const before = uploads().length;
 
@@ -342,7 +327,6 @@ describe('DeckEditor (integration)', () => {
     expect(quickAdd).toHaveValue('');
 
     fireEvent.change(quickAdd, { target: { value: 'Sol' } });
-    // Enter adds the highlighted (first) suggestion once it has loaded.
     const solRing = await within(await suggestionList()).findByRole('option', { name: 'Sol Ring' });
     expect(solRing).toHaveAttribute('aria-selected', 'true');
     fireEvent.keyDown(quickAdd, { key: 'Enter' });
@@ -366,7 +350,6 @@ describe('DeckEditor (integration)', () => {
     fireEvent.click(rowActions('Sol Ring'));
     fireEvent.click(within(screen.getByRole('menu')).getByRole('menuitem', { name: 'DeckEditor.rowActions.addOne' }));
     await autosaved((d) => card(d, 'Sol Ring')?.quantity === 2);
-    // Adding a copy keeps the menu open.
     expect(screen.getByRole('menu')).toBeInTheDocument();
 
     fireEvent.click(within(screen.getByRole('menu')).getByRole('menuitem', { name: 'Common.action.remove' }));
@@ -463,7 +446,6 @@ describe('DeckEditor (integration)', () => {
 
   it('undoes and redoes from the buttons, the history list and the keyboard; autosave follows', async () => {
     await openDeck(MODERN_DECK);
-    // Let the opening price cache land so later uploads are the edits'.
     await autosaved((d) => d.meta.priceUsd !== undefined);
 
     fireEvent.change(screen.getByRole('combobox', { name: 'FormatPicker.label' }), { target: { value: 'legacy' } });
@@ -475,11 +457,9 @@ describe('DeckEditor (integration)', () => {
     expect(screen.getByRole('button', { name: 'Sol Ring' })).toBeInTheDocument();
     await autosaved((d) => d.format === 'legacy' && card(d, 'Sol Ring')?.quantity === 1);
 
-    // Ctrl+Z on the page (not in a text field) undoes the format change.
     fireEvent.keyDown(document.body, { key: 'z', code: 'KeyZ', ctrlKey: true });
     expect((screen.getByRole('combobox', { name: 'FormatPicker.label' }) as HTMLSelectElement).value).toBe('modern');
 
-    // Ctrl+Y redoes it; the history list then jumps straight to the end.
     fireEvent.keyDown(document.body, { key: 'y', code: 'KeyY', ctrlKey: true });
     expect((screen.getByRole('combobox', { name: 'FormatPicker.label' }) as HTMLSelectElement).value).toBe('legacy');
     fireEvent.click(screen.getByRole('button', { name: 'DeckHistory.history' }));

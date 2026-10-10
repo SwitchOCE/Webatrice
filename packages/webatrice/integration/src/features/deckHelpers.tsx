@@ -18,11 +18,6 @@ import {
 import { findAllSessionCommands, findLastSessionCommand } from '../helpers/command-capture';
 import { buildResponse, buildResponseMessage, deliverMessage } from '../helpers/protobuf-builders';
 
-// Shared scaffolding for the deck list / deck editor characterization specs.
-// The WebSocket is the only mocked transport; the third-party HTTP services
-// the deck feature talks to (Scryfall, Commander Spellbook) are served by a
-// small in-memory card database so no spec reaches the real network.
-
 export interface FakeScryfallCard {
   id: string;
   name: string;
@@ -116,11 +111,6 @@ function json(body: unknown, status = 200): Response {
 
 export type FetchOverride = (url: string, init?: RequestInit) => Response | Promise<Response> | undefined;
 
-/**
- * Route `fetch` to the fake card database. Returns the mock so specs can
- * assert on outbound third-party requests. `override` runs first and can
- * simulate an outage for a specific endpoint by returning a response.
- */
 export function stubThirdPartyFetch(override?: FetchOverride) {
   const fetchMock = vi.fn(async (input: RequestInfo | URL, init?: RequestInit): Promise<Response> => {
     const url = String(input);
@@ -161,7 +151,6 @@ export function stubThirdPartyFetch(override?: FetchOverride) {
     if (url.startsWith('https://api.scryfall.com/cards/search?')) {
       const q = new URL(url).searchParams.get('q') ?? '';
       if (q.includes('is:gamechanger')) {
-        // A real, non-empty list (an empty one is malformed) with nothing the fixtures play.
         return json({ data: [{ name: 'Rhystic Study' }] });
       }
       const exact = /^!"(.*)"$/.exec(q);
@@ -189,7 +178,6 @@ export function stubThirdPartyFetch(override?: FetchOverride) {
   return fetchMock;
 }
 
-/** jsdom never loads images; resolve every preload on the next tick. */
 export function stubImagePreload(): void {
   class LoadingImage {
     onload: (() => void) | null = null;
@@ -204,8 +192,6 @@ export function stubImagePreload(): void {
 export function fetchCalls(fetchMock: ReturnType<typeof stubThirdPartyFetch>, prefix: string) {
   return fetchMock.mock.calls.filter(([input]) => String(input).startsWith(prefix));
 }
-
-// ---------- Deck storage protocol ----------
 
 export function deckFile(id: number, name: string, creationTime = 1_700_000_000): ServerInfo_DeckStorage_TreeItem {
   return create(ServerInfo_DeckStorage_TreeItemSchema, {
@@ -222,7 +208,6 @@ export function deckFolder(name: string, items: ServerInfo_DeckStorage_TreeItem[
   });
 }
 
-/** Answer the most recent Command_DeckList with the given root items. */
 export function respondToDeckList(items: ServerInfo_DeckStorage_TreeItem[]): void {
   const { cmdId } = findLastSessionCommand(Command_DeckList_ext);
   deliverMessage(buildResponseMessage(buildResponse({
@@ -234,7 +219,6 @@ export function respondToDeckList(items: ServerInfo_DeckStorage_TreeItem[]): voi
   })));
 }
 
-/** Answer the most recent Command_DeckDownload for `deckId` with `.cod` XML. */
 export function respondToDeckDownload(deckId: number, xml: string): void {
   const matches = findAllSessionCommands(Command_DeckDownload_ext).filter((c) => c.value.deckId === deckId);
   if (matches.length === 0) {
@@ -251,8 +235,6 @@ export function sentDeckDownloadIds(): number[] {
   return findAllSessionCommands(Command_DeckDownload_ext).map((c) => c.value.deckId);
 }
 
-// ---------- .cod fixtures ----------
-
 export interface CodCard {
   name: string;
   quantity?: number;
@@ -268,7 +250,6 @@ export function codXml(opts: {
   main?: CodCard[];
   side?: CodCard[];
   bracketLevel?: number;
-  /** Raw `<bannerCard>` / `<tags>` elements, written verbatim. */
   extraXml?: string;
 }): string {
   const card = (c: CodCard) =>
@@ -291,7 +272,6 @@ export function codXml(opts: {
   ].join('');
 }
 
-/** Renders the current router location so specs can assert navigation. */
 export function LocationProbe() {
   const location = useLocation();
   return <div data-testid="location">{location.pathname}</div>;

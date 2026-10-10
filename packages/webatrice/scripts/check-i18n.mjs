@@ -30,11 +30,8 @@ import { IntlMessageFormat } from 'intl-messageformat';
 const SOURCE_EXTENSIONS = /\.(ts|tsx)$/;
 const SKIPPED_SOURCES = /(\.spec\.tsx?$|\/__test-utils__\/|\/__mocks__\/|\.d\.ts$)/;
 const CATALOG_FILE = /\.i18n\.json$/;
-// Only these call shapes take a key; `t` is the `useTranslation()` binding and
-// `i18n.t` / `i18next.t` the module-level instance.
 const KEY_PROPERTY = /Key$/;
 
-/** Flattens a nested catalogue into `{ 'A.b.c': message }`. */
 export function flattenCatalog(json, prefix = '', out = {}) {
   for (const [key, value] of Object.entries(json)) {
     const id = prefix ? `${prefix}.${key}` : key;
@@ -47,17 +44,14 @@ export function flattenCatalog(json, prefix = '', out = {}) {
   return out;
 }
 
-/** The order prebuild.js merges catalogues in: by POSIX path, compared by code unit. */
 export function compareCatalogPaths(a, b) {
   return a < b ? -1 : a > b ? 1 : 0;
 }
 
-/** The rollup exactly as prebuild.js writes it. */
 export function serializeRollup(merged) {
   return JSON.stringify(merged, null, 2);
 }
 
-/** Merges catalogue files the way prebuild.js does: a repeated top-level namespace is an error. */
 export function mergeCatalogs(files) {
   const merged = {};
   const problems = [];
@@ -96,17 +90,6 @@ function propertyName(node) {
   return undefined;
 }
 
-/**
- * Scans one source file for key references.
- *
- * - `keys`: literal keys that must resolve (t() / i18nKey / `*Key` props).
- * - `prefixes`: static heads of template keys (`A.b.` from `A.b.${x}`).
- * - `tails`: static rests of fully dynamic template keys (`.count` from `${p}.count`),
- *   matched against string literals to find the keys they reach.
- * - `strings` / `heads`: every string literal and template head, which reach keys
- *   passed around as data (`labelKey: 'A.b'`, `label: `A.steps.${key}``).
- * - `defaultValues`: literal keys called with a `defaultValue` option.
- */
 export function scanSource(file, text) {
   const kind = file.endsWith('.tsx') ? ts.ScriptKind.TSX : ts.ScriptKind.TS;
   const sourceFile = ts.createSourceFile(file, text, ts.ScriptTarget.Latest, true, kind);
@@ -118,7 +101,6 @@ export function scanSource(file, text) {
     if (ts.isStringLiteral(node) || ts.isNoSubstitutionTemplateLiteral(node)) {
       result.strings.add(node.text);
     } else if (ts.isTemplateExpression(node) && node.head.text) {
-      // A key built as data and translated elsewhere (`label: `A.steps.${key}``).
       result.heads.add(node.head.text);
     }
 
@@ -164,7 +146,6 @@ export function scanSource(file, text) {
   return result;
 }
 
-/** Reads the members of `export enum Language` from `src/types/languages.ts`. */
 export function readLanguageEnum(text) {
   const sourceFile = ts.createSourceFile('languages.ts', text, ts.ScriptTarget.Latest, true);
   const values = [];
@@ -180,10 +161,6 @@ export function readLanguageEnum(text) {
   return values;
 }
 
-/**
- * Runs every check over already-loaded inputs and returns one message per problem.
- * Pure, so the spec drives it without touching the file system.
- */
 export function checkI18n({ catalogFiles, sources, allowlist = [], rollupText, localeDirs, languages }) {
   const problems = [];
   const { merged, problems: mergeProblems } = mergeCatalogs(catalogFiles);
@@ -198,8 +175,6 @@ export function checkI18n({ catalogFiles, sources, allowlist = [], rollupText, l
   const keyRefs = scans.flatMap((s) => s.keys);
   for (const ref of keyRefs) {
     const namespace = ref.key.split('.')[0];
-    // `*Key` props also carry storage keys, ids and so on; only a value that names a
-    // catalogue namespace is an i18n key. t() and i18nKey always are.
     const isI18nRef = ref.via === 't()' || ref.via === 'i18nKey' || namespaces.has(namespace);
     if (!isI18nRef) {
       continue;
@@ -250,14 +225,12 @@ export function checkI18n({ catalogFiles, sources, allowlist = [], rollupText, l
       continue;
     }
     try {
-      // i18next-icu formats with ignoreTag, so <Trans> placeholders (<1>…</1>) are text, not ICU tags.
       new IntlMessageFormat(message, 'en', undefined, { ignoreTag: true });
     } catch (e) {
       problems.push(`"${key}" is not valid ICU: ${e.message}`);
     }
   }
 
-  // Git may check the file out with CRLF line endings; the generator writes LF.
   if (rollupText !== undefined && rollupText.replace(/\r\n/g, '\n') !== serializeRollup(merged)) {
     problems.push('src/i18n-default.json is stale; run `npm run translate` and commit the result');
   }
@@ -302,7 +275,6 @@ function main() {
     .sort((a, b) => compareCatalogPaths(a.file, b.file));
   const sources = walk(src, (f) => SOURCE_EXTENSIONS.test(f) && !SKIPPED_SOURCES.test(f.split(path.sep).join('/')))
     .map((file) => ({ file: rel(file), text: fs.readFileSync(file, 'utf8') }));
-  // `{ "<key>": "<why no source references it>" }`
   const allowlist = Object.keys(JSON.parse(fs.readFileSync(path.join(root, 'scripts/i18n-allowlist.json'), 'utf8')));
   const rollupText = fs.readFileSync(path.join(src, 'i18n-default.json'), 'utf8');
   const localeDirs = fs.readdirSync(path.join(root, 'public/locales'), { withFileTypes: true })

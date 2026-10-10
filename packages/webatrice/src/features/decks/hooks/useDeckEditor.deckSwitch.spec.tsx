@@ -29,7 +29,6 @@ function setup(initialDeckId: number) {
     preloadedState: connectedState as Partial<RootState> as never,
     webClient,
   });
-  // The editor navigates once a draft is stored, so it needs a router.
   const RoutedWrapper = ({ children }: { children: ReactNode }) => (
     <MemoryRouter><Wrapper>{children}</Wrapper></MemoryRouter>
   );
@@ -103,7 +102,6 @@ describe('useDeckEditor — switching deckId on a mounted editor', () => {
     rerender({ deckId: DECK_B });
     await download(DECK_B, 'Bravo', 'standard');
 
-    // A is cached now: switching back must show A without a download.
     rerender({ deckId: DECK_A });
     expect(result.current.deck?.name).toBe('Alpha');
     expect(result.current.deck?.format).toBe('modern');

@@ -9,12 +9,6 @@ import { resolveHandOrZoneCardMenu } from '../CardContextMenu/handCardMenu.actio
 import { buildRelatedTokenItems } from '../CardContextMenu/relatedCardActions';
 import { ContextMenuPopup } from '../ContextMenu/ContextMenu';
 
-/**
- * Hand and library / sideboard zone-view card menu — desktop's
- * CardMenu::createHandOrCustomZoneMenu (card_menu.cpp:296-342). The items
- * and their actions resolve in resolveHandOrZoneCardMenu over the seat's
- * state and ports.
- */
 export default function HandCardMenu() {
   const { t } = useTranslation();
   const playToStack = usePreference('playToStack');
@@ -39,9 +33,7 @@ export default function HandCardMenu() {
     zoneViewCardMenu,
     zones,
   } = usePlayerSeatContext();
-  // Desktop's "Annotate card text on tokens".
   const annotateTokens = usePreference('annotateTokens');
-  // Write access to this seat's cards: the owner, or a judge.
   const canModify = useCanActFor()(menuOwnerId);
 
   const menu = resolveHandOrZoneCardMenu({

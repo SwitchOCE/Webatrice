@@ -1,10 +1,5 @@
 import type { Locator, Page } from '@playwright/test';
 
-// Press Tab (Shift+Tab when the target comes earlier in the document) until
-// `target` has focus, proving it is in the tab order. Never relies on
-// wrapping past the end of the page: Firefox wraps into the browser chrome.
-// On a board card Tab is Next Phase, so from there it leaves the card's zone
-// with F6 (Shift+F6 going back), as a keyboard user does.
 export async function tabTo(page: Page, target: Locator, maxPresses = 60): Promise<void> {
   await target.waitFor();
   for (let i = 0; i < maxPresses; i++) {

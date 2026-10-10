@@ -25,8 +25,6 @@ function createRotations(store: GameStore) {
       if (gameId == null || !games.Selectors.getGame(store.getState(), gameId)) {
         return;
       }
-      // Retain the scene's rotation while its route is unmounted, but discard
-      // it when the game is removed (including disconnect/clear-store).
       unsubscribe ??= store.subscribe(() => {
         let changed = false;
         for (const id of steps.keys()) {
@@ -49,8 +47,6 @@ function createRotations(store: GameStore) {
   };
 }
 
-// Desktop owns playerRotation on each GameScene (game_scene.cpp:35,248).
-// Scope the browser equivalent to the store, not a route or persisted setting.
 const rotationsByStore = new WeakMap<GameStore, ReturnType<typeof createRotations>>();
 
 export function useGameRotation(gameId: number | undefined) {

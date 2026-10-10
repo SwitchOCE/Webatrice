@@ -1,8 +1,3 @@
-// The battlefield card context menu as data (refactor plan PB-09). Labels,
-// order, dividers and shortcut hints mirror desktop's card menu
-// (menu_builder.cpp / TableZone::onCardContextMenu); the builder only wires
-// the caller's handlers, so it never touches a client or Dexie. The seat builds
-// it and ContextMenuEntries draws it on the shared Menu.
 
 import type { ActionId } from '@app/feature-widgets/shortcuts';
 import type { TFunction } from 'i18next';
@@ -12,8 +7,6 @@ import type { ContextMenuItem, MenuShortcutFor } from '../ContextMenu/ContextMen
 
 export interface BuildCardContextMenuArgs {
   t: TFunction;
-  /** Each item's shortcut props from the current bindings (useMenuShortcut), so the
-   *  hints follow a rebinding in the Shortcuts tab. */
   menuShortcut: MenuShortcutFor;
   faceDown: boolean;
   doesntUntap: boolean;
@@ -96,9 +89,6 @@ export interface BuildCardContextMenuArgs {
    *  the finished items in so this builder stays wire-agnostic
    *  (no Dexie / token lookups needed here). */
   tokenItems?: ContextMenuItem[];
-  /** The "View related cards" submenu with its leading separator
-   *  (`buildRelatedViewItems`); desktop adds it after Card counters and
-   *  before the token actions (card_menu.cpp:232-233). */
   relatedViewItems?: ContextMenuItem[];
 }
 
@@ -253,9 +243,7 @@ export function buildCardContextMenu(args: BuildCardContextMenuArgs): ContextMen
 export interface BuildOpponentCardMenuArgs {
   t: TFunction;
   menuShortcut: MenuShortcutFor;
-  /** Arrows belong to the local player, so any card can start one. */
   onDrawArrow: () => void;
-  /** The token copy lands on the local player's battlefield. */
   onClone: () => void;
   onReduceLifeByPower: () => void;
   onSelectAll: () => void;
@@ -264,12 +252,6 @@ export interface BuildOpponentCardMenuArgs {
   relatedViewItems?: ContextMenuItem[];
 }
 
-/**
- * The menu of another player's battlefield card: desktop's `!canModifyCard`
- * branch on the TABLE zone (card_menu.cpp:183-194). Only the actions that do
- * not change that player's cards: no tap, flip, P/T, annotation, counters,
- * moves or attach.
- */
 export function buildOpponentCardMenu(args: BuildOpponentCardMenuArgs): ContextMenuItem[] {
   return [
     { label: args.t('CardMenu.drawArrow'), ...args.menuShortcut('game.drawArrow'), onClick: args.onDrawArrow },

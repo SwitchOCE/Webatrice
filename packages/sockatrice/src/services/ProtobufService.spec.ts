@@ -644,7 +644,6 @@ describe('ProtobufService', () => {
       vi.mocked(hasExtension).mockReturnValue(true);
       vi.mocked(getExtension).mockReturnValue(payload);
 
-      // Servatrice stores replay containers with game_id cleared.
       service.replayGameEventContainer({
         gameId: -1,
         secondsElapsed: 12,

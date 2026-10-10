@@ -4,7 +4,6 @@ import type { RequestId } from '../../types/RequestId';
 
 import { Command_GetBanHistory_ext, Command_GetBanHistorySchema, Response_BanHistory_ext } from '../../generated';
 
-/** Echo the client-only identity on both outcomes; omission preserves legacy callback arity. */
 export function getBanHistory(userName: string, ...correlation: [requestId?: RequestId]): void {
   WebClient.instance.protobuf.sendModeratorCommand(Command_GetBanHistory_ext, create(Command_GetBanHistorySchema, { userName }), {
     responseExt: Response_BanHistory_ext,

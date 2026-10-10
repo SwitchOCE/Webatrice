@@ -20,13 +20,6 @@ export interface UseGameDialogsArgs {
   isSpectator: boolean;
 }
 
-/**
- * The game's dialog and context-menu owner: one instance per game, published
- * through GameDialogsContext. A façade over `./dialogs`: `useGameDialogState`
- * owns the open/closed state (the seats' card menus included), and one action
- * hook per domain (zone, library, hand, game lifecycle) owns the handlers that
- * open, fill and submit those dialogs.
- */
 export function useGameDialogs({
   gameId,
   isSpectator,

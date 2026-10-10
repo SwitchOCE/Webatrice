@@ -17,11 +17,6 @@ export function BracketBadge({ level }: { level: number }) {
   );
 }
 
-/**
- * USD pill on a deck row: loading (dots) until the deck's XML lands, a
- * dash when the deck has no cached price, else `$X.XX` with a `+` when
- * some cards had no price on file.
- */
 export function DeckPriceBadge({
   price,
 }: {

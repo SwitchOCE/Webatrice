@@ -21,12 +21,6 @@ export interface NotificationNotice {
   details?: string;
 }
 
-/**
- * Maps an Event_NotifyUser to the message box desktop shows for it
- * (TabSupervisor::processNotifyUserEvent). Returns null where desktop shows
- * nothing: a warning without a reason, a custom message without a title or
- * body, and any type this client does not know (desktop's `default:;`).
- */
 export function describeNotification(t: TFunction, notification: Event_NotifyUser): NotificationNotice | null {
   switch (notification.type) {
     case Event_NotifyUser_NotificationType.UNKNOWN:
@@ -53,7 +47,6 @@ export function describeNotification(t: TFunction, notification: Event_NotifyUse
   }
 }
 
-// QString::simplified(): trim and collapse internal whitespace runs.
 function simplified(value: string | undefined): string {
   return (value ?? '').replace(/\s+/g, ' ').trim();
 }
@@ -65,21 +58,6 @@ function formatCountdown(ms: number): string {
   return `${minutes}:${String(seconds).padStart(2, '0')}`;
 }
 
-/**
- * Server-pushed notices adapted from desktop (browser reload replaces Help > Check for Updates):
- *   • Event_ServerShutdown → the "Scheduled server shutdown" box
- *     (ConnectionController::onServerShutdownEvent), here with a live
- *     countdown. Servatrice re-sends the event as the deadline nears; each one
- *     re-opens the notice with the fresh time.
- *   • Event_NotifyUser → one message box per notification, in arrival order
- *     (TabSupervisor::processNotifyUserEvent).
- *
- * Captures messages synchronously from action signals, before a same-tick
- * disconnect can clear Redux. Final messages survive session boundaries until
- * dismissed; only the obsolete idle warning clears on session end. Mounted
- * once in AppShell, outside SessionScope. Connection-closed reasons from an
- * active login are retained too; later generic socket status cannot erase them.
- */
 export default function ServerNotices() {
   const { t } = useTranslation();
   const connectionState = useAppSelector(server.Selectors.getState);
@@ -92,7 +70,6 @@ export default function ServerNotices() {
   const [now, setNow] = useState(() => Date.now());
   const [notices, setNotices] = useState<QueuedNotice[]>(() =>
     storedNotifications.map((event) => ({ kind: 'notification', event })));
-  // Prevent replay of the last Redux action on mount/StrictMode effect replay.
   const received = useRef(new WeakSet(storedNotifications));
 
   useReduxEffect<{ notification: Event_NotifyUser }>(({ payload: { notification } }) => {
@@ -115,9 +92,6 @@ export default function ServerNotices() {
   useReduxEffect<ReturnType<typeof server.Actions.updateStatus>['payload']>(({ payload: { status } }) => {
     const wasLoggedIn = previousStatus.current === WebsocketTypes.StatusEnum.LOGGED_IN;
     previousStatus.current = status.state;
-    // Event_ConnectionClosed arrives through UPDATE_STATUS. Capture the first
-    // reason before the physical socket reports its generic close/failure text.
-    // Login rejections stay with Login; ordinary logout needs no extra dialog.
     const reason = status.description;
     if (wasLoggedIn && status.state === WebsocketTypes.StatusEnum.DISCONNECTED && reason
       && reason !== 'Connection Closed' && reason !== 'Connection Failed') {

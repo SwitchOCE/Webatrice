@@ -26,8 +26,6 @@ function saveTextFile(fileName: string, text: string): void {
   const anchor = document.createElement('a');
   anchor.href = url;
   anchor.download = fileName;
-  // Attached and revoked a task later: Firefox and Safari can drop a download
-  // from a detached anchor or a URL revoked during the click.
   document.body.appendChild(anchor);
   anchor.click();
   anchor.remove();
@@ -101,7 +99,6 @@ const TokenDataForm = ({ token, onSubmit, onRemove }: TokenDataFormProps) => {
   );
 };
 
-/** Desktop's "Edit custom tokens" dialog (`dlg_edit_tokens.cpp`). */
 const EditTokens = () => {
   const { t } = useTranslation();
   const editor = useEditTokens();
@@ -111,7 +108,6 @@ const EditTokens = () => {
     resolver,
   });
 
-  // One roving tab stop; arrows, Home/End move the selection, Space or Enter selects.
   const { getRowProps } = useGridRows({
     keys: editor.tokens.map((token) => token.name.value),
     selectedKey: editor.selected?.name.value ?? null,

@@ -12,13 +12,10 @@ import { useListboxCombobox, usePreference, type ListboxComboboxInputProps } fro
 
 import { applyMention, findMentionQuery, matchMentions, type MentionQuery } from './mentionQuery';
 
-/** Rows the list shows before it scrolls, desktop's setMaxVisibleItems(5). */
 const VISIBLE_ROWS = 5;
-/** Matches rendered at most, so a bare `@` in a busy room stays a short list. */
 const MAX_MATCHES = 50;
 
 export interface MentionCompleterOptions {
-  /** Who can be mentioned: the room's users, the game's players and spectators, the peer. */
   names: readonly string[];
   value: string;
   onValueChange: (value: string) => void;
@@ -26,26 +23,17 @@ export interface MentionCompleterOptions {
 }
 
 export interface MentionCompleter {
-  /** Spread onto the chat input; supplies its `onChange`, so the input needs no other. */
   inputProps: Partial<ListboxComboboxInputProps> & {
     onChange: (event: ChangeEvent<HTMLInputElement>) => void;
     onSelect?: () => void;
     onBlur?: () => void;
   };
-  /** The suggestion list; render it inside a `relative` box around the input. */
   popup: ReactNode;
 }
 
 const sameQuery = (a: MentionQuery | null, b: MentionQuery | null) =>
   a?.start === b?.start && a?.prefix === b?.prefix;
 
-/**
- * Chat › "Enable mention completer": typing `@` in a chat input suggests the names that can be
- * mentioned, desktop's LineEditCompleter with its mention completer. Keyboard first: Arrow keys
- * move through the suggestions, Enter or Tab inserts `@name ` (Tab then moves focus on), Escape
- * closes the list. The input is an ARIA combobox and the list a listbox (useListboxCombobox).
- * With the setting off the input is left as it was.
- */
 export function useMentionCompleter({ names, value, onValueChange, inputRef }: MentionCompleterOptions): MentionCompleter {
   const { t } = useTranslation();
   const enabled = usePreference('chatMentionCompleter');
@@ -57,7 +45,6 @@ export function useMentionCompleter({ names, value, onValueChange, inputRef }: M
   const open = matches.length > 0;
   const activeIndex = Math.min(active, matches.length - 1);
 
-  // Put the caret after an inserted mention once the new text has rendered.
   useLayoutEffect(() => {
     if (pendingCaret.current !== null) {
       inputRef.current?.setSelectionRange(pendingCaret.current, pendingCaret.current);
@@ -91,8 +78,6 @@ export function useMentionCompleter({ names, value, onValueChange, inputRef }: M
     }
   };
 
-  // Tab inserts and lets focus move on, as desktop's LineEditCompleter::focusOutEvent does. Escape
-  // only closes the list; with it closed, Escape is the page's (a chat dialog closes).
   const { listboxId, inputProps, getOptionProps } = useListboxCombobox({
     count: matches.length,
     open,
@@ -115,7 +100,6 @@ export function useMentionCompleter({ names, value, onValueChange, inputRef }: M
       onBlur: () => setQuery(null),
     },
     popup: (
-      // ARIA 1.2 requires aria-controls on a combobox, so the listbox is always rendered (hidden when empty).
       <ul
         id={listboxId}
         role="listbox"
@@ -128,7 +112,6 @@ export function useMentionCompleter({ names, value, onValueChange, inputRef }: M
         style={{ maxHeight: `${VISIBLE_ROWS * 1.75 + 0.5}rem` }}
       >
         {matches.map((name, index) => {
-          // Focus stays in the input, so the caret is still where the mention goes.
           const option = getOptionProps(index);
           return (
             <li

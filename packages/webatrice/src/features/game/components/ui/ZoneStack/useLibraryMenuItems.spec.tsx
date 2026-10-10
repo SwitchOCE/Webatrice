@@ -23,7 +23,6 @@ const find = (items: ContextMenuItem[], ...path: string[]): Item => {
 
 type SetupArgs = Partial<Omit<UseLibraryMenuItemsArgs, 'libraryOps'>> & { openCountPrompt?: UseLibraryOpsArgs['openCountPrompt'] };
 
-/** The menu over the real library ops (useLibraryOps) and spy ports. */
 function setup(args: SetupArgs = {}) {
   const openZoneView = vi.fn();
   const zoneCommands = {

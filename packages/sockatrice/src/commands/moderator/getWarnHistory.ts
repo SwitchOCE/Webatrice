@@ -4,7 +4,6 @@ import type { RequestId } from '../../types/RequestId';
 
 import { Command_GetWarnHistory_ext, Command_GetWarnHistorySchema, Response_WarnHistory_ext } from '../../generated';
 
-/** Echo the client-only identity on both outcomes; omission preserves legacy callback arity. */
 export function getWarnHistory(userName: string, ...correlation: [requestId?: RequestId]): void {
   WebClient.instance.protobuf.sendModeratorCommand(
     Command_GetWarnHistory_ext,

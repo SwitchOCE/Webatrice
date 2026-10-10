@@ -26,8 +26,6 @@ export interface LoginDialogState {
 
 export interface Login {
   description: string | undefined;
-  // The last login was rejected with RespPasswordChangeRequired; the only way
-  // past it is the forgot-password reset, so the login screen offers it.
   passwordChangeRequired: boolean;
   isConnected: boolean;
   dialogState: LoginDialogState;
@@ -48,13 +46,6 @@ export interface Login {
   closeActivateAccountDialog: () => void;
 }
 
-// Login rejections with a localized explanation (desktop
-// remote_connection_controller.cpp shows a dedicated dialog for each); any
-// other code keeps Sockatrice's English status line. Desktop tells a
-// password-change-required user to log in and change it under Account, but
-// Servatrice rejects every login while the flag is set and only the
-// forgot-password reset clears it (serversocketinterface.cpp
-// cmdForgotPasswordReset), so the text points there instead.
 const LOGIN_FAILURE_MESSAGE_KEYS: Partial<Record<number, string>> = {
   [Response_ResponseCode.RespPasswordChangeRequired]: 'Login.status.passwordChangeRequired',
   [Response_ResponseCode.RespServerFull]: 'Login.status.serverFull',
@@ -69,8 +60,6 @@ export function useLogin(): Login {
   const webClient = useWebClient();
   const { t } = useTranslation();
 
-  // Show a reachability hint instead of the generic status when a connect never opened,
-  // and a localized reason for the login rejections the user can act on.
   const loginFailureKey = loginFailureCode === null ? undefined : LOGIN_FAILURE_MESSAGE_KEYS[loginFailureCode];
   const passwordChangeRequired =
     !isConnected && loginFailureCode === Response_ResponseCode.RespPasswordChangeRequired;
@@ -85,9 +74,6 @@ export function useLogin(): Login {
     useState<WebsocketTypes.PendingActivationContext | null>(null);
 
   const rememberLoginRef = useRef<LoginFormValues | RegisterFormValues | null>(null);
-  // @critical memory-only: the plaintext password retained for the post-activation login (desktop
-  // RemoteClient keeps it the same way). Never put it in Redux (the action slice snapshots payloads)
-  // or Dexie; cleared when activation succeeds or the dialog closes.
   const pendingActivationPasswordRef = useRef<string | undefined>(undefined);
   const knownHosts = useKnownHosts();
   const [dialogState, setDialogState] = useState<LoginDialogState>({

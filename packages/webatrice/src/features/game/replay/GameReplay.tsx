@@ -13,11 +13,6 @@ import { ReplayRewindProvider } from '../components/ui/ReplayRewindContext';
 import ReplayControls from './ReplayControls';
 import { useReplayPlayback } from './useReplayPlayback';
 
-/**
- * Replay route: desktop's TabGame in replay mode. Renders the regular game board
- * read-only over the replay's local game, with the replay dock underneath. The
- * replay stays open (and its tab in the top bar) until the user closes it.
- */
 function GameReplay() {
   const { t } = useTranslation();
   const { replayKey } = useParams<{ replayKey: string }>();
@@ -34,7 +29,6 @@ function GameReplay() {
     );
   }
 
-  // Keyed so switching between two replay tabs starts from the other replay's own state.
   return <ReplayView key={opened.key} opened={opened} />;
 }
 
@@ -42,7 +36,6 @@ function ReplayView({ opened }: { opened: OpenedReplay }) {
   const navigate = useNavigate();
   const playback = useReplayPlayback(opened);
 
-  // Desktop relabels "Leave game" to "Close replay" in replay mode.
   const closeReplayTab = useCallback(() => {
     navigate(generatePath(RouteEnum.REPLAYS));
     closeReplay(opened.key);

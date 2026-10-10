@@ -23,7 +23,6 @@ import TopBar from './TopBar';
 
 const TABS_KEY = 'webatrice.stickyTabs';
 const OWNER_KEY = 'webatrice.stickyTabs.owner';
-// `${serverName}::${userName}` for connectedState.
 const IDENTITY = 'Test Server::testUser';
 
 function LocationProbe() {
@@ -89,7 +88,6 @@ describe('TopBar identity changes', () => {
 describe('TopBar user menu', () => {
   it('focuses a surviving tab after closing the focused tab', () => {
     renderTopBar(RouteEnum.SETTINGS);
-    // Other tests leave sticky tabs in the module store; close the Settings tab itself.
     const settingsTab = screen.getByRole('link', { name: 'UserMenu.settings' }).parentElement!;
     const close = within(settingsTab).getByRole('button', { name: 'TopBar.tabs.close' });
     close.focus();
@@ -239,7 +237,6 @@ describe('TopBar replays entry', () => {
     expect(nav).toContainElement(replayLink);
     const close = within(replayLink.closest('li')!).getByRole('button', { name: 'TopBar.tabs.close' });
     expect(replayLink).not.toContainElement(close);
-    // The pinned Lobby tab has no close button.
     const lobbyTab = screen.getByRole('link', { name: /TopBar\.tab\.lobby/ }).closest('li')!;
     expect(within(lobbyTab).queryByRole('button')).not.toBeInTheDocument();
   });
@@ -338,7 +335,6 @@ describe('TopBar tab titles', () => {
 });
 
 describe('TopBar deck tabs', () => {
-  // Deck tabs in tab order, by the route each one links to.
   const deckTab = () => screen
     .queryAllByRole('link', { name: 'TopBar.tab.deck' })
     .map((tab) => tab.getAttribute('href'));
@@ -354,7 +350,6 @@ describe('TopBar deck tabs', () => {
     settingsStore.reset();
   });
 
-  // The sticky tabs are a module singleton, so each case uses its own deck ids.
   it('opens each deck from Deck Storage in its own tab, as desktop always does', () => {
     renderTopBar('/deck/1').unmount();
     renderTopBar('/deck/2');
@@ -514,7 +509,6 @@ describe('TopBar sticky tabs', () => {
       { key: 'bogus', type: 'bogus', title: 'Bogus', route: '/bogus', closeable: true },
       { key: 'player:', type: 'player', route: '/player', closeable: true },
     ]));
-    // The sticky tabs load with their module, so load fresh copies.
     vi.resetModules();
     const { renderWithProviders: renderFresh } = await import('../../__test-utils__');
     const { default: FreshTopBar } = await import('./TopBar');
@@ -568,8 +562,6 @@ describe('TopBar without local storage', () => {
     window.localStorage.clear();
   });
 
-  // The sign-in identity check used to read and write its owner key directly,
-  // so a browser that blocks storage threw from TopBar's effect.
   it('still renders when the browser blocks local storage', () => {
     vi.spyOn(Storage.prototype, 'getItem').mockImplementation(() => {
       throw new DOMException('blocked', 'SecurityError');

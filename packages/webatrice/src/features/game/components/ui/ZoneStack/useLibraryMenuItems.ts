@@ -12,9 +12,7 @@ type SeatPrompts = ReturnType<typeof useSeatPrompts>;
 
 export interface UseLibraryMenuItemsArgs {
   seatId: number;
-  /** The library size the server reports. */
   deckCount: number;
-  /** Every other seated player. */
   revealTargets: readonly { playerId: number; name: string }[];
   alwaysRevealTopCard: boolean;
   alwaysLookAtTopCard: boolean;
@@ -24,17 +22,11 @@ export interface UseLibraryMenuItemsArgs {
   openViewLibraryCountPrompt: SeatPrompts['openViewLibraryCountPrompt'];
   openRevealTopCardsPrompt: SeatPrompts['openRevealTopCardsPrompt'];
   openMoveTopUntilDialog: () => void;
-  /** The deck-editor link; undefined when the deck matches no saved deck. */
   onOpenDeckInEditor: (() => void) | undefined;
   menuShortcut: MenuShortcutFor;
   zoneCommands: PlayerZoneCommands;
 }
 
-/**
- * The library menu (desktop LibraryMenu) the battlefield menu nests: draw,
- * shuffle, the views, reveals and lends, the always-reveal / look toggles and
- * the top / bottom of library submenus.
- */
 export function useLibraryMenuItems({
   seatId,
   deckCount,
@@ -80,8 +72,6 @@ export function useLibraryMenuItems({
       targetPlayerId,
       deckSize: deckCount,
     }));
-  // Desktop's topLibraryMenu (library_menu.cpp:50-62); the library pile's
-  // menu shows the same submenu.
   const topLibraryItems: ContextMenuItem[] = [
     {
       label: t('ShortcutsTab.action.game.playTop'),
@@ -152,7 +142,6 @@ export function useLibraryMenuItems({
       ...menuShortcut('game.shuffleTopCards'),
     },
   ];
-  // Desktop's bottomLibraryMenu (library_menu.cpp:64-78).
   const bottomLibraryItems: ContextMenuItem[] = [
     {
       label: t('ZoneMenu.drawBottom'),
@@ -307,9 +296,6 @@ export function useLibraryMenuItems({
     },
     { divider: true },
     {
-      // Opens the deck being played in the deck editor as an
-      // unsaved draft (desktop actOpenDeckInDeckEditor); disabled
-      // until the deck is known.
       label: t('ZoneMenu.openDeckEditor'),
       onClick: onOpenDeckInEditor,
       disabled: !onOpenDeckInEditor,

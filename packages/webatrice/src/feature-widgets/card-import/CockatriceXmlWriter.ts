@@ -1,12 +1,5 @@
 import type { Card, Set, Token, XmlNode } from '@app/services';
 
-/**
- * Minimal cards.xsd v4 writer — the inverse of `CockatriceXmlParser.parseElement`
- * (`{ value, ...attrs }` leaves, repeated siblings as arrays, nested elements
- * as objects in `value`). Used to export editor-made tokens the way desktop
- * saves them to `customsets/TK.xml`.
- */
-
 function escapeXml(text: string): string {
   return text
     .replace(/&/g, '&amp;')

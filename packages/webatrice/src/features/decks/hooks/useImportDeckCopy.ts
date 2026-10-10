@@ -4,17 +4,8 @@ import type { ServerInfo_DeckStorage_TreeItem } from '@cockatrice/sockatrice/gen
 import { useReduxEffect, useRequestTracker } from '@app/hooks';
 import { parseCod } from '@app/services';
 
-/**
- * "Import to my decks" for a deck someone else shared or published: upload a
- * copy into the root of the caller's deck storage, then hand its new id on.
- * Desktop opens such a deck in an unsaved editor tab instead; Webatrice's
- * editor only edits stored decks, so the copy is stored first, with the
- * color identity the share or listing already gave. An upload failure is
- * reported by the shell's `CommandFailureNotices`.
- */
 export function useImportDeckCopy(onImported: (deckId: number) => void) {
   const webClient = useWebClient();
-  // Several imports may be in flight; each answer settles only its own request.
   const requests = useRequestTracker();
 
   useReduxEffect<{ path: string; treeItem: ServerInfo_DeckStorage_TreeItem; requestId?: string }>(({ payload }) => {

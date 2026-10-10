@@ -9,7 +9,6 @@ const PHASE_KEYS: Record<Phase, string> = {
   [Phase.SecondMain]: 'secondMain', [Phase.EndCleanup]: 'endCleanup',
 };
 
-/** The phase track and log share one key set, including short and sentence forms. */
 export function phaseLabel(t: TFunction, phase: number, form: 'short' | 'log' | 'title'): string {
   const key = PHASE_KEYS[phase as Phase];
   return key ? t(`GamePhase.${key}.${form}`) : t('GamePhase.unknown', { phase });

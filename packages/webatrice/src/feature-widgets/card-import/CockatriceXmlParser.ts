@@ -10,7 +10,6 @@ export interface ParsedCockatriceXml {
 class CockatriceXmlParser {
   private parsedSources = new WeakMap<CardSourceRecords, string>();
 
-  /** Reuse only records produced by this parser for these exact XML bytes. */
   parseSource(text: string, preview?: CardSourceRecords): CardSourceRecords {
     if (preview && this.parsedSources.get(preview) === text) {
       return preview;
@@ -88,7 +87,6 @@ class CockatriceXmlParser {
         if (printings.some(printing => typeof printing.value !== 'string' || !printing.value.trim())) {
           throw new Error('Cockatrice XML contains an invalid printing');
         }
-        // Preserve first-definition ownership even before sources are merged.
         const isToken = tokenByName.get(parsed.name.value) ?? (isLegacyTokenRoot || parsed.token?.value === '1');
         tokenByName.set(parsed.name.value, isToken);
         if (isToken) {
@@ -182,8 +180,6 @@ class CockatriceXmlParser {
     };
   }
 
-  // Read from the DOM, not `parseElement`: a `<cardCondition>`'s `value`
-  // attribute would collide with the generic text `value`.
   private parseExceptions(formatEl: Element): FormatException[] {
     const container = this.directChild(formatEl, 'exceptions');
     if (!container) {

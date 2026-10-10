@@ -8,16 +8,8 @@ import { searchCardAsPreview, searchCardImage } from '../../search';
 import type { DeckCard } from '../../types';
 import { CardSearchFilters } from './CardSearchFilters';
 
-/** Scryfall query syntax shown in the empty prompt; never translated. */
 const SYNTAX_EXAMPLES = { oracleExample: 'o:"draw a card"', commanderExample: 'is:commander' };
 
-/**
- * Full-page advanced search — replaces the deck list body when the user
- * clicks "Advanced search". The typed query and filters are controlled
- * by `DeckMainPane`, so they survive Back / Advanced round trips. The
- * composed query is searched (debounced) as it changes; clicking a
- * result adds it through the same path as quick add.
- */
 export function AdvancedCardSearch({
   query,
   onQueryChange,
@@ -34,7 +26,6 @@ export function AdvancedCardSearch({
   onPreviewCard: (card: DeckCard | null) => void;
 }) {
   const { t } = useTranslation();
-  // The last card added from the results, announced since the deck list is out of view.
   const [added, setAdded] = useState<string | null>(null);
   const composedQuery = useMemo(() => buildScryfallQuery(query, filters), [query, filters]);
   const { results, loading, error } = useScryfallCardSearch(composedQuery);
@@ -65,7 +56,6 @@ export function AdvancedCardSearch({
           onReset={() => onFiltersChange(EMPTY_FILTERS)}
         />
 
-        {/* Mounted with the search, so screen readers hear each new count or failure. */}
         <div role="status" className="text-xs text-text-muted h-4">
           {loading && t('CardSearch.searching')}
           {error !== null && (
@@ -118,8 +108,6 @@ export function AdvancedCardSearch({
                   onAddByName(card.name);
                   setAdded(card.name);
                 }}
-                // Previewed in the sidebar, not added to the deck: on hover
-                // and on keyboard focus alike.
                 onMouseEnter={() => onPreviewCard(searchCardAsPreview(card))}
                 onFocus={() => onPreviewCard(searchCardAsPreview(card))}
                 aria-label={t('CardSearch.addCardTitle', { name: card.name })}
@@ -145,7 +133,6 @@ export function AdvancedCardSearch({
                     <div className="mt-auto text-xs text-text-muted">{card.type_line ?? ''}</div>
                   </div>
                 )}
-                {/* Overlay Add affordance on hover and keyboard focus. */}
                 <div
                   className={[
                     'absolute inset-0 bg-black/0 group-hover:bg-black/60 group-focus-visible:bg-black/60',

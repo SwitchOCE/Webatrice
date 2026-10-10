@@ -67,7 +67,6 @@ describe('PlayerPlaymat', () => {
     Object.defineProperty(image(), 'naturalHeight', { value: 900 });
     fireEvent.load(image());
 
-    // The 600px square window at the top of the art, scaled to the 1000px width and centred vertically.
     expect(image().style).toMatchObject({ left: '0px', top: '-350px', width: '1000px', height: '1500px' });
   });
 
@@ -97,7 +96,6 @@ describe('PlayerPlaymat', () => {
     expect(screen.getByTestId('player-playmat')).toBeInTheDocument();
   });
 });
-
 
 it('uses configured image sources and retries them on the battlefield', async () => {
   await settingsStore.whenReady();

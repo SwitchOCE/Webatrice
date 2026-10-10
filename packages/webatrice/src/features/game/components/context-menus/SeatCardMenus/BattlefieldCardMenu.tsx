@@ -8,12 +8,6 @@ import { buildCardContextMenu, buildOpponentCardMenu } from '../CardContextMenu/
 import { ContextMenuPopup, type ContextMenuItem } from '../ContextMenu/ContextMenu';
 import { buildRelatedActionItems } from '../CardContextMenu/relatedCardActions';
 
-/**
- * The battlefield card menu: right-click a battlefield card to open. Each item
- * runs the seat's battlefield card op on the clicked card, or on the whole
- * selection when the clicked card is part of it (useBattlefieldCardOps), then
- * closes. The menu is disabled on an optimistic card without a server id.
- */
 export default function BattlefieldCardMenu() {
   const { t } = useTranslation();
   const {
@@ -28,7 +22,6 @@ export default function BattlefieldCardMenu() {
     menuShortcut,
     tokenMetaByName,
   } = usePlayerSeatContext();
-  // Desktop's "Annotate card text on tokens".
   const annotateTokens = usePreference('annotateTokens');
 
   if (!cardContextMenu) {
@@ -48,11 +41,6 @@ export default function BattlefieldCardMenu() {
     closeSeatCardMenu();
   };
 
-  // "Token: …" items from the card's related list, plus "Token: Transform
-  // into …" for a double-faced card and "All tokens" (desktop
-  // addRelatedCardActions, card_menu.cpp:407-479). On another player's card
-  // the token is still created by the local player, so it lands on the local
-  // battlefield.
   const tokenItems: ContextMenuItem[] = card
     ? buildRelatedActionItems(
       t,

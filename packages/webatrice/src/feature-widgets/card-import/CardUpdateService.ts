@@ -2,17 +2,10 @@ import { cardDatabaseService, type RebuildResult } from './CardDatabaseService';
 import { MAX_DOWNLOAD_BYTES, MAX_METADATA_BYTES, MAX_SEASON_BYTES } from './cardImportLimits';
 import { CardSourceId } from './mergeCardSources';
 
-/**
- * The upstream files desktop downloads (`oracle/src/pages.cpp`,
- * `spoiler_background_updater.cpp`). All four answer a browser `fetch` with
- * `Access-Control-Allow-Origin: *`, so they are fetched directly.
- */
 export const UpstreamUrl = {
   TOKENS: 'https://raw.githubusercontent.com/Cockatrice/Magic-Token/master/tokens.xml',
   SPOILERS: 'https://raw.githubusercontent.com/Cockatrice/Magic-Spoiler/files/spoiler.xml',
   SPOILER_SEASON: 'https://raw.githubusercontent.com/Cockatrice/Magic-Spoiler/files/SpoilerSeasonEnabled',
-  // Oracle builds cards.xml from MTGJSON AllPrintings (~100 MB compressed);
-  // the browser only compares versions and points the user at Oracle.
   MTGJSON_META: 'https://www.mtgjson.com/api/v5/Meta.json',
 } as const;
 
@@ -107,23 +100,14 @@ export type SpoilerUpdateResult =
   | { status: 'updated'; rebuild: RebuildResult };
 
 export interface CardDatabaseVersionCheck {
-  /** MTGJSON version Oracle would build from today. */
   latestVersion?: string;
-  /** `<sourceVersion>` of the imported cards.xml, if any. */
   installedVersion?: string;
   updateAvailable: boolean;
 }
 
-/**
- * Browser counterpart of desktop's card update actions. Downloads replace a
- * source only after the new XML parsed, so a failed or offline update leaves
- * the database as it was.
- */
 class CardUpdateService {
-  // Late-bound so tests can stub the global.
   constructor(private readonly fetchImpl: typeof fetch = (input, init) => fetch(input, init)) {}
 
-  /** Oracle's tokens step: replace tokens.xml with Magic-Token's. */
   async updateTokens(): Promise<RebuildResult> {
     const xml = await download(UpstreamUrl.TOKENS, this.fetchImpl);
     return cardDatabaseService.addSources([
@@ -131,11 +115,6 @@ class CardUpdateService {
     ]);
   }
 
-  /**
-   * `SpoilerBackgroundUpdater`: a 404 on the season flag means spoiler season
-   * is over and spoiler.xml is dropped; otherwise download it and reload only
-   * when it changed.
-   */
   async updateSpoilers(): Promise<SpoilerUpdateResult> {
     const season = await fetchText(UpstreamUrl.SPOILER_SEASON, this.fetchImpl, MAX_SEASON_BYTES);
     if (season.status === 404) {
@@ -160,7 +139,6 @@ class CardUpdateService {
     return { status: 'updated', rebuild };
   }
 
-  /** Desktop's "Check for Card Updates": compare the MTGJSON build Oracle would use. */
   async checkCardDatabase(): Promise<CardDatabaseVersionCheck> {
     const text = await download(UpstreamUrl.MTGJSON_META, this.fetchImpl, MAX_METADATA_BYTES);
     const meta = JSON.parse(text) as { data?: { version?: string }; meta?: { version?: string } };

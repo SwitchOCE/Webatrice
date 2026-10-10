@@ -2,9 +2,6 @@ import { create } from '@bufbuild/protobuf';
 import { WebClient } from '../../WebClient';
 import { Command_Report_ext, Command_ReportSchema, type ReportParams } from '../../generated';
 
-// Submitting a report is a one-shot dialog action (desktop DlgReportUser), so the
-// outcome goes back to the caller like replaySubmitCode. RespTooManyRequests is
-// the per-user rate limit; RespNameNotFound an unknown reported user.
 export function report(
   params: ReportParams,
   onSubmitted?: () => void,

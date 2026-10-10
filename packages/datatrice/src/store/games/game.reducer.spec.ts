@@ -60,7 +60,6 @@ function dispatchCardMoved(
   return dispatchThroughStore(state, action);
 }
 
-
 describe('2A: Initialisation & lifecycle', () => {
   it('returns initialState (games map + null incomingReveal) when called with undefined state', () => {
     const result = gamesReducer(undefined, { type: '@@INIT' });
@@ -139,7 +138,6 @@ describe('2A: Initialisation & lifecycle', () => {
     expect(result).not.toBe(state);
   });
 });
-
 
 describe('2B: Game state & player management', () => {
   it('GAME_STATE_CHANGED with playerList → replaces players via normalizePlayers', () => {
@@ -290,8 +288,6 @@ describe('2B: Game state & player management', () => {
     expect(msgs.length).toBe(before + 1);
     const added = msgs[msgs.length - 1];
     expect(added.playerId).toBe(1);
-    // The listener's append action captures its own timestamp, matching every
-    // event-log entry; the inbound leave timestamp is informational only.
     expect(added.timeReceived).toEqual(expect.any(Number));
     expect(added.message).toBe('Alice has left the game (kicked by game host or moderator).');
   });
@@ -324,11 +320,6 @@ describe('2B: Game state & player management', () => {
   });
 
   it('PLAYER_PROPERTIES_CHANGED → ping-only tick lands in state.pings, preserves deckHash, and skips the player graph', () => {
-    // Regression: the per-second ping tick sends Event_PlayerPropertiesChanged
-    // with only ping_seconds set. A naive overwrite would wipe deck_hash and
-    // disable the Ready button in the deck-select dialog mid-lobby; the clock is
-    // routed to state.pings instead so the player graph keeps its refs (see
-    // GamesState.pings).
     const existing = makePlayerProperties({
       playerId: 1,
       deckHash: 'abc123',
@@ -378,7 +369,6 @@ describe('2B: Game state & player management', () => {
     expect(merged.deckHash).toBe('abc123');
   });
 });
-
 
 describe('2C: CARD_MOVED', () => {
   function stateWithCard(cardOverrides: Parameters<typeof makeCard>[0] = {}) {
@@ -1248,7 +1238,6 @@ describe('2C: CARD_MOVED', () => {
   });
 });
 
-
 describe('2D: Card mutations', () => {
   function stateWithCardInZone(zoneName: string) {
     const card = makeCard({ id: 5, name: 'Old', providerId: 'old', faceDown: false });
@@ -1506,7 +1495,6 @@ describe('2D: Card mutations', () => {
   });
 });
 
-
 describe('2E: CARD_ATTR_CHANGED', () => {
   function stateWithCard() {
     const card = makeCard({
@@ -1718,7 +1706,6 @@ describe('2E: CARD_ATTR_CHANGED', () => {
   });
 });
 
-
 describe('2F: CARD_COUNTER_CHANGED', () => {
   function stateWithCard(existingCounters: any[] = []) {
     const card = makeCard({ id: 4, counterList: existingCounters });
@@ -1768,7 +1755,6 @@ describe('2F: CARD_COUNTER_CHANGED', () => {
   });
 });
 
-
 describe('2G: Arrows', () => {
   it('ARROW_CREATED → inserts arrowInfo into player.arrows keyed by id', () => {
     const state = makeState();
@@ -1800,7 +1786,6 @@ describe('2G: Arrows', () => {
     expect(result.games[1].players[1].arrows[9]).toBeUndefined();
   });
 });
-
 
 describe('2H: Player counters', () => {
   it('COUNTER_CREATED → inserts counterInfo into player.counters keyed by id', () => {
@@ -1863,7 +1848,6 @@ describe('2H: Player counters', () => {
     expect(result.games[1].players[1].counters[5]).toBeUndefined();
   });
 });
-
 
 describe('2I: Zone operations', () => {
   it('CARDS_DRAWN → decrements deck.cardCount, appends cards to hand, increments hand.cardCount', () => {
@@ -2414,7 +2398,6 @@ describe('2I: Zone operations', () => {
   });
 });
 
-
 describe('2J: Turn, phase, and chat', () => {
   it('ACTIVE_PLAYER_SET → sets game.activePlayerId', () => {
     const state = makeState();
@@ -2538,7 +2521,6 @@ describe('2J: Turn, phase, and chat', () => {
     expect(result.games[1].messages[0].message).not.toBe('msg-0');
   });
 });
-
 
 describe('2K: Log-only actions', () => {
   it('ZONE_SHUFFLED → appends an event-log message', () => {
@@ -3064,7 +3046,6 @@ describe('2L: Null-guard / missing entity early-returns', () => {
     expect(gamesReducer(state, Actions.gameSay({ gameId: UNKNOWN_GAME, playerId: 1, message: 'hi', timeReceived: 0 }))).toBe(state);
   });
 });
-
 
 describe('malformed input', () => {
   it('CARDS_REVEALED with empty cards array → leaves zone unchanged', () => {

@@ -153,7 +153,6 @@ describe('PlayerInfoPanel', () => {
 
       setLife(store, 15);
       expect(lifePill('Alice')).toContainElement(screen.getByTestId('value-flash-loss'));
-      // Desktop's "Battlefield flash on damage" washes the player's table.
       const battlefield = document.querySelector('[data-battlefield-owner="1"]')!;
       expect(screen.getByTestId('value-flash-damage').parentElement).toContainElement(battlefield as HTMLElement);
     });

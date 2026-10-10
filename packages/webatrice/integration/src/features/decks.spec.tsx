@@ -34,10 +34,6 @@ import {
   stubThirdPartyFetch,
 } from './deckHelpers';
 
-// Characterization of the MyDecks route: every assertion pins either a real
-// Sockatrice command on the (mocked) socket or user-visible output, so the
-// deck-feature refactor can prove it preserved behaviour.
-
 function renderDecks() {
   return renderFeatureScreen(
     <Routes>
@@ -68,14 +64,12 @@ async function loadTree(items = [
   deckFile(2, 'Newer Deck', NOW_SECONDS - 60),
 ]) {
   renderDecks();
-  // The page (and the TopBar's tab titles) request the tree on mount.
   await waitFor(() => expect(findAllSessionCommands(Command_DeckList_ext).length).toBeGreaterThan(0));
   act(() => {
     respondToDeckList(items);
   });
 }
 
-/** Root: "Older Deck" and folder "Tournament" ("Newer Deck", folder "Old" with "Oldest Deck"). */
 const NESTED_TREE = [
   deckFile(1, 'Older Deck', NOW_SECONDS - 7200),
   deckFolder('Tournament', [
@@ -103,7 +97,6 @@ describe('Decks (integration)', () => {
     expect(await screen.findByText('Decks.list.deckCount')).toBeInTheDocument();
     const names = screen.getAllByText(/^(Older|Newer) Deck$/).map((el) => el.textContent);
     expect(names).toEqual(['Newer Deck', 'Older Deck']);
-    // One "created" line per deck (the age is a param the key-only test i18n drops).
     expect(screen.getAllByText('Decks.list.created')).toHaveLength(2);
   });
 
@@ -192,7 +185,6 @@ describe('Decks (integration)', () => {
       const listRequestsBefore = findAllSessionCommands(Command_DeckList_ext).length;
       fireEvent.click(screen.getByRole('button', { name: /MoveDeck.move/ }));
 
-      // Unknown colour identity is refreshed from the tree before copying.
       await waitFor(() => expect(findAllSessionCommands(Command_DeckList_ext)).toHaveLength(listRequestsBefore + 1));
       expect(sentDeckDownloadIds()).toEqual([1]);
       expect(findAllSessionCommands(Command_DeckUpload_ext)).toHaveLength(0);
@@ -231,7 +223,6 @@ describe('Decks (integration)', () => {
     await loadTree();
 
     await waitFor(() => expect(sentDeckDownloadIds().sort()).toEqual([1, 2]));
-    // Rows wait under "Loading…" until their XML lands.
     expect(screen.getByRole('heading', { level: 2, name: /Common\.status\.loading/ })).toBeInTheDocument();
 
     act(() => {

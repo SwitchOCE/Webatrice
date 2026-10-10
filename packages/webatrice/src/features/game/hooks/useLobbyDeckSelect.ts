@@ -4,11 +4,9 @@ import { games, type GameCommandFailedPayload } from '@cockatrice/datatrice';
 import { useCommandFailureMessage, useGameDeckCommands, useReduxEffect, useRequestTracker } from '@app/hooks';
 import { validateCod } from '@app/services';
 
-/** Deck selection and lobby commands; successful requests are announced by server events. */
 export function useLobbyDeckSelect(gameId: number) {
   const { t } = useTranslation();
   const commands = useGameDeckCommands(gameId);
-  // Only the latest pick's answer or failure is this lobby's to act on.
   const deckSelectRequest = useRequestTracker();
   const fileInputRef = useRef<HTMLInputElement | null>(null);
   const [uploadError, setUploadError] = useState<string | null>(null);
@@ -44,9 +42,6 @@ export function useLobbyDeckSelect(gameId: number) {
   // upstream Cockatrice grows bracket in ServerInfo_PlayerProperties.
   const [myPickedDeckId, setMyPickedDeckId] = useState<number | null>(null);
 
-  // A rejected or unanswered Command_DeckSelect leaves the picker up; say why
-  // instead of silently staying there (desktop has no handler for this).
-  // Kept apart from uploadError: a rejected pick from My Decks is not an upload problem.
   const [deckSelectError, setDeckSelectError] = useState<string | null>(null);
   const describeFailure = useCommandFailureMessage();
   useReduxEffect<GameCommandFailedPayload>(
@@ -80,16 +75,11 @@ export function useLobbyDeckSelect(gameId: number) {
     // No gameSay: Cockatrice emits its own event
     // ("X has loaded a deck (…)") on the deckHash property update.
   };
-  // Force start (desktop DeckViewContainer::forceStart): after a Yes/No
-  // confirmation the host sends ONE Command_ReadyStart{ready, force_start}.
-  // Servatrice readies the host, kicks every unready player and starts the
-  // game atomically (Server_AbstractPlayer::cmdReadyStart → startGameIfReady(true)).
   const [forceStartConfirmOpen, setForceStartConfirmOpen] = useState(false);
   const confirmForceStart = () => {
     setForceStartConfirmOpen(false);
     commands.readyStart({ ready: true, forceStart: true });
   };
-
 
   return {
     fileInputRef, uploadError, handleFilePicked, myPickedDeckId, deckSelectError, handleSelectDeck,

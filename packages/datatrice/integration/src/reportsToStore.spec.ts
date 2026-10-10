@@ -55,10 +55,6 @@ function loadDetails(report: Data.ServerInfo_Report) {
   })));
 }
 
-// Integration: the report and moderation-queue responses (Cockatrice #7091)
-// through attachResponseHandlers into a real store (dev freeze guard on),
-// read back through server.Selectors as the views do.
-
 function report(reportId: number, status: string) {
   return create(ServerInfo_ReportSchema, { reportId, status, reportedUserName: 'mallory', reporterName: 'alice' });
 }
@@ -98,7 +94,6 @@ describe('integration: report handlers', () => {
     response.moderator.reportResolved?.(1, true);
     expect(server.Selectors.getReport(store.getState(), 1)?.status).toBe('dismissed');
 
-    // Results land only on the investigation the moderator opened (one at a time).
     store.dispatch(server.Actions.userInvestigationStarted({ userName: 'mallory' }));
     response.moderator.reportUserInfo?.(create(Response_ReportUserInfoSchema, { userName: 'mallory', totalReports: 2 }));
     response.moderator.reportStats?.(create(Response_ReportStatsSchema, { totalReports: 2 }));

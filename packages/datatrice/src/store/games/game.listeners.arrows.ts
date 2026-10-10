@@ -4,7 +4,6 @@ import { GamesState } from './game.interfaces';
 import { Actions } from './game.actions';
 import { formatArrowCreated } from './messageLog';
 
-// Arrow listeners. The orphan-arrow sweep on card moves lives with cardMoved (zones).
 export function registerArrowsListeners(mw: ListenerMiddlewareInstance<unknown>): void {
   mw.startListening({
     actionCreator: Actions.arrowCreated,

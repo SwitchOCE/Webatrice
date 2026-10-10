@@ -44,10 +44,6 @@ import { buildResponse, buildResponseMessage, buildSessionEventMessage, deliverM
 import { renderFeatureScreen } from './helpers';
 import { LocationProbe, codXml, deckFile, deckFolder, respondToDeckList, stubThirdPartyFetch } from './deckHelpers';
 
-// Deck share links and public decks (Cockatrice 3.1, #7241) through the real
-// wire: each action's Command_* on the socket, and the screen after the
-// server's answer.
-
 function loginTo31() {
   connectRaw({ userName: 'alice' });
   deliverMessage(buildSessionEventMessage(

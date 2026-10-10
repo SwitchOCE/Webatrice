@@ -15,7 +15,6 @@ import { isModalOpen, isTabNavigationKey, keepsTabNavigation } from './focusGuar
 import { useShortcutsHydration } from './useShortcutsHydration';
 import { useShortcutsPersistence } from './useShortcutsPersistence';
 
-
 interface ShortcutProviderProps {
   children: ReactNode;
 }
@@ -124,20 +123,14 @@ export function ShortcutProvider({ children }: ShortcutProviderProps) {
         return;
       }
 
-      // A key the focused control already handled (a deck row's Enter or
-      // Delete) is not also a shortcut, even when the user rebinds one to it.
       if (event.defaultPrevented) {
         return;
       }
 
-      // Tab / Shift+Tab move focus inside dialogs and menus and between
-      // controls; only on the board do they keep desktop's phase bindings.
       if (isTabNavigationKey(event) && keepsTabNavigation(event.target)) {
         return;
       }
 
-      // While a modal is open, route shortcuts stand down: only GLOBAL
-      // actions fire, and Escape is left to the modal.
       const activeRoute = isModalOpen() ? null : computeRouteScope(pathnameRef.current);
 
       const candidates: ShortcutRegistration[] = [];

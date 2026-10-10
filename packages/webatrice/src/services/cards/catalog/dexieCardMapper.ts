@@ -5,13 +5,6 @@ import { dexieService, type Card, type CardInSet, type RelatedCard } from '../..
 import { getScryfallUrlById } from '../../scryfall';
 import type { LookupResult, PrintingSummary, RelatedCardRef } from './types';
 
-/**
- * The Dexie `cards` table (the user's imported Cockatrice cards.xml) read
- * as `LookupResult`s. cards.xml records are Cockatrice-XML-shaped
- * ({value, ...attrs} leaves, nested `prop`, single repeated tags
- * collapsed to a scalar) and keyed by `name.value`.
- */
-
 export async function getFromDexie(name: string): Promise<Card | undefined> {
   try {
     return (await dexieService.cards.get(name)) as Card | undefined;
@@ -30,8 +23,6 @@ export async function bulkGetFromDexie(names: string[]): Promise<Array<Card | un
 
 export function dexieToLookup(card: Card, preferences?: CardDataPreferences): LookupResult {
   const prop = card.prop?.value ?? {};
-  // Printings follow the user's set priority (Manage Sets), so the first
-  // one — the default art wherever a printing isn't pinned — is theirs.
   const sets = preferences
     ? sortBySetPreference(normalizeSets(card.set), (s) => s.value, preferences.setPreferences)
     : normalizeSets(card.set);
@@ -107,7 +98,6 @@ export function dexieToLookup(card: Card, preferences?: CardDataPreferences): Lo
   };
 }
 
-/** cards.xml `<tablerow>`, when it holds a row number. */
 function readTableRow(raw: string | undefined): { tableRow?: number } {
   const value = raw?.trim();
   return value && /^\d+$/.test(value) ? { tableRow: Number(value) } : {};
@@ -123,7 +113,6 @@ function readProperties(prop: Record<string, { value?: unknown } | undefined>): 
   return out;
 }
 
-/** cards.xml `format-<name>` props; `undefined` when the card has none. */
 function readLegalities(prop: Record<string, { value?: unknown } | undefined>): Record<string, string> | undefined {
   let out: Record<string, string> | undefined;
   for (const [key, node] of Object.entries(prop)) {
@@ -140,8 +129,6 @@ function pickImageUri(
   printing: CardInSet,
   preferences: CardDataPreferences | undefined,
 ): string | undefined {
-  // The printing's own picurl (self-hosted mirrors), then the user's picture
-  // URL templates; without preferences, fall back to Scryfall by UUID.
   if (preferences) {
     const [first] = resolvePrintingImageUrls(card, printing, {
       templates: preferences.pictureUrlTemplates,

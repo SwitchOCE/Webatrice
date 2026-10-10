@@ -101,7 +101,6 @@ export const Types = {
   GAMES_OF_USER: a.gamesOfUser.type,
   GAMES_OF_USER_REQUESTED: a.gamesOfUserRequested.type,
   GAMES_OF_USER_FAILED: a.gamesOfUserFailed.type,
-  // Staff tools
   USER_INVESTIGATION_STARTED: a.userInvestigationStarted.type,
   USER_INFO_REPORT: a.userInfoReport.type,
   USER_ALTS: a.userAlts.type,
@@ -112,7 +111,6 @@ export const Types = {
   CARD_ART_RULE_ADDED: a.cardArtRuleAdded.type,
   CARD_ART_RULE_REMOVED: a.cardArtRuleRemoved.type,
   SERVER_STATS: a.serverStats.type,
-  // Reports
   REPORT_ASSIGNED: a.reportAssigned.type,
   REPORT_RESOLVED: a.reportResolved.type,
   REPORT_REPLAY_DOWNLOADED: a.reportReplayDownloaded.type,

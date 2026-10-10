@@ -7,7 +7,6 @@ import { roomChatContext } from './roomChatContext';
 const at = new Date(2026, 0, 1, 12, 30, 5).getTime();
 
 function stored(name: string, message: string): Message {
-  // As rooms.reducer stores it: normalizeUserMessage prefixes "name: ".
   return { ...create(Event_RoomSaySchema, { name, message: name ? `${name}: ${message}` : message }), timeReceived: at };
 }
 

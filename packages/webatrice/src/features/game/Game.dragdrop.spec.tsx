@@ -42,8 +42,6 @@ vi.mock('../../services/cards/catalog/lookup', () => {
 const BOLT = makeCard({ id: 10, name: 'Bolt', x: 3, y: 1 });
 const BEAR = makeCard({ id: 20, name: 'Bear', x: 0, y: 0 });
 const LENT_CARDS = [makeCard({ id: 0, name: 'Lent Card' })];
-// Cross-player attachments: each lives in its owner's TABLE but renders on the
-// board of the card it is attached to (desktop re-parents it in the scene).
 const OWN_AURA = makeCard({ id: 12, name: 'Pacifism', attachPlayerId: 2, attachZone: ZoneName.TABLE, attachCardId: BEAR.id });
 const OPP_AURA = makeCard({ id: 22, name: 'Rancor', attachPlayerId: 1, attachZone: ZoneName.TABLE, attachCardId: BOLT.id });
 const OWN_BF = { left: 0, top: 500, width: 800, height: 400 };
@@ -71,8 +69,6 @@ function renderGame(
   });
   if (incomingReveal) {
     preloadedState.games = { ...preloadedState.games!, incomingReveal } as typeof preloadedState.games;
-    // The cardsRevealed listener seeds the same cards onto the lender's zone
-    // snapshot; the dialog reads that live snapshot.
     preloadedState.games!.games![1]!.players![2]!.zones![ZoneName.DECK]!.revealedCards = LENT_CARDS;
   }
   const webClient = createMockWebClient();
@@ -122,7 +118,6 @@ describe('Game drag-drop across seats', () => {
   it('gifts a battlefield card onto an opponent battlefield, resolved against their board', () => {
     const game = renderGame();
 
-    // Top-left slot of the mirrored opponent board: visual row 0 is wire row 2.
     pointerDrag(cardEl(BOLT.id, 'battlefield'), { x: 10, y: 510 }, { x: 15, y: 20 });
 
     expect(game.moveCard).toHaveBeenCalledTimes(1);
@@ -145,11 +140,6 @@ describe('Game drag-drop across seats', () => {
     expect(game.moveCard).not.toHaveBeenCalled();
   });
 
-  // Desktop starts a card drag only for the local player's cards, or any card for
-  // a judge (CardItem::mouseMoveEvent → getLocalOrJudge). PlayerBox used to let an
-  // opponent's card be dragged onto that opponent's own pile and sent the move as
-  // them, which Servatrice rejected (pinned in Stage 1 as a known gap). Fixed in
-  // the DnD convergence: the press is only a click.
   it('does not drag an opponent card: the press only selects it', () => {
     const game = renderGame();
 
@@ -181,10 +171,6 @@ describe('Game drag-drop across seats', () => {
     ]);
   });
 
-  // Desktop gates a drag by the card's owner, not the board it shows on
-  // (card_item.cpp mouseMoveEvent: owner->getPlayerInfo()->getLocalOrJudge()),
-  // and moves it out of its own zone (TableZone::handleDropEventByGrid takes
-  // the start player from the card's zone).
   describe('a card attached across seats', () => {
     function inBoard(cardId: number, playerId: number): HTMLElement {
       const el = battlefieldEl(playerId).querySelector<HTMLElement>(`[data-card][data-card-id="${cardId}"]`);
@@ -219,7 +205,6 @@ describe('Game drag-drop across seats', () => {
     it('does not drag an opponent\'s card shown on the local board: the press only selects it', () => {
       const game = renderGame(undefined, { attachments: true });
 
-      // Onto the local graveyard, which would take a local card.
       pointerDrag(inBoard(OPP_AURA.id, 1), { x: 10, y: 510 }, { x: 920, y: 520 });
 
       expect(game.moveCard).not.toHaveBeenCalled();
@@ -281,8 +266,6 @@ describe('Game drag-drop across seats', () => {
       expect(game.moveCard).not.toHaveBeenCalled();
     });
 
-    // Unresolved decision in the refactor plan, pinned: a lend never targets a
-    // spectator, and the dialog offers no drag to one.
     it('is not draggable for a spectator', () => {
       const game = renderGame(LEND, { spectator: true });
 

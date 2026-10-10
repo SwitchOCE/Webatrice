@@ -18,9 +18,7 @@ import { ROTATE_CLOCKWISE, ROTATE_COUNTERCLOCKWISE, type RotationStep } from './
 
 interface UseGameShortcutsArgs {
   gameId: number | undefined;
-  /** Operations for the seat-scoped shortcuts, published by the local seat. */
   seatShortcuts: SeatShortcutRegistry;
-  /** Turns the local board view; spectators may use it too. */
   onRotateView: (step: RotationStep) => void;
   onRequestConcede: () => void;
   onRequestDrawMultiple: () => void;
@@ -134,7 +132,6 @@ export function useGameShortcuts({
     { scope: ShortcutScope.GAME, enabled: inGame },
   );
 
-  // handlePhaseClick sets the phase optimistically and rolls back if the server rejects it.
   useShortcut(
     'game.nextPhase',
     () => {
@@ -157,15 +154,12 @@ export function useGameShortcuts({
 
   useShortcut('game.nextPhaseAction', nextPhaseAction.run, { scope: ShortcutScope.GAME, enabled: inGame });
 
-  // Desktop's phase buttons as keys (TabGame's phase actions): set that
-  // phase. The list is in phase order, so an action's index is its phase.
   useShortcutGroup(
     PHASE_SHORTCUT_ACTIONS,
     (_actionId, _event, phase) => handlePhaseClick(phase),
     { scope: ShortcutScope.GAME, enabled: inGame },
   );
 
-  // Local view only, so spectators get them too (hasLiveGame, not inGame).
   useShortcut('game.rotateViewCW', () => onRotateView(ROTATE_CLOCKWISE), { scope: ShortcutScope.GAME, enabled: hasLiveGame });
   useShortcut('game.rotateViewCCW', () => onRotateView(ROTATE_COUNTERCLOCKWISE), {
     scope: ShortcutScope.GAME,
@@ -281,9 +275,6 @@ export function useGameShortcuts({
     { scope: ShortcutScope.GAME, enabled: inGame && isParticipant },
   );
 
-  // View Library / Graveyard — opens the local player's zone view
-  // (ZoneViewDialog, with search/group/sort), the same one the seat's
-  // "View library" / "View graveyard" menus open. Owner-only.
   useShortcut(
     'game.viewLibrary',
     () => {
@@ -371,10 +362,6 @@ export function useGameShortcuts({
     { scope: ShortcutScope.GAME, enabled: inGame && isParticipant },
   );
 
-  // Say macros 1-10: send the macro verbatim as game chat. Desktop's SayMenu
-  // binds Ctrl+1 … Ctrl+0; the browser defaults are Alt+1 … Alt+0, since
-  // Ctrl+digit switches tabs. Only a seated player has a Say menu, and a slot
-  // without a macro leaves the key alone.
   useShortcutGroup(
     SAY_MACRO_ACTIONS,
     (actionId, event) => {
@@ -388,9 +375,6 @@ export function useGameShortcuts({
     { scope: ShortcutScope.GAME, preventDefault: false, enabled: hasLiveGame },
   );
 
-  // Seat-scoped shortcuts act on the local seat's selection, prompts and zones,
-  // so they run whatever the local seat published. The key is consumed only
-  // when a seat handled it: a spectator has no seat, and Ctrl+R stays a reload.
   useShortcutGroup(
     SEAT_SHORTCUT_ACTIONS,
     (actionId, event) => {

@@ -24,7 +24,6 @@ import './Moderation.css';
 const searchSchema = z.object({ userName: z.string() });
 type SearchFormValues = z.infer<typeof searchSchema>;
 
-/** Desktop TabModeration (tab_moderation.cpp). */
 const ModerationContent = () => {
   const { t } = useTranslation();
   const moderation = useModeration();
@@ -33,7 +32,6 @@ const ModerationContent = () => {
   const resolver = useMemo(() => zodResolver(searchSchema), []);
   const { control, handleSubmit, setValue } = useForm<SearchFormValues>({ defaultValues: { userName: '' }, resolver });
 
-  // The search box shows whoever is being investigated, as desktop's investigate() fills it.
   useEffect(() => {
     if (currentUser) {
       setValue('userName', currentUser);
@@ -169,8 +167,6 @@ const ModerationContent = () => {
   );
 };
 
-// The guards mount the page body only when it is allowed, so its mount effects
-// never send a staff or 3.1 command the user or server cannot serve.
 const Moderation = () => (
   <Layout className="moderation scrollable">
     <AuthGuard />

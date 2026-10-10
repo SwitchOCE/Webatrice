@@ -14,8 +14,6 @@ interface CardLike {
 }
 
 export function useScryfallCard(card: CardLike | null | undefined): ScryfallCardUrls {
-  // Key on the identifying fields so a fresh `card` object for the same
-  // printing doesn't rebuild the URLs. No card resolves to null URLs.
   const providerId = card?.providerId;
   const name = card?.name;
   return useMemo<ScryfallCardUrls>(() => {

@@ -39,15 +39,11 @@ const SignalActions = {
   developerCommandFailed: createAction<CommandFailedPayload & { command: WebsocketTypes.DeveloperCommandName; target: string }>(
     'server/developerCommandFailed'
   ),
-  // Command failure outcomes: `failure` is set when the server never answered
-  // (timeout, disconnect, not sent) and undefined for a server rejection.
   deckListFailed: createAction<CommandFailedPayload>('server/deckListFailed'),
   deckDownloadFailed: createAction<CommandFailedPayload & { deckId: number }>('server/deckDownloadFailed'),
   deckUploadFailed: createAction<CommandFailedPayload & { path: string; requestId?: string }>('server/deckUploadFailed'),
   replayListFailed: createAction<CommandFailedPayload>('server/replayListFailed'),
   deckUpdateFailed: createAction<CommandFailedPayload & { deckId: number }>('server/deckUpdateFailed'),
-  // Deck share links and public decks (#7241). The answers a view acts on once
-  // are signals; the caller's share list and public deck trees are state.
   deckShareCreated: createAction<{ share: Response_DeckShareCreate; requestId?: string }>('server/deckShareCreated'),
   deckShareListed: createAction<{ token: string; share: Response_DeckShareList }>('server/deckShareListed'),
   deckShareDownloaded: createAction<{ token: string; itemId: number; deck: string }>('server/deckShareDownloaded'),

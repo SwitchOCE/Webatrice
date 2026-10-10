@@ -52,7 +52,6 @@ describe('LogSearchForm', () => {
       logLocation: { room: true, game: true, chat: true },
       maximumResults: 1000,
     });
-    // ...and writes the completed values back into the form.
     expect(screen.getByLabelText('LogSearchForm.label.days')).toHaveValue(20);
     expect(screen.getByRole('radio', { name: 'LogSearchForm.label.pastDays' })).toBeChecked();
   });

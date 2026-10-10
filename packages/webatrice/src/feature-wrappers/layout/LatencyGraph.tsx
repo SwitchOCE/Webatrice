@@ -1,8 +1,3 @@
-// Port of desktop LatencyGraphWidget (Cockatrice #7153): one bar per sample,
-// oldest on the left. Bar heights are relative to the window's worst sample,
-// floored at MIN_SCALE_MS so small jitter stays readable; bar colour follows an
-// absolute ramp, green at 0 ms to red at COLOR_SCALE_MS, so a steady good ping
-// never looks alarming.
 const COLOR_SCALE_MS = 500;
 const MIN_SCALE_MS = 100;
 

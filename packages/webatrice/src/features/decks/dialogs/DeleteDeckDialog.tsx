@@ -9,7 +9,6 @@ export interface DeleteDeckDialogProps {
   onConfirm: () => void;
 }
 
-/** Confirmation before a deck is permanently removed from the server. */
 export function DeleteDeckDialog({ deckName, onCancel, onConfirm }: DeleteDeckDialogProps) {
   const { t } = useTranslation();
   const titleId = useId();

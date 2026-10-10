@@ -16,10 +16,6 @@ import type { LogEntry } from './messageLog';
 
 const pingField = ServerInfo_PlayerPropertiesSchema.field.pingSeconds;
 
-// Fields a volatile ping tick may carry that never affect the player graph: the
-// clock itself plus the redundant player_id the action already carries. An
-// update whose set fields are all volatile takes the ping-only fast path — see
-// GamesState.pings.
 const VOLATILE_PING_FIELDS = new Set([
   pingField,
   ServerInfo_PlayerPropertiesSchema.field.playerId,
@@ -68,7 +64,6 @@ export const primitiveReducers = {
     // fall back to the map's key order (numeric). Keep only ids that are present.
     const ids = order ?? Object.keys(players).map(Number);
     game.seatOrder = ids.filter((id) => players[id] != null);
-    // Reseed the live ping map from the snapshot — see GamesState.pings.
     const pings: { [playerId: number]: number } = {};
     for (const idKey of Object.keys(players)) {
       const id = Number(idKey);
@@ -96,9 +91,6 @@ export const primitiveReducers = {
     if (activePhase !== undefined) {
       game.activePhase = activePhase;
     }
-    // A replay keeps one time base: its containers' seconds_elapsed (gameTimeSynced), counted
-    // from the start of the game, not Event_GameStateChanged's, counted from its creation
-    // (server_game.cpp:271,292).
     if (secondsElapsed !== undefined && !game.replay) {
       game.secondsElapsed = secondsElapsed;
       game.secondsElapsedAt = action.payload.timeReceived;
@@ -111,10 +103,6 @@ export const primitiveReducers = {
     secondsElapsed?: number;
   } & EventTime>>),
 
-  /**
-   * A replay reached a recorded container played at `secondsElapsed` into the game: the game
-   * time its events are logged at, however fast the replay runs.
-   */
   gameTimeSynced: withEventTime(((state, action) => {
     const game = state.games[action.payload.gameId];
     if (!game) {
@@ -327,14 +315,9 @@ export const primitiveReducers = {
     if (!game || !player) {
       return;
     }
-    // The ping clock lives in the sibling state.pings map, not the player
-    // graph — see GamesState.pings.
     if (isFieldSet(properties, pingField)) {
       state.pings[gameId][playerId] = properties.pingSeconds;
     }
-    // Ping-only fast path: leave `player.properties` (and thus the player and
-    // players refs) untouched so the tick stream invalidates no
-    // players-subscribed selector or component.
     if (isPingOnlyUpdate(properties)) {
       return;
     }

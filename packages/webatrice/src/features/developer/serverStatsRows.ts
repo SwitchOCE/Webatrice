@@ -7,7 +7,6 @@ import { formatLocalDateTime } from '@app/utils';
 export interface StatRow {
   label: string;
   value: string;
-  /** Bold section title with an empty value (desktop appendSeparatorRow). */
   section?: boolean;
 }
 
@@ -22,7 +21,6 @@ const KIB = 1024;
 const MIB = 1024 * KIB;
 const GIB = 1024 * MIB;
 
-/** Desktop TabDeveloper::formatBytes. */
 export function formatBytes(bytes: bigint, t: TFunction): string {
   const value = Number(bytes);
   if (value >= GIB) {
@@ -37,7 +35,6 @@ export function formatBytes(bytes: bigint, t: TFunction): string {
   return t('Developer.unit.bytes', { value });
 }
 
-/** Desktop TabDeveloper::formatDurationMs. */
 export function formatDurationMs(ms: bigint, t: TFunction): string {
   const value = Number(ms);
   if (value >= 1000) {
@@ -46,7 +43,6 @@ export function formatDurationMs(ms: bigint, t: TFunction): string {
   return t('Developer.unit.milliseconds', { value });
 }
 
-/** Desktop TabDeveloper::serverStatsResponse, the statistics table. */
 export function buildStatRows(stats: Response_GetServerStats, t: TFunction): StatRow[] {
   const uptime = Number(stats.uptimeSecs);
   const days = Math.floor(uptime / 86400);
@@ -92,7 +88,6 @@ export function buildStatRows(stats: Response_GetServerStats, t: TFunction): Sta
   return rows;
 }
 
-/** Desktop TabDeveloper's per-command table, slowest (by total ms) first. */
 export function buildCommandRows(commandStats: CommandStats[]): CommandRow[] {
   return [...commandStats]
     .sort((a, b) => (b.totalMs > a.totalMs ? 1 : b.totalMs < a.totalMs ? -1 : 0))

@@ -40,8 +40,6 @@ export const moderationReducers = {
     state.adminNotes[action.payload.userName] = action.payload.notes;
   }) as CaseReducer<ServerState, PayloadAction<{ userName: string; notes: string }>>,
 
-  // Mirrors Servatrice cmdAdjustMod: a role changes only when its flag was sent
-  // (has_should_be_*); an undefined flag leaves that bit alone.
   adjustMod: ((state, action) => {
     const { userName, shouldBeMod, shouldBeJudge, shouldBeDeveloper } = action.payload;
     const applyFlag = (level: number, flag: ServerInfo_User_UserLevelFlag, on: boolean | undefined): number => {
@@ -61,7 +59,6 @@ export const moderationReducers = {
     if (state.users[userName]) {
       state.users[userName] = apply(state.users[userName]);
     }
-    // Keep an open profile's snapshot in step with the role change.
     if (state.userInfo[userName]) {
       state.userInfo[userName] = apply(state.userInfo[userName]);
     }

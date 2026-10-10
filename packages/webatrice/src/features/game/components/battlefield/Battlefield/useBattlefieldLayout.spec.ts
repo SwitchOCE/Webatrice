@@ -94,7 +94,6 @@ describe('useBattlefieldLayout', () => {
     const origin = slotOriginPx({ row: 1, col: 0, subSlot: 0 }, cellWidths, battlefieldLayout);
     const parentPos = { x: origin.x + 2 * STACK_OFFSET_PX, y: origin.y + 15 };
     expect(battlefieldPositions.get('1')).toEqual(parentPos);
-    // Children sit in the parent's row, whatever slot the wire gives them.
     const childY = rowTopY(1, battlefieldLayout) + 5;
     expect(battlefieldPositions.get('2')).toEqual({ x: parentPos.x - STACK_OFFSET_PX, y: childY });
     expect(battlefieldPositions.get('3')).toEqual({ x: parentPos.x - 2 * STACK_OFFSET_PX, y: childY });

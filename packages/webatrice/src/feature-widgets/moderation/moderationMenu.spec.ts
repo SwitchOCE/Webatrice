@@ -4,10 +4,8 @@ import { buildModerationMenu, type ModerationMenuGroups } from './moderationMenu
 
 const REGULAR = Flag.IsUser | Flag.IsRegistered;
 const MODERATOR = REGULAR | Flag.IsModerator;
-// Servatrice gives admins IsModerator too (servatrice_database_interface.cpp).
 const ADMIN = MODERATOR | Flag.IsAdmin;
 const UNREGISTERED = Flag.IsUser;
-// A 3.1 server, which knows the developer role.
 const ON_3_1 = { supportsDeveloperRole: true };
 
 const actions = (groups: ModerationMenuGroups) => groups.map((group) => group.map((entry) => entry.action));

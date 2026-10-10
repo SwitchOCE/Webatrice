@@ -7,11 +7,8 @@ export enum RouteEnum {
   GAME = '/game/:gameId',
   DECKS = '/decks',
   DECK = '/deck/:deckId',
-  // A share link's decks, read-only: `?share=<token>&hostname=<host>&port=<port>`.
   SHARED_DECK = '/decks/shared',
   PUBLIC_DECKS = '/decks/public/:userName',
-  // An unsaved deck handed to the editor by token (services/decks deckHandoff),
-  // e.g. the game's "Open deck in deck editor".
   DECK_DRAFT = '/deck/draft/:token',
   ACCOUNT = '/account',
   ADMINISTRATION = '/administration',
@@ -33,21 +30,14 @@ export enum RouteEnum {
   CARD_PREVIEW_POPUP = '/card-preview-popup',
 }
 
-/** Router state on the login route: the page `AuthGuard` sent the user away from. */
 export interface LoginRouteState {
   from?: string;
 }
 
-/** Router state on the lobby: a room to open by name, the "Server Room" startup tab. */
 export interface ServerRouteState {
   startupRoom?: string;
 }
 
-/**
- * Router state on a deck editor route: the deck whose tab this deck replaces, when the editor
- * loaded it into its own tab (desktop's `confirmOpen` same-tab answer). Without it, the deck
- * opens in a tab of its own, as opening from Deck Storage always does.
- */
 export interface DeckRouteState {
   replacesDeckId?: number;
 }

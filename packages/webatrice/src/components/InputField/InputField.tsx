@@ -20,16 +20,6 @@ export interface InputFieldProps
   touched?: boolean;
 }
 
-/**
- * Text input, Tailwind-only. Replaces the pre-redo MUI-TextField
- * wrapper. Same prop contract as before (value, onChange, label,
- * error, touched, name, autoComplete, etc.) so every caller across
- * the app keeps working without changes.
- *
- * A shown error marks the input `aria-invalid`, describes it
- * (`aria-describedby`) and is announced as it appears; it sits outside
- * the label so it never becomes part of the field's name.
- */
 const InputField = ({
   value,
   onChange,

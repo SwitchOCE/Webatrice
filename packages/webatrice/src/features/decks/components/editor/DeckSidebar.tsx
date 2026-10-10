@@ -12,16 +12,13 @@ import { DeckCardPreview } from './DeckCardPreview';
 export interface DeckSidebarProps {
   deck: HydratedDeck;
   saveState: SaveState;
-  /** Re-send the deck after a failed save. */
   onRetrySave: () => void;
   totalMainboardCount: number;
   totalSideboardCount: number;
   onNameChange: (name: string) => void;
   onFormatChange: (format: string) => void;
   onExport: () => void;
-  /** The editor's "Open deck…" action (OpenDeckButton). */
   openDeck?: ReactNode;
-  /** Desktop "Share deck..." (Servatrice 3.1 only). */
   onShare?: () => void;
   previewCard: DeckCard | null;
   prices: PriceLookup;
@@ -30,9 +27,7 @@ export interface DeckSidebarProps {
    *  the TCGplayer deck-total pill, and switch the display to a
    *  non-MTG friendly layout. */
   isMtg: boolean;
-  /** Under the save state: undo/redo and the history list. */
   headerActions?: ReactNode;
-  /** Under the format picker: legality, banner card and tags. */
   details?: ReactNode;
 }
 

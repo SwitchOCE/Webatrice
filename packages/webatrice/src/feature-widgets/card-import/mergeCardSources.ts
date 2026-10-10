@@ -11,7 +11,6 @@ import {
   type Token,
 } from '@app/services';
 
-/** Fixed ids for the sources desktop keeps one of; custom files get `custom:<order>:<file>`. */
 export const CardSourceId = {
   MAIN: 'main',
   TOKENS: 'tokens',
@@ -20,7 +19,6 @@ export const CardSourceId = {
   LEGACY: LEGACY_SOURCE_ID,
 } as const;
 
-/** Desktop's reserved file names; anything else is a custom set file. */
 export function sourceKindForFile(fileName: string): Exclude<CardSourceKind, 'user-tokens' | 'legacy'> {
   switch (fileName.toLowerCase()) {
     case 'cards.xml': return 'main';
@@ -50,13 +48,6 @@ const KIND_RANK: Record<CardSourceKind, number> = {
   'user-tokens': 5,
 };
 
-/**
- * Desktop's load order (`CardDatabaseLoader::doLoadCardDatabases`): cards.xml,
- * tokens.xml, spoiler.xml, then custom files alphabetically — desktop names
- * them `NN.<file>.xml`, so that is add order. Editor tokens (`TK.xml`) last.
- * A pre-v7 import loads after the files it was made of, so re-importing any
- * of them takes over the cards it defines and the rest are kept.
- */
 export function sortSourcesByLoadOrder<T extends Pick<CardSource, 'kind' | 'order' | 'fileName'>>(sources: readonly T[]): T[] {
   return [...sources].sort(
     (a, b) => KIND_RANK[a.kind] - KIND_RANK[b.kind]
@@ -65,7 +56,6 @@ export function sortSourcesByLoadOrder<T extends Pick<CardSource, 'kind' | 'orde
   );
 }
 
-/** Desktop's `getNextCustomSetPrefix`: one past the highest custom prefix in use. */
 export function nextCustomOrder(sources: readonly Pick<CardSource, 'kind' | 'order'>[]): number {
   return sources.filter((s) => s.kind === 'custom').reduce((max, s) => Math.max(max, s.order), 0) + 1;
 }
@@ -78,15 +68,10 @@ function asArray<T>(value: T | T[] | undefined): T[] {
 }
 
 function samePrinting(a: CardInSet, b: CardInSet): boolean {
-  // Desktop printing/printing_info.h:54 compares the entire properties hash.
   const keys = Object.keys(a);
   return keys.length === Object.keys(b).length && keys.every(key => a[key] === b[key]);
 }
 
-/**
- * `CardDatabase::addCard`: the first source to define a name wins its card
- * data; later sources only contribute printings it does not have yet.
- */
 function mergeByName<T extends Card | Token>(target: Map<string, T>, records: readonly T[]): void {
   for (const record of records) {
     const name = record.name?.value;
@@ -111,7 +96,6 @@ function mergeByName<T extends Card | Token>(target: Map<string, T>, records: re
   }
 }
 
-/** Fold sources (already in load order) into the rows the card tables hold. */
 export function mergeCardSources(layers: readonly CardSourceRecords[]): CardSourceRecords {
   const records = new Map<string, Card | Token>();
   const tokenNames = new globalThis.Set<string>();
@@ -120,7 +104,6 @@ export function mergeCardSources(layers: readonly CardSourceRecords[]): CardSour
   let info: CardSourceRecords['info'];
 
   for (const layer of layers) {
-    // Desktop card_database.cpp:111 keeps cards and tokens in one name map.
     mergeByName(records, layer.cards);
     for (const token of layer.tokens) {
       if (!records.has(token.name.value)) {
@@ -135,7 +118,6 @@ export function mergeCardSources(layers: readonly CardSourceRecords[]): CardSour
       }
     }
     for (const format of layer.formats) {
-      // Desktop card_database.cpp:238 replaces formats on a lowercase key.
       formats.set(format.formatName.toLowerCase(), format);
     }
     info ??= layer.info;

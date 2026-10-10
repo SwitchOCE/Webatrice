@@ -16,7 +16,6 @@ function setup({ stack = [] as Stack, deckCount = 10, enabled = true } = {}) {
     { initialProps: { stackCards: stack, deckCount } },
   );
   let current = { stackCards: stack, deckCount };
-  /** The server lands a revealed card on the stack. */
   const lands = (id: string, name: string) => {
     current = { stackCards: [...current.stackCards, { id, name }], deckCount: current.deckCount - 1 };
     hook.rerender(current);

@@ -1,7 +1,5 @@
 import { planHandReorder } from './handReorder';
 
-// Replays a plan the way Servatrice applies single-card hand moves:
-// remove the card, then insert it at x (append when x >= size).
 function applyPlan(hand: string[], plan: { cardId: string; x: number }[]): string[] {
   const order = hand.slice();
   for (const { cardId, x } of plan) {
@@ -46,8 +44,6 @@ describe('planHandReorder', () => {
   });
 
   it('lands every group contiguous at its slot, and survives the echo replay', () => {
-    // GameBoardCell applies each command optimistically and the server
-    // echo re-applies it, so the plan must be a no-op on its own result.
     const hand = ['A', 'B', 'C', 'D', 'E', 'F'];
     for (let mask = 1; mask < 1 << hand.length; mask++) {
       const dragged = hand.filter((_, i) => mask & (1 << i));

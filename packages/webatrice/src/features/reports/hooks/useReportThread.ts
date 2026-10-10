@@ -18,14 +18,6 @@ export interface ReportThread {
   commentFailed: boolean;
 }
 
-/**
- * Details and comments for the selected report, shared by My Reports and the
- * Report Queue. Selecting a report requests Command_ReportDetails (desktop
- * onSelectionChanged); a sent comment clears the draft and calls
- * `onCommentAdded` so the page refreshes, as desktop's addCommentResponse does.
- * The draft survives refreshes and is kept per page, not per report, like
- * desktop's single comment line.
- */
 export function useReportThread(selectedId: number | null, onCommentAdded: () => void): ReportThread {
   const webClient = useWebClient();
   const details = useAppSelector((state) =>

@@ -5,7 +5,6 @@ import { findLiveGameServer, type LiveGameServer } from '@app/utils';
 
 import { useKnownHosts } from './useKnownHosts';
 
-/** The live WebSocket endpoint and its explicit Cockatrice desktop TCP alias. */
 export function useLiveServerEndpoint(): LiveGameServer | null {
   const webClient = useWebClient();
   const connected = useAppSelector(server.Selectors.getIsConnected);

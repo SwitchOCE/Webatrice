@@ -7,32 +7,16 @@ import { MTG_FORMAT_LABELS, MTG_FORMATS, normalizeFormat, type ParsedDeck } from
 import { readDeckTags } from './deckTags';
 import type { FlatDeck } from './deckTree';
 
-/**
- * Per-deck summary for the MyDecks list. Servatrice's deck tree carries
- * only `{ id, name, creationTime }`, so the list downloads each deck and
- * plucks these fields out of its `.cod`. Drives the price badge, bracket
- * badge, format section and the row art.
- */
 export interface DeckSummary {
   usd?: number;
   missing?: number;
-  /** Assessed commander bracket 1..5, from either the
-   *  `<bracketAssessment>` element or the legacy meta blob. */
   bracketLevel?: number;
   /** `<format>` element — used for the format label chip. */
   format?: string;
-  /** `<bannerCard>` element — Cockatrice's "featured card" for the
-   *  deck. Wins over the commander art. */
   bannerCard?: string;
-  /** `<bannerCard providerId>`: the banner's printing (a Scryfall id). */
   bannerCardProviderId?: string;
-  /** `<tags>` → `<tag>` texts; absent when the deck has none. */
   tags?: string[];
-  /** First commander-marked card's name — art fallback when there's no
-   *  scryfallId hint on the card. */
   commanderName?: string;
-  /** First commander-marked card's scryfallId — preferred because it
-   *  resolves to the exact chosen printing's art. */
   commanderScryfallId?: string;
 }
 
@@ -76,15 +60,6 @@ export function summariesEqual(a: DeckSummary, b: DeckSummary): boolean {
   );
 }
 
-/**
- * Background art for a deck row:
- *   1. `<bannerCard>` → its printing `/cards/:uuid` when the providerId is
- *      a Scryfall id, else Scryfall `/cards/named?exact=…`.
- *   2. Commander card's `scryfallId` → `/cards/:uuid` (exact printing).
- *   3. Commander card's name → `/cards/named?exact=…`.
- *   4. Nothing → `null` (row renders the placeholder gradient).
- * `format=image&version=art_crop` returns a frameless landscape crop.
- */
 const SCRYFALL_ID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
 export function deckArtUrl(s: DeckSummary | undefined): string | null {
@@ -106,7 +81,6 @@ export function deckArtUrl(s: DeckSummary | undefined): string | null {
   return null;
 }
 
-/** A format slug's display label; custom formats keep their own text, capitalised. */
 export function formatDisplayLabel(format: string): string {
   const known = MTG_FORMAT_LABELS.find((f) => f.value === normalizeFormat(format));
   if (known) {
@@ -115,20 +89,14 @@ export function formatDisplayLabel(format: string): string {
   return format.replace(/^\w/, (c) => c.toUpperCase());
 }
 
-// ---------- Format sections ----------
-
-/** Non-MTG custom format. */
 export const SECTION_OTHER = 'other';
-/** Deck XML hasn't landed yet, so its format is unknown for now. */
 export const SECTION_LOADING = 'loading';
-/** Deck fetched, but its `<format>` was empty or missing. */
 export const SECTION_UNKNOWN = 'unknown';
 
 const MTG_SECTION_LABELS: Record<string, string> = Object.fromEntries(
   MTG_FORMAT_LABELS.map((f) => [f.value, f.label]),
 );
 
-/** A section's heading. MTG format names stay as they are (proper names). */
 export function deckSectionLabel(section: string, t: TFunction): string {
   switch (section) {
     case SECTION_OTHER:
@@ -142,10 +110,6 @@ export function deckSectionLabel(section: string, t: TFunction): string {
   }
 }
 
-/**
- * Section slug for a deck: LOADING without a summary, UNKNOWN for an
- * empty format, the slug for a known MTG format, OTHER for anything else.
- */
 export function deckListSectionOf(summary: DeckSummary | undefined): string {
   if (!summary) {
     return SECTION_LOADING;
@@ -165,11 +129,6 @@ export interface DeckListSection {
   decks: FlatDeck[];
 }
 
-/**
- * Bucket decks by format, ordered: MTG formats in `MTG_FORMAT_LABELS`
- * order, then Other, Loading, Unknown. Decks keep their incoming order
- * (newest first) inside each section.
- */
 export function groupDecksByFormat(
   decks: FlatDeck[],
   summaries: ReadonlyMap<number, DeckSummary>,

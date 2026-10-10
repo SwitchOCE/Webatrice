@@ -64,7 +64,6 @@ function LocationProbe() {
   return <div data-testid="location">{useLocation().pathname}</div>;
 }
 
-// Logged in, auto-joined to bob's room, and bob online.
 function setupLobby() {
   connectAndLogin('alice');
   simulateLoggedIn();

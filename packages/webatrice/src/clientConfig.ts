@@ -7,13 +7,6 @@ const APP_FEATURES = [
   '2.8.0_min_version',
 ] as const;
 
-/**
- * Sent as Command_Login.clientver. Desktop sends its VERSION_STRING,
- * "<version> (<commit date>)" (remote_client.cpp generateCommandLogin); this is
- * the same shape built from Webatrice's package version and last commit date.
- * The `webatrice-` prefix keeps web sessions distinguishable from desktop
- * clients in Servatrice's session records, since the version lines overlap.
- */
 export function formatClientVersion(version: string, buildDate: string): string {
   return `webatrice-${version} (${buildDate})`;
 }

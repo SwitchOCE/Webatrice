@@ -5,25 +5,16 @@ export type InviteRow =
   | { kind: 'user'; name: string };
 
 export interface InviteCandidateInput {
-  /** Online users, keyed by name (server.users). */
   users: Record<string, ServerInfo_User>;
   buddyList: Record<string, ServerInfo_User>;
   ignoreList: Record<string, ServerInfo_User>;
-  /** Self, every player and every spectator of the game (tab_game.cpp actInviteToGame). */
   excludeNames: ReadonlySet<string>;
-  /** The game's only_buddies flag: list buddies only. */
   onlyBuddies: boolean;
   search: string;
 }
 
 const byName = (a: string, b: string) => a.localeCompare(b, undefined, { sensitivity: 'base' });
 
-/**
- * The rows of desktop's DlgInviteToGame user list: online users who are not
- * excluded and not ignored, filtered by the search text, in a Buddies section
- * and (unless the game is buddies-only) an Online section. Empty sections are
- * left out.
- */
 export function buildInviteRows({
   users,
   buddyList,

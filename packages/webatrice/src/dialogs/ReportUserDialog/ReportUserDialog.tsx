@@ -14,9 +14,7 @@ import { buildReportUserFormSchema, type ReportUserFormValues } from './reportUs
 
 export interface OpenReportUserParams {
   userName: string;
-  /** The game the report is about; when set it is fixed, otherwise the user may type one. */
   gameId?: number;
-  /** Chat log captured where the report was opened (see `formatChatContext`). */
   chatContext?: string;
 }
 
@@ -45,13 +43,6 @@ function failureKey(responseCode: number): string {
   return 'ReportUserDialog.error.generic';
 }
 
-/**
- * Report a user (Cockatrice #7091). Mirrors desktop `DlgReportUser`: reported
- * user and game (fixed when opened from a game, else optional), a category,
- * a required description and the read-only chat context captured where the
- * report was opened. Submitting asks for confirmation first, then sends
- * `Command_Report` once; the button stays disabled until the server answers.
- */
 export default function ReportUserDialog({ request, onClose }: ReportUserDialogProps) {
   const { t } = useTranslation();
   const gameIdErrorId = useId();
@@ -65,7 +56,6 @@ export default function ReportUserDialog({ request, onClose }: ReportUserDialogP
   const [failure, setFailure] = useState<string | null>(null);
   const pendingValues = useRef<ReportUserFormValues | null>(null);
 
-  // The server may answer after the dialog was closed; ignore late callbacks.
   const mounted = useRef(true);
   useEffect(() => {
     mounted.current = true;

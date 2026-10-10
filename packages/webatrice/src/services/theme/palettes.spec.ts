@@ -3,7 +3,6 @@ import path from 'node:path';
 
 import { PALETTES, type ColorScheme, type Palette, type PaletteToken } from './palettes';
 
-/** Parses the `--token: R G B;` declarations of the rule whose selector list contains `selector`. */
 function cssPalette(css: string, selector: string): Record<string, string> {
   const rule = [...css.matchAll(/([^{}]+)\{([^}]*)\}/g)].find(([, selectors]) =>
     selectors.split(',').some((s) => s.trim() === selector),
@@ -18,7 +17,6 @@ function cssPalette(css: string, selector: string): Record<string, string> {
   return tokens;
 }
 
-/** WCAG 2.x contrast ratio of two hex colours. */
 function contrast(a: string, b: string): number {
   const luminance = (hex: string) => {
     const [r, g, b] = [1, 3, 5].map((i) => parseInt(hex.slice(i, i + 2), 16) / 255)
@@ -29,7 +27,6 @@ function contrast(a: string, b: string): number {
   return (hi + 0.05) / (lo + 0.05);
 }
 
-/** `color` painted at `alpha` over `under`, as hex. */
 function composite(color: string, alpha: number, under: string): string {
   const channel = (hex: string, i: number) => parseInt(hex.slice(i, i + 2), 16);
   return `#${[1, 3, 5]
@@ -37,10 +34,8 @@ function composite(color: string, alpha: number, under: string): string {
     .join('')}`.toUpperCase();
 }
 
-// The lightest art a label can sit on: a white card frame or a blown-out sky.
 const LIGHTEST_ART = '#FFFFFF';
 
-/** The opacity of the backdrop behind the selection count labels, read from the component. */
 const selectionLabelBackdropAlpha = Number(
   /bg-over-art-backdrop\/(\d+)/.exec(fs.readFileSync(
     path.resolve(__dirname, '../../features/game/components/SelectionCount/SelectionCount.tsx'),
@@ -58,7 +53,6 @@ const SURFACES: PaletteToken[] = ['bg-base', 'bg-surface', 'bg-elevated'];
 
 const SRC = path.resolve(__dirname, '../..');
 
-/** Every .tsx file under `dir`. */
 function sourceFiles(dir: string): string[] {
   return fs.readdirSync(dir, { withFileTypes: true }).flatMap((entry) => {
     const full = path.join(dir, entry.name);
@@ -81,7 +75,6 @@ describe.each(Object.keys(PALETTES) as ColorScheme[])('the %s palette', (scheme)
   });
 
   test('keeps white labels on secondary actions at AA, including hover', () => {
-    // The deck editor's buy and card-preview actions, the card detail dialog and the phase track's pass button.
     const actions = sourceFiles(SRC)
       .flatMap((file) => fs.readFileSync(file, 'utf8').split('\n'))
       .filter((line) => line.includes('bg-accent-secondary') && line.includes('text-white'));
@@ -162,8 +155,6 @@ describe.each(Object.keys(PALETTES) as ColorScheme[])('the %s palette', (scheme)
 });
 
 test('keeps the mana tints, the life heart and the life flashes the same in both palettes, on purpose', () => {
-  // They sit on card art and avatars, not on the page, so the light theme leaves them alone. A
-  // light-theme change to them has to come with its own contrast check.
   const shared: PaletteToken[] = [
     'mana-w', 'mana-u', 'mana-b', 'mana-r', 'mana-g', 'mana-c', 'mana-o', 'over-art-life', 'seat-flash-gain', 'seat-flash-loss',
   ];

@@ -1,14 +1,8 @@
 import { createContext, useContext, useEffect } from 'react';
 
-/**
- * A battlefield's drop grid as its board lays it out (useBattlefieldLayout):
- * the grid a drop on it resolves against, and how many columns each wire row
- * can reach across the shared drop surface, including its blank space.
- */
 export interface BattlefieldGeometry {
   rows: number;
   cols: number;
-  /** Columns a drop can reach in each row, by wire row. */
   colsByWireRow: readonly number[];
 }
 
@@ -18,8 +12,6 @@ export interface BattlefieldGeometryRegistry {
   get(playerId: number): BattlefieldGeometry | undefined;
 }
 
-/** One registry per game: each battlefield publishes its grid, and the
- *  keyboard move (MoveCardsDialog) reads the grid a drop would use. */
 export function createBattlefieldGeometryRegistry(): BattlefieldGeometryRegistry {
   const map = new Map<number, BattlefieldGeometry>();
   return {
@@ -35,7 +27,6 @@ export function useBattlefieldGeometryRegistry(): BattlefieldGeometryRegistry | 
   return useContext(BattlefieldGeometryContext);
 }
 
-/** Publishes a battlefield's grid while it is on the board. */
 export function usePublishBattlefieldGeometry(playerId: number, geometry: BattlefieldGeometry): void {
   const registry = useBattlefieldGeometryRegistry();
   const { rows, cols, colsByWireRow } = geometry;

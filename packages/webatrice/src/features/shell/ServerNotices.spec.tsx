@@ -8,8 +8,6 @@ import {
   Event_ServerShutdownSchema,
 } from '@cockatrice/sockatrice/generated';
 
-// Render interpolation values next to the key so the countdown and the
-// server-supplied text are assertable without loading translations.
 vi.mock('react-i18next', async (importOriginal) => {
   const actual = await importOriginal<typeof import('react-i18next')>();
   const t = (key: string, values?: Record<string, unknown>) => (values ? `${key} ${JSON.stringify(values)}` : key);

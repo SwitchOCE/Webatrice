@@ -1,7 +1,3 @@
-// What the hand and zone-view card menu does: which cards an item acts on,
-// where Play sends them, and which seat port each item calls. The seat passes
-// its state and ports in and splices the result into CardMenuPopup, so the
-// handler logic lives here and not in the seat's JSX.
 
 import { ZoneName, type ZoneNameValue } from '@cockatrice/sockatrice';
 import type { TFunction } from 'i18next';
@@ -25,20 +21,10 @@ import { moveSelectedCards } from '../../ui/PlayerBoard/selectionMoves';
 import type { ContextMenuItem, MenuShortcutFor } from '../ContextMenu/ContextMenu';
 import { buildHandOrZoneCardMenu } from './handCardMenu.model';
 
-/** What playing a card needs from its catalog entry. */
 export interface PlayCardMeta extends PlayedCardMeta, CardPlacementMeta {
   typeLine: string;
 }
 
-/**
- * The Command_MoveCard a play sends; desktop PlayerActions::playCard
- * (player_actions.cpp:51-98). With `playToStack`, everything but a land
- * goes to the stack; both the hand menu and double-click pass the preference.
- * From the stack (`fromStack`), an instant or sorcery goes to the graveyard
- * and anything else to the battlefield. Face down always lands in row 2. A
- * card that reaches the battlefield face up carries its printed P/T, and
- * comes in tapped when cards.xml says cipt.
- */
 export function playCardMove(
   cardId: number,
   meta: PlayCardMeta | undefined,
@@ -62,26 +48,16 @@ export function playCardMove(
   return { card, to: { zone: ZoneName.TABLE, index: 'end', row: tableRowToGridY(faceDown ? 2 : tableRow) } };
 }
 
-/**
- * The moves that play these cards, one Command_MoveCard each (desktop
- * actPlay / actPlayFacedown over the selected cards).
- */
 export function playCardMoves(
   cards: readonly { id: string; name: string }[],
   cardMeta: (name: string) => PlayCardMeta | undefined,
   options: { faceDown: boolean; playToStack?: boolean },
 ): { card: SeatMoveCard; to: SeatMoveDestination }[] {
-  // Highest id first: positional ids shift as cards leave hidden zones (player_actions.cpp:1633-1644).
   return [...cards]
     .sort((a, b) => Number(b.id) - Number(a.id))
     .map((c) => playCardMove(Number(c.id), cardMeta(c.name), options));
 }
 
-/**
- * The selected cards of one of the seat's hidden zones that "Reveal selected
- * cards to all players" sends: the hand selection, or the selected cards of
- * one open library / sideboard view. Null when the selection is elsewhere.
- */
 export function selectedHiddenZoneCards(
   seatId: number,
   handSelection: SeatSelection | null,
@@ -105,9 +81,7 @@ export function selectedHiddenZoneCards(
 
 export interface HandOrZoneCardMenuDeps {
   t: TFunction;
-  /** The seat's open card menu; only a hand or zone-view one renders here. */
   menu: SeatCardMenuState | null;
-  /** The player whose cards the menu shows (card keys use it). */
   ownerId: number;
   menuShortcut: MenuShortcutFor;
   canModify: boolean;
@@ -117,11 +91,9 @@ export interface HandOrZoneCardMenuDeps {
   sideboardCards: readonly PlayerCardViewModel[];
   handSelection: SeatSelection | null;
   setHandSelection: (next: SeatSelection | null) => void;
-  /** The game selection, which a zone view's cards live in. */
   selectedCardKeys: ReadonlySet<string>;
   setSelectedCardKeys: (next: ReadonlySet<string>) => void;
   cardMeta: (name: string) => PlayCardMeta | undefined;
-  /** Library size for "X cards from the top of library...". */
   deckSize: number;
   playToStack?: boolean;
   moveCards?: (from: ZoneNameValue, cards: readonly SeatMoveCard[], to: SeatMoveDestination) => void;
@@ -141,20 +113,12 @@ export interface HandOrZoneCardMenuDeps {
   close: () => void;
 }
 
-/** What ContextMenuPopup renders, without its onClose. */
 export interface SeatCardMenuModel {
   items: ContextMenuItem[];
   anchor: { x: number; y: number };
-  /** The menu's name: the card's. */
   label: string;
 }
 
-/**
- * Desktop CardMenu::createHandOrCustomZoneMenu (card_menu.cpp:296-342) with
- * its actions wired. Actions apply to the selection when the clicked card is
- * part of it (desktop's selectedCards), else to the clicked card. Null when no
- * hand or zone-view menu is open.
- */
 export function resolveHandOrZoneCardMenu(deps: HandOrZoneCardMenuDeps): SeatCardMenuModel | null {
   const { menu } = deps;
   if (menu?.kind !== 'hand' && menu?.kind !== 'zoneView') {
@@ -194,7 +158,6 @@ export function resolveHandOrZoneCardMenu(deps: HandOrZoneCardMenuDeps): SeatCar
     }
   };
   const selectInView = (ids: readonly string[]) => deps.setSelectedCardKeys(new Set(ids.map(viewKey)));
-  // One Command_MoveCard per card, as desktop's playCard sends.
   const play = (faceDown: boolean) => run(() => {
     for (const { card, to } of playCardMoves(targets, deps.cardMeta, { faceDown, playToStack: deps.playToStack })) {
       deps.moveCards?.(zone, [card], to);
@@ -226,8 +189,6 @@ export function resolveHandOrZoneCardMenu(deps: HandOrZoneCardMenuDeps): SeatCar
         case 'libraryBottom':
           return moveTargets({ zone: ZoneName.DECK, reversed: true });
         case 'libraryXFromTop':
-          // Desktop actMoveCardXCardsFromTop moves the whole selection in one
-          // Command_MoveCard (player_actions.cpp:1229-1252).
           if (targetIds.length > 0) {
             deps.promptMoveXFromTop({ cardIds: targetIds, cardName, deckSize: deps.deckSize, fromZone: zone });
           }

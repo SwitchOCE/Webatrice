@@ -54,13 +54,6 @@ function byFolderThenName(a: ReplayFileDTO, b: ReplayFileDTO): number {
   return a.name.localeCompare(b.name, undefined, { numeric: true, sensitivity: 'base' });
 }
 
-/**
- * The local replay library pane: desktop's local file system pane of
- * TabReplays (watch, rename, new folder, delete), backed by IndexedDB instead
- * of a replay directory. Picking a `.cor` either watches it straight away
- * (desktop's File > Watch replay) or imports it into the current folder.
- * `refreshKey` reloads the folder when something else adds to the library.
- */
 export function useLocalReplays(refreshKey = 0): LocalReplays {
   const { t } = useTranslation();
   const watchReplay = useWatchReplay();
@@ -149,7 +142,6 @@ export function useLocalReplays(refreshKey = 0): LocalReplays {
     }
   }, [watchReplay, showError, t]);
 
-  // Desktop: double-clicking a folder expands it, a file opens the replay.
   const activate = useCallback((entry: ReplayFileDTO) => {
     if (entry.kind === 'folder' && entry.id != null) {
       openFolder(entry.id);
@@ -178,8 +170,6 @@ export function useLocalReplays(refreshKey = 0): LocalReplays {
       .catch(() => showError(t('Replays.local.invalidFile', { name: file.name })));
   }, [watchReplay, showError, t]);
 
-  // The picker's `accept` is only a hint: check every file, import the good
-  // ones, and report the rest by name instead of failing the whole batch.
   const importFiles = useCallback((files: readonly File[]) => {
     const rejected: string[] = [];
     const tooLarge: string[] = [];

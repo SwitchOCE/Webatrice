@@ -1,6 +1,3 @@
-// Seat shortcuts through the real ShortcutProvider: useGameShortcuts owns every
-// game key binding and runs the local seat's published operations, so each
-// keystroke reaches exactly one handler and sends exactly one command set.
 
 import { act, fireEvent, screen, within } from '@testing-library/react';
 import { makeArrow, makeCard } from '@cockatrice/datatrice/testing';
@@ -164,7 +161,6 @@ describe('Game seat shortcuts', () => {
     expect(game.revealCards).toHaveBeenCalledWith(1, { zoneName: 'hand', cardId: [60, 61] });
   });
 
-  // One action per desktop group, from its key to the request it sends.
   describe('the desktop shortcut groups', () => {
     const handSeats = {
       seats: [
@@ -212,7 +208,6 @@ describe('Game seat shortcuts', () => {
       })]]);
     });
 
-    // Desktop actShuffleTop (player_actions.cpp:257-270): [0, N-1], inclusive.
     it('Gameplay: a bound "Shuffle top cards" asks how many, then shuffles that many once', () => {
       const { game, store } = renderGame();
       bindKey(store, 'game.shuffleTopCards', 'Alt+KeyJ');
@@ -223,7 +218,6 @@ describe('Game seat shortcuts', () => {
       expect(vi.mocked(game.shuffle).mock.calls).toEqual([[1, { zoneName: 'deck', start: 0, end: 4 }]]);
     });
 
-    // The battlefield groups act on the battlefield selection.
     const tableSeats = {
       seats: [
         {
@@ -254,7 +248,6 @@ describe('Game seat shortcuts', () => {
       ]]);
     });
 
-    // Desktop aFlowP: +1/-1 on each selected card.
     it('Power and toughness: a bound "Move toughness to power" sets each selected card\'s P/T once', () => {
       const { game, store } = renderGame(tableSeats);
       bindKey(store, 'game.flowP', 'Alt+KeyF');
@@ -263,7 +256,6 @@ describe('Game seat shortcuts', () => {
       expect(cardAttrs(game, CardAttribute.AttrPT)).toEqual([[70, '3/1'], [71, '1/3']]);
     });
 
-    // Desktop cmTap (player_actions.cpp:1768-1776) flips each card.
     it('Playing area: a bound "Tap / Untap" flips each selected card once', () => {
       const { game, store } = renderGame(tableSeats);
       bindKey(store, 'game.tapCard', 'Alt+KeyT');
@@ -319,7 +311,6 @@ describe('Game seat shortcuts', () => {
     });
   });
 
-  // The macros come from the settings store (Settings > Chat).
   const withMacros = (messageMacros: readonly string[]) =>
     vi.mocked(usePreferences).mockReturnValue({ ...PREFERENCE_DEFAULTS, messageMacros });
   afterEach(() => {
@@ -348,8 +339,6 @@ describe('Game seat shortcuts', () => {
     const remove = vi.spyOn(window, 'removeEventListener');
     const { unmount } = renderGame();
 
-    // Only the ShortcutProvider and the game selection's Escape handler
-    // (useGameSelection) listen; neither seat adds one.
     const keydownAdds = add.mock.calls.filter(([type]) => type === 'keydown');
     expect(keydownAdds).toHaveLength(2);
 

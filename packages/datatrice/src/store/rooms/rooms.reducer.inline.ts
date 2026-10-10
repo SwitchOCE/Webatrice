@@ -10,9 +10,6 @@ import { DEFAULT_GAME_FILTERS } from './gameFilters';
 
 export const MAX_ROOM_MESSAGES = 1000;
 
-// Monotonic client id stamped on each stored room message so chat rows key on a
-// stable identity. Indexes shift when the head is trimmed at MAX_ROOM_MESSAGES;
-// this never does. Session-scoped and never persisted, so plain increment.
 let nextMessageId = 0;
 
 export const initialState: RoomsState = {
@@ -52,8 +49,6 @@ export const clearStore: CaseReducer<RoomsState> = () => initialState;
 
 export const updateRooms: CaseReducer<RoomsState, PayloadAction<{ rooms: ServerInfo_Room[] }>> = () => {};
 
-// `userInitiated` is false for a server auto-join; the reducer stores the room either
-// way, and the UI uses it to decide whether to switch to the room.
 export const joinRoom: CaseReducer<RoomsState, PayloadAction<{ roomInfo: ServerInfo_Room; userInitiated?: boolean }>> = (
   state,
   action,
@@ -94,8 +89,6 @@ function appendMessage(state: RoomsState, roomId: number, message: Enriched.Mess
   state.messages[roomId].push({ ...message, id: nextMessageId++ });
 }
 
-// Reached through the roomSayReceived listener, which drops ignored senders first
-// (see rooms.listeners.ts).
 export const addMessage: CaseReducer<
   RoomsState,
   PayloadAction<{ roomId: number; message: Enriched.Message }>
@@ -104,10 +97,6 @@ export const addMessage: CaseReducer<
   appendMessage(state, roomId, normalizeUserMessage(message));
 };
 
-// Desktop TabRoom::sayFinished: a RespChatFlood rejection appends a warning line
-// to the room chat; a message the server never answered (`failure` set) gets a
-// "not sent" line with the reason. `message` is the unsent text: the reducer only
-// records the notice, and the UI may use the payload to restore the draft.
 export const roomSayFailed: CaseReducer<
   RoomsState,
   PayloadAction<RoomCommandFailedPayload & { message: string; timeReceived: number }>
@@ -240,7 +229,6 @@ export const clearJoinGameError: CaseReducer<RoomsState> = (state) => {
   state.joinGameError = null;
 };
 
-// An autojoin that fails stays silent, as desktop's does (it joins with setCurrent = false).
 export const joinRoomFailed: CaseReducer<RoomsState, PayloadAction<JoinRoomFailedPayload>> = (state, action) => {
   const { roomId, responseCode, failure, userInitiated } = action.payload;
   if (!userInitiated) {

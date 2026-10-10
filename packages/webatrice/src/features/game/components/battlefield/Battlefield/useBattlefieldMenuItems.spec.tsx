@@ -123,7 +123,6 @@ describe('useBattlefieldMenuItems', () => {
     expect(counterCommands.increment).toHaveBeenCalledWith(6, 2);
     find(battlefieldMenuItems, 'Counters', 'Green', 'Set counter...').onClick!();
     expect(props.openCounterPrompt).toHaveBeenCalledWith({ counterId: 6, label: 'Green', currentValue: 2 });
-    // No counter id yet: the whole submenu is disabled.
     expect(find(battlefieldMenuItems, 'Counters', 'White').disabled).toBe(true);
   });
 

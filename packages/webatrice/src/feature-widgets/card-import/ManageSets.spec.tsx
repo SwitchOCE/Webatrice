@@ -8,7 +8,6 @@ const hoisted = vi.hoisted(() => ({ useManageSets: vi.fn() }));
 vi.mock('./useManageSets', () => ({ useManageSets: hoisted.useManageSets }));
 vi.mock('@app/components', async (importOriginal) => ({
   ...(await importOriginal<typeof import('@app/components')>()),
-  // react-window renders nothing without layout in jsdom; draw every row.
   VirtualRows: <T, >({ items, renderRow }: { items: T[]; renderRow: (item: T, i: number) => ReactNode }) => (
     <div role="rowgroup">{items.map((item, i) => <div key={i}>{renderRow(item, i)}</div>)}</div>
   ),

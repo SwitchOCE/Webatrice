@@ -3,11 +3,6 @@ import type { TFunction } from 'i18next';
 import type { TallyType } from '../../../utils/tally';
 import type { ContextMenuItem } from '../../context-menus/ContextMenu/ContextMenu';
 
-/**
- * The "Tally" submenu: exclusive checkable None, a separator, then Subtypes,
- * Total Power and Total Toughness (desktop TallyMenu, tally_menu.cpp). It
- * sets a local preference; nothing is sent.
- */
 export function buildTallyMenu(t: TFunction, current: TallyType, onSet: (type: TallyType) => void): ContextMenuItem {
   const option = (type: TallyType, label: string): ContextMenuItem => ({
     label,

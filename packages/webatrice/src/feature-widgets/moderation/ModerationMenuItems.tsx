@@ -6,10 +6,6 @@ import { MenuItem, MenuSeparator, type UserMenuSlotProps } from '@app/components
 import { MODERATION_MENU_LABEL_KEYS } from './moderationMenu';
 import { useModerationMenu } from './useModerationMenu';
 
-/**
- * The moderator/admin entries `UserActionsMenu` renders through its slot (room
- * and server user lists, chat author names). Renders nothing for regular users.
- */
 const ModerationMenuItems = ({ userName, userLevel, onClose }: UserMenuSlotProps) => {
   const { t } = useTranslation();
   const { groups, open } = useModerationMenu(userName, userLevel);

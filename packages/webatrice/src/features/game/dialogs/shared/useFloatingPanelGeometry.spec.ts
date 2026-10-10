@@ -54,7 +54,6 @@ describe('useFloatingPanelGeometry', () => {
     panel.getBoundingClientRect = () => rect;
     return renderHook((props: Partial<FloatingPanelGeometryOptions>) => {
       const geometry = useFloatingPanelGeometry({ storageKey: KEY, minSize: MIN, initialSize: { w: 900, h: 480 }, ...props });
-      // The panel element exists before the layout effects run, as a rendered ref would.
       geometry.panelRef.current = panel;
       return { ...geometry, panel };
     }, { initialProps: options });
@@ -81,7 +80,6 @@ describe('useFloatingPanelGeometry', () => {
       const { result } = setup();
       expect(result.current.panel.style.width).toBe('300px');
       expect(result.current.panel.style.height).toBe('200px');
-      // A bare 400px minimum would hold the panel at 400×300 whatever its width and height say.
       expect(result.current.panelStyle).toMatchObject({ minWidth: 'min(400px, 100vw)', minHeight: 'min(300px, 100vh)' });
     } finally {
       window.innerWidth = innerWidth;
@@ -154,7 +152,6 @@ describe('useFloatingPanelGeometry', () => {
   });
 
   describe('stored size', () => {
-    // setupTests' ResizeObserver never calls back; this one hands its callback to the spec.
     let observe: (size: PanelSize) => void;
     let disconnect: ReturnType<typeof vi.fn>;
     beforeEach(() => {
@@ -234,7 +231,6 @@ describe('useFloatingPanelGeometry', () => {
       vi.useRealTimers();
     });
 
-    /** Drags the panel by its header to (300, 200), leaving the position unstored. */
     function drag(result: ReturnType<typeof setup>['result']) {
       act(() => {
         result.current.onHeaderPointerDown(press(document.createElement('div')));

@@ -14,7 +14,6 @@ const ERROR_KEYS: Partial<Record<Response_ResponseCode, string>> = {
   [Response_ResponseCode.RespInIgnoreList]: 'JoinGameError.ignored',
 };
 
-/** GameSelector::checkResponse (game_selector.cpp:228-270), translated in the UI. */
 export function useJoinGameErrorMessage(error: {
   code: number; message?: string; failure?: WebsocketTypes.CommandFailure;
 } | null): string {

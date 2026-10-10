@@ -53,7 +53,6 @@ describe('PrivateChat', () => {
       entries: [message('bob', 'hey'), notice(1, 'userLeft'), message('me', 'still there?'), notice(2, 'recipientOffline')],
     });
     const rows = Array.from(container.querySelectorAll('.space-y-2 > div')).map((row) => row.textContent);
-    // Each bubble starts with its sender in visually hidden text, since alignment alone says who wrote it.
     expect(rows).toEqual(['bob: hey', 'PrivateChat.notice.userLeft', 'me: still there?', 'PrivateChat.notice.recipientOffline']);
   });
 

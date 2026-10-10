@@ -15,7 +15,6 @@ export class CardDataSettingsDTO extends CardDataSettings {
     return dexieService.cardDataSettings.put(this);
   }
 
-  /** The stored settings, or desktop's defaults when none were saved yet. */
   static async get(): Promise<CardDataSettingsDTO> {
     const stored: CardDataSettings | undefined = await dexieService.cardDataSettings.get('singleton');
     return new CardDataSettingsDTO(stored ?? undefined);

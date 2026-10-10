@@ -17,12 +17,6 @@ function optionValue(candidate: BannerCandidate): string {
   return JSON.stringify([candidate.name, candidate.providerId ?? '']);
 }
 
-/**
- * Banner card picker — desktop's "Banner Card" combo box in the deck dock:
- * every distinct card (and printing) in the deck, plus "-" for none. A
- * banner that is no longer in the deck stays selectable so the value
- * shown is always the one saved.
- */
 export function DeckBannerPicker({ cards, bannerCard, bannerCardProviderId, onChange }: DeckBannerPickerProps) {
   const { t } = useTranslation();
   const candidates = useMemo(() => {
@@ -34,7 +28,6 @@ export function DeckBannerPicker({ cards, bannerCard, bannerCardProviderId, onCh
   }, [cards, bannerCard, bannerCardProviderId]);
 
   const selected = bannerCard ? optionValue({ name: bannerCard, providerId: bannerCardProviderId }) : NONE;
-  // Two printings of one card share a name; tell them apart by set.
   const sets = useMemo(() => new Map(cards.map((c) => [`${c.name}|${c.scryfallId ?? ''}`, c.set])), [cards]);
   const nameCounts = useMemo(() => {
     const counts = new Map<string, number>();

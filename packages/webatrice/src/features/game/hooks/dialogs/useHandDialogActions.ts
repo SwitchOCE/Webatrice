@@ -21,7 +21,6 @@ export interface UseHandDialogActionsArgs {
   set: Pick<GameDialogSetters, 'setPrompt'>;
 }
 
-/** The local hand's mulligan prompt and sorting, behind the hand menu and the game shortcuts. */
 export function useHandDialogActions({
   env,
   set,

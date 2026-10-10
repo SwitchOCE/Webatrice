@@ -8,16 +8,10 @@ import type { DeckCard } from '../../types';
 
 export interface SampleHandPanelProps {
   cards: readonly DeckCard[];
-  /** Show card images (MTG decks); otherwise names only. */
   showImages: boolean;
-  /** Test seam for the shuffle. */
   random?: () => number;
 }
 
-/**
- * Collapsible sample-hand section of the deck pane — desktop's visual deck
- * editor "Sample Hand" tab. The hand is drawn when the section opens.
- */
 export function SampleHandPanel({ cards, showImages, random }: SampleHandPanelProps) {
   const { t } = useTranslation();
   const [open, setOpen] = useState(false);
@@ -72,7 +66,6 @@ function SampleHand({ cards, showImages, random }: SampleHandPanelProps) {
       ) : (
         <ul className="mt-3 flex flex-wrap gap-2" aria-label={t('SampleHand.title')}>
           {hand.map((card, i) => (
-            // A hand can hold several copies of one card.
             <li key={`${card.name}-${i}`} className="w-28">
               {showImages && card.imageUri ? (
                 <img src={card.imageUri} alt={card.name} className="w-full rounded-md shadow" loading="lazy" />

@@ -7,7 +7,6 @@ import { useSeatSelection, type SeatSelectableCards } from './useSeatSelection';
 
 const SEAT_ONE: SeatSelectableCards = {
   hand: [{ id: '30' }],
-  // Card 99 is player 3's aura attached to one of player 1's creatures.
   battlefield: [{ id: '10' }, { id: '11' }, { id: '99', ownerPlayerId: 3 }],
   stack: [],
 };

@@ -14,11 +14,9 @@ import { useTallyType } from './useTallyType';
 
 export interface SelectionTally {
   rows: TallyRow[];
-  /** How many cards are selected, across every seat and zone. */
   count: number;
 }
 
-/** The catalog fields a tally reads: the type line, with every face. */
 function typeLineOf(result: LookupResult): string {
   const faces = result.faces?.map((f) => f.typeLine).filter((t): t is string => !!t) ?? [];
   if (faces.length > 1 && !result.typeLine?.includes(' // ')) {
@@ -27,15 +25,6 @@ function typeLineOf(result: LookupResult): string {
   return result.typeLine ?? '';
 }
 
-/**
- * The chosen tally over the game selection: every selected card, in any zone
- * of any seat (desktop GameView over gameScene->selectedCards()). Cards come
- * from the game state; type lines from the card catalog.
- *
- * A face-up battlefield card with no live P/T counts its printed P/T: web clients play
- * cards without sending one (desktop sets it from its card database when
- * playing, player_actions.cpp:88), so the board shows the printed value too.
- */
 export function useSelectionTally(): SelectionTally {
   const { t } = useTranslation();
   const gameId = useGameId();

@@ -17,8 +17,6 @@ describe('getHostPort', () => {
   });
 
   it('ignores legacy localHost/localPort left on stale IndexedDB records', () => {
-    // Older seeds persisted localHost/localPort; those fields are gone from the
-    // type but may still exist as inert properties on a user's stored records.
     const stale = {
       name: 'Rooster',
       host: 'server.cockatrice.us/servatrice',

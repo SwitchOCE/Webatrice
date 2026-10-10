@@ -9,31 +9,21 @@ import type { SeatCardMeta } from './useSeatCardMetadata';
 import { usePreference } from '@app/hooks';
 
 export interface UseHandCardOpsArgs {
-  /** The seat's hand, in display order. */
   cards: readonly PlayerCardViewModel[];
   selection: SeatSelection | null;
   cardMetaByName: ReadonlyMap<string, SeatCardMeta>;
   zoneCommands: PlayerZoneCommands;
 }
 
-/** The hand actions on the selected hand cards, as the hand card menu runs them. */
 export interface HandCardOps {
-  /** Play each card (desktop actPlay / actPlayFacedown). */
   play(faceDown: boolean): void;
-  /** Desktop's "Move to" on the cards (moveSelectedCards). */
   move(to: SeatMoveDestination): void;
 }
 
 export interface HandCardActions {
-  /** The actions of a shortcut, on the hand selection; null without one. */
   forSelection(): HandCardOps | null;
 }
 
-/**
- * The seat's hand card actions, bound to its zone port: what the hand card
- * menu's Play, Play Face Down and Move to do, for the shortcuts that act on
- * the selected hand cards.
- */
 export function useHandCardOps({ cards, selection, cardMetaByName, zoneCommands }: UseHandCardOpsArgs): HandCardActions {
   const playToStack = usePreference('playToStack');
   return useMemo(() => ({

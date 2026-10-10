@@ -18,11 +18,6 @@ export interface PictureUrlTemplates {
   resetToDefaults: () => Promise<void>;
 }
 
-/**
- * The ordered picture URL list of desktop's card-source settings
- * (`deck_editor_settings_page.cpp` "URL Download Priority"). Like desktop,
- * every change is stored immediately.
- */
 export function usePictureUrlTemplates(): PictureUrlTemplates {
   const [templates, setTemplates] = useState<string[]>([]);
   const [selectedIndex, setSelectedIndex] = useState<number | null>(null);

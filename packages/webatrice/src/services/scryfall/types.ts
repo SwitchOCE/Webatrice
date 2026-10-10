@@ -1,5 +1,3 @@
-/** A Scryfall card object, narrowed to the fields the client's callers read.
- *  See https://scryfall.com/docs/api/cards for the field spec. */
 export interface ScryfallCard {
   id: string;
   name: string;
@@ -15,7 +13,6 @@ export interface ScryfallCard {
   collector_number?: string;
   image_uris?: { small?: string; normal?: string; large?: string };
   oracle_text?: string;
-  /** Format → `legal` | `not_legal` | `restricted` | `banned`. */
   legalities?: Record<string, string>;
   /** Present on multi-faced cards (transform, modal_dfc,
    *  reversible_card, split, adventure, flip). Front-face is [0],
@@ -32,8 +29,6 @@ export interface ScryfallCard {
     oracle_text?: string;
     image_uris?: { small?: string; normal?: string };
   }>;
-  /** Present on cards with related-object references — tokens
-   *  created, meld halves, combo pieces (transform back-faces). */
   all_parts?: Array<{
     id: string;
     component: 'token' | 'meld_part' | 'meld_result' | 'combo_piece';
@@ -43,8 +38,6 @@ export interface ScryfallCard {
   }>;
 }
 
-/** One `/cards/collection` identifier. Scryfall accepts one of `{name}`,
- *  `{set + collector_number}`, `{id}` or `{oracle_id}` per entry. */
 export interface ScryfallIdentifier {
   id?: string;
   name?: string;
@@ -52,7 +45,6 @@ export interface ScryfallIdentifier {
   collector_number?: string;
 }
 
-/** A card name with optional printing hints, as deck import parses them. */
 export interface ScryfallCardHint {
   name: string;
   set?: string;

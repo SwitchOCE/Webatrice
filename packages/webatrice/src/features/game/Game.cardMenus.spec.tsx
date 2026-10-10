@@ -1,8 +1,3 @@
-// Exact card-menu trees for every seat card zone: own and opponent battlefield,
-// own and opponent stack, and the graveyard / exile pile views. Labels, order,
-// dividers, shortcut hints, check marks, counter swatches, disabled rows and
-// every submenu are serialized, so moving the menu renderer or its state (refactor
-// plan Phase 6, PB-09/PB-10) cannot change a menu without failing here.
 
 import { act, fireEvent, screen } from '@testing-library/react';
 import { makeCard } from '@cockatrice/datatrice/testing';
@@ -60,7 +55,6 @@ function renderSeats() {
   return renderWithProviders(<Game />, { preloadedState: buildSeatGameState(SPEC), webClient: createMockWebClient() });
 }
 
-/** The rows of one menu popup: buttons and divider lines, in order. */
 function menuRows(menu: HTMLElement): HTMLElement[] {
   return Array.from(menu.children).flatMap((child) => {
     if (child instanceof HTMLButtonElement) {
@@ -71,10 +65,6 @@ function menuRows(menu: HTMLElement): HTMLElement[] {
   });
 }
 
-/**
- * One line per row, submenus indented beneath their parent:
- * `[✓] [●hsl(...)] Label  ⟨shortcut⟩  (disabled)  ▶`, `---` for a divider.
- */
 function serializeMenu(menu: HTMLElement, depth = 0): string[] {
   const pad = '  '.repeat(depth);
   const lines: string[] = [];
@@ -118,7 +108,6 @@ function menuTree(target: Element): string {
   return `\n${serializeMenu(openContextMenu(target)).join('\n')}\n`;
 }
 
-/** A card inside the open pile-view dialog (the board pile shows only its top card). */
 function pileViewCard(cardId: number): HTMLElement {
   const matches = document.querySelectorAll<HTMLElement>(`[data-card][data-card-id="${cardId}"]`);
   return matches[matches.length - 1];
@@ -364,7 +353,6 @@ describe('seat card menu trees', () => {
   });
 });
 
-/** The Tailwind `z-[N]` layer of the nearest element that sets one. */
 function zLayer(el: Element): number {
   const layered = el.closest('[class*="z-["]');
   const match = layered?.className.toString().match(/z-\[(\d+)\]/);

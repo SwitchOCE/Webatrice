@@ -11,7 +11,6 @@ interface GameMenuProps {
   className: string;
 }
 
-/** Desktop's "Game" menu (TabGame::createMenuItems) as a button in the battlefield sidebar. */
 export default function GameMenu({ className }: GameMenuProps) {
   const { t } = useTranslation();
   const gameId = useGameId();

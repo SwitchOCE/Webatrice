@@ -10,10 +10,6 @@ export interface DeleteFolderDialogProps {
   onConfirm: () => void;
 }
 
-/**
- * Confirmation before a folder and everything in it is removed from the
- * server (desktop's "Delete remote decks" warning), naming what goes with it.
- */
 export function DeleteFolderDialog({ folder, onCancel, onConfirm }: DeleteFolderDialogProps) {
   const { t } = useTranslation();
   const titleId = useId();

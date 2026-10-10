@@ -11,7 +11,6 @@ import {
 } from './useAnimationPreferences';
 import { getSettings, settingsStore } from './useSettings';
 
-/** A `matchMedia` whose reduced-motion query answers `reduce`, switchable mid-test. */
 function mockReducedMotion(reduce: boolean) {
   const original = Object.getOwnPropertyDescriptor(window, 'matchMedia');
   const listeners = new Set<() => void>();

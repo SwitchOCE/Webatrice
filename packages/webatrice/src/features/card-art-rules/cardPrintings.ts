@@ -1,17 +1,10 @@
 import { CardDTO, SetDTO } from '@app/services';
 
 export interface CardPrinting {
-  /** Printing uuid: the provider id a card-art rule targets. */
   providerId: string;
   label: string;
 }
 
-/**
- * Desktop TabCardArtRules::populateProviderCombo: one entry per printing of the
- * card in the local card database, labelled "<set long name> #<collector number>"
- * and keyed by the printing's uuid. Printings without a uuid cannot be targeted
- * and are skipped; an unknown card yields no printings.
- */
 export async function loadCardPrintings(cardName: string): Promise<CardPrinting[]> {
   const name = cardName.trim();
   if (!name) {

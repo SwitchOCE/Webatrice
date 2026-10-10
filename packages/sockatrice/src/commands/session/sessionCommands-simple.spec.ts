@@ -102,7 +102,6 @@ beforeEach(() => {
   (passwordSaltSupported as Mock).mockReturnValue(0);
 });
 
-
 describe('accountEdit', () => {
   it('sends Command_AccountEdit with correct params', () => {
     accountEdit({ passwordCheck: 'pw', realName: 'Alice', email: 'a@b.com', country: 'us' });
@@ -565,7 +564,6 @@ describe('joinRoom', () => {
     joinRoom(5);
     expect(WebClient.instance.protobuf.sendSessionCommand).toHaveBeenCalledTimes(1);
 
-    // The user asked for the room while it was auto-joining, so its failure is shown.
     invokeOnError(Response_ResponseCode.RespNameNotFound);
     expect(WebClient.instance.response.room.joinRoomFailed).toHaveBeenCalledWith(
       5, Response_ResponseCode.RespNameNotFound, undefined, true,
@@ -893,7 +891,6 @@ describe('replayDownload', () => {
     expect(onFailure).toHaveBeenCalledWith(Response_ResponseCode.RespNameNotFound, undefined);
   });
 });
-
 
 describe('deprecated account password credentials', () => {
   it('omits an empty caller hash while preserving the plaintext password', () => {

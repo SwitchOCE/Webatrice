@@ -16,18 +16,10 @@ import { useDeckSharingSupported, useShareServer } from './hooks/useDeckSharing'
 import { useImportDeckCopy } from './hooks/useImportDeckCopy';
 import { useSharedDeck, type SharedDeckListing } from './hooks/useSharedDeck';
 
-/** The color identity the share listed for an item, if it was listed. */
 function listedColorIdentity(listing: SharedDeckListing, itemId: number): string | undefined {
   return listing.status === 'loaded' ? listing.items.find((item) => item.id === itemId)?.colorIdentity : undefined;
 }
 
-/**
- * A share link's decks (desktop `IntentOpenSharedDeck` + `DlgSharedDecksPreview`),
- * at `/decks/shared?share=<token>&hostname=<host>&port=<port>`. Lists the decks
- * in the share; each opens read-only and can be imported into the user's deck
- * storage. Desktop opens a link on another server by connecting there; a
- * browser can only say which server the link is for.
- */
 function SharedDeck() {
   const { t } = useTranslation();
   const navigate = useNavigate();
@@ -40,8 +32,6 @@ function SharedDeck() {
   const isConnected = useAppSelector(server.Selectors.getIsConnected);
 
   const problem = 'problem' in link ? t(`OpenShareLink.problem.${link.problem}`) : null;
-  // Fails closed, like desktop, which sends the token only once logged into
-  // the link's own server: without a live endpoint, no token is sent.
   const otherServer = !('problem' in link) && !(shareServer && isSameShareServer(link, shareServer.hostname, shareServer.desktopPort))
     ? t('SharedDeck.otherServer', { server: serverLabel })
     : null;

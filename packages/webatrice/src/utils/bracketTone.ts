@@ -1,9 +1,3 @@
-/**
- * Bracket traffic-light palette (edhpowerlevel's colouring): green for
- * casual, yellow for mid-tier, red for optimized/cEDH. Shared by the
- * MyDecks row badge, the editor's bracket section and the game lobby's
- * deck badge so a B3 reads the same everywhere.
- */
 export interface BracketTone {
   text: string;
   bg: string;
@@ -20,7 +14,6 @@ export const BRACKET_TONE: Record<number, BracketTone> = {
 
 const NEUTRAL_TONE_CLASS = 'text-text-secondary bg-bg-elevated border-border-subtle';
 
-/** Text, background and border classes for a bracket level's badge. */
 export function bracketToneClass(level: number): string {
   const tone = BRACKET_TONE[level];
   return tone ? `${tone.text} ${tone.bg} ${tone.border}` : NEUTRAL_TONE_CLASS;

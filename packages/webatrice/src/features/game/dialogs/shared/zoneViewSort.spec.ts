@@ -61,7 +61,6 @@ describe('zoneViewSort', () => {
       ['type', ['Mystery', 'Forest', 'Grizzly Bears', 'Ancient Elk', 'Tarmogoyf', 'Lightning Bolt']],
       ['color', ['Forest', 'Mystery', 'Grizzly Bears', 'Tarmogoyf', 'Lightning Bolt', 'Ancient Elk']],
       ['set', ['Mystery', 'Tarmogoyf', 'Lightning Bolt', 'Ancient Elk', 'Forest', 'Grizzly Bears']],
-      // Fixed P/T first, variable (*) after, non-creatures last and by name.
       ['pt', ['Grizzly Bears', 'Ancient Elk', 'Tarmogoyf', 'Forest', 'Lightning Bolt', 'Mystery']],
     ] as const)('by %s', (mode: SortMode, names) => {
       expect([...ALL].sort((a, b) => compareCards(a, b, mode)).map((c) => c.name)).toEqual(names);

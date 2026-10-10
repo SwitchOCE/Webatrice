@@ -1,23 +1,14 @@
 import type { GroupMode, SortMode } from './zoneViewSort';
 
-/**
- * A zone view's remembered choices, kept across sessions like desktop's
- * SettingsCache (view_zone_widget.cpp:161-163, cache_settings.cpp:383-384).
- * Each view family stores its own under its storage key prefix, so the
- * library search and an incoming reveal can be tuned independently.
- */
 export interface ZoneViewPreferences {
   groupBy: GroupMode;
   sortBy: SortMode;
-  /** Stack each group into a fanned pile (view_zone_widget.cpp:64,197). */
   pileView: boolean;
 }
 
 const GROUP_MODES: readonly GroupMode[] = ['none', 'type', 'cmc', 'color'];
 const SORT_MODES: readonly SortMode[] = ['none', 'name', 'cmc', 'type', 'color', 'set', 'pt'];
 
-/** Desktop's defaults: `zoneview/groupby` By Type and `zoneview/sortby` By Name. Pile view is on
- *  so a 90+ card library fits without endless scrolling. */
 export const DEFAULT_ZONE_VIEW_PREFERENCES: ZoneViewPreferences = { groupBy: 'type', sortBy: 'name', pileView: true };
 
 function read(key: string): string | null {
@@ -36,7 +27,6 @@ function write(key: string, value: string): void {
   }
 }
 
-/** The choices stored under `storageKey`, each falling back to desktop's default when unset or unknown. */
 export function readZoneViewPreferences(storageKey: string): ZoneViewPreferences {
   const groupBy = read(`${storageKey}GroupBy`);
   const sortBy = read(`${storageKey}SortBy`);
@@ -48,7 +38,6 @@ export function readZoneViewPreferences(storageKey: string): ZoneViewPreferences
   };
 }
 
-/** Persist only the supplied choices so other open views' saved choices are preserved. */
 export function writeZoneViewPreferences(storageKey: string, prefs: Partial<ZoneViewPreferences>): void {
   if (prefs.groupBy !== undefined) {
     write(`${storageKey}GroupBy`, prefs.groupBy);
@@ -61,11 +50,6 @@ export function writeZoneViewPreferences(storageKey: string, prefs: Partial<Zone
   }
 }
 
-/**
- * The library view's "shuffle when closing" choice. On by default, as on
- * desktop. Read when a view closes without an explicit answer (Esc), so every
- * close path honours the box the user last ticked.
- */
 const SHUFFLE_ON_CLOSE_STORAGE_KEY = 'webatrice.searchLibraryShuffleOnClose';
 
 export function readShuffleOnClose(): boolean {

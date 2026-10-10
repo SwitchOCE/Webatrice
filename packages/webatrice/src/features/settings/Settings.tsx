@@ -14,17 +14,12 @@ import SettingsSectionView from './SettingsSectionView';
 import './Settings.css';
 
 interface SettingsProps {
-  /** Registered pages; injectable for tests. */
   sections?: readonly SettingsSection[];
 }
 
 export const sectionTabId = (id: SettingsSectionId) => `settings-tab-${id}`;
 export const sectionPanelId = 'settings-panel';
 
-/**
- * Desktop's Settings dialog as a page: a searchable list of sections beside the selected one.
- * Every change is saved as it is made, as on desktop.
- */
 const Settings = ({ sections = settingsSections }: SettingsProps) => {
   const { t } = useTranslation();
   const [selectedId, setSelectedId] = useState<SettingsSectionId>(sections[0].id);
@@ -40,7 +35,6 @@ const Settings = ({ sections = settingsSections }: SettingsProps) => {
     setQuery('');
   };
 
-  // Roving focus for the vertical tab list (WAI-ARIA tabs pattern).
   const onTabKeyDown = (event: KeyboardEvent<HTMLButtonElement>, index: number) => {
     const step = { ArrowDown: 1, ArrowUp: -1 }[event.key];
     const jump = { Home: 0, End: sections.length - 1 }[event.key];

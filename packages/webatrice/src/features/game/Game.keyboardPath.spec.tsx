@@ -1,9 +1,3 @@
-// The board without a pointer (aud.md G2, G3, G7, G10): cards are focusable
-// options in their zones, and every card action has a keyboard path through
-// the card, its menu or a target pick. Desktop has no keyboard path at all
-// (every card is pointer-only, and dnd-kit's keyboard drag was never live
-// here), so this spec replaces the keyboard-sensor suite origin/master skipped.
-// Assertions are on the wire, through <Game /> with the real seat ports.
 
 import { act, fireEvent, screen, within } from '@testing-library/react';
 import { create } from '@bufbuild/protobuf';
@@ -33,7 +27,6 @@ const FOREST = makeCard({ id: 30, name: 'Forest' });
 const ISLAND = makeCard({ id: 31, name: 'Island' });
 const DURESS = makeCard({ id: 40, name: 'Duress' });
 const BEAR = makeCard({ id: 20, name: 'Bear', x: 0, y: 0, pt: '2/2' });
-// The opponent's aura, attached to their Bear.
 const AURA = makeCard({ id: 21, name: 'Aura', x: 0, y: 0, attachPlayerId: 2, attachZone: ZoneName.TABLE, attachCardId: 20 });
 
 const SPEC: SeatGameSpec = {
@@ -80,7 +73,6 @@ describe('the board from the keyboard', () => {
 
     key(cardEl(ISLAND.id, 'hand'), { key: 'Enter' });
     await vi.waitFor(() => expect(game.moveCard).toHaveBeenCalledTimes(1));
-    // As a double-click plays it: the catalog doesn't know the card, so it goes on the stack.
     expect(vi.mocked(game.moveCard).mock.calls[0][1]).toMatchObject({
       startZone: ZoneName.HAND,
       targetZone: ZoneName.STACK,
@@ -168,7 +160,6 @@ describe('attach targets (desktop ArrowAttachItem::attachCards)', () => {
     focus(aura);
     key(aura, { key: 'Enter' });
     expect(game.attachCard).not.toHaveBeenCalled();
-    // The pick is over: Enter on the Bear now taps nothing of ours and attaches nothing.
     const bear = cardEl(BEAR.id, 'battlefield');
     focus(bear);
     key(bear, { key: 'Enter' });
@@ -219,7 +210,6 @@ describe('arrow targets from the keyboard', () => {
     key(bob, { key: 'Enter' });
     expect(game.createArrow).toHaveBeenCalledTimes(1);
     expect(vi.mocked(game.createArrow).mock.calls[0][1]).toMatchObject({ startCardId: OGRE.id, targetPlayerId: 2 });
-    // Bob's block leaves the tab order again; focus goes back to the arrow's card.
     expect(screen.getByRole('group', { name: 'Bob\'s life' })).toBeInTheDocument();
     expect(cardEl(OGRE.id, 'battlefield')).toHaveFocus();
   });
@@ -266,7 +256,6 @@ describe('Escape during a target pick', () => {
     startArrow();
     const bob = screen.getByRole('button', { name: 'Bob\'s life' });
     focus(bob);
-    // The Ogre leaves the battlefield while the pick is pending.
     act(() => {
       store.dispatch(games.Actions.cardMoved({
         gameId: 1,
@@ -290,7 +279,6 @@ describe('Escape during a target pick', () => {
     expect(screen.getByRole('button', { name: 'Bob\'s player menu' })).toHaveFocus();
   });
 
-
   it('cancels the pick inside a card view and keeps the view open', () => {
     const game = renderGame();
     const grave = pileEl('Graveyard');
@@ -307,7 +295,6 @@ describe('Escape during a target pick', () => {
     expect(duress).toBeInTheDocument();
     key(duress, { key: 'Enter' });
     expect(game.createArrow).not.toHaveBeenCalled();
-    // With nothing pending, Escape closes the view as before.
     act(() => {
       fireEvent.keyDown(duress, { key: 'Escape' });
     });
@@ -427,7 +414,6 @@ describe('moving cards from the keyboard (M, aud.md G3)', () => {
     expect(ogre).toHaveFocus();
   });
 
-  /** The z-index of the outermost layer around `el`, the portal it sits in (Tailwind z-N / z-[N]). */
   const layer = (el: Element): number => {
     let z = 0;
     for (let node: Element | null = el; node; node = node.parentElement) {
@@ -465,7 +451,6 @@ describe('moving cards from the keyboard (M, aud.md G3)', () => {
     });
     openContextMenu(pileEl('Hand'));
     chooseMenuPath('View hand');
-    // The view, not the hand strip under it.
     const view = screen.getByRole('heading', { name: /hand/i }).closest<HTMLElement>('.pointer-events-auto.resize')!;
     const forest = within(view).getByRole('option', { name: 'Forest' });
     const island = within(view).getByRole('option', { name: 'Island' });
@@ -478,7 +463,6 @@ describe('moving cards from the keyboard (M, aud.md G3)', () => {
     choose('To', 'hand');
     choose('Position (1 to 3; 3 is the end)', '3');
     submit();
-    // Both go to the end, one command each, as a drop past Plains sends them.
     expect(vi.mocked(game.moveCard).mock.calls.map(([, params]) => [params.cardsToMove!.card![0].cardId, params.x]))
       .toEqual([[FOREST.id, 3], [ISLAND.id, 3]]);
   });

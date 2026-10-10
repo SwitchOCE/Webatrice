@@ -16,11 +16,6 @@ export interface GameAffordances {
   canRoll: boolean;
 }
 
-/**
- * What the local user may do in `gameId`. A read-only board (replay playback)
- * has no live game to act on, so every affordance is off there — the phase
- * track, sidebar and game shortcuts all gate on these.
- */
 export function useGameAffordances(gameId: number | undefined): GameAffordances {
   const { game, localPlayer, isSpectator, isJudge, isStarted } = useCurrentGame(gameId);
   const readOnly = useGameReadOnly();
@@ -31,7 +26,6 @@ export function useGameAffordances(gameId: number | undefined): GameAffordances 
     const isConceded = localPlayer?.properties.conceded ?? false;
     const canPassTurn =
       hasLiveGame && isStarted && !isConceded && (isJudge || isParticipant);
-    // server_player.cpp:600 exempts judges from the conceded reverse-turn guard.
     const canReverseTurn =
       hasLiveGame && isStarted && (isJudge || (isParticipant && !isConceded));
     const canAdvancePhase =

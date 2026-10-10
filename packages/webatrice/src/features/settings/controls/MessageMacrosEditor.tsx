@@ -9,10 +9,6 @@ import { useMessageMacros, useSettings } from '@app/hooks';
 import type { CustomControlProps } from '../registry';
 import { buildMessageMacroSchema, type MessageMacroValues } from './chatSettingsSchemas';
 
-/**
- * In-game message macros (desktop messages_settings_page.cpp "In-game message macros"): add, edit
- * and remove. Order is kept, since the game's Say menu binds the first ten to Ctrl+1..0.
- */
 export default function MessageMacrosEditor({ labelId, describedBy, disabled }: CustomControlProps) {
   const { t } = useTranslation();
   const settings = useSettings();

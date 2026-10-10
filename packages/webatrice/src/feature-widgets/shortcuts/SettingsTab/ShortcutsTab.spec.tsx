@@ -9,7 +9,6 @@ describe('ShortcutsTab', () => {
   it('lists the game groups in desktop order, then the other scopes', () => {
     renderWithProviders(<ShortcutsTab />);
     const headers = screen.getAllByRole('button').filter((b) => b.hasAttribute('aria-expanded'));
-    // Each header reads "<group><count>".
     expect(headers.map((b) => b.textContent?.replace(/\d+$/, ''))).toEqual([
       'ShortcutsTab.group.gameCardCounters',
       'ShortcutsTab.group.gamePlayerCounters',
@@ -50,8 +49,6 @@ describe('ShortcutsTab', () => {
     expect(within(tapRow).getByText('ShortcutsTab.noBinding')).toBeInTheDocument();
   });
 
-  // jsdom does not turn Enter / Space on a button into a click, so this checks
-  // what keyboard use rests on: native, focusable buttons in the tab order.
   it('collapses a group from its focusable header button, and every row edits from a focusable button', () => {
     renderWithProviders(<ShortcutsTab />);
     const header = screen.getByRole('button', { name: /ShortcutsTab\.group\.gameHand\d/ });
@@ -62,7 +59,6 @@ describe('ShortcutsTab', () => {
     fireEvent.click(header);
     expect(header).toHaveAttribute('aria-expanded', 'false');
     expect(screen.queryByText(shortcutsText.ShortcutsTab.action['game.sortHandByName'])).not.toBeInTheDocument();
-    // One focusable edit button per visible row.
     const edits = screen.getAllByRole('button', { name: 'ShortcutsTab.editAction' });
     const visibleActionCount = allActionIds.filter((id) => defaults[id].group !== 'gameHand').length;
     expect(edits).toHaveLength(visibleActionCount);

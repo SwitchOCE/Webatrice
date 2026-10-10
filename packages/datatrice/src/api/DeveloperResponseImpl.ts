@@ -4,8 +4,6 @@ import type { WebsocketTypes } from '@cockatrice/sockatrice/types';
 
 import { Actions as ServerActions } from '../store/server/server.actions';
 
-// Developer staff role (Cockatrice 3.1, desktop TabDeveloper). Developer log
-// lookups share IModeratorResponse.viewLogs, so only the server stats land here.
 export class DeveloperResponseImpl implements WebsocketTypes.IDeveloperResponse {
   constructor(private store: Store) {}
 

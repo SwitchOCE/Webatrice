@@ -1,8 +1,6 @@
 /// <reference types="vite/client" />
 /// <reference types="vitest/globals" />
 
-// Build-time constants injected by vite.config.ts `define` (package version and
-// last commit date); consumed by clientConfig.ts to build Command_Login.clientver.
 declare const __WEBATRICE_VERSION__: string;
 declare const __WEBATRICE_BUILD_DATE__: string;
 
@@ -21,8 +19,6 @@ interface Window {
     env?: {
       RR_GA_KEY?: string;
     };
-    // Result of the capability preflight in public/preflight.js; read through
-    // utils/browserSupport.ts.
     browserSupport?: {
       missingRequired: string[];
       missingOptional: string[];

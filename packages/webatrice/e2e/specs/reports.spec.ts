@@ -9,12 +9,6 @@ import { randomSuffix } from '../fixtures/users';
 import { GamePage, topBarTab } from '../pages';
 import { ReplaysPage } from '../pages/ReplaysPage';
 
-// User reports and the moderation queue (Cockatrice #7091). The flow needs a
-// Servatrice that implements them (Cockatrice master, 3.1), e.g.
-//   SERVATRICE_IMAGE=webatrice-local/servatrice:master-add65ca npm run test:e2e
-// Against the pinned 3.0.0 release the same entry points must stay hidden,
-// which this spec asserts instead.
-
 function servatriceImage(): string {
   if (process.env.SERVATRICE_IMAGE) {
     return process.env.SERVATRICE_IMAGE;
@@ -61,7 +55,6 @@ test('a report goes from user A to a moderator and its resolution back to A', as
   const b = await registerAndJoinFirstRoom(pageB);
   const description = `e2e report ${a.user.username} -> ${b.user.username}`;
 
-  // A reports B from B's player page.
   await openPlayerPage(pageA, b.user.username);
   await pageA.getByRole('button', { name: 'Report user' }).click();
   const reportDialog = pageA.getByRole('dialog', { name: 'Report User' });
@@ -74,7 +67,6 @@ test('a report goes from user A to a moderator and its resolution back to A', as
     .toBeVisible({ timeout: 15_000 });
   await pageA.getByRole('button', { name: 'OK' }).click();
 
-  // The moderator finds it in the queue, comments and resolves it.
   await reachRoomsAs(pageMod, E2E_MODERATOR);
   await openUserMenuItem(pageMod, E2E_MODERATOR.username, 'Report Queue');
   const queue = pageMod.getByTestId('report-queue');
@@ -93,7 +85,6 @@ test('a report goes from user A to a moderator and its resolution back to A', as
   await pageMod.getByRole('button', { name: 'OK' }).click();
   await expect(queue.getByTestId('report-queue-status')).toHaveText('Done.', { timeout: 15_000 });
 
-  // A is told and sees the resolution in My Reports.
   await expect(pageA.getByText('Report Resolved')).toBeVisible({ timeout: 15_000 });
   await openUserMenuItem(pageA, a.user.username, 'My Reports');
   const mine = pageA.getByTestId('my-reports');
@@ -113,7 +104,6 @@ test('a moderator watches the reported game\'s replay from the queue', async ({ 
   const pageMod = await (await newContext()).newPage();
   const [a, b] = await Promise.all([registerAndJoinFirstRoom(pageA), registerAndJoinFirstRoom(pageB)]);
 
-  // A and B play a short game; the server stores its replay.
   const gameName = `report-${randomSuffix()}`;
   await a.rooms.createGame(gameName, { maxPlayers: 2 });
   const gameA = new GamePage(pageA);
@@ -129,7 +119,6 @@ test('a moderator watches the reported game\'s replay from the queue', async ({ 
   await gameB.deckSelect.leaveGame();
   await expect(gameB.container).toBeHidden({ timeout: 30_000 });
 
-  // B's replays tab names the game's id; A stays in the room.
   const replays = new ReplaysPage(pageB);
   await replays.open();
   const match = replays.matchRow(gameName);
@@ -137,7 +126,6 @@ test('a moderator watches the reported game\'s replay from the queue', async ({ 
   const gameId = /^replay-match-(\d+)$/.exec((await match.getAttribute('data-testid')) ?? '')?.[1];
   expect(gameId).toBeTruthy();
 
-  // A reports B for that game.
   await openPlayerPage(pageA, b.user.username);
   await pageA.getByRole('button', { name: 'Report user' }).click();
   const reportDialog = pageA.getByRole('dialog', { name: 'Report User' });
@@ -148,7 +136,6 @@ test('a moderator watches the reported game\'s replay from the queue', async ({ 
   await expect(pageA.getByText('Your report has been submitted and will be reviewed by a moderator. Thank you.'))
     .toBeVisible({ timeout: 15_000 });
 
-  // The moderator opens the report's replay (desktop TabReport::viewReplay).
   await reachRoomsAs(pageMod, E2E_MODERATOR);
   await openUserMenuItem(pageMod, E2E_MODERATOR.username, 'Report Queue');
   const queue = pageMod.getByTestId('report-queue');

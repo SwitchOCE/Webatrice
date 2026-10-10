@@ -70,8 +70,6 @@ describe('Player', () => {
     expect(hoisted.mockWebClient.request.session.addToBuddyList).toHaveBeenCalledWith('alice');
   });
 
-  // Desktop lists "Show this user's games" in the user context menu; the profile page carries
-  // it too, so it does not depend on reaching that menu.
   it('offers the games action for another user, enabled only while they are online', () => {
     const alice = makeUser({ name: 'alice' });
     const { unmount } = renderPlayer(stateWithPlayer(alice));
@@ -103,7 +101,6 @@ describe('Player', () => {
     expect(screen.getByRole('button', { name: 'Moderation.menu.banHistory' })).toBeEnabled();
     expect(screen.queryByRole('button', { name: 'Moderation.menu.promoteMod' })).not.toBeInTheDocument();
 
-    // Warn starts desktop's round trip: user info first (for the client id).
     fireEvent.click(screen.getByRole('button', { name: 'Moderation.menu.warnUser' }));
     expect(hoisted.mockWebClient.request.session.getUserInfo).toHaveBeenCalledWith('alice');
   });

@@ -9,16 +9,11 @@ export interface SettingsSearchHit {
 
 export interface SettingsSearchResult {
   hits: SettingsSearchHit[];
-  /** Custom pages (e.g. Shortcuts) whose title matches; they are searched by title only. */
   pages: SettingsSection[];
 }
 
 type Translate = (key: string) => string;
 
-/**
- * Desktop's relevance ranking (settings_search_model.cpp `relevanceScore`): a label that starts
- * with the query beats one that contains it, then the group title, then any other text.
- */
 export function scoreEntry(query: string, label: string, groupTitle: string, otherText: string): number {
   const q = query.toLowerCase();
   const l = label.toLowerCase();
@@ -38,7 +33,6 @@ export function scoreEntry(query: string, label: string, groupTitle: string, oth
   return otherText.toLowerCase().includes(q) ? 20 : 0;
 }
 
-/** Matches the query against the translated text of every registered setting, best first. */
 export function searchSettings(
   sections: readonly SettingsSection[],
   rawQuery: string,
@@ -70,7 +64,6 @@ export function searchSettings(
       }
     }
   }
-  // Array.prototype.sort is stable, so equal scores keep page order.
   hits.sort((a, b) => b.score - a.score);
   return { hits, pages };
 }

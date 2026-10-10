@@ -25,15 +25,12 @@ export interface Game extends CurrentGame {
   gameRef: RefObject<HTMLDivElement>;
   cardRegistry: CardRegistry;
   sensors: ReturnType<typeof useSensors>;
-  /** The game's one card-preview owner (hover, keyboard focus, zoom). */
   previewStore: CardPreviewStore;
-  /** Seat-scoped shortcut operations the local seat publishes. */
   seatShortcuts: SeatShortcutRegistry;
   selectedCardKeys: ReadonlySet<string>;
   setSelectedCardKeys: GameSelection['setSelectedCardKeys'];
   localAccess: GameAccess;
   layout: GameBoardLayout;
-  /** Turns the board view one seat around the table; local only (desktop playerRotation). */
   rotateView: (step: RotationStep) => void;
   arrows: GameArrowInteractions;
   dialogs: GameDialogs;
@@ -41,9 +38,7 @@ export interface Game extends CurrentGame {
 }
 
 export interface UseGameOptions {
-  /** Game to drive; defaults to the `/game/:gameId` route param. */
   gameId?: number;
-  /** Replay playback: no drag sensors and no kicked/closed/left navigation. */
   readOnly?: boolean;
 }
 
@@ -56,8 +51,6 @@ export function useGame({ gameId: boardGameId, readOnly = false }: UseGameOption
   const current = useCurrentGame(boardGameId ?? routeGameId);
   const { gameId, game, isSpectator } = current;
 
-  // A replay ends with its recorded Event_GameClosed; that must not bounce the
-  // viewer to the lobby like a live game closing does.
   useGameLifecycleNavigation(readOnly ? undefined : gameId);
 
   const boardRef = useRef<HTMLDivElement>(null);

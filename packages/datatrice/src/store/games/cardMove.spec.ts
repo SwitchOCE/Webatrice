@@ -207,7 +207,6 @@ describe('sweepsArrows', () => {
 });
 
 describe('arrowsTouchingCard', () => {
-  // Card 10 on player 1's table; arrows live on whichever player drew them.
   const state = makeState({
     games: {
       1: makeGameEntry({

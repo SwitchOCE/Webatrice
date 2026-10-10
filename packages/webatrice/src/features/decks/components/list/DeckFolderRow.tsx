@@ -9,9 +9,7 @@ export interface DeckFolderRowProps {
   onOpen: () => void;
   onDownload: () => void;
   onDelete: () => void;
-  /** Share the decks directly in the folder (Servatrice 3.1 only). */
   onShare?: () => void;
-  /** Publish or unpublish the folder (Servatrice 3.1 only). */
   onTogglePublic?: () => void;
 }
 
@@ -20,7 +18,6 @@ const ACTION_CLASS = [
   'opacity-0 group-hover:opacity-100 group-focus-within:opacity-100 focus:opacity-100',
 ].join(' ');
 
-/** A subfolder in the list: opens on click; share, publish, download and delete on hover. */
 export function DeckFolderRow({ folder, onOpen, onDownload, onDelete, onShare, onTogglePublic }: DeckFolderRowProps) {
   const { t } = useTranslation();
   return (

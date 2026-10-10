@@ -20,18 +20,11 @@ function readStoredSize(): number {
 export interface UseSampleHand {
   hand: DeckCard[];
   size: number;
-  /** Library size: how many main-deck copies a hand is drawn from. */
   librarySize: number;
   setSize: (size: number) => void;
-  /** "Draw a new sample hand". */
   redraw: () => void;
 }
 
-/**
- * A sample hand of the open deck. The hand size is remembered per browser,
- * as desktop keeps `sampleHandSize` in its settings; changing it draws a new
- * hand, as desktop's spin box does. Deck edits don't redraw by themselves.
- */
 export function useSampleHand(cards: readonly DeckCard[], random: () => number = Math.random): UseSampleHand {
   const [size, setSizeState] = useState(readStoredSize);
   const library = useMemo(() => sampleLibrary(cards), [cards]);

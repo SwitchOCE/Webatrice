@@ -157,8 +157,6 @@ describe('moderator commands', () => {
     expect(value.usernameToActivate).toBe('inactive');
     expect(value.moderatorName).toBe('mod');
 
-    // Servatrice's cmdForceActivateUser delegates to cmdActivateAccount, whose
-    // success code is RespActivationAccepted.
     deliverMessage(buildResponseMessage(buildResponse({
       cmdId,
       responseCode: Data.Response_ResponseCode.RespActivationAccepted,

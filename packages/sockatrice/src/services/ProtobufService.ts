@@ -55,23 +55,12 @@ export interface GameCommandEntry<V = unknown> {
   judgeTargetId?: number;
 }
 
-// How long a command may wait for its response. Desktop ticks every pending
-// command on each keepalive ping and answers it RespNotConnected once it has
-// outlived `timeout` ticks (RemoteClient::ping); with the default settings
-// (keepalive 3 s, timeout 5) that is 15-18 s. Desktop's own UI deadlines for a
-// single round trip use the upper bound, (timeout + 1) * keepalive.
 export const DEFAULT_COMMAND_TIMEOUT_MS = 18_000;
 
-// Round-trip stats are pushed at most this often, so timing every response adds
-// no per-command dispatch traffic. The keepalive ping guarantees a fresh sample
-// about once per interval while connected. Desktop STATS_EMIT_INTERVAL_MS.
 export const LATENCY_STATS_INTERVAL_MS = 1000;
 
 export type LatencyStatsListener = (stats: LatencyStats, samplesMs: number[]) => void;
 
-// One in-flight command: its response callback, its failure callback, the
-// deadline timer and when it was sent. The record is removed from
-// `pendingCommands` before either callback runs, so a command settles exactly once.
 interface PendingCommand {
   onResponse: (response: Response) => void;
   onFailure?: (failure: CommandFailure) => void;
@@ -92,18 +81,11 @@ export class ProtobufService {
     private onLatencyStats?: LatencyStatsListener,
   ) {}
 
-  // Fails every in-flight command as disconnected without reusing command IDs.
-  // Mirrors RemoteClient::doDisconnectFromServer,
-  // which answers each pending command RespNotConnected rather than dropping it.
-  // The map is emptied before any callback runs, so a callback that re-enters
-  // (sends a command, or triggers another reset) sees a clean slate.
   public resetCommands() {
     const pending = [...this.pendingCommands.values()];
     this.pendingCommands.clear();
     this.clearLatencyStats();
 
-    // Cancel all deadlines before user code can throw or re-enter. IDs remain
-    // monotonic so late responses cannot settle a later session's work.
     for (const command of pending) {
       clearTimeout(command.timer);
     }
@@ -235,10 +217,6 @@ export class ProtobufService {
     this.dispatchCommand(ext.typeName, cmd, options);
   }
 
-  // Developer-family commands (Cockatrice #7211). A message usable through several
-  // families (Command_ViewLogHistory) declares one extension per family; callers pass
-  // the DeveloperCommand-scoped one (`dev_ext`), mirroring desktop's
-  // AbstractClient::prepareDeveloperCommand.
   public sendDeveloperCommand<V, R = unknown>(
     ext: GenExtension<DeveloperCommand, V>,
     value: V,
@@ -250,8 +228,6 @@ export class ProtobufService {
     this.dispatchCommand(ext.typeName, cmd, options);
   }
 
-  // A command sent without options is fire-and-forget: neither its response nor
-  // its failure is reported. Every other command settles through its options.
   private dispatchCommand<R>(typeName: string, cmd: CommandContainer, options?: CommandOptions<R>): void {
     const sent = this.sendCommand(
       cmd,
@@ -265,9 +241,6 @@ export class ProtobufService {
     }
   }
 
-  // Registers the command and sends it. Exactly one of `callback` (a server
-  // response) or `onFailure` (deadline passed, or the connection reset) fires
-  // later. Returns false, registering nothing, when the transport is not open.
   public sendCommand(
     cmd: CommandContainer,
     callback: (raw: Response) => void,
@@ -331,8 +304,6 @@ export class ProtobufService {
     const cmdId = Number(response.cmdId);
     const command = this.pendingCommands.get(cmdId);
 
-    // No record: the command already timed out or was failed by a reset (or
-    // the server answered something we never sent). It has settled; drop it.
     if (!command) {
       return;
     }
@@ -342,9 +313,6 @@ export class ProtobufService {
     command.onResponse(response);
   }
 
-  // Times every answered command from send to response (desktop
-  // AbstractClient::recordLatency, #7153). Commands that expire or are failed
-  // by a reset never answered, so they record nothing.
   private recordLatency(command: PendingCommand): void {
     const now = performance.now();
     this.latency.addSample(Math.round(now - command.sentAt));
@@ -354,8 +322,6 @@ export class ProtobufService {
     }
   }
 
-  // Drops the window and pushes zeroed stats so the display clears (desktop
-  // AbstractClient::clearLatencyStats on disconnect).
   private clearLatencyStats(): void {
     this.latency.clear();
     this.lastLatencyEmitAt = null;
@@ -386,14 +352,6 @@ export class ProtobufService {
     }
   }
 
-  /**
-   * Runs a recorded GameEventContainer through the same game-event registry live
-   * traffic uses, addressed to `gameId`. Servatrice clears `game_id` on every
-   * container it stores in a GameReplay (server_game.cpp sendGameEventContainer),
-   * so the replay player supplies the id of the local game it is rebuilding.
-   * Mirrors desktop feeding ReplayManager events into
-   * GameEventHandler::processGameEventContainer.
-   */
   public replayGameEventContainer(container: GameEventContainer, gameId: number, options?: ReplayEventOptions): void {
     this.dispatchGameEvents(container, gameId, options);
   }

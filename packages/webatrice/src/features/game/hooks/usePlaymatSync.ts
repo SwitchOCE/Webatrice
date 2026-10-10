@@ -9,7 +9,6 @@ import { getPlaymatSyncState, prunePlaymatSyncState } from './playmatSyncState';
 
 type PropertiesEvent = ReturnType<typeof games.Actions.playerPropertiesChanged>['payload'];
 
-/** Mounted once by AppShell: observes every joined game even while its route is absent. */
 export function usePlaymatSync(): void {
   const store = useStore<RootState>();
   const webClient = useWebClient();
@@ -48,7 +47,6 @@ export function usePlaymatSync(): void {
         sync.wasReady = ready;
         const received = event ? games.playmatFromParams(event.properties.playmatParams)
           : games.Selectors.getPlayerPlaymat(state, gameId, game.localPlayerId);
-        // The action recorder clones protobuf messages and omits inherited defaults.
         const announced = received ? { ...received, cardProviderId: received.cardProviderId ?? '' } : null;
         const deckHash = event ? event.properties.deckHash : local.properties.deckHash;
         const initialDeck = !sync.deckHash && !!deckHash;

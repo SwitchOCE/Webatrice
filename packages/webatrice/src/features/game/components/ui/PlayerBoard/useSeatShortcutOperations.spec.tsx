@@ -38,7 +38,6 @@ const BOARD = [
   bf(12, { slot: { row: 2, col: 0 } }),
 ];
 
-/** A command port whose every method is a spy. */
 function ports<T extends object>(): T {
   const spies = new Map<PropertyKey, ReturnType<typeof vi.fn>>();
   return new Proxy({} as T, {
@@ -51,7 +50,6 @@ function ports<T extends object>(): T {
   });
 }
 
-// The hand: an Ogre and a Shock.
 const HAND = [
   { id: '4', name: 'Ogre', scryfallId: 'p4' },
   { id: '9', name: 'Shock', scryfallId: 'p9' },
@@ -74,7 +72,6 @@ interface SetupArgs {
   lastToken?: CreateTokenRequest | null;
 }
 
-/** The seat's shortcuts over the real battlefield card ops and spy ports. */
 function setup({
   isSelf = true,
   selection = null,
@@ -116,7 +113,6 @@ function setup({
     </GameDialogsProvider>
   );
   renderHook(() => {
-    // The seat's last token, as useSeatPrompts keeps it.
     const [lastTokenState, setLastToken] = useState(lastToken);
     const cardOps = useBattlefieldCardOps({
       cards: BOARD,
@@ -189,7 +185,6 @@ describe('useSeatShortcutOperations', () => {
     view.run('game.revealSelectedToAll');
     expect(vi.mocked(view.zoneCommands.reveal).mock.calls).toEqual([[ZoneName.DECK, 'all', { cardIds: [11, 12] }]]);
 
-    // Another seat's view, or a mixed selection, reveals nothing.
     const other = setup({ selectedCardKeys: new Set([makeCardKey(2, ZoneName.DECK, 11)]) });
     other.run('game.revealSelectedToAll');
     const mixed = setup({ selectedCardKeys: new Set([makeCardKey(1, ZoneName.DECK, 11), makeCardKey(1, ZoneName.GRAVE, 3)]) });
@@ -237,7 +232,6 @@ describe('useSeatShortcutOperations', () => {
     hand.run('game.moveSelectedToBattlefield');
     hand.run('game.moveSelectedToGrave');
     expect(vi.mocked(hand.zoneCommands.moveCards).mock.calls).toEqual([
-      // Desktop cmMoveToTable (player_actions.cpp:1925-1950): one per card.
       [ZoneName.HAND, [{ id: 4, pt: '3/3' }], { zone: ZoneName.TABLE, index: 'end', row: 0 }],
       [ZoneName.HAND, [9], { zone: ZoneName.TABLE, index: 'end', row: 1 }],
       [ZoneName.HAND, [4, 9], { zone: ZoneName.GRAVE, reversed: false }],
@@ -252,7 +246,6 @@ describe('useSeatShortcutOperations', () => {
     const { run, zoneCommands } = setup({ selection: { zone: 'hand', ids: new Set(['4', '9']) } });
     run('game.playCard');
     run('game.playCardFaceDown');
-    // Highest id first; "Play to stack" (on by default) stacks the creature as well as the instant.
     expect(vi.mocked(zoneCommands.moveCards).mock.calls.map(([, cards, to]) => [cards, to.zone])).toEqual([
       [[9], ZoneName.STACK],
       [[4], ZoneName.STACK],
@@ -347,8 +340,6 @@ describe('useSeatShortcutOperations', () => {
     expect(full.cardCommands.createToken).toHaveBeenCalledWith(token);
   });
 
-  // Desktop actCreateAllRelatedCards hands the first token it creates to
-  // "Create another token" (player_actions.cpp:1053-1061).
   it('repeats the token create-all made on "Create another token"', () => {
     const { run, cardCommands } = setup({ selection: selected(12) });
     run('game.createAnotherToken');

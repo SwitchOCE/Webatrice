@@ -14,14 +14,6 @@ interface PendingJoin {
   roomId: number;
 }
 
-/**
- * Desktop TabSupervisor::joinReportGame: spectate the reported game, joining
- * its room first when needed (IntentJoinServerGame). Restrictions are only
- * overridden for judges, matching desktop's default admin-locked
- * canOverrideGameRestrictions(). Join errors surface through the shared
- * rooms.joinGameError like any other join; a successful join of the requested
- * game opens it.
- */
 export function useJoinReportGame(): (gameId: number, roomId: number) => void {
   const webClient = useWebClient();
   const navigate = useNavigate();
@@ -29,7 +21,6 @@ export function useJoinReportGame(): (gameId: number, roomId: number) => void {
   const activeGameIds = useAppSelector(games.Selectors.getActiveGameIds);
   const isJudge = useAppSelector(server.Selectors.getIsUserJudge);
   const [pending, setPending] = useState<PendingJoin | null>(null);
-  // The game this hook asked to spectate; other games joined meanwhile are not ours to open.
   const requestedGameId = useRef<number | null>(null);
 
   const sendJoin = useCallback((gameId: number, roomId: number) => {
@@ -43,7 +34,6 @@ export function useJoinReportGame(): (gameId: number, roomId: number) => void {
     });
   }, [webClient, isJudge]);
 
-  // The room join answers asynchronously; spectate once the room is ours.
   useEffect(() => {
     if (pending && joinedRoomIds[pending.roomId]) {
       setPending(null);
@@ -51,8 +41,6 @@ export function useJoinReportGame(): (gameId: number, roomId: number) => void {
     }
   }, [pending, joinedRoomIds, sendJoin]);
 
-  // A failed room join drops the pending spectate, so joining that room later
-  // does not suddenly open the old reported game.
   useReduxEffect<RoomCommandFailedPayload>((action) => {
     setPending((current) => (current?.roomId === action.payload.roomId ? null : current));
   }, rooms.Types.JOIN_ROOM_FAILED, []);

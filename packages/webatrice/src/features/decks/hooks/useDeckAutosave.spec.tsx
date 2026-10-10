@@ -20,8 +20,6 @@ const EDITED: HydratedDeck = { ...deck, name: 'D v2' };
 
 let latest: DeckAutosave;
 let current: HydratedDeck | null;
-// Stable, like the editor's `readDeck`: a new reader would re-create the
-// flush callback and flush on every render.
 const readDeck = () => current;
 const clients = new WeakMap<object, WebClient>();
 const settled = new WeakSet<NonNullable<Parameters<WebClient['request']['session']['deckUpdate']>[4]>>();
@@ -44,8 +42,6 @@ function ack(store: { dispatch: (a: unknown) => void }, deckId = 7, error: Comma
       deckId,
       treeItem: create(ServerInfo_DeckStorage_TreeItemSchema, { id: deckId, name: 'D' }),
     }));
-    // Sockatrice routes server state through Datatrice, then settles the
-    // originating request. Model both paths, including after unmount.
     const call = vi.mocked(clients.get(store)!.request.session.deckUpdate).mock.calls
       .find(([id, , , , callback]) => id === deckId && callback && !settled.has(callback));
     const callback = call?.[4];
@@ -94,7 +90,6 @@ describe('useDeckAutosave', () => {
       act(() => view.store.dispatch(server.Actions.deckUploadFailed({ path: '', requestId: requestIdA, responseCode: 1 })));
     }
 
-    // Like useDeckEditor, keep A readable for the identity-change cleanup.
     view.rerender(<Probe initial={null} deckId={null} draft={{ key: 'B', onStored: onStoredB }} />);
     expect(latest.saveState).toBe('idle');
     expect(latest.savedSignature()).toBeNull();
@@ -142,7 +137,6 @@ describe('useDeckAutosave', () => {
     expect(latest.savedSignature()).toBe(deckSaveSignature(EDITED));
     expect(vi.mocked(webClient.request.session.deckUpdate).mock.calls[0][1])
       .toContain('<deckname>Edited during upload</deckname>');
-    // Even before the route supplies deckId, later saves target the registry.
     save();
     expect(webClient.request.session.deckUpload).toHaveBeenCalledTimes(1);
     expect(webClient.request.session.deckUpdate).toHaveBeenCalledTimes(1);

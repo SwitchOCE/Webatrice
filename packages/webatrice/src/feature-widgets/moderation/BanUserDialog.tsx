@@ -23,7 +23,6 @@ import {
 } from './moderationStyles';
 
 export interface BanUserDialogProps {
-  /** The target as Command_GetUserInfo returned it (address / clientid are moderator-visible). */
   userInfo: ServerInfo_User;
   onSubmit: (values: BanUserFormValues) => void;
   onCancel: () => void;
@@ -98,13 +97,6 @@ const DurationInput = ({ control, name, label, max, disabled }: {
   />
 );
 
-/**
- * Port of desktop's BanDialog (user_list_dialog.cpp): ban by any combination of
- * name / IP / client id (pre-filled from the target's user info, client id
- * unticked when the server sent none), permanent or temporary (default 5
- * minutes), a moderator-only reason, a reason shown to the banned user, and an
- * option to redact the user's messages in every room.
- */
 const BanUserDialog = ({ userInfo, onSubmit, onCancel }: BanUserDialogProps) => {
   const { t } = useTranslation();
   const resolver = useMemo(() => zodResolver(buildBanUserSchema(t)), [t]);

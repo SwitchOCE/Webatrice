@@ -25,7 +25,6 @@ describe('dragCountPlacement', () => {
   it('hides the count in a band too small to hold it, as desktop does', () => {
     expect(dragCountPlacement({ x1: 0, y1: 0, x2: 10, y2: 100 }, 3)).toBeNull();
     expect(dragCountPlacement({ x1: 0, y1: 0, x2: 100, y2: 20 }, 3)).toBeNull();
-    // A wider count needs a wider band.
     expect(dragCountPlacement({ x1: 0, y1: 0, x2: 25, y2: 100 }, 3)).not.toBeNull();
     expect(dragCountPlacement({ x1: 0, y1: 0, x2: 25, y2: 100 }, 300)).toBeNull();
   });

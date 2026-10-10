@@ -1,42 +1,15 @@
 import type { DeckCard, HydratedDeck } from './types';
 
-/**
- * The deck editor's online-service helpers — desktop `DeckEditorMenu`:
- * load from a deck site, create a decklist on decklist.org / .xyz, analyze
- * on deckstats.net / tappedout.net. Pure: URL and form building only; the
- * browser side (new tabs, form posts) lives in `browserHandoff`.
- *
- * What a browser can do differs from desktop, which talks to these sites
- * directly over HTTP:
- *   - Loading: every supported site refuses cross-origin reads from a web
- *     page (no CORS headers, or a fixed `localhost` origin), so the editor
- *     can only open the site's own export for the user to copy and paste.
- *   - decklist.org / .xyz: a plain GET, opened in a new tab as on desktop.
- *   - deckstats / TappedOut: desktop POSTs a form and opens the result; a
- *     page can submit the same form into a new tab, where the site answers
- *     directly (desktop instead scrapes the reply for the deck URL).
- */
-
-// ---------- Load from website (DeckLinkToApiTransformer) ----------
-
 export type DeckProvider = 'tappedout' | 'archidekt' | 'moxfield' | 'deckstats';
 
 export interface ParsedDeckLink {
   provider: DeckProvider;
   deckId: string;
-  /** The URL desktop fetches (`ParsedDeckInfo::fullUrl`). */
   apiUrl: string;
-  /**
-   * Where a browser user gets the list as text: the site's plain-text
-   * export where it has one (TappedOut, Deckstats), else the deck page,
-   * whose Export menu copies the list (Archidekt, Moxfield).
-   */
   handoffUrl: string;
-  /** True when `handoffUrl` is itself the list as text. */
   handoffIsText: boolean;
 }
 
-/** `DeckLinkToApiTransformer::parseDeckUrl`, same patterns, same order. */
 export function parseDeckUrl(url: string): ParsedDeckLink | null {
   let match = url.match(/tappedout\.net\/(?:mtg-decks\/)?([^/?#]+)/);
   if (match) {
@@ -75,17 +48,10 @@ export function parseDeckUrl(url: string): ParsedDeckLink | null {
   return null;
 }
 
-// ---------- Plain lists (DeckList::writeToString_Plain) ----------
-
 function zone(cards: readonly DeckCard[], category: DeckCard['category']): DeckCard[] {
   return cards.filter((c) => c.category === category);
 }
 
-/**
- * `DeckList::writeToString_Plain(prefixSideboardCards, slashTappedOutSplitCards)`:
- * one `N Name` line per row, sideboard rows optionally prefixed `SB: `, and
- * split-card `//` optionally written as TappedOut's `/`.
- */
 export function plainDeckText(
   cards: readonly DeckCard[],
   { prefixSideboard = true, slashSplitCards = false, sectionHeaders = false }: {
@@ -109,11 +75,8 @@ export function plainDeckText(
   }).join(sectionHeaders ? '\n\n' : '\n') + (cards.length ? '\n' : '');
 }
 
-// ---------- decklist.org / decklist.xyz (DeckLoader::exportDeckToDecklist) ----------
-
 export type DecklistSite = 'decklist.org' | 'decklist.xyz';
 
-/** `N Name (SET) num` — `toDecklistExportString`. */
 function decklistLine(c: DeckCard): string {
   let line = `${c.quantity} ${c.name}`;
   if (c.set) {
@@ -125,7 +88,6 @@ function decklistLine(c: DeckCard): string {
   return line;
 }
 
-/** The decklist URL to open, or `null` for a deck with no cards (desktop's error). */
 export function decklistExportUrl(deck: HydratedDeck, site: DecklistSite): string | null {
   const main = zone(deck.cards, 'main').map(decklistLine).join('\n');
   const side = zone(deck.cards, 'sideboard').map(decklistLine).join('\n');
@@ -135,19 +97,15 @@ export function decklistExportUrl(deck: HydratedDeck, site: DecklistSite): strin
   return `https://www.${site}/?deckmain=${encodeURIComponent(main)}&deckside=${encodeURIComponent(side)}`;
 }
 
-// ---------- Analyze (DeckStatsInterface / TappedOutInterface) ----------
-
 export interface FormPost {
   action: string;
   fields: Record<string, string>;
 }
 
-/** Both analyzers send only cards the card database knows (`copyDeckWithoutTokens`). */
 function knownCards(deck: HydratedDeck): DeckCard[] {
   return deck.cards.filter((c) => c.lookupSource !== 'unknown');
 }
 
-/** `DeckStatsInterface::getAnalyzeRequestData`: the plain list and the title. */
 export function deckstatsAnalyzeForm(deck: HydratedDeck): FormPost {
   return {
     action: 'https://deckstats.net/index.php',
@@ -155,7 +113,6 @@ export function deckstatsAnalyzeForm(deck: HydratedDeck): FormPost {
   };
 }
 
-/** `TappedOutInterface::getAnalyzeRequestData`: name, mainboard, sideboard. */
 export function tappedOutAnalyzeForm(deck: HydratedDeck): FormPost {
   const plain = (category: DeckCard['category']) =>
     plainDeckText(zone(knownCards(deck), category), { prefixSideboard: false, slashSplitCards: true });
@@ -165,8 +122,6 @@ export function tappedOutAnalyzeForm(deck: HydratedDeck): FormPost {
   };
 }
 
-// ---------- Print (DeckLoader::printDeckList) ----------
-
 function escapeHtml(text: string): string {
   return text
     .replace(/&/g, '&amp;')
@@ -175,10 +130,6 @@ function escapeHtml(text: string): string {
     .replace(/"/g, '&quot;');
 }
 
-/**
- * A printable page laid out like desktop's print: the deck name, its
- * comments, then each zone as a two-column `count | name` table.
- */
 export function deckPrintHtml(deck: HydratedDeck, zoneLabels: Record<DeckCard['category'], string>): string {
   const zones = (['main', 'sideboard'] as const)
     .map((category) => ({ label: zoneLabels[category], cards: zone(deck.cards, category) }))

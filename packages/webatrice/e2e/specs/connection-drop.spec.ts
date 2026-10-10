@@ -25,8 +25,6 @@ test('a dropped connection returns to login and needs an explicit re-login', asy
   test.setTimeout(90_000);
 
   const servers: ReturnType<WebSocketRoute['connectToServer']>[] = [];
-  // Frames each socket sent to the server, by socket index. Handling the page's
-  // messages stops Playwright forwarding them, so they are forwarded here.
   const sent: number[] = [];
   await page.routeWebSocket(
     (url) => url.hostname === E2E_HOST.host && url.port === String(E2E_HOST.port),
@@ -54,8 +52,6 @@ test('a dropped connection returns to login and needs an explicit re-login', asy
   await expect(login.hostPicker).toBeVisible({ timeout: 15_000 });
   await expect(status.indicator).toBeHidden();
 
-  // Well past the keep-alive interval: still asking for a login, the sockets
-  // have settled (no retry loop), and none opened since the drop sent anything.
   await page.waitForTimeout(10_000);
   const socketsAfterWait = servers.length;
   await page.waitForTimeout(3_000);
@@ -64,7 +60,6 @@ test('a dropped connection returns to login and needs an explicit re-login', asy
   await expect(status.indicator).toBeHidden();
   await expect(login.loginButton).toBeVisible();
 
-  // An explicit login restores the session.
   await login.login(user.username, user.password);
   await rooms.waitForRoomList();
   await status.expectConnected();

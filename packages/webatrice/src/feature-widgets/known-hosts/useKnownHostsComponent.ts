@@ -26,7 +26,6 @@ export interface KnownHostsComponent {
   testConnectionStatus: TestConnection | null;
   dialogState: { open: boolean; edit: HostDTO | null };
   onPick: (id: number) => Promise<void>;
-  /** Saves a WebSocket-capable public server as a host and selects it. */
   onPickPublicServer: (server: PublicServer) => Promise<void>;
   refreshConnection: () => void;
   openAddKnownHostDialog: () => void;
@@ -110,8 +109,6 @@ export function useKnownHostsComponent({
     pendingTestRef.current = null;
   }, server.Types.TEST_CONNECTION_FAILED, []);
 
-  // Compute the toast text at fire time so it reflects the current mode and the
-  // current UI language — not whatever was rendered when the hook mounted.
   const fireToast = (mode: ToastMode) => {
     knownHostToast.openToast(t('KnownHosts.toast', { mode }));
   };

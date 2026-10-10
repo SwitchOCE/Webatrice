@@ -3,15 +3,12 @@ import path from 'node:path';
 
 const read = (file: string) => fs.readFileSync(path.resolve(__dirname, file), 'utf8');
 
-// board-motion.css first: the feature stylesheets load after index.css, so its rules must win on
-// specificity, not order. SeatCard's transition is a Tailwind utility, stood in for here.
 const css = [
   read('board-motion.css'),
   read('../features/game/Game.css'),
   '.seat-card { transition: transform 150ms ease-out; }',
 ].join('\n');
 
-/** One element per animated class the board draws, under the real stylesheets. */
 function mountBoard(): Record<string, HTMLElement> {
   const style = document.createElement('style');
   style.textContent = css;

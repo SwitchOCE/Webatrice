@@ -6,7 +6,6 @@ import { createMockWebClient, renderWithProviders } from '../../../../__test-uti
 import { buildSeatGameState } from '../../__test-utils__/seatFixtures';
 import PhaseTrack from './PhaseTrack';
 
-// The auto-hiding track (pinned off), so it starts collapsed.
 vi.mock('@app/hooks', async (importOriginal) => ({
   ...(await importOriginal<typeof import('@app/hooks')>()),
   usePhaseTrackPinned: () => false,

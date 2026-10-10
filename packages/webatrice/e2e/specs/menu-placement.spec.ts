@@ -2,13 +2,6 @@ import { expect, test } from '../fixtures/test';
 
 import { registerAndJoinFirstRoom } from '../fixtures/flows';
 
-// Context-menu placement in a real layout engine, in every browser of the
-// matrix. The user's own name in the room's user list is moved to each edge
-// and corner of the viewport, and its menu is opened there by right-click
-// (anchored at the pointer) and by Shift+F10 (anchored to the name). The menu
-// must stay fully in view, and must not cover what opened it wherever the
-// other side of the anchor has room for it.
-
 interface Box { x: number; y: number; width: number; height: number }
 
 const EDGE = 8;
@@ -23,8 +16,6 @@ test('a context menu stays in view and off its anchor at every edge and corner',
   const menu = page.getByRole('menu');
 
   for (const spot of SPOTS) {
-    // Pin the name to the spot, 2 px in from the edges it touches. The virtualised user list
-    // contains its rows (a containing block for fixed elements, and a clip), so lift that first.
     await name.evaluate((element, [where, width, height]) => {
       for (let node = element.parentElement; node; node = node.parentElement) {
         Object.assign(node.style, { contain: 'none', transform: 'none', willChange: 'auto', overflow: 'visible', zIndex: 'auto' });
@@ -51,13 +42,11 @@ test('a context menu stays in view and off its anchor at every edge and corner',
       await expect(menu.getByRole('menuitem').first(), `${opener} at ${spot}`).toBeFocused();
       const box = (await menu.boundingBox())!;
 
-      // Fully in view.
       expect(box.x, `${opener} at ${spot}: left`).toBeGreaterThanOrEqual(0);
       expect(box.y, `${opener} at ${spot}: top`).toBeGreaterThanOrEqual(0);
       expect(box.x + box.width, `${opener} at ${spot}: right`).toBeLessThanOrEqual(viewport.width);
       expect(box.y + box.height, `${opener} at ${spot}: bottom`).toBeLessThanOrEqual(viewport.height);
 
-      // Off the anchor, where one side or the other has room for the whole menu.
       const target: Box = point ? { ...point, width: 0, height: 0 } : anchor;
       const roomBelow = viewport.height - EDGE - (target.y + target.height);
       const roomAbove = target.y - EDGE;

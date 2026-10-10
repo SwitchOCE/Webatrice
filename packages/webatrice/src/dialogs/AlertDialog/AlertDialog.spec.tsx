@@ -171,7 +171,6 @@ describe('AlertDialog', () => {
   });
 });
 
-
 it('renders warning severity and keeps optional server details collapsed', () => {
   renderWithProviders(<AlertDialog isOpen title="Warning" message="Explanation" severity="warning"
     details="Server supplied details" onDismiss={() => {}} />);
@@ -179,7 +178,6 @@ it('renders warning severity and keeps optional server details collapsed', () =>
   const details = screen.getByText('Server supplied details').closest('details')!;
   expect(details.open).toBe(false);
   expect(screen.getByText('AlertDialog.details').tagName).toBe('SUMMARY');
-  // Native disclosure; no HTML from the server is interpreted.
   expect(screen.getByText('Server supplied details')).not.toBeVisible();
   fireEvent.click(screen.getByText('AlertDialog.details'));
   expect(details.open).toBe(true);

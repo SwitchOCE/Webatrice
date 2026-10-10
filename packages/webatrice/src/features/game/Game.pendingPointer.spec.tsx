@@ -1,6 +1,3 @@
-// A pending target pick follows the pointer for its live arrow, drawn from
-// the source card in its own zone; only the arrow may re-render on a mouse
-// move, never the seats (rv20).
 
 import { act, fireEvent, screen } from '@testing-library/react';
 import { makeCard } from '@cockatrice/datatrice/testing';

@@ -19,12 +19,6 @@ import type { LogDescriptor, LogEntry } from '../../types/gameLog';
 
 export const MAX_GAME_MESSAGES = 1000;
 
-/**
- * The game time at wall-clock `now`: the server's last count plus the whole seconds since it
- * arrived. Live game events carry no game time (Servatrice stamps `seconds_elapsed` only on the
- * containers it records), so desktop runs its own clock from the last Event_GameStateChanged and
- * reads it as it logs each line (MessageLogWidget::getCurrentTime); this does the same.
- */
 export function gameSecondsNow(game: Enriched.GameEntry, now: number): number {
   if (game.secondsElapsedAt === undefined) {
     return game.secondsElapsed;
@@ -170,8 +164,6 @@ export function clearZoneKnownCards(zone: Enriched.ZoneEntry): void {
   delete zone.topRevealedCard;
 }
 
-// The fields an Event_SetCardAttr sets; booleans arrive as '0' / '1'. An attribute
-// without a card field yields undefined: the event still logs but changes nothing.
 export function cardAttrFields(attribute: CardAttribute, attrValue: string): Partial<ServerInfo_Card> | undefined {
   switch (attribute) {
     case CardAttribute.AttrTapped:
@@ -193,8 +185,6 @@ export function cardAttrFields(attribute: CardAttribute, attrValue: string): Par
   }
 }
 
-// Event_SetCardCounter sets an absolute value: zero or less removes the counter,
-// otherwise it is updated in place or appended.
 export function mergeCardCounter(
   counterList: ServerInfo_CardCounter[],
   counterId: number,
@@ -221,8 +211,6 @@ export function cardAttachFields(data: Event_AttachCard): Pick<ServerInfo_Card, 
     : { attachPlayerId: -1, attachZone: '', attachCardId: -1 };
 }
 
-// Builds the token through the schema so fields the wire omits start at the protocol's
-// documented defaults, with the attach sentinels set so the token lands detached.
 export function buildTokenCard(data: Event_CreateToken): ServerInfo_Card {
   const { cardId, cardName, x, y, faceDown, color, pt, annotation, destroyOnZoneChange, cardProviderId } = data;
   return create(ServerInfo_CardSchema, {
@@ -269,9 +257,6 @@ export interface GameInfoUpdate {
   secondsElapsed?: number;
 }
 
-// The game-level fields an Event_GameStateChanged actually carries, or null when it
-// carries none. isFieldSet tells "set" from "default";
-// see .github/instructions/datatrice-store.instructions.md#reducer-author-hazards.
 export function gameInfoUpdateFrom(data: Event_GameStateChanged): GameInfoUpdate | null {
   const { field } = Event_GameStateChangedSchema;
   const update: GameInfoUpdate = {};

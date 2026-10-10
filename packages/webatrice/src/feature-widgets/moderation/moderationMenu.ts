@@ -19,24 +19,14 @@ export interface ModerationMenuEntry {
   disabled: boolean;
 }
 
-/** Entries in desktop order; each inner group is separated from the next by a divider. */
 export type ModerationMenuGroups = ModerationMenuEntry[][];
 
 export interface ModerationMenuInput {
-  /** The local user's ServerInfo_User.userLevel. */
   localUserLevel: number;
-  /** The target's userLevel, or 0 when unknown (no promote/demote entries then). */
   targetUserLevel: number;
   isSelf: boolean;
-  /**
-   * Whether the server knows the developer role (protocol 3.1). A 3.0 server
-   * ignores `should_be_developer` and still answers RespOk, so the entries are
-   * hidden rather than reporting a role change that never happened.
-   */
   supportsDeveloperRole: boolean;
-  /** Desktop's admin lock (`TabSupervisor::getAdminLocked`): while on, the whole section is hidden. */
   adminLocked?: boolean;
-  /** The server offers the Moderation tab's lookups (Cockatrice 3.1): adds "Investigate user". */
   canInvestigate?: boolean;
 }
 
@@ -57,24 +47,6 @@ export const MODERATION_MENU_LABEL_KEYS: Record<ModerationAction, string> = {
 
 const hasFlag = (level: number, flag: ServerInfo_User_UserLevelFlag): boolean => (level & flag) === flag;
 
-/**
- * The moderator/admin section of a user context menu. Mirrors the
- * `!tabSupervisor->getAdminLocked()` block of desktop's
- * `UserContextMenu::showContextMenu` (user_context_menu.cpp), restricted to the
- * commands Webatrice implements (report needs its own UI):
- *
- *  - moderators (and admins, who always carry IsModerator) get warn / warn
- *    history, ban / ban history, admin notes and, on a 3.1 server, investigate;
- *  - admins also get one entry per role (moderator, judge, developer), each a
- *    Demote when the target already holds the role, else a Promote when the
- *    target is registered;
- *  - the developer entry needs a 3.1 server (`ServerCapability.DEVELOPER_ROLE`);
- *  - every entry stays visible but disabled when the target is the local user.
- *
- * Desktop additionally requires its Administration tab to be open and unlocked.
- * That tab opens unlocked for every moderator, so the user level is the gate,
- * and the Administration page's Lock (`adminLocked`) hides the section.
- */
 export function buildModerationMenu({
   localUserLevel,
   targetUserLevel,

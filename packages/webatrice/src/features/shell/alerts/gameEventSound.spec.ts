@@ -49,7 +49,6 @@ describe('gameEventSound', () => {
     expect(move(ZoneName.TABLE, ZoneName.TABLE)).toBeNull();
     expect(move(ZoneName.TABLE, '')).toBeNull();
     expect(move(ZoneName.HAND, ZoneName.GRAVE)).toBeNull();
-    // Giving control of a card is not a play.
     expect(move(ZoneName.TABLE, ZoneName.TABLE, 1, 2)).toBeNull();
   });
 

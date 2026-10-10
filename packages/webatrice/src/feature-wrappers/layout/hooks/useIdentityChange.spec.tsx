@@ -3,7 +3,6 @@ import { connectedState, disconnectedState, makeUser, renderWithProviders } from
 import { useIdentityChange } from './useIdentityChange';
 
 const OWNER_KEY = 'webatrice.stickyTabs.owner';
-// `${serverName}::${userName}` for connectedState.
 const IDENTITY = 'Test Server::testUser';
 
 function Probe({ onChange }: { onChange: () => void }) {

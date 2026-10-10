@@ -12,7 +12,6 @@ import type {
   ZoneViewTarget,
 } from './gameDialogs.types';
 
-/** The state setters the domain action hooks open and close dialogs with. */
 export interface GameDialogSetters {
   setZoneViews: React.Dispatch<React.SetStateAction<ZoneViewTarget[]>>;
   setPrompt: React.Dispatch<React.SetStateAction<PromptState | null>>;
@@ -24,7 +23,6 @@ export interface GameDialogSetters {
   setLeaveConfirm: React.Dispatch<React.SetStateAction<boolean>>;
 }
 
-/** The plain open/close actions: each sets one flag and nothing else. */
 export type GameDialogToggleActions = Pick<
   GameDialogsActions,
   | 'openSeatCardMenu'
@@ -50,14 +48,11 @@ export interface GameDialogStateHandle {
   state: GameDialogsState;
   set: GameDialogSetters;
   toggles: GameDialogToggleActions;
-  /** The open create-token request (its seed and submitter), or null. */
   createTokenRequest: CreateTokenRequest | null;
 }
 
-/** Owns every open/closed flag and payload behind `GameDialogs`. */
 export function useGameDialogState(): GameDialogStateHandle {
   const [zoneViews, setZoneViews] = useState<ZoneViewTarget[]>([]);
-  // One seat card menu at a time: opening another replaces it.
   const [seatCardMenu, setSeatCardMenu] = useState<SeatCardMenuState | null>(null);
   const [prompt, setPrompt] = useState<PromptState | null>(null);
   const [moveTopUntil, setMoveTopUntil] = useState<MoveTopUntilState | null>(null);
@@ -71,7 +66,6 @@ export function useGameDialogState(): GameDialogStateHandle {
   const [leaveConfirm, setLeaveConfirm] = useState(false);
   const [gameInfoOpen, setGameInfoOpen] = useState(false);
 
-  // React's setters are stable, so these are too.
   const set = useMemo<GameDialogSetters>(() => ({
     setZoneViews,
     setPrompt,

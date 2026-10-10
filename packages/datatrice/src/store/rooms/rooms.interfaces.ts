@@ -15,8 +15,6 @@ export interface RoomsState {
   joinRoomError: JoinRoomError | null;
 }
 
-// Payload of the rooms `*Failed` command-outcome signal actions. `failure` is
-// set when the server never answered and undefined for a server rejection.
 export interface RoomCommandFailedPayload {
   requestId?: string;
   roomId: number;
@@ -24,15 +22,11 @@ export interface RoomCommandFailedPayload {
   failure?: WebsocketTypes.CommandFailure;
 }
 
-// A failed user-initiated Command_JoinRoom: the raw Response.ResponseCode, which the UI
-// maps to desktop's joinRoomFinished message, and `failure` when the server never answered.
 export interface JoinRoomFailedPayload extends RoomCommandFailedPayload {
-  /** False for an autojoin, which desktop fails without a message box. */
   userInitiated: boolean;
 }
 
 export interface JoinGameError {
-  /** Client-only identity of the join whose failure this snapshot describes. */
   requestId?: string;
   failure?: WebsocketTypes.CommandFailure;
   code: number;

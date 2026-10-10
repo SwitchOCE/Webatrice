@@ -4,7 +4,6 @@ import type { RequestId } from '../../types/RequestId';
 
 import { Command_DeckDownload_ext, Command_DeckDownloadSchema, Response_DeckDownload_ext } from '../../generated';
 
-/** Echo the optional client-only identity on both outcomes, preserving legacy callback arity. */
 export function deckDownload(deckId: number, ...correlation: [requestId?: RequestId]): void {
   WebClient.instance.protobuf.sendSessionCommand(
     Command_DeckDownload_ext,

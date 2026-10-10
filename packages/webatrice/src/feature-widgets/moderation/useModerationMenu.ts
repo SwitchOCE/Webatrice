@@ -7,7 +7,6 @@ import { useAppSelector } from '@app/store';
 import { buildModerationMenu, type ModerationAction, type ModerationMenuGroups } from './moderationMenu';
 
 export interface ModerationApi {
-  /** Start the desktop round trip behind a moderator/admin menu entry. */
   open: (action: ModerationAction, userName: string) => void;
 }
 
@@ -20,14 +19,6 @@ export interface ModerationMenu {
 
 const EMPTY_GROUPS: ModerationMenuGroups = [];
 
-/**
- * The moderator/admin section for one user's context menu, gated on the local
- * user's level, the target's level and whether the target is the local user.
- *
- * `userLevel` is the target's level when the surface already holds it (a room
- * or server user row, a game seat); otherwise the online-users list and the
- * last fetched user info are consulted. Empty outside a `ModerationProvider`.
- */
 export function useModerationMenu(userName: string, userLevel?: number): ModerationMenu {
   const api = useContext(ModerationContext);
   const localUser = useAppSelector(server.Selectors.getUser);

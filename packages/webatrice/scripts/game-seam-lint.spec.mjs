@@ -9,7 +9,6 @@ const hook = 'src/features/game/hooks/useSeamFixture.ts';
 const barrel = 'src/services/seamFixture.ts';
 const rules = new Set(['@typescript-eslint/no-restricted-imports', 'no-restricted-syntax']);
 
-// Loading the full boundary/plugin config can exceed a case's timeout on Windows.
 beforeAll(async () => {
   await eslint.calculateConfigForFile(component);
 }, 60000);

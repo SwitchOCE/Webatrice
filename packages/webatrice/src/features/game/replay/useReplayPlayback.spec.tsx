@@ -58,7 +58,6 @@ describe('useReplayPlayback', () => {
   it('never writes into the games slice itself', () => {
     const { opened } = open();
     const { store } = setup(opened);
-    // Only Datatrice's GameResponseImpl creates the game, behind the web client.
     expect(store.getState().games.games).toEqual({});
   });
 

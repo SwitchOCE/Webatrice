@@ -36,35 +36,15 @@ import { useDeckPricing } from './hooks/useDeckPricing';
 import { useDeckShareCreate, useDeckSharingSupported } from './hooks/useDeckSharing';
 import type { DeckCard } from './types';
 
-/**
- * Deck editor route (`/deck/:deckId`, or `/deck/draft/:token` for an unsaved draft). Layout:
- *   • 360px left sidebar — deck metadata (name, undo/redo and history,
- *     format and its legality, banner card, tags), print and online
- *     services, totals and the hovered card's preview;
- *   • main pane — quick add / advanced search, and the deck as
- *     multi-column type sections (Commander → Creature → … → Land →
- *     Other → Sideboard), illegal rows in red, followed by the sample
- *     hand and the deck breakdown.
- *
- * Deck state and persistence live in `useDeckEditor`; this route owns
- * the transient UI state: the sticky preview card and which dialog is
- * open.
- */
 const DeckEditor = () => {
-  // `/deck/:deckId` edits a stored deck; `/deck/draft/:token` an unsaved
-  // draft handed over by another feature (see useDeckEditor).
   const { deckId: deckIdParam, token: draftToken } = useParams<{ deckId: string; token: string }>();
   const parsedDeckId = deckIdParam ? parseInt(deckIdParam, 10) : NaN;
   const deckId = Number.isFinite(parsedDeckId) ? parsedDeckId : null;
 
   const editor = useDeckEditor(deckId, draftToken ?? null);
 
-  // Sticky preview: the last hovered card stays in the sidebar after the
-  // cursor moves on, so a card can be studied without racing to click it.
   const [previewCard, setPreviewCard] = useState<DeckCard | null>(null);
   const [printingRequest, setPrintingRequest] = useState<PrintingRequest | null>(null);
-  // Snapshot of the clicked card; the dialog re-resolves it to the live
-  // row by (name, category) every render. MTG decks only.
   const [detailSnapshot, setDetailSnapshot] = useState<DeckCard | null>(null);
   const [exportOpen, setExportOpen] = useState(false);
   const { t } = useTranslation();
@@ -73,7 +53,6 @@ const DeckEditor = () => {
   const sharingSupported = useDeckSharingSupported();
   const share = useDeckShareCreate();
   const [shareOpen, setShareOpen] = useState(false);
-  // Desktop `AbstractTabDeckEditor::actShareDeck` refuses before opening the dialog.
   const [shareRefusal, setShareRefusal] = useState<string | null>(null);
 
   const pricing = useDeckPricing(editor.deck, editor.setPriceCache);
@@ -82,23 +61,16 @@ const DeckEditor = () => {
   const editing = !editor.loading && editor.deck != null;
   useShortcut('deck.undo', () => editor.undo(), { scope: ShortcutScope.DECK_EDITOR, enabled: editing });
   useShortcut('deck.redo', () => editor.redo(), { scope: ShortcutScope.DECK_EDITOR, enabled: editing });
-  // Desktop's Save Deck (Ctrl+S): the editor autosaves, so this sends a
-  // pending change now, or retries a save that failed.
   useShortcut(
     'deck.save',
     () => (editor.saveState === 'failed' ? editor.retrySave() : editor.flushSave()),
     { scope: ShortcutScope.DECK_EDITOR, enabled: editing },
   );
-  // New Deck and Load Deck live on My Decks (create / import), as desktop's
-  // open a fresh editor tab or a file picker.
   const openDecksDialog = (open: DecksLocationState['open']) =>
     navigate(RouteEnum.DECKS, { state: { open } satisfies DecksLocationState });
   useShortcut('deck.new', () => openDecksDialog('create'), { scope: ShortcutScope.DECK_EDITOR });
   useShortcut('deck.load', () => openDecksDialog('import'), { scope: ShortcutScope.DECK_EDITOR });
 
-  // `isMtg` gates the whole MTG feature set (Scryfall search, printings,
-  // pricing, previews, type grouping); `isCommander` adds the
-  // commander-designation affordances on top.
   const isMtg = isMtgFormat(editor.deck?.format);
   const isCommander = isCommanderFormat(editor.deck?.format);
 
@@ -109,8 +81,6 @@ const DeckEditor = () => {
     [editor.deck, isCommander],
   );
 
-  // Hold the skeleton until every card's preview image is in the HTTP
-  // cache, so hovering a row feels instant.
   const preload = useDeckImagePreload(
     deckId ?? (draftToken != null ? `draft:${draftToken}` : null),
     editor.deck,
@@ -128,8 +98,6 @@ const DeckEditor = () => {
     }
   };
 
-  // Desktop `DlgShareDeck` shares the deck as open in the editor, inline,
-  // with the color identity the server can't work out itself.
   const createShare = (name: string) => {
     if (!editor.deck || !isConnected) {
       return;
@@ -274,7 +242,6 @@ const DeckEditor = () => {
         defaultName={t('DeckSharing.defaultDeckName')}
         state={share.state}
         onClose={() => {
-          // Drop a create still in flight, so a late answer isn't copied after a cancel.
           share.reset();
           setShareOpen(false);
         }}

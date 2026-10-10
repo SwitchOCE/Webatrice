@@ -19,24 +19,10 @@ export default defineConfig({
   test: {
     ...viteConfig.test,
     setupFiles: ['./integration/src/helpers/setup.ts'],
-    // Each project below lists its own specs: a project's include is added to,
-    // not replaced by, the one it extends.
     include: [],
     exclude: ['node_modules', 'build', 'coverage'],
-    // Threads, not forks: Webatrice's forks-on-Windows hit Vitest 4's hardcoded
-    // 60s worker-startup timeout intermittently as the integration setup.ts
-    // cold-starts datatrice + sockatrice + protobuf per fork. A VM pool, as in
-    // the unit suite, still gives every spec file a fresh jsdom and module graph,
-    // but loads node_modules and jsdom's code once per worker rather than once
-    // per spec file, which cuts the suite's time by about a third.
     pool: 'vmThreads',
-    // The unit suite's heap flag is for its child processes; a worker
-    // thread refuses V8 flags and never starts.
     execArgv: [],
-    // Real-Dexie specs stay on plain threads. In a VM context Dexie cannot
-    // follow the test realm's promises through a transaction and commits it
-    // early (PrematureCommitError). That realm mismatch cannot happen in a
-    // browser, but the error can, so these specs keep their real behaviour.
     projects: [
       {
         extends: true,

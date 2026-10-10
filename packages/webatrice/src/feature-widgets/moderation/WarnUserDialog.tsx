@@ -17,25 +17,16 @@ import {
 
 export interface WarningOption {
   warning: string;
-  /** Recommended starting intervention level (Response_WarnList.warning_il); 1 when the server sends none. */
   startingIl: number;
 }
 
 export interface WarnUserDialogProps {
   userName: string;
-  /** Official warning reasons from Response_WarnList, in server order. */
   warnings: WarningOption[];
   onSubmit: (values: WarnUserFormValues) => void;
   onCancel: () => void;
 }
 
-/**
- * Port of desktop's WarningDialog (user_list_dialog.cpp). The reason is picked
- * from the server's official warnings (Command_GetWarnList) — there is no free
- * text — behind a leading blank entry that must be changed before sending. A
- * reason whose starting intervention level is above 1 is labelled "%1 (IL %2)"
- * (WarningDialog::addWarningOption); the value sent is always the bare reason.
- */
 const WarnUserDialog = ({ userName, warnings, onSubmit, onCancel }: WarnUserDialogProps) => {
   const { t } = useTranslation();
   const resolver = useMemo(() => zodResolver(buildWarnUserSchema(t)), [t]);

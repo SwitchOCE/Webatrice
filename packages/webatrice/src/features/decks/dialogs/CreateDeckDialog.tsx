@@ -8,7 +8,6 @@ import { DeckDialogFrame } from './DeckDialogFrame';
 export interface CreateDeckDialogProps {
   open: boolean;
   onClose: () => void;
-  /** Trimmed name (may be empty) and lower-cased format. */
   onCreate: (name: string, format: string) => void;
 }
 
@@ -31,8 +30,6 @@ export function CreateDeckDialog({ open, onClose, onCreate }: CreateDeckDialogPr
     return null;
   }
 
-  // An empty name is fine (the deck becomes "New Deck"), but "Other" with
-  // nothing typed keeps the user here.
   const trimmedFormat = format.trim();
   const submitDisabled = !trimmedFormat;
 

@@ -21,10 +21,6 @@ import {
 } from './battlefieldLayout';
 import { ROW_COUNT } from './gridMath';
 
-// Golden values for the seat's scaled pixel layout. The module moved out of
-// components/PlayerBox unchanged; these pin its outputs so it cannot drift silently.
-
-/** The options useBattlefieldLayout builds from the card scale. */
 function seatLayout(scale: number): BattlefieldLayoutOpts {
   return {
     cardWidthPx: SEAT_CARD_WIDTH_PX * scale,
@@ -56,7 +52,6 @@ describe('battlefieldLayout', () => {
     it('widens a cell by one stack offset per sub-slot up to the highest occupied one', () => {
       const widths = computeCellWidths([slot(0, 0, 0), slot(0, 0, 1), slot(0, 0, 2), slot(1, 0, 2), slot(1, 0, 0)], opts);
       expect(widths.get('0:0')).toBe(72 + 2 * 24);
-      // Sub-slot 1 empty: the cell still reserves room up to sub-slot 2.
       expect(widths.get('1:0')).toBe(72 + 2 * 24);
     });
 
@@ -76,12 +71,10 @@ describe('battlefieldLayout', () => {
     it.each([1, 0.75, 1.5])('places a slot at margin + prior columns + sub-slot diagonal (scale %s)', (scale) => {
       const opts = seatLayout(scale);
       const widths = computeCellWidths([slot(1, 0, 0), slot(1, 0, 1)], opts);
-      // Row 1: column 0 is 96 wide (two cards), column 1 is a bare card.
       expect(slotOriginPx(slot(1, 2, 1), widths, opts)).toEqual({
         x: (20 + (96 + 35) + (72 + 35) + 24) * scale,
         y: (10 + (102 + 30) + 10) * scale,
       });
-      // Row 0 has no stack, so column 2 starts after two bare cards.
       expect(slotOriginPx(slot(0, 2, 0), widths, opts)).toEqual({ x: (20 + 2 * (72 + 35)) * scale, y: 10 * scale });
       expect(rowTopY(2, opts)).toBe((10 + 2 * (102 + 30)) * scale);
     });
@@ -96,7 +89,6 @@ describe('battlefieldLayout', () => {
       const opts = seatLayout(1);
       const cards = [slot(2, 6, 0), slot(2, 6, 1)];
       const widths = computeCellWidths(cards, opts);
-      // Columns 0..7 on row 2, column 6 widened by one stack offset.
       expect(computeContentWidth(widths, cards, opts)).toBe(20 + 8 * 72 + 24 + 7 * 35 + 15);
     });
   });
@@ -113,7 +105,6 @@ describe('battlefieldLayout', () => {
     });
 
     it('resolves the three sub-slots of a full stack and clamps past the last one', () => {
-      // Row 0 column 0 spans x ∈ [20, 140); the half-gap bias is 17.5px.
       expect(snapPxToSlot(20, 10, widths, opts)).toEqual({ row: 0, col: 0, subSlot: 0 });
       expect(snapPxToSlot(20 + 24 - 17.5, 10, widths, opts)).toEqual({ row: 0, col: 0, subSlot: 1 });
       expect(snapPxToSlot(20 + 48 - 17.5, 10, widths, opts)).toEqual({ row: 0, col: 0, subSlot: 2 });

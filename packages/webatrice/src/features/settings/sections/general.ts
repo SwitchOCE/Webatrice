@@ -8,10 +8,6 @@ import { SettingsSectionId, type SettingsSection } from '../registry';
 
 const startsInRoom = ({ startupTab }: Preferences) => startupTab === StartupTab.ServerRoom;
 
-/**
- * General page (desktop general_settings_page.cpp). Desktop's update-channel, Oracle and path
- * settings have no browser meaning; see the parity matrix rows LONG-008 and LONG-015.
- */
 export const generalSection: SettingsSection = {
   id: SettingsSectionId.General,
   titleKey: 'Settings.section.general',
@@ -30,8 +26,6 @@ export const generalSection: SettingsSection = {
             key: 'language',
             options: [
               { value: '', labelKey: 'SettingsGeneral.language.followBrowser' },
-              // Native names, as desktop lists them: a reader of that language finds it whatever
-              // language the UI is in now.
               ...Object.values(Language).map((language) => ({ value: language, label: LanguageNative[language] })),
             ],
           },
@@ -74,8 +68,6 @@ export const generalSection: SettingsSection = {
           labelKey: 'SettingsGeneral.startupServer.label',
           descriptionKey: 'SettingsGeneral.startupServer.description',
           control: { kind: 'custom', component: StartupServerSelect, keys: ['startupServer'] },
-          // Desktop also shows it for "Server", where it picks the server to connect to at launch.
-          // Here the login form's Auto Connect does that, so it only scopes the room.
           visibleWhen: startsInRoom,
         },
         {
@@ -94,7 +86,6 @@ export const generalSection: SettingsSection = {
           id: 'debugLog',
           labelKey: 'SettingsGeneral.debugLog.label',
           descriptionKey: 'SettingsGeneral.debugLog.description',
-          // The dialog's own "Clear log when closing" box edits this preference.
           control: { kind: 'custom', component: DebugLogButton, keys: ['clearDebugLogOnClose'] },
         },
       ],

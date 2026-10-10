@@ -1,7 +1,6 @@
 import { ZoneName } from '@cockatrice/sockatrice';
 import { describe, expect, it, vi } from 'vitest';
 
-
 import { CardDTO } from '../../../services/dexie/DexieDTOs/CardDTO';
 import { autoPlayCard, playCardViaTableRow } from './playCard';
 
@@ -107,7 +106,6 @@ describe('autoPlayCard — "Play all nonlands onto the stack"', () => {
 });
 
 describe('playCardViaTableRow — row placement (card-database policy)', () => {
-  // Golden wire rows: the visual row from cardPlacement, inverted once on a mirrored board.
   it.each([
     ['0', false, ZoneName.TABLE, 2],
     ['0', true, ZoneName.TABLE, 0],

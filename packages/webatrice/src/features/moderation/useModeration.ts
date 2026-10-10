@@ -26,7 +26,6 @@ const ALL: PartFlags = { info: true, alts: true, sessions: true };
 
 export type ModerationConfirm = 'resetPassword' | 'removeAvatar';
 
-/** A reset's temporary password: shown once, held only here, dropped on dismiss. */
 export interface TemporaryPassword {
   userName: string;
   temporaryPassword: string;
@@ -35,11 +34,9 @@ export interface TemporaryPassword {
 export interface Moderation {
   currentUser: string;
   investigate: (userName: string) => void;
-  /** The current user's lookups; a part is withheld while pending or after a failure, as desktop clears its table. */
   investigation: UserInvestigation;
   pending: PartFlags;
   failed: PartFlags;
-  /** Why the user-info lookup failed (desktop text, or the transport reason). */
   infoError: string | null;
   staffLogins: ServerInfo_ModeratorLogin[] | null;
   refreshStaffLogins: () => void;
@@ -54,7 +51,6 @@ export interface Moderation {
   dismissNotice: () => void;
 }
 
-/** Desktop `QString::simplified()`: trim and collapse inner whitespace. */
 const simplified = (value: string): string => value.replace(/\s+/g, ' ').trim();
 
 interface FailedPayload { command: WebsocketTypes.ModeratorCommandName; target: string; failure?: WebsocketTypes.CommandFailure }
@@ -65,12 +61,6 @@ const LOOKUP_PARTS: Partial<Record<WebsocketTypes.ModeratorCommandName, Investig
   getUserSessions: 'sessions',
 };
 
-/**
- * Desktop TabModeration: investigate a user (ReportUserInfo, GetUserSessions,
- * GetUserAlts), list staff last logins, reset a password, remove an avatar.
- * The investigated user follows the `?user=` query parameter, so
- * `useOpenUserInvestigation` from anywhere switches an open page to a new user.
- */
 export function useModeration(): Moderation {
   const { t } = useTranslation();
   const describeFailure = useCommandFailureMessage();
@@ -93,7 +83,6 @@ export function useModeration(): Moderation {
   const [confirm, setConfirm] = useState<ModerationConfirm | null>(null);
   const [temporaryPassword, setTemporaryPassword] = useState<TemporaryPassword | null>(null);
   const [notice, setNotice] = useState<AlertDialogNotice | null>(null);
-  // Avatar removals this page sent, so another page's outcomes are not reported here.
   const pendingAvatarRemovals = useRef(new Set<string>());
 
   const stored = useAppSelector((state) => server.Selectors.getUserInvestigation(state, currentUser));
@@ -133,8 +122,6 @@ export function useModeration(): Moderation {
     }
   }, server.Types.USER_AVATAR_REMOVED, [t]);
 
-  // One failure path for every staff lookup (#12's commandFailed): desktop clears
-  // the table, and the user-info box says why.
   useReduxEffect((action: ReduxEffectAction<FailedPayload>) => {
     const { command, target, failure } = action.payload;
     const part = LOOKUP_PARTS[command];
@@ -168,13 +155,10 @@ export function useModeration(): Moderation {
     webClient.request.moderator.getModeratorLastLogins();
   }, [webClient]);
 
-  // Desktop requests the staff list once when the tab opens.
   useEffect(() => {
     refreshStaffLogins();
   }, [refreshStaffLogins]);
 
-  // Every navigation here naming a user (the search box, or "investigate" from
-  // elsewhere) runs a fresh investigation, as TabSupervisor::openTabModeration does.
   useEffect(() => {
     if (requestedUser) {
       runInvestigation(requestedUser);
@@ -204,7 +188,6 @@ export function useModeration(): Moderation {
   };
 
   const removeAvatar = (userName: string) => {
-    // Servatrice may echo the canonical spelling of the name, so match case-insensitively.
     pendingAvatarRemovals.current.add(userName.toLowerCase());
     webClient.request.moderator.removeUserAvatar(userName);
   };
@@ -231,7 +214,6 @@ export function useModeration(): Moderation {
     infoError,
     staffLogins: staffFailed ? null : storedLogins,
     refreshStaffLogins,
-    // Servatrice serves ResetUserPassword only through the admin command family.
     canResetPassword: isAdmin,
     confirm,
     requestConfirm: setConfirm,

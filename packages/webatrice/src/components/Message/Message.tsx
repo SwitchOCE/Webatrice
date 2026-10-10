@@ -14,12 +14,10 @@ interface MessagePayload {
   message: string;
 }
 
-/** Pass a memoized object: it keys the parse memo. */
 export type MessageHighlight = ChatHighlight;
 
 interface MessageProps {
   message: MessagePayload;
-  // Server time of a chat-history line, shown before the sender as on desktop.
   timestamp?: string;
   highlight?: MessageHighlight;
 }
@@ -56,14 +54,6 @@ interface PlayerLinkProps {
   label?: string;
 }
 
-/**
- * Author name / @mention link inside a chat message. Left-click still
- * navigates to the Player page (which hosts the private-chat panel);
- * right-click (or Shift+F10 / the Menu key) opens the same UserActionsMenu
- * the Buddies / Players Online rows use, so the "Private chat" entry point is consistent
- * across the app. Cockatrice-parity: right-click on a name anywhere
- * in the desktop client also brings up this menu.
- */
 export const PlayerLink = ({ name, label = name }: PlayerLinkProps) => {
   const {
     menu,
@@ -103,7 +93,6 @@ export const PlayerLink = ({ name, label = name }: PlayerLinkProps) => {
 
 const parseChunks = (chunk: string, index: number): ReactNode => parseChunk(chunk, index);
 
-/** A chunk parser that also draws the reader's mentions and alert words (desktop ChatView). */
 function makeChunkParser(highlight: MessageHighlight) {
   return (chunk: string, index: number): ReactNode => parseChunk(chunk, index, highlight);
 }
@@ -114,7 +103,6 @@ function parseChunk(chunk: string, index: number, highlight?: MessageHighlight):
     return (<CardCallout name={name} key={index}></CardCallout>);
   }
 
-  // Desktop renders cockatrice://joingame words as join anchors (ChatView::appendGameLinkTag).
   if (containsGameLink(chunk)) {
     return <Fragment key={index}>{chunk.split(GAME_LINK_REGEX).filter(Boolean).map((part, partIndex) => (
       containsGameLink(part)
@@ -192,7 +180,6 @@ function parseText(text: string, highlight?: MessageHighlight): ReactNode {
   });
 }
 
-/** Message body without the room-chat sender-prefix convention. */
 export function MessageText({ text, highlight }: { text: string; highlight: MessageHighlight }) {
   const chunks = useMemo(() => text.split(CARD_CALLOUT_REGEX).filter(Boolean).map(makeChunkParser(highlight)), [text, highlight]);
   return <>{chunks}</>;

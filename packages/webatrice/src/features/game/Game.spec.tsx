@@ -21,7 +21,6 @@ vi.mock('../../components/Layout/Layout', () => ({
 // an async settle after mount (would produce an unwrapped React state update).
 vi.mock('../../hooks/useSettings');
 
-// Seat pile views look card metadata up in Dexie/Scryfall; keep that off the network.
 vi.mock('../../services/cards/catalog/lookup', () => {
   const unknown = (name: string) => ({ found: false, source: 'unknown', name, printings: [] });
   return {
@@ -116,10 +115,6 @@ describe('Game container', () => {
     expect(screen.getByTestId('right-panel')).toBeInTheDocument();
   });
 
-  // The seat surface is PlayerBoard (one per player, rendered by GameBoardCell).
-  // These pin the per-seat layout through Game; seat interactions are pinned in
-  // components/ui/PlayerBoard/PlayerBoard.characterization.spec.tsx and the seat
-  // adapter in components/ui/GameBoardCell/GameBoardCell.spec.tsx.
   it('renders one battlefield per seat and mirrors every board above the local one', () => {
     renderWithProviders(<Game />, {
       preloadedState: buildGame({
@@ -241,8 +236,6 @@ describe('Game container', () => {
       expect(screen.queryByRole('heading', { name: /^Graveyard — |'s library/ })).not.toBeInTheDocument();
     });
 
-    // The seat's pile menus open the game-level ZoneViewDialog (PB-13); the
-    // views themselves are pinned in Game.zoneViews.spec.tsx.
     it('opens one game-level zone view from "View graveyard"', () => {
       renderWithProviders(<Game />, {
         preloadedState: buildGame({
@@ -258,9 +251,5 @@ describe('Game container', () => {
       expect(screen.getAllByRole('heading', { name: /^Graveyard — P1/ })).toHaveLength(1);
     });
   });
-
-  // Card interactions on the seat (menus, selection, bulk commands, drag and
-  // drop) are pinned in PlayerBox.characterization.spec.tsx; cross-seat drags in
-  // Game.dragdrop.spec.tsx; seat → game-dialog routes in Game.orchestration.spec.tsx.
 
 });

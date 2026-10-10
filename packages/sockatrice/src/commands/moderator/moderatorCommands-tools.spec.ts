@@ -1,4 +1,3 @@
-// Moderator investigation and card-art tools (Cockatrice 3.1 ids 1010-1017).
 
 vi.mock('../../WebClient');
 

@@ -16,7 +16,6 @@ import { MANA_COLORS } from './manaColors';
 import { GAME_FOCUS_RING } from '../../ui/focusRing';
 import { OVER_ART_ICON_SHADOW, OVER_ART_SHADOW_LIFE, OVER_ART_SHADOW_NAME, OVER_ART_SHADOW_PIP } from '../../ui/seatColors/seatColors';
 
-/** The step an arrow key asks a counter for: ↑ adds one and ↓ removes one, as a spin box does. */
 function counterStep(event: KeyboardEvent): 1 | -1 | 0 {
   if (event.altKey || event.ctrlKey || event.metaKey || event.shiftKey) {
     return 0;
@@ -24,9 +23,6 @@ function counterStep(event: KeyboardEvent): 1 | -1 | 0 {
   return event.key === 'ArrowUp' ? 1 : event.key === 'ArrowDown' ? -1 : 0;
 }
 
-/** One mana-pool counter: the symbol with its count. The owner clicks to add
- *  one and right-clicks to remove one (desktop's counter +1 / -1); from the
- *  keyboard it is a spin button, ↑ and ↓. */
 function ManaPip({
   symbol,
   label,
@@ -46,7 +42,6 @@ function ManaPip({
   onIncrement?: () => void;
   /** Right-click handler; suppresses the browser context menu. */
   onDecrement?: () => void;
-  /** The pool is one tab stop: the pip that has it is 0, the others -1. */
   tabIndex?: number;
   onFocus?: () => void;
 }) {
@@ -112,7 +107,6 @@ function ManaPip({
           style={{ backgroundColor: tint, opacity: 0.5 }}
         />
       )}
-      {/* An opponent's pip is text: its colour, read before the count. */}
       {!clickable && <span className="sr-only">{label}</span>}
       <span
         className={
@@ -130,11 +124,6 @@ function ManaPip({
 
 const NO_MODIFIERS = (event: KeyboardEvent) => !event.altKey && !event.ctrlKey && !event.metaKey && !event.shiftKey;
 
-/**
- * The keyboard's way to the player menu that right-clicking the battlefield
- * opens (desktop's Player "name" menu): a button on the player's block.
- * Enter, Space, Shift+F10 or the Menu key open the menu below it.
- */
 function PlayerMenuButton() {
   const { t } = useTranslation();
   const { isSelf, name, battlefieldMenuItems, opponentBattlefieldMenuItems } = usePlayerSeatContext();
@@ -181,10 +170,6 @@ function PlayerMenuButton() {
   );
 }
 
-/**
- * Info column — spans the seat's rows (see seatGrid). Top: full-width header + life total.
- * Bottom: mana-pool sub-column on the left + card zones on the right.
- */
 export default function PlayerInfoPanel() {
   const {
     counterCommands,
@@ -200,15 +185,9 @@ export default function PlayerInfoPanel() {
     setLife,
   } = usePlayerSeatContext();
   const { t } = useTranslation();
-  // While an arrow pick is pending every player's block takes focus and
-  // Enter, so a player can be the arrow's target from the keyboard too.
   const { pending, pickArrowAt } = usePendingTargetContext();
   const arrowPicking = pending?.kind === 'arrow';
   const registry = useCardRegistry();
-  // Another player's block is a target only while an arrow pick is pending.
-  // When the pick ends, by Enter or Escape, it leaves the tab order; if it
-  // had focus, focus goes back to the arrow's card, else to this player's
-  // menu button, never to the page (where Tab is Next Phase).
   const blockRef = useRef<HTMLDivElement | null>(null);
   const lifeRef = useRef<HTMLDivElement | null>(null);
   const lifeFocused = useRef(false);
@@ -230,10 +209,7 @@ export default function PlayerInfoPanel() {
     const target = card?.isConnected ? card : blockRef.current?.querySelector<HTMLElement>('button[aria-haspopup="menu"]');
     target?.focus();
   }, [arrowPicking, isSelf, registry]);
-  // The mana pool is one tab stop; ← and → move between its pips (a roving tab index).
   const [manaFocus, setManaFocus] = useState(0);
-  // Desktop's "Life counter flash": green on a gain, red on a loss, from the
-  // server's life counter (the fallback before it exists never flashes).
   const lifeFlash = useValueFlash(lifeControl?.value, useAnimationPreference('lifeCounterAnimations'));
   // Mana pool: read from the wired `manaCounters` when available
   // (Redux-authoritative), fall back to zeros during pre-hydration.
@@ -256,28 +232,6 @@ export default function PlayerInfoPanel() {
       style={seatGrid.info}
     >
       <ZoneBackground zone="playerInfo" />
-      {/* Combined name + life-total pill. Avatar (or purple gradient
-         fallback) fills the whole block; a 50% black wash keeps
-         the name / number readable. The player name sits pinned
-         to the top-left, the life total is centered — merging the
-         two into a single visual block instead of a name row plus
-         a separate life pill.
-         Owner interactions on the whole block:
-           • left click  → +1 life (delta)
-           • right click → -1 life (delta) — browser context menu
-             is suppressed via preventDefault
-           • Ctrl / Cmd + L → opens the set-life modal (the
-             game.setLife shortcut; only fires for the local
-             player's box)
-         From the keyboard the owner's block is a spin button: ↑ / ↓
-         change life by one and Enter opens the set-life prompt
-         (desktop's "Set counter..."). It is named "Alice's life" and
-         carries the total as its value. Changes, the owner's and
-         everyone else's, are announced once, by the game log's live
-         region; the block itself is not a live region.
-         Non-owner boxes render read-only (no cursor change, no
-         click handlers): a group, named the same, around the name
-         and the number. */}
       <div className="relative" ref={blockRef}>
         <div
           ref={lifeRef}
@@ -285,8 +239,6 @@ export default function PlayerInfoPanel() {
             lifeFocused.current = true;
           }}
           onBlur={(e) => {
-            // Focus moved on to another control; a blur to nothing (the
-            // block leaving the tab order) keeps the flag for the effect above.
             if (e.relatedTarget != null) {
               lifeFocused.current = false;
             }

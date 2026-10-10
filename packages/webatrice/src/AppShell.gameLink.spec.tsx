@@ -53,7 +53,6 @@ it.each(['disconnect', 'clear-store', 'new-login'] as const)(
       }
     });
     expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
-    // A click queued just before the next boundary must not open in the new session.
     act(() => {
       requestGameLinkJoin(link);
       store.dispatch(server.Actions.clearStore());

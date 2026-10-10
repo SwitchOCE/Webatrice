@@ -188,8 +188,6 @@ describe('ConfirmDialog', () => {
   });
 });
 
-// jsdom does not perform a button's native Enter activation. Dispatch that
-// default action on the focused button, so an unsafe default calls onConfirm.
 it.each(['focus', 'Enter'])('supports cancel as the default: %s', (check) => {
   const onConfirm = vi.fn();
   const onCancel = vi.fn();

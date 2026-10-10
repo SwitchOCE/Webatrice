@@ -17,7 +17,6 @@ import { ReplayParseError, parseReplay, replayFileName } from './parseReplay';
 describe('parseReplay', () => {
   it('rejects oversized bytes at the decoder boundary, including server downloads', () => {
     const bytes = new Uint8Array(32 * 1024 * 1024 + 2);
-    // Valid repeated duration fields: the old decoder accepts this tiny-object bomb.
     for (let i = 0; i < bytes.length; i += 2) {
       bytes[i] = 32;
     }
@@ -49,7 +48,6 @@ describe('parseReplay', () => {
   });
 
   it('decodes a .cor recorded by Servatrice', () => {
-    // Saved from the replays tab after e2e/specs/replays.spec.ts played a game.
     const bytes = new Uint8Array(readFileSync(resolve(__dirname, '__mocks__/two-player-game.cor')));
 
     const replay = parseReplay(bytes);
@@ -58,7 +56,6 @@ describe('parseReplay', () => {
     expect(replay.replayId).toBeGreaterThan(0n);
     expect(replay.gameInfo?.description).toMatch(/^replay-/);
     expect(replay.gameInfo?.maxPlayers).toBe(2);
-    // Servatrice clears game_id on every stored container.
     expect(replay.eventList.every((container) => container.gameId === 0)).toBe(true);
     expect(events.filter((event) => hasExtension(event, Event_Join_ext))).toHaveLength(2);
     expect(hasExtension(events.at(-1)!, Event_GameClosed_ext)).toBe(true);

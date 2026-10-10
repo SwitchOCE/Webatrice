@@ -172,8 +172,6 @@ describe('useGameBoardLayout', () => {
   });
 
   describe('view rotation', () => {
-    // GameScene::rotatePlayers, literally: totalRotation = firstPlayerIndex +
-    // playerRotation, raised by n while negative, then that many takeFirst/append.
     function desktopOrder(players: number[], firstPlayerIndex: number, playerRotation: number): number[] {
       const rotated = [...players];
       let totalRotation = firstPlayerIndex + playerRotation;

@@ -1,6 +1,3 @@
-// The ordered (top / bottom N) view's own behaviour: floating geometry and its
-// storage, and the flat card row. ZoneViewDialog.spec covers its game wiring
-// (deck-position labels, drags, drop slots).
 
 import { fireEvent, screen } from '@testing-library/react';
 

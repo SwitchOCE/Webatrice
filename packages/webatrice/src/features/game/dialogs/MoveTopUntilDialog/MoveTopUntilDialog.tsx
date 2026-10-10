@@ -20,15 +20,6 @@ const FIELD_CLASS = [
   'focus:outline-none focus:border-accent focus:ring-1 focus:ring-accent',
 ].join(' ');
 
-/**
- * "Put top cards on stack until…" (desktop aMoveTopCardsUntil,
- * dlg_move_top_cards_until.cpp): a card name or search expression, the
- * number of hits (1–99) and whether to auto play them. Opened by a seat
- * through the game dialogs; submitting starts that seat's loop
- * (useMoveTopUntil). Start stays disabled while the local library is empty.
- * Built on DialogShell, so focus starts in the filter, Tab stays inside,
- * Escape cancels and focus returns to where it was.
- */
 export default function MoveTopUntilDialog() {
   const { moveTopUntil, closeMoveTopUntil } = useGameDialogsContext();
   if (!moveTopUntil) {

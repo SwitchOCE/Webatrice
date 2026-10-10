@@ -1,7 +1,3 @@
-// The whole-zone view's own behaviour: floating geometry and its storage, the
-// group / sort / pile preferences, the catalog metadata gate, the search
-// filter, the marquee and the two card layouts. ZoneViewDialog.spec covers the
-// game wiring (titles, drags, menus, selection, desktop's row heights).
 
 import { act, fireEvent, screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
@@ -31,7 +27,6 @@ function catalogResult(name: string): LookupResult {
     : { found: false, source: 'unknown', name, printings: [] }) as unknown as LookupResult;
 }
 
-/** Answers every lookup at once, or holds them until `release()` when deferred. */
 function mockCatalog({ deferred = false } = {}) {
   let release = () => undefined as void;
   vi.mocked(lookupCardsCached).mockImplementation(async (names: string[]) => {
@@ -66,7 +61,6 @@ function Harness(props: Partial<React.ComponentProps<typeof ZoneViewPanel>>) {
 
 async function renderPanel(props: Partial<React.ComponentProps<typeof ZoneViewPanel>> = {}) {
   const result = renderWithProviders(<Harness {...props} />);
-  // Let the catalog lookup land.
   await act(async () => undefined);
   return result;
 }
@@ -91,7 +85,6 @@ describe('ZoneViewPanel', () => {
   describe('floating geometry', () => {
     it('centres itself when no position is stored', async () => {
       await renderPanel();
-      // jsdom lays nothing out: a 0×0 dialog centres on the 1024×768 viewport.
       expect(dialog().style.left).toBe('512px');
       expect(dialog().style.top).toBe('384px');
     });
@@ -155,7 +148,6 @@ describe('ZoneViewPanel', () => {
     });
 
     it('stores a size the user resizes it to, not the one it opens at', async () => {
-      // setupTests' ResizeObserver never calls back; this one hands its callback to the spec.
       let resized: (w: number, h: number) => void = () => undefined;
       vi.stubGlobal('ResizeObserver', class {
         constructor(callback: ResizeObserverCallback) {
@@ -308,7 +300,6 @@ describe('ZoneViewPanel', () => {
         expect(cell.parentElement).toHaveClass('flex-wrap');
       }
 
-      // The stored pile view was on all along: grouping fans the cards again.
       fireEvent.change(groupSelect(), { target: { value: 'type' } });
       expect(dialog().querySelector<HTMLElement>('[data-card-id="1"]')).toHaveClass('absolute');
     });
@@ -405,7 +396,6 @@ describe('ZoneViewPanel', () => {
   });
 
   describe('as a non-modal dialog', () => {
-    /** A control that opens the view, as the pile menu or the F3 / F4 shortcuts do. */
     function Opener({ onClose }: { onClose: (shuffle: boolean) => void }) {
       const [open, setOpen] = useState(false);
       return (

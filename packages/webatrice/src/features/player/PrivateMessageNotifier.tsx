@@ -11,21 +11,6 @@ import { isPageInactive } from '@app/services';
 import { RouteEnum } from '@app/types';
 import { chatFilterVerdicts, visiblePrivateMessages } from '@app/utils';
 
-/**
- * Global notifier for incoming private-chat messages (desktop TabMessage::processUserMessageEvent).
- * Renders nothing — observes incoming private-message actions, and for every NEW inbound
- * (senderName !== self) entry the Chat preferences let through:
- *   • plays the private-message sound unless that conversation is on screen,
- *   • raises a notification: an OS notification while the window is inactive and "Enable desktop
- *     notifications for private messages" is on, otherwise an in-app toast. Either one opens
- *     `/player/<senderName>` on click (TopBar marks player tabs sticky, so an existing chat tab is
- *     focused rather than duplicated).
- *
- * Nothing is raised while the user is reading that peer's Player page in a focused window — they
- * see the message live.
- *
- * Mounted once inside AppShell below the Router so `useNavigate` / `useLocation` work.
- */
 export default function PrivateMessageNotifier() {
   const { t } = useTranslation();
   const navigate = useNavigate();
@@ -34,8 +19,6 @@ export default function PrivateMessageNotifier() {
   const pathnameRef = useRef(location.pathname);
   pathnameRef.current = location.pathname;
 
-  // Use the same synchronous action feed as room preference verdicts in AppAlerts.
-  // tab_supervisor.cpp:1386 decides before a subsequent user-left event can remove the sender.
   useActionFeed((action, _before, state) => {
     if (action.type !== server.Types.USER_MESSAGE) {
       return;

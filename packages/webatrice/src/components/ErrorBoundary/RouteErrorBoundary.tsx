@@ -5,11 +5,6 @@ import { useTranslation } from 'react-i18next';
 import ErrorBoundary from './ErrorBoundary';
 import ErrorFallback from './ErrorFallback';
 
-/**
- * Route-level crash containment for the AppShell: a page that throws while
- * rendering shows a recovery panel instead of white-screening the whole app.
- * Navigating to another route clears the error.
- */
 export default function RouteErrorBoundary({ children }: { children: ReactNode }) {
   const { pathname } = useLocation();
   const { t } = useTranslation();

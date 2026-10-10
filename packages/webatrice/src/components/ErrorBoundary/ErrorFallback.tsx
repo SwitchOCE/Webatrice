@@ -8,14 +8,9 @@ export interface ErrorFallbackProps {
   title: string;
   message: string;
   retryLabel: string;
-  /** Re-renders the crashed subtree. */
   onRetry: () => void;
 }
 
-/**
- * Recovery panel shown in place of a crashed subtree: retry the render, or
- * leave for the server lobby.
- */
 export default function ErrorFallback({ title, message, retryLabel, onRetry }: ErrorFallbackProps) {
   const navigate = useNavigate();
   const { pathname } = useLocation();

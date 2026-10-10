@@ -7,7 +7,6 @@ import { useCommandFailureMessage, useReduxEffect, useRequestTracker } from '@ap
 import { onSessionEnd } from '@app/services/session';
 import type { AlertDialogNotice } from '@app/dialogs';
 
-/** Concurrent role commands have independent identities and meanings, even for the same user. */
 export function useRoleChanges(notify: (notice: AlertDialogNotice) => void) {
   const { t } = useTranslation();
   const webClient = useWebClient();

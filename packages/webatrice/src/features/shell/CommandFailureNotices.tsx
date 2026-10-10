@@ -11,20 +11,6 @@ interface Notice {
   message: string;
 }
 
-/**
- * Global error surface for user-initiated commands whose UI has already moved
- * on by the time the server answers: creating a game, creating or importing a
- * deck. Desktop answers each failure with a critical message box
- * (DlgCreateGame::checkResponse, TabDeckStorage::uploadFinished); this queues
- * the same messages, plus a timeout/disconnect reason when the server never
- * answered. Log search owns its own notice on the Logs page, and a room join
- * its own in the lobby (RoomsList).
- *
- * These are final outcomes, not pending operations: retain them until
- * dismissed, including failures caused by disconnect itself.
- *
- * Renders nothing until a failure arrives. Mounted once in AppShell.
- */
 export default function CommandFailureNotices() {
   const { t } = useTranslation();
   const describeFailure = useCommandFailureMessage();

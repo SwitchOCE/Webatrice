@@ -11,17 +11,11 @@ export interface UseHandMenuItemsArgs {
   seatId: number;
   isSelf: boolean;
   hand: HandZoneViewModel;
-  /** Every other seated player. */
   revealTargets: readonly { playerId: number; name: string }[];
   menuShortcut: ReturnType<typeof useMenuShortcut>;
   zoneCommands: PlayerZoneCommands;
 }
 
-/**
- * The hand menu (desktop HandMenu): view and sort the hand, reveal it or a
- * random card, mulligan, and move the whole hand. The hand row shows it on
- * right-click and the battlefield menu nests it.
- */
 export function useHandMenuItems({
   seatId,
   isSelf,
@@ -41,11 +35,6 @@ export function useHandMenuItems({
   // identities to us — so nullish-coalescing to it would leave the
   // badge stuck at 0.
   const handSize = hand.cardCount ?? hand.cards.length;
-  // Reveal-hand submenus. Desktop always lists "All players", a
-  // separator, then each other player, even when playing alone
-  // (hand_menu.cpp:165-200). Same wire as reveal-library
-  // (Command_RevealCards with zoneName=hand); the port omits playerId
-  // for "All players".
   const revealHandSubmenu = buildRevealToSubmenu(
     t,
     revealTargets,

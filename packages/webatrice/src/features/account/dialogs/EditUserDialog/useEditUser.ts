@@ -14,7 +14,6 @@ import { needsPasswordCheck, type EditUserFormValues } from './editUserFormSchem
 export type EditUserProfile = Omit<EditUserFormValues, 'passwordCheck'>;
 
 export interface EditUser {
-  /** Fresh snapshot for this edit; null until the self-info response arrives. */
   profile: EditUserProfile | null;
   supportsPasswordHash: boolean | undefined;
   pending: boolean;
@@ -27,7 +26,6 @@ export function useEditUser(onDone: () => void): EditUser {
   const webClient = useWebClient();
   const pushToast = usePushToast();
   const failureMessage = useCommandFailureMessage();
-  // Per-call closures own the outcome; SessionScope resets local state on session end.
   const request = useRequestTracker();
   const user = useAppSelector(server.Selectors.getUser);
   const supportsPasswordHash = useAppSelector(server.Selectors.getSupportsPasswordHash);
@@ -56,7 +54,6 @@ export function useEditUser(onDone: () => void): EditUser {
     setError(t('EditUserDialog.fetchFailed'));
   }, server.Types.GET_USER_INFO_FAILED);
 
-  // user_info_box.cpp:204-223 waits for fresh self info before opening the editor.
   useEffect(() => {
     waitingForProfile.current = true;
     webClient.request.session.getUserInfo('');
@@ -70,7 +67,6 @@ export function useEditUser(onDone: () => void): EditUser {
       return;
     }
     const emailEdit = supportsPasswordHash === false
-      // Servers without password hashing take the full record, as desktop sends it.
       ? { email }
       : (needsPasswordCheck(email, { originalEmail: profile.email, supportsPasswordHash }) ? { email, passwordCheck } : {});
 

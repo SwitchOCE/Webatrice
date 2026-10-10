@@ -158,7 +158,6 @@ export function findLastModeratorCommand<V>(
   );
 }
 
-/** Developer-scoped equivalent of {@link findLastSessionCommand}. */
 export function findLastDeveloperCommand<V>(
   ext: GenExtension<DeveloperCmd, V>
 ): { container: Data.CommandContainer; value: V; cmdId: number } {

@@ -2,8 +2,6 @@ import { act, renderHook } from '@testing-library/react';
 
 const STORAGE_KEY = 'webatrice.snapGridVisible';
 
-// The setting is a module-level singleton read from localStorage at import
-// time, so each test loads a fresh copy of the module.
 async function loadModule() {
   vi.resetModules();
   return import('./useSnapGridVisible');

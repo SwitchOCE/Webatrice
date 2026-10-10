@@ -6,7 +6,6 @@ import {
   PUBLIC_SERVERS_URL,
 } from './PublicServersService';
 
-// Shape of https://cockatrice.github.io/public-servers.json as published.
 const DOCUMENT = {
   servers: [
     {

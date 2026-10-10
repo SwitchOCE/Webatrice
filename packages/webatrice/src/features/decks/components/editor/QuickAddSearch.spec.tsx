@@ -60,7 +60,6 @@ describe('QuickAddSearch', () => {
     expect(onAdd).toHaveBeenLastCalledWith('Unknown Card');
   });
 
-  // Three suggestions with a real highlight, as useQuickAddSuggestions keeps it.
   function liveSuggestions(initialHighlight = 0) {
     vi.mocked(useQuickAddSuggestions).mockImplementation(function useLive() {
       const [highlight, setHighlight] = useState(initialHighlight);

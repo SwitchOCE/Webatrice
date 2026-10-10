@@ -34,8 +34,6 @@ import Game from '../../../Game';
 
 vi.mock('../../../../../hooks/useSettings');
 
-// Card metadata is looked up from Dexie/Scryfall; keep it off the network and
-// deterministic (every card resolves as unknown, which is the render fallback).
 vi.mock('../../../../../services/cards/catalog/lookup', () => {
   const unknown = (name: string) => ({ found: false, source: 'unknown', name, printings: [] });
   return {
@@ -83,12 +81,10 @@ describe('PlayerBoard characterization — seats and hidden zones', () => {
   it('shows the local hand face-up and an opponent hand only as an authoritative count', () => {
     renderSeats();
 
-    // Own hand: one face-up card element per Redux hand card.
     expect(cardEl(SHOCK.id, 'hand')).toHaveAttribute('data-card-id', '30');
     expect(cardEl(OPT.id, 'hand')).toBeInTheDocument();
     expect(document.querySelectorAll('[data-card][data-zone="hand"]')).toHaveLength(2);
 
-    // Opponent hand: count comes from zone.cardCount (5) even though no card is known.
     expect(screen.getByTitle('Hand — 2 cards')).toBeEnabled();
     expect(screen.getByTitle('Hand — 5 cards')).toBeDisabled();
   });
@@ -360,7 +356,6 @@ describe('PlayerBoard characterization — commands from menus and dialogs', () 
     openContextMenu(battlefieldEl(1));
     chooseMenuPath('Create token...');
     const dialog = screen.getByRole('dialog', { name: 'Create token' });
-    // The game's CreateTokenDialog since Phase 6 (was the seat's own modal).
     fireEvent.change(within(dialog).getByLabelText('Name'), { target: { value: 'Soldier' } });
     await act(async () => {
       fireEvent.click(within(dialog).getByRole('button', { name: 'Common.action.create' }));
@@ -452,10 +447,8 @@ describe('PlayerBoard characterization — selection and bulk operations', () =>
     act(() => {
       fireEvent.pointerUp(window, { button: 0, clientX: 50, clientY: 50, ctrlKey: true });
     });
-    // A sub-threshold release never sends a move.
     expect(game.moveCard).not.toHaveBeenCalled();
 
-    // Move-to on a selected card batches every selected card into ONE command.
     openContextMenu(cardEl(BOLT.id, 'battlefield'));
     chooseMenuPath('Move to', 'Exile');
     expect(game.moveCard).toHaveBeenCalledTimes(1);
@@ -469,8 +462,6 @@ describe('PlayerBoard characterization — selection and bulk operations', () =>
     );
   });
 
-  // Desktop TableZone::toggleTapped (table_zone.cpp:250-280): any untapped
-  // card taps the selection, and only the cards that change are sent.
   it('double-click taps the whole battlefield selection, sending the untapped cards', () => {
     const { game } = renderSeats();
 
@@ -478,8 +469,6 @@ describe('PlayerBoard characterization — selection and bulk operations', () =>
     chooseMenuPath('Select All');
     fireEvent.doubleClick(cardEl(OGRE.id, 'battlefield'));
 
-    // Bolt is untapped, so the selection is tapped, even from the tapped
-    // Ogre; Ogre already is, so only Bolt is sent.
     const tapped = vi.mocked(game.setCardAttr).mock.calls
       .map(([, params]) => params)
       .filter((p) => p.attribute === CardAttribute.AttrTapped);
@@ -488,8 +477,6 @@ describe('PlayerBoard characterization — selection and bulk operations', () =>
 });
 
 describe('PlayerBoard characterization — drag and drop destinations', () => {
-  // Library and graveyard sit edge to edge so a four-pixel move can cross
-  // from one to the other: that is what makes the threshold observable.
   const BF_BOX = { left: 0, top: 0, width: 800, height: 400 };
   const LIB_BOX = { left: 900, top: 200, width: 80, height: 110 };
   const GRAVE_BOX = { left: 981, top: 200, width: 80, height: 110 };
@@ -598,7 +585,6 @@ describe('PlayerBoard characterization — drag and drop destinations', () => {
       cardsToMove: { card: [{ cardId: SHOCK.id }] },
       targetPlayerId: 1,
       targetZone: ZoneName.TABLE,
-      // Column 0, row 0 already holds Ogre at sub-slot 0, so x = 0 * 3 + 1.
       x: 1,
       y: 0,
     });
@@ -664,8 +650,6 @@ describe('PlayerBoard characterization — drag and drop destinations', () => {
 });
 
 describe('PlayerBoard characterization — global listener cleanup', () => {
-  // Live listeners per event type, keyed by identity so a cleanup that removes
-  // a never-added listener (the menus arm theirs on a timer) doesn't skew counts.
   function trackListeners(target: Window | Document) {
     const live = new Map<string, Set<EventListenerOrEventListenerObject>>();
     const add = target.addEventListener.bind(target);
@@ -705,7 +689,6 @@ describe('PlayerBoard characterization — global listener cleanup', () => {
 
     openContextMenu(pileEl('Library', 0));
     chooseMenuPath('Draw cards...');
-    // The prompt is the game's PromptDialog, which handles its own Escape.
     fireEvent.keyDown(screen.getByRole('dialog', { name: 'Draw cards' }), { key: 'Escape' });
     expect(screen.queryByRole('dialog', { name: 'Draw cards' })).not.toBeInTheDocument();
 
@@ -715,7 +698,6 @@ describe('PlayerBoard characterization — global listener cleanup', () => {
     act(() => {
       fireEvent.pointerMove(window, { clientX: 80, clientY: 90 });
     });
-    // While a real drag is active the whole document shows the grabbing cursor.
     expect(document.body.style.cursor).toBe('grabbing');
     expect(windowLive('pointermove')).toBeGreaterThan(baseline.pointermove);
     act(() => {
@@ -740,7 +722,6 @@ describe('PlayerBoard characterization — global listener cleanup', () => {
     const nonPassive = add.mock.calls
       .map((call, i) => ({ call, el: add.mock.contexts[i] }))
       .filter(({ call: [type, , options] }) => type === 'wheel' && (options as AddEventListenerOptions)?.passive === false);
-    // Both battlefields plus the local hand row scroll horizontally on wheel.
     expect(nonPassive.length).toBeGreaterThanOrEqual(3);
 
     unmount();

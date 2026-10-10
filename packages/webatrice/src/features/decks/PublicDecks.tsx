@@ -15,10 +15,6 @@ import { useDeckSharingSupported } from './hooks/useDeckSharing';
 import { useImportDeckCopy } from './hooks/useImportDeckCopy';
 import { usePublicDecks } from './hooks/useSharedDeck';
 
-/**
- * Desktop `TabPublicDecks` ("View this user's public decks" in the user menu):
- * the decks a user published, each opened read-only and importable.
- */
 function PublicDecks() {
   const { t } = useTranslation();
   const navigate = useNavigate();

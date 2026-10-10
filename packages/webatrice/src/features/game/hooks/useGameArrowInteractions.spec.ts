@@ -163,7 +163,6 @@ describe('useGameArrowInteractions', () => {
       1,
       expect.objectContaining({
         startPlayerId: 1,
-        // Desktop playCard(false) honours playToStack (on by default).
         startZone: ZoneName.STACK,
         startCardId: 5,
         targetPlayerId: 2,
@@ -224,7 +223,6 @@ describe('useGameArrowInteractions', () => {
       1,
       expect.objectContaining({
         startPlayerId: 1,
-        // Desktop playCard(false) honours playToStack (on by default).
         startZone: ZoneName.STACK,
         startCardId: 5,
         targetPlayerId: 2,

@@ -11,7 +11,6 @@ import type { DeckCard } from '../../types';
 export interface DeckRowActionsMenuProps {
   card: DeckCard;
   anchor: MenuAnchor;
-  /** The control that opened the menu (the row or its chevron); focus returns to it. */
   triggerRef: RefObject<HTMLElement | null>;
   onClose: () => void;
   onInc: () => void;
@@ -20,7 +19,6 @@ export interface DeckRowActionsMenuProps {
   onSetCategory: (category: DeckCategory) => void;
   onSetCommander: (isCommander: boolean) => void;
   onChangePrinting: () => void;
-  /** Opens the card's detail view; MTG decks only. */
   onShowDetails?: () => void;
   /** Deck-level format flag. Non-MTG decks drop the printings-picker
    *  menu item since Scryfall has nothing to show. */
@@ -30,15 +28,6 @@ export interface DeckRowActionsMenuProps {
   isCommander: boolean;
 }
 
-/**
- * Per-row actions of the deck list, desktop's deck-view context menu
- * (`DeckEditorDeckDockWidget::decklistCustomMenu`) on the shared `Menu`:
- * focus moves in, arrows and type-ahead move between entries, and closing
- * returns focus to the row. Opened from the row's chevron, a right-click,
- * Shift+F10 or the Menu key. Adding or removing a copy keeps it open, as the
- * old inline +/− did; removing the last copy removes the row and closes it.
- * The keys those two entries advertise work while the menu is open too.
- */
 export function DeckRowActionsMenu({
   card,
   anchor,
@@ -66,7 +55,6 @@ export function DeckRowActionsMenu({
   const addSequences = useResolvedBinding('deck.addCard');
   const removeSequences = useResolvedBinding('deck.removeCard');
 
-  // One-key bindings (= and -) would otherwise be type-ahead inside the menu.
   const onKeyDown = (event: KeyboardEvent<HTMLDivElement>) => {
     const matches = (sequences: readonly string[]) => sequences.some((sequence) => matchesEvent(sequence, event.nativeEvent));
     if (matches(addSequences)) {

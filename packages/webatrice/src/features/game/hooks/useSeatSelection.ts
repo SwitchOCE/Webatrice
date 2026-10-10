@@ -6,17 +6,13 @@ import { useGameSelectionState } from '../components/ui/GameSelectionContext';
 import { makeCardKey } from '../utils/CardRegistry/CardRegistryContext';
 import { EMPTY_SELECTION } from '../utils/selection';
 
-/** The seat zones a selection can live in. A seat selection is single-zone. */
 export type SeatSelectionZone = 'hand' | 'battlefield' | 'stack';
 
 export interface SeatSelection {
   zone: SeatSelectionZone;
-  /** Card ids, as the seat's view models carry them. */
   ids: Set<string>;
 }
 
-/** The cards a seat shows per selectable zone. Battlefield cards may belong to
- *  another player (a cross-player attachment); the rest are the seat's own. */
 export interface SeatSelectableCards {
   hand: readonly { id: string }[];
   battlefield: readonly { id: string; ownerPlayerId?: number }[];
@@ -25,7 +21,6 @@ export interface SeatSelectableCards {
 
 const SEAT_ZONES: readonly SeatSelectionZone[] = ['hand', 'battlefield', 'stack'];
 
-/** The wire zone of each seat zone a selection can live in. */
 export const SEAT_WIRE_ZONE: Record<SeatSelectionZone, string> = {
   hand: ZoneName.HAND,
   battlefield: ZoneName.TABLE,
@@ -33,23 +28,11 @@ export const SEAT_WIRE_ZONE: Record<SeatSelectionZone, string> = {
 };
 
 export interface SeatSelectionApi {
-  /** This seat's share of the game selection, or null. */
   selection: SeatSelection | null;
-  /** A non-null selection replaces the whole game selection, so any other
-   *  seat's selection clears; null clears only this seat's cards. */
   setSelection: (next: SeatSelection | null) => void;
-  /** Clears the selection on every seat. */
   clearAllSelection: () => void;
 }
 
-/**
- * One seat's view of the game-level selection (useGameSelection), in the
- * `{ zone, ids }` shape the seat's menus and bulk actions use.
- *
- * Keys carry each card's real owner, so game-level consumers (DnD, dialogs)
- * resolve them like any other selection. Outside a game (isolated renders) the
- * seat keeps a selection of its own.
- */
 export function useSeatSelection(playerId: number, cards: SeatSelectableCards): SeatSelectionApi {
   const game = useGameSelectionState();
   const [localKeys, setLocalKeys] = useState<ReadonlySet<string>>(EMPTY_SELECTION);

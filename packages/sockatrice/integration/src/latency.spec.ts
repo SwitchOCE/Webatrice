@@ -1,5 +1,3 @@
-// Command round-trip timing over the wire (Cockatrice #7153): the keepalive
-// ping is timed from send to response and the stats reach the session response.
 
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 

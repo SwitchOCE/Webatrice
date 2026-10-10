@@ -131,7 +131,6 @@ describe('usePlayer', () => {
   });
 
   describe('private messages', () => {
-    // Fresh objects per test: the filters remember each message's verdict.
     const conversation = () => [
       { senderName: 'alice', receiverName: 'TestUser', message: 'hi' },
       { senderName: 'TestUser', receiverName: 'alice', message: 'hello' },
@@ -164,7 +163,6 @@ describe('usePlayer', () => {
       const { result } = setup(withConversation({
         privateChatNotices: { alice: [{ id: 1, kind: 'userLeft', position: 1 }] },
       }), 'alice');
-      // Filtered messages go; the client's notices keep their place.
       expect(texts(result.current.conversation)).toEqual(['notice:userLeft', 'hello', 'how are you']);
     });
   });

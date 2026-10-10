@@ -25,34 +25,6 @@ import { GAME_FOCUS_RING } from '../ui/focusRing';
 import { usePhaseBar } from './usePhaseBar';
 import { phaseLabel } from './phaseLabels';
 
-/**
- * Left-edge auto-collapsing phase track — a HUD-style overlay that
- * frees the play area to fill the full width of the screen.
- *
- * Two modes:
- *
- *   • **Collapsed** (default). A ~8 px vertical strip of color-coded
- *     bars pinned to the left edge, one per phase. Only the active
- *     phase reveals its name — a floating pill that pops out to the
- *     right of its bar. Everything else is just tint. The strip is
- *     the hover target, so mousing over any bar triggers the expand.
- *
- *   • **Expanded** (on hover, or while focus is inside it). Slides out
- *     to the classic 112 px wide panel with icon + label per phase, plus
- *     the Pass button at the bottom. Clicking a phase advances to it and
- *     collapses back.
- *
- * Every phase button is named by its phase, collapsed or not, and the
- * current one carries `aria-current="step"`. For a player who may not
- * change phases the buttons stay focusable (`aria-disabled`, not
- * `disabled`), so the current phase can still be read from the keyboard.
- *
- * The bar sits inside the game shell's `position: relative` root, so
- * the expansion animation floats over the play area without shifting
- * card positions. Cards under the collapsed strip are still visible;
- * only the leftmost ~8 px is occluded when idle.
- */
-
 interface PhaseEntry {
   phase: Phase;
   icon: LucideIcon;

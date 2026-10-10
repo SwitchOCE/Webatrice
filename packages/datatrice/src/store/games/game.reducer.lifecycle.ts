@@ -9,11 +9,6 @@ import { EVENT_PLAYER_ID_SYSTEM, formatGameClosed, formatReplayStarted } from '.
 
 const initialState: GamesState = { games: {}, pings: {} };
 
-/**
- * The games state with every server game dropped. Replay games are local
- * playback, not session state, so a disconnect or store reset must not tear
- * down a replay the user is watching (desktop keeps replay tabs open offline).
- */
 export function retainReplayGames(state: GamesState): GamesState {
   const games: GamesState['games'] = {};
   const pings: GamesState['pings'] = {};
@@ -26,8 +21,6 @@ export function retainReplayGames(state: GamesState): GamesState {
   return { ...initialState, games, pings };
 }
 
-// Mirrors desktop's replay game state: no local player, an omniscient spectator
-// (Replay ctor + AbstractGame::loadReplay), with the replay-started log line.
 function buildReplayGame(gameInfo: ServerInfo_Game, logStart: boolean, timeReceived: number): Enriched.GameEntry {
   const game: Enriched.GameEntry = {
     info: cloneWith(ServerInfo_GameSchema, gameInfo, { spectatorsOmniscient: true }),
@@ -87,8 +80,6 @@ export const lifecycleReducers = {
 
   gameClosed: withEventTime(((state, action) => {
     const game = state.games[action.payload.gameId];
-    // Every stored replay ends with the Event_GameClosed Servatrice recorded when
-    // the game was torn down; desktop only logs it and keeps the board.
     if (game?.replay) {
       pushEventMessage(game, EVENT_PLAYER_ID_SYSTEM, formatGameClosed(), action.payload.timeReceived);
       return;
@@ -102,16 +93,8 @@ export const lifecycleReducers = {
     delete state.pings[action.payload.gameId];
   }) as CaseReducer<GamesState, PayloadAction<{ gameId: number }>>,
 
-  /**
-   * Creates (or resets, for a rewind) the local game a replay is played into.
-   * `gameId` is chosen by the player and must not collide with a server game id;
-   * `gameInfo` is the replay's `game_info`. Event containers are then fed through
-   * the live game-event pipeline addressed to `gameId`.
-   */
   replayGameLoaded: withEventTime(((state, action) => {
     const { gameId, gameInfo } = action.payload;
-    // Desktop logs "You are watching a replay…" once when the tab opens; a
-    // rewind (TabGame::resetForRewind) clears the log without repeating it.
     state.games[gameId] = buildReplayGame(gameInfo, !state.games[gameId]?.replay, action.payload.timeReceived);
     state.pings[gameId] = {};
   }) as CaseReducer<GamesState, PayloadAction<{ gameId: number; gameInfo: ServerInfo_Game } & EventTime>>),

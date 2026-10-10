@@ -11,7 +11,6 @@ import { isSameGameServer, needsDesktopPort, parseGameJoinLink, type GameJoinLin
 
 import { clearGameLinkRequest, useGameLinkRequest } from './gameLinkRequests';
 
-/** Desktop IntentJoinServerGame::waitForGame gives the room's game list 15 s to show the game. */
 export const GAME_LINK_WAIT_MS = 15_000;
 
 type Flow =
@@ -24,26 +23,11 @@ type Flow =
 
 const IDLE: Flow = { step: 'idle' };
 
-/** Routes to the game once the server confirms the join; mounted only while a link join is in flight. */
 function NavigateOnLinkJoin({ onJoined }: { onJoined: (gameId: number) => void }) {
   useNavigateOnGameJoined(onJoined);
   return null;
 }
 
-/**
- * Runs a clicked game link through desktop's join chain
- * (url_parser.cpp createJoinGameIntent → IntentJoinServerGame →
- * GameSelector::joinGame): validate, confirm, join the room if needed, wait
- * for the game to be listed, offer spectating when it is full, then hand the
- * join to the shared `useJoinGame` flow (password, Command_JoinGame, open
- * the game).
- *
- * Desktop can also log in to another server first; a browser session holds
- * one connection, so a link for another server explains that instead.
- * Mounted once in AppShell, inside the router. The host owns the join it
- * sends, so it reports that join's rejection on every page (useJoinGame shows
- * a rejection only in the flow that sent the join).
- */
 export default function GameLinkJoinHost({ endpoint }: { endpoint: LiveGameServer | null }) {
   const { t } = useTranslation();
   const webClient = useWebClient();
@@ -63,7 +47,6 @@ export default function GameLinkJoinHost({ endpoint }: { endpoint: LiveGameServe
   const serverLabel = (link: GameJoinLink) => `${link.hostname}:${link.port}`;
   const close = useCallback(() => setFlow(IDLE), []);
 
-  // A click on a game link: validate it like desktop, then ask.
   useEffect(() => {
     if (!request) {
       return;
@@ -79,14 +62,12 @@ export default function GameLinkJoinHost({ endpoint }: { endpoint: LiveGameServe
 
   const startJoin = useCallback(
     (link: GameJoinLink, game: ServerInfo_Game, spectator: boolean) => {
-      // useJoinGame routes straight to a game that is already open.
       setFlow(activeGameIds.includes(game.gameId) ? IDLE : { step: 'joining', link, game });
       beginJoin(link.roomId, game, spectator, false);
     },
     [activeGameIds, beginJoin],
   );
 
-  // IntentJoinServerGame asks before spectating a full game; useJoinGame would spectate silently.
   const joinListedGame = useCallback(
     (link: GameJoinLink, game: ServerInfo_Game) => {
       if (!activeGameIds.includes(game.gameId) && game.playerCount >= game.maxPlayers) {
@@ -118,7 +99,6 @@ export default function GameLinkJoinHost({ endpoint }: { endpoint: LiveGameServe
     [isConnected, endpoint, joinedRoomIds, webClient, t],
   );
 
-  // IntentJoinServerGame::tryJoinGame / waitForGame.
   useEffect(() => {
     if (flow.step !== 'awaitGame') {
       return;
@@ -147,7 +127,6 @@ export default function GameLinkJoinHost({ endpoint }: { endpoint: LiveGameServe
     [joining],
   );
 
-  // A rejection of the link's join is this flow's to show.
   const joinFailed = joining !== null && joinError !== null;
 
   const dismissJoinError = () => {

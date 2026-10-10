@@ -1,6 +1,5 @@
 import { LATENCY_WINDOW_SIZE, LatencyTracker } from './LatencyTracker';
 
-// Ported case for case from desktop tests/latency_tracker_test.cpp (#7153).
 describe('LatencyTracker', () => {
   const fill = (tracker: LatencyTracker, samples: number[]) => samples.forEach((ms) => tracker.addSample(ms));
   const range = (from: number, to: number) => Array.from({ length: to - from + 1 }, (_, i) => from + i);
@@ -30,7 +29,6 @@ describe('LatencyTracker', () => {
   it('evicts the oldest samples once the window is full', () => {
     const tracker = new LatencyTracker();
     fill(tracker, range(0, 99));
-    // The window holds 36..99; the median truncates (67 + 68) / 2 like desktop's integer division.
     expect(tracker.stats()).toEqual({ lastMs: 99, medianMs: 67, p95Ms: 96, maxMs: 99, sampleCount: LATENCY_WINDOW_SIZE });
   });
 

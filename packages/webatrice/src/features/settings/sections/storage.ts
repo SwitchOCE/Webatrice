@@ -8,13 +8,6 @@ import {
 } from '../controls/StorageControls';
 import { SettingsSectionId, type SettingsSection } from '../registry';
 
-/**
- * Storage page (desktop storage_settings_page.cpp). Desktop configures picture-cache methods,
- * sizes, TTLs and the data paths of general_settings_page.cpp; a browser keeps everything in the
- * origin's IndexedDB and HTTP cache instead, so this page shows usage and offers the targeted
- * clears and the persistence request that have browser meaning. Card images are served from the
- * browser's HTTP cache, which a page cannot clear.
- */
 export const storageSection: SettingsSection = {
   id: SettingsSectionId.Storage,
   titleKey: 'Settings.section.storage',

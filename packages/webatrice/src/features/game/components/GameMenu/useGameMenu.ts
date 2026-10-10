@@ -5,7 +5,6 @@ import { ROTATE_CLOCKWISE, ROTATE_COUNTERCLOCKWISE } from '../../hooks/useGameBo
 import { useGameDialogActions } from '../ui/GameDialogActionsContext';
 import { buildGameMenuItems, type GameMenuEntry } from './gameMenu.model';
 
-/** The game menu's entries for `gameId`, wired to the phase bar, Command_ReverseTurn and the board rotation. */
 export function useGameMenu(gameId: number | undefined): GameMenuEntry[] {
   const { activePhase, canAdvancePhase, canPassTurn, canReverseTurn, handlePhaseClick, handlePass, handleReverseTurn } =
     usePhaseBar(gameId);

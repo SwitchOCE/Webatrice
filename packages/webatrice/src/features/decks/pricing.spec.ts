@@ -87,7 +87,6 @@ describe('fetchPricesForCards (Scryfall request characterization)', () => {
 
     const done = fetchPricesForCards(cards);
     await vi.waitFor(() => expect(pending).toHaveLength(1));
-    // The next chunk waits for the previous one.
     await Promise.resolve();
     expect(fetchMock).toHaveBeenCalledTimes(1);
     pending[0]();

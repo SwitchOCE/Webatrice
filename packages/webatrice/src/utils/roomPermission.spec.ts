@@ -15,7 +15,6 @@ describe('getRoomPermissionDisplay', () => {
   });
 
   it('keeps desktop\'s quirk that an empty permission level hides the privilege level', () => {
-    // Desktop only consults the privilege level when the permission level is literally "none".
     expect(getRoomPermissionDisplay({ permissionlevel: '', privilegelevel: 'vip' })).toBe('none');
   });
 });

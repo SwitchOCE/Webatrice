@@ -13,7 +13,6 @@ function setup(deckCount = 5) {
   const zoneCommands = { moveCards: vi.fn(), shuffleLibrary: vi.fn() } as unknown as PlayerZoneCommands;
   const openCountPrompt = vi.fn();
   const { result } = renderHook(() => useLibraryOps({ deckCount, openCountPrompt, zoneCommands }));
-  /** Submit the latest count prompt with `n`. */
   const submit = (n: number) => openCountPrompt.mock.lastCall![0].onSubmit(n);
   return { ops: result.current, openCountPrompt, submit, zoneCommands };
 }

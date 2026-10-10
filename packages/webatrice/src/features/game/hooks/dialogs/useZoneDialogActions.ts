@@ -25,12 +25,10 @@ export type ZoneDialogActions = Pick<
 export interface UseZoneDialogActionsArgs {
   env: GameDialogEnv;
   zoneViews: ZoneViewTarget[];
-  /** Whether the local user has a seat whose own zones the view shortcuts open. */
   hasSeat: boolean;
   set: Pick<GameDialogSetters, 'setZoneViews'>;
 }
 
-/** The zone-view dialog stack. */
 export function useZoneDialogActions({
   env,
   zoneViews,
@@ -41,11 +39,6 @@ export function useZoneDialogActions({
   const { setZoneViews } = set;
   const dispatch = useAppDispatch();
 
-  // What closing a view sends: a whole-library view shuffles when "shuffle
-  // when closing" is on (desktop ZoneViewWidget::closeEvent); without an
-  // explicit answer (Esc, or a view replaced by another) the remembered
-  // preference decides. A hidden zone's snapshot is dropped so a later view
-  // dumps it fresh (desktop zoneViewCleared).
   const sendViewClosed = useCallback((view: ZoneViewTarget, shuffleOnClose?: boolean) => {
     const { playerId, zoneName } = view;
     if (gameId == null || playerId !== readGame()?.localPlayerId || !isHiddenZone(zoneName)) {
@@ -57,12 +50,6 @@ export function useZoneDialogActions({
     dispatch(games.Actions.zoneViewCleared({ gameId, playerId, zoneName }));
   }, [gameId, readGame, webClient, dispatch]);
 
-  // One view per zone. Re-opening the same view is a no-op (no re-dump); a
-  // different count of the same hidden zone replaces it, as both read the
-  // zone's one revealed snapshot. The replaced view closes first, shuffle
-  // included, then the new one dumps afresh. Only the local player's hidden
-  // zones are dumped (Command_DumpZone; desktop actViewLibrary,
-  // actViewTopCards / actViewBottomCards, actViewSideboard).
   const openZoneView = useCallback((view: ZoneViewTarget) => {
     const game = readGame();
     const sameZone = (v: ZoneViewTarget) => v.playerId === view.playerId && v.zoneName === view.zoneName;
@@ -88,10 +75,6 @@ export function useZoneDialogActions({
     }
   }, [zoneViews, gameId, readGame, webClient, setZoneViews, sendViewClosed]);
 
-  // Desktop closes a view when its zone is destroyed (ZoneViewZone::closed →
-  // ZoneViewWidget::zoneDeleted), so a player who leaves takes their views
-  // along. The selector only answers whether any view has lost its zone, so
-  // game updates don't re-render the dialogs. Nothing is sent: the zone is gone.
   const hasOrphanedView = useAppSelector((state) => {
     const game = gameId != null ? games.Selectors.getGame(state, gameId) : undefined;
     return zoneViews.some((v) => !viewHasZone(game, v));
@@ -103,7 +86,6 @@ export function useZoneDialogActions({
     }
   }, [hasOrphanedView, readGame, setZoneViews]);
 
-  // The view shortcuts and sidebar buttons open the local seat's own zones.
   const openOwnZoneView = useCallback((zoneName: string) => {
     const playerId = readGame()?.localPlayerId;
     if (hasSeat && playerId != null && readLocalPlayer() != null) {

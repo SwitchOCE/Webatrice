@@ -26,12 +26,10 @@ import { PileViewToggle, ZoneViewSortControls } from '../shared/ZoneViewControls
 import { buildCardGroups, type GroupMode, type SortMode } from '../shared/zoneViewSort';
 import { useIncomingReveal } from './useIncomingReveal';
 
-/** Where the view keeps its geometry and choices, apart from the library view's so the two are tuned independently. */
 const STORAGE_KEY = 'webatrice.incomingReveal';
 const MIN_SIZE = { w: 400, h: 300 };
 const DEFAULT_SIZE = { w: 900, h: 520 };
 
-/** "P2 reveals their library", or "A player reveals …" when the sender is unknown. */
 export function incomingRevealTitle(t: TFunction, sourceName: string | undefined, zoneName: string): string {
   const zone = zoneLabel(t, zoneName, 'inline');
   return sourceName != null
@@ -39,12 +37,6 @@ export function incomingRevealTitle(t: TFunction, sourceName: string | undefined
     : t('IncomingRevealDialog.titleUnknownSender', { zone });
 }
 
-/**
- * Receiver-side view for Event_RevealCards: pops up whenever someone reveals
- * a zone to us (e.g. "Reveal library to All players"), with the sort, group
- * and pile-view controls of the library view. The receiver doesn't have the
- * source's deck locally, so the card metadata is looked up by name.
- */
 export default function IncomingRevealDialog() {
   const incoming = useIncomingReveal();
   return incoming.reveal ? <IncomingRevealPanel {...incoming} reveal={incoming.reveal} /> : null;
@@ -52,11 +44,6 @@ export default function IncomingRevealDialog() {
 
 type IncomingReveal = ReturnType<typeof useIncomingReveal>;
 
-/**
- * Each revealed card's relations, and which related names the catalog knows:
- * the "View related cards" gate (desktop addRelatedCardView). The catalog
- * lookups are cached, so this shares useCardCatalogMeta's answers.
- */
 function useRevealedRelations(cards: readonly { name: string }[]) {
   const [relatedByName, setRelatedByName] = useState<ReadonlyMap<string, RelatedCardRef[]>>(() => new Map());
   const [knownRelated, setKnownRelated] = useState<ReadonlySet<string>>(() => new Set());
@@ -107,14 +94,8 @@ function IncomingRevealPanel({
   const { groupBy, setGroupBy, sortBy, setSortBy, pileView, setPileView } = useZoneViewPreferences(STORAGE_KEY);
   const { showCardInfo } = useCardPreviewActions();
   const menuShortcut = useMenuShortcut();
-  // Clone creates the token on our own battlefield (desktop actClone).
   const cardCommands = usePlayerCardCommands(localPlayerId ?? -1, true);
 
-  // A read-only reveal gets desktop's revealed-card menu (Hide, Clone, Select
-  // All, View related cards; card_menu.cpp:132-151). Selection feeds the game
-  // tally; hiding never touches the shared revealedCards snapshot (the
-  // source's own zone view reads it too) and sends nothing, and a new reveal
-  // starts with nothing hidden or selected.
   const [hiddenIds, setHiddenIds] = useState<ReadonlySet<string>>(() => new Set());
   const selection = useGameSelectionState();
   const setSelectedCardKeys = selection?.setSelectedCardKeys;
@@ -129,7 +110,6 @@ function IncomingRevealPanel({
     const ids = typeof next === 'function' ? next(selectedIds) : next;
     setSelectedCardKeys?.(new Set([...ids].map(revealKey)));
   };
-  // Closing or replacing the reveal drops its cards from the selection.
   useEffect(() => () => {
     const keys = new Set(reveal.cards.map((card) => revealKey(String(card.id))));
     setSelectedCardKeys?.((prev) => {
@@ -137,7 +117,6 @@ function IncomingRevealPanel({
       return remaining.size === prev.size ? prev : remaining;
     });
   }, [reveal, revealKey, setSelectedCardKeys]);
-  // So does a card that leaves the source zone.
   useEffect(() => {
     const liveIds = new Set(cards.map((card) => card.id));
     const removedKeys = new Set(reveal.cards
@@ -156,7 +135,6 @@ function IncomingRevealPanel({
     setCardMenu(null);
   }, [reveal]);
   const { relatedByName, knownRelated } = useRevealedRelations(cards);
-  // A new reveal arriving while one is open opens the panel again.
   const { panelRef, panelStyle, dragging, onHeaderPointerDown } = useFloatingPanelGeometry({
     storageKey: STORAGE_KEY,
     minSize: MIN_SIZE,
@@ -164,11 +142,6 @@ function IncomingRevealPanel({
     openKey: reveal,
   });
 
-  // The drag runs on the game's DnD coordinator as a drag from the local seat
-  // with the lender as the zone's owner, so Command_MoveCard starts in the
-  // lender's zone; as from desktop's view, only a battlefield takes the drop.
-  // A revealed card's id is its deck position (the zoneViewRevealed reindex;
-  // view_zone_logic.cpp:92-124), which the move sends as card_id.
   const startLentDrag = useSeatDragSource('incoming-reveal', {
     seatPlayerId: localPlayerId ?? -1,
     zone: 'library',
@@ -187,8 +160,6 @@ function IncomingRevealPanel({
     return () => window.removeEventListener('keydown', onKey);
   }, [close]);
 
-  // Until every name has its metadata the cards list ungrouped and unsorted,
-  // so a misleading "Other (N)" bucket never flashes.
   const { metaByName, metadataLoaded } = useCardCatalogMeta(cards);
   const effectiveGroupBy: GroupMode = metadataLoaded ? groupBy : 'none';
   const effectiveSortBy: SortMode = metadataLoaded ? sortBy : 'none';
@@ -206,7 +177,6 @@ function IncomingRevealPanel({
     setHiddenIds((prev) => new Set([...prev, ...ids]));
     setSelectedIds((prev) => new Set([...prev].filter((id) => !ids.includes(id))));
   };
-  // Alt+H (desktop aHide) hides the selected cards of a read-only reveal.
   useShortcut(
     'game.hideRevealedCard',
     () => {
@@ -217,9 +187,6 @@ function IncomingRevealPanel({
     { scope: ShortcutScope.GAME, enabled: readOnly },
   );
 
-  // A lent card (write access granted) is a button: Enter, Space or M opens
-  // the keyboard move, which, as the drag does, lands it on a battlefield
-  // from the lender's library.
   const requestKeyboardMove = useKeyboardMove();
   const lentInteraction = (card: { id: string; name: string }): HTMLAttributes<HTMLDivElement> | undefined => {
     if (!canDragLent || !requestKeyboardMove || localPlayerId == null) {
@@ -248,9 +215,6 @@ function IncomingRevealPanel({
     };
   };
 
-  // Click selects a card (Ctrl / Cmd toggles it); Space or Enter toggles the
-  // focused card; right-click opens the revealed-card menu. A lent reveal
-  // keeps its drag behaviour and no menu.
   const cardInteraction = (card: { id: string; name: string }): HTMLAttributes<HTMLDivElement> | undefined => {
     if (!readOnly) {
       return lentInteraction(card);
@@ -335,9 +299,6 @@ function IncomingRevealPanel({
       onPointerDown={(e) => e.stopPropagation()}
     >
       <div
-        // A non-modal dialog (no aria-modal), as the other card views are:
-        // Tab moves focus inside it instead of advancing the phase, the
-        // scrolling card area Firefox makes a tab stop included.
         role="dialog"
         aria-label={title}
         ref={panelRef}
@@ -364,8 +325,6 @@ function IncomingRevealPanel({
               {reveal.grantWriteAccess
                 ? ` — ${t('ZoneView.status.writeAccess')}`
                 : ''}
-              {/* Without the spinner a still-loading reveal reads as a wrong
-                  "1 Creature, rest in Other". */}
               {!metadataLoaded && (
                 <span className="inline-flex items-center gap-1 text-text-muted italic">
                   <Loader2 size={12} className="board-motion animate-spin" />

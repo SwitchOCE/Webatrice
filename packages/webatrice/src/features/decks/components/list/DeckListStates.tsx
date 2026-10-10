@@ -51,7 +51,6 @@ export function DeckListError({ message, onRetry }: { message: string; onRetry: 
   );
 }
 
-/** A create, import or move the server refused; stays until dismissed. */
 export function DeckStorageError({ message, onDismiss }: { message: string; onDismiss: () => void }) {
   const { t } = useTranslation();
   return (

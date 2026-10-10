@@ -32,12 +32,6 @@ const buildAddSchema = (t: TFunction) =>
 
 type AddFormValues = z.infer<ReturnType<typeof buildAddSchema>>;
 
-/**
- * Desktop's "Playmat settings" group (AppearanceSettingsPage) with its
- * "Default Playmats" collection dialog inlined: visibility, how the collection
- * combines with a deck's own playmat, the list mode, and the ordered
- * collection with a crop editor per entry. Every change is saved at once.
- */
 export default function PlaymatSettingsPanel({ labelId, disabled = false }: Partial<CustomControlProps> = {}) {
   const { t } = useTranslation();
   const [settings, save] = usePlaymatSettingsState();
@@ -92,7 +86,6 @@ export default function PlaymatSettingsPanel({ labelId, disabled = false }: Part
 
   return (
     <section className="playmat-settings" aria-labelledby={labelId ?? 'playmat-settings-title'}>
-      {/* On the Settings page the group box carries the title and the row its label. */}
       {!labelId && (
         <h2 id="playmat-settings-title" className="playmat-settings__title">{t('PlaymatSettings.title')}</h2>
       )}

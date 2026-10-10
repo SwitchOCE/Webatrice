@@ -1,13 +1,3 @@
-/**
- * Shared visual dimensions for MTG cards on a seat.
- *
- * Base pixel size matches Cockatrice desktop's logical card dimensions
- * (72 × 102, from card_dimensions.h). CardScaleProvider multiplies these
- * by a viewport-derived scale and writes them onto document root as CSS
- * vars; the fallback here applies when no provider is mounted (isolated
- * previews, tests, storybook), so those environments render at 1×
- * Cockatrice-scale.
- */
 
 export const CARD_WIDTH = 'var(--card-width, 72px)';
 export const CARD_HEIGHT = 'var(--card-height, 102px)';
@@ -20,10 +10,4 @@ export const CARD_SIDEWAYS_HEIGHT = CARD_WIDTH;
 export const CARD_BACK_URL =
   'https://backs.scryfall.io/normal/0/a/0aeebaf5-8c7d-4636-9e82-8c27447861f7.jpg';
 
-/**
- * ~7.5% of the card width matches the real MTG corner curve. Prevents
- * the white JPG background from peeking through rounded corners without
- * eating into meaningful art. Square with desktop's "Use rounded card
- * corners" off (useApplyCardPresentation sets the variable).
- */
 export const CARD_CORNER_RADIUS = 'var(--card-corner-radius, 7.5%)';

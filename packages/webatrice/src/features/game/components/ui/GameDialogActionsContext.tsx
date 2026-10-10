@@ -15,7 +15,6 @@ export interface GameDialogActions {
    *  Command_LeaveGame on confirm; no-op on cancel. Mirrors
    *  `onRequestConcede` — a guard against accidentally dropping out. */
   onRequestLeave: () => void;
-  /** Turns the board view one seat (desktop "Rotate View"); local only, sends nothing. */
   onRotateView: (step: RotationStep) => void;
 }
 

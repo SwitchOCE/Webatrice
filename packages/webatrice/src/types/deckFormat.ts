@@ -1,6 +1,3 @@
-/**
- * Deck format values recognised by the deck editor and the game lobby.
- */
 
 /**
  * Format string as stored in the .cod `<format>` element. Free-form

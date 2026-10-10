@@ -1,4 +1,3 @@
-/** Tailwind class strings shared by the deck editor's controls. */
 
 export const TEXT_INPUT_CLASS =
   'w-full bg-bg-base border border-border-subtle rounded-md px-2 py-1 text-xs '

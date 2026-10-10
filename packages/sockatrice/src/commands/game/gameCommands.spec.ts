@@ -340,8 +340,6 @@ describe('Game commands — delegate to WebClient.instance.protobuf.sendGameComm
     );
   });
 
-  // Desktop cmMoveToTopLibrary (player_actions.cpp:1853-1872) queues the
-  // shuffle before the move; Servatrice runs the container backwards.
   it('moveCardAndShuffle sends Command_Shuffle then Command_MoveCard in one container', () => {
     moveCardAndShuffle(
       gameId,

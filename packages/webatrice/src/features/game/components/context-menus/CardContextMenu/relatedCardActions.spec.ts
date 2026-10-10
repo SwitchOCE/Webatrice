@@ -133,7 +133,6 @@ describe('buildTransformItems', () => {
   it('offers the other face of a transformable card and targets the source card', () => {
     const create = vi.fn();
     const [front] = buildTransformItems(t, { layout: 'transform', faces }, 42, 'Delver of Secrets', create).map(row);
-    // The create-all hint is placed by buildRelatedActionItems, never hard-coded.
     expect(front).toEqual({ label: 'Token: Transform into "Insectile Aberration"', onClick: expect.any(Function) });
     front.onClick!();
     expect(create).toHaveBeenCalledWith({
@@ -189,9 +188,6 @@ describe('create all related tokens', () => {
 
   const names = (plan: ReturnType<typeof createAllRelated>) => plan.requests.map((r) => r.name);
 
-  // Desktop actCreateAllRelatedCards (player_actions.cpp:989-995): a single
-  // relation goes through the related-card dialog, which asks for an "x"
-  // count (player_dialogs.cpp:198-213).
   it('runs the only related action, prompting for an "x" count', () => {
     expect(createAllRelated(source({ related: [ref('Soldier', { count: '2' })] })).requests.map((r) => r.name))
       .toEqual(['Soldier', 'Soldier']);
@@ -203,13 +199,10 @@ describe('create all related tokens', () => {
     const transform = createAllRelated(source({ parentMeta: { layout: 'transform', faces } }));
     expect(transform.requests)
       .toEqual([expect.objectContaining({ name: 'Insectile Aberration', targetCardId: 7, targetMode: 'transform_into' })]);
-    // A relation that attaches cannot be created again (card_relation.h:111-114).
     expect(transform.lastToken).toBeUndefined();
     expect(createAllRelated(source({ related: [ref('Aura', { attach: 'attach' })] })).lastToken).toBeUndefined();
   });
 
-  // player_actions.cpp:1000-1015: one relation left after dropping the
-  // excluded and attaching ones goes through the dialog too.
   it('runs the one relation that is neither excluded nor attaching, prompting for an "x" count', () => {
     const related = [ref('Soldier', { exclude: 'exclude' }), ref('Aura', { attach: 'attach' }), ref('Treasure', { count: 'x' })];
     expect(createAllRelated(source({ related }))).toEqual({
@@ -221,8 +214,6 @@ describe('create all related tokens', () => {
       .toEqual(['Clue', 'Clue']);
   });
 
-  // player_actions.cpp:1017-1034: when every relation is excluded, desktop
-  // treats none of them as excluded, minus the attaching and "x" ones.
   it('creates every non-attaching, fixed-count relation when all are excluded', () => {
     const related = [
       ref('Soldier', { exclude: 'exclude', count: '2' }),
@@ -236,8 +227,6 @@ describe('create all related tokens', () => {
     });
   });
 
-  // player_actions.cpp:1036-1050: otherwise each relation not excluded,
-  // not attaching and not asking for a count.
   it('otherwise creates every relation that is neither excluded, attaching nor asks for a count', () => {
     const plan = createAllRelated(source({
       related: [
@@ -254,9 +243,6 @@ describe('create all related tokens', () => {
     expect(plan.lastToken).toMatchObject({ name: 'Soldier' });
   });
 
-  // The cards.xml parser checks only that `attach`, `exclude` and
-  // `persistent` are present (cockatrice_xml_4.cpp:403-414), so an empty
-  // attribute counts.
   it('treats an empty exclude, attach or persistent attribute as set', () => {
     expect(createAllRelated(source({ related: [ref('Soldier', { persistent: '' })] })).requests)
       .toEqual([expect.objectContaining({ name: 'Soldier', destroyOnZoneChange: false })]);
@@ -266,10 +252,6 @@ describe('create all related tokens', () => {
     expect(createAllRelated(source({ related: [ref('Aura', { attach: '' })] })).lastToken).toBeUndefined();
   });
 
-  // Desktop setLastTokenInfo (player_actions.cpp:929-943) rebuilds the
-  // repeat token from the card database: its first color, its P/T, its text
-  // when annotating, and destroyed on a zone change, whatever the relation
-  // said.
   it('builds "Create another token" from the token\'s card, not from the relation', () => {
     const spirit = lookup('Spirit', {
       power: '1', toughness: '1', colors: ['W', 'B'], text: 'Flying', printings: [{ scryfallId: 'spirit-id' }],

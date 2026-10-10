@@ -1,6 +1,3 @@
-// The provider's window listener through a real route: where Tab and
-// Shift+Tab move focus instead of advancing the phase, and which shortcuts
-// stand down while a modal is open.
 
 import type { ReactNode } from 'react';
 import { fireEvent } from '@testing-library/react';
@@ -19,7 +16,6 @@ const handlers = {
   chatFocus: vi.fn(),
 };
 
-// chat.focus is registered GLOBAL here to stand for any global action.
 function Harness({ children }: { children?: ReactNode }) {
   useShortcut('game.nextPhase', handlers.nextPhase, { scope: ShortcutScope.GAME });
   useShortcut('game.nextPhaseAction', handlers.nextPhaseAction, { scope: ShortcutScope.GAME });
@@ -57,8 +53,6 @@ describe('ShortcutProvider focus guards', () => {
     expect(tab).toBe(false);
   });
 
-  // dnd-kit gives an own (draggable) card role="button"; a focused card is
-  // still the board, so desktop's "tap a card, press Tab" keeps working.
   it('fires Tab and Shift+Tab on a focused board card with a button role', () => {
     const { getByTestId } = renderGame(
       <div data-game-board>
@@ -107,7 +101,6 @@ describe('ShortcutProvider focus guards', () => {
 
     expect(handlers.nextPhase).not.toHaveBeenCalled();
     expect(handlers.nextPhaseAction).not.toHaveBeenCalled();
-    // Not prevented, so focus moves.
     expect(tab).toBe(true);
     expect(shiftTab).toBe(true);
   });

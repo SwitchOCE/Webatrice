@@ -11,7 +11,6 @@ import type { ServerReplays as ServerReplaysModel, ServerReplaySelection } from 
 
 export interface ServerReplaysProps {
   model: ServerReplaysModel;
-  /** Local folder a "Save to local replays" lands in. */
   localFolderId: number;
 }
 
@@ -30,11 +29,6 @@ function formatStarted(match: ServerInfo_ReplayMatch): string {
   return match.timeStarted ? new Date(match.timeStarted * 1000).toLocaleString() : '';
 }
 
-/**
- * "Server replay storage": the matches stored for this account, each expandable
- * into its replays (a game restarted after a win records one replay per game),
- * with desktop's remote actions on the selection.
- */
 function ServerReplays({ model, localFolderId }: ServerReplaysProps) {
   const { t } = useTranslation();
   const [expanded, setExpanded] = useState<ReadonlySet<number>>(new Set());
@@ -54,7 +48,6 @@ function ServerReplays({ model, localFolderId }: ServerReplaysProps) {
     });
   };
 
-  // Rows in display order: each match, then its replays while expanded.
   const nodes = new Map<string, ServerReplaySelection>();
   for (const match of model.matches) {
     const matchNode: ServerReplaySelection = { kind: 'match', gameId: match.gameId };
@@ -70,7 +63,6 @@ function ServerReplays({ model, localFolderId }: ServerReplaysProps) {
     keys: [...nodes.keys()],
     selectedKey: model.selection ? rowKey(model.selection) : null,
     onSelect: (key) => model.select(nodes.get(key)!),
-    // Enter opens like a double-click: a match folds open or shut, a replay plays.
     onActivate: (key) => {
       const node = nodes.get(key)!;
       if (node.kind === 'match') {

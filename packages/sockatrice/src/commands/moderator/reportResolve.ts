@@ -4,7 +4,6 @@ import type { RequestId } from '../../types/RequestId';
 
 import { Command_ReportResolve_ext, Command_ReportResolveSchema } from '../../generated';
 
-// RespInvalidData means the report was already resolved or dismissed.
 export function reportResolve(reportId: number, resolutionNote?: string, dismissed = false, ...correlation: [requestId?: RequestId]): void {
   WebClient.instance.protobuf.sendModeratorCommand(
     Command_ReportResolve_ext,

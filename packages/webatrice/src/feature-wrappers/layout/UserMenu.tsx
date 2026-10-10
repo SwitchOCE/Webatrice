@@ -91,10 +91,6 @@ export default function UserMenu({
           >
             {t('TopBar.game.snapGrid')}
           </MenuCheckboxItem>
-          {/* The stored preference is `phaseTrackPinned`; this entry exposes
-           *  the inverse ("auto-hide on/off") so the checked state and the
-           *  checkmark flip together. When auto-hide is ON (checked), the
-           *  phase track collapses to an 8-px HUD. */}
           <MenuCheckboxItem
             checked={!phaseTrackPinned}
             onChange={onTogglePhaseTrackPinned}

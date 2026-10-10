@@ -1,4 +1,3 @@
-// @critical Must match the production boot order in src/boot.tsx. See .github/instructions/webatrice.instructions.md#initialization-order.
 import './polyfills';
 
 import '@testing-library/jest-dom/vitest';

@@ -9,10 +9,6 @@ import { SettingsSectionId, type SettingsSection } from '../registry';
 const testSound = ({ soundEnabled, soundTheme, masterVolume }: Preferences) =>
   soundEngine.test({ enabled: soundEnabled, theme: soundTheme, volume: masterVolume });
 
-/**
- * Sound page (desktop sound_settings_page.cpp), in desktop's order. Like desktop, the volume and
- * theme stay editable while sound is off; the test button, which would play nothing, does not.
- */
 export const soundSection: SettingsSection = {
   id: SettingsSectionId.Sound,
   titleKey: 'Settings.section.sound',
@@ -31,7 +27,6 @@ export const soundSection: SettingsSection = {
         {
           id: 'masterVolume',
           labelKey: 'SettingsSound.masterVolume.label',
-          // Desktop plays the test sound when the slider is let go.
           control: { kind: 'range', key: 'masterVolume', min: 0, max: 100, onCommit: testSound },
         },
         {

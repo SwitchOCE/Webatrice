@@ -37,7 +37,6 @@ function deckTree() {
   });
 }
 
-/** Root: deck 1, folder "Modern" (public red deck 3, folder "Old" with deck 4). */
 function folderTree() {
   const file = (id: number, name: string, creationTime: number, extra: { isPublic?: boolean; colorIdentity?: string } = {}) =>
     create(ServerInfo_DeckStorage_TreeItemSchema, {
@@ -86,7 +85,6 @@ describe('useDeckList', () => {
     expect(webClient.request.session.deckDownload).toHaveBeenCalledTimes(2);
     first.unmount();
 
-    // Normal tab navigation must retain both caches.
     const returning = renderWithProviders(<Probe onDeckCreated={vi.fn()} />, { preloadedState, webClient });
     expect(latest.summaries.get(1)?.format).toBe('modern');
     expect(webClient.request.session.deckDownload).toHaveBeenCalledTimes(2);
@@ -238,7 +236,6 @@ describe('useDeckList', () => {
       act(() => {
         store.dispatch(server.Actions.deckDownloaded({ deckId: 3, deck: COD('modern') }));
       });
-      // Visibility and color identity are kept: the copy is a new deck row.
       expect(webClient.request.session.deckUpload).toHaveBeenCalledWith('Modern/Old', 0, COD('modern'), true, 'R');
       expect(webClient.request.session.deckDel).not.toHaveBeenCalled();
 
@@ -272,8 +269,6 @@ describe('useDeckList', () => {
       });
       expect(latest.storageError).toBe('Decks.moveFailed');
 
-      // An upload answer that matches nothing pending (another client's)
-      // must not settle the move.
       act(() => {
         store.dispatch(server.Actions.deckUpload({
           path: 'Modern/Old',
@@ -355,7 +350,6 @@ describe('useDeckList', () => {
     expect(webClient.request.session.deckList).toHaveBeenCalledTimes(2);
   });
 });
-
 
 describe('sparse storage acknowledgements', () => {
   it('preserves color identity through edit then move', () => {

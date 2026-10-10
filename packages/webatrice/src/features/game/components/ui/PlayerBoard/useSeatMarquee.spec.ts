@@ -3,8 +3,6 @@ import type React from 'react';
 
 import { useSeatMarquee } from './useSeatMarquee';
 
-// jsdom has no layout: each element gets a fixed box through its own
-// getBoundingClientRect.
 function boxed<T extends HTMLElement>(el: T, left: number, top: number, width: number, height: number): T {
   el.getBoundingClientRect = () => new DOMRect(left, top, width, height);
   return el;

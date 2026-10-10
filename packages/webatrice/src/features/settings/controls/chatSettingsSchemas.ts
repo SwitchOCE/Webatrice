@@ -1,7 +1,6 @@
 import { z } from 'zod';
 import type { TFunction } from 'i18next';
 
-/** Desktop's cap on any free-text field (libcockatrice_utility string_limits.h MAX_TEXT_LENGTH). */
 export const MAX_TEXT_LENGTH = 0xfff;
 
 export const buildMessageMacroSchema = (t: TFunction) =>

@@ -1,8 +1,3 @@
-// Byte-level verification that `deckUpdate` never marks Command_DeckUpload's
-// proto2 `path` field present. Servatrice's `cmdDeckUpload` checks
-// `has_path()` before `has_deck_id()`: a present path — even "" — creates a
-// new deck in that folder instead of replacing the one named by `deck_id`.
-// Pattern: see `../game/attachCard.presence.spec.ts`.
 
 vi.mock('../../WebClient');
 

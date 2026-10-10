@@ -12,10 +12,6 @@ export interface DeckLegalitySummaryProps {
   loading: boolean;
 }
 
-/**
- * One line on the deck's legality in its format: legal, how many rows are
- * not, or that it can't be checked (a custom format, or no card data).
- */
 export function DeckLegalitySummary({ format, status, illegalCount, unknownCount, loading }: DeckLegalitySummaryProps) {
   const { t } = useTranslation();
   if (status === 'none' && !loading) {

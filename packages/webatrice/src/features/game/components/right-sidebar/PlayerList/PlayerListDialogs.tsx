@@ -6,15 +6,6 @@ import type { ServerInfo_User } from '@cockatrice/sockatrice/generated';
 import { ServerInfo_User_UserLevelFlag } from '@cockatrice/sockatrice/generated';
 import { DialogShell } from '@app/dialogs';
 
-/**
- * The User details modal behind the player-list context menu (see
- * `PlayerListContextMenu.tsx`). The menu's moderator dialogs (warn, ban,
- * histories, admin notes) live in the moderation feature-widget.
- *
- * Built on DialogShell: focus moves in on open, Tab stays inside, Escape or
- * the backdrop closes it, and focus returns to where it was.
- */
-
 const MODAL_BUTTON_PRIMARY =
   'px-3 py-1.5 rounded-md text-sm font-semibold bg-accent text-white '
   + 'hover:bg-accent-hover shadow-glow board-motion transition-colors '

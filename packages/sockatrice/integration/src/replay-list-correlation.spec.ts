@@ -13,7 +13,6 @@ describe('replay-list protocol correlation', () => {
     const first = findLastSessionCommand(Data.Command_ReplayList_ext);
     SessionCommands.replayList('second');
     const second = findLastSessionCommand(Data.Command_ReplayList_ext);
-    // Identity remains client-only: both wire commands are the same empty message.
     expect(first.value).toEqual(create(Data.Command_ReplayListSchema));
     expect(second.value).toEqual(first.value);
 

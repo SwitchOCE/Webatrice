@@ -14,17 +14,11 @@ export interface ChangePassword {
   submit: (values: ChangePasswordFormValues) => void;
 }
 
-/**
- * Sends Command_AccountPassword. Whether the new password travels hashed is Sockatrice's call (it knows
- * the server's capability), mirroring desktop `UserInfoBox::changePassword`. The passwords live only
- * in the form state, which unmounts with the dialog.
- */
 export function useChangePassword(onDone: () => void): ChangePassword {
   const { t } = useTranslation();
   const webClient = useWebClient();
   const pushToast = usePushToast();
   const failureMessage = useCommandFailureMessage();
-  // Per-call closures own the outcome; SessionScope resets local state on session end.
   const request = useRequestTracker();
   const [pending, setPending] = useState(false);
   const [error, setError] = useState<string | null>(null);

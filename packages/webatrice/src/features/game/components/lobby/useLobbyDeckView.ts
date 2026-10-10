@@ -15,37 +15,17 @@ import {
 import { useLobbyDeckState } from './LobbyDeckStateProvider';
 
 export interface LobbyDeckView {
-  /** Desktop's "deck loaded" state: the server returned a deck and it wasn't unloaded. */
   deckLoaded: boolean;
-  /** The deck with the current plan applied (null while no deck is loaded). */
   view: DeckView | null;
   ready: boolean;
   sideboardLocked: boolean;
-  /** `DeckView::setLocked(ready || sideboardLocked)` inverted. */
   editable: boolean;
-  /** Moves one copy of `cardName` out of `zone` and sends the new plan. */
   moveCard: (zone: DeckZone, cardName: string) => void;
-  /** Sends Command_SetSideboardLock with the opposite of the server's state. */
   toggleSideboardLock: () => void;
-  /** Toggles Command_ReadyStart. */
   toggleReady: () => void;
-  /** Back to the deck picker; un-readies first, as desktop's unloadDeck does. */
   unloadDeck: () => void;
 }
 
-/**
- * State and commands behind the pre-game deck view — desktop's
- * `DeckViewContainer` deck-loaded state (`deck_view_container.cpp`).
- *
- * The plan shown is the one the server will deal with
- * (`Server_Player::setupZones` applies `getCurrentSideboardPlan()` whatever
- * the lock state): the user's edits since the deck arrived, else the plan
- * stored in the deck string (`DeckViewScene::setDeck`). Selecting a deck locks
- * the sideboard but keeps its stored plan (`Server_Player::cmdDeckSelect`);
- * an explicit lock clears it (`cmdSetSideboardLock`), so a lock
- * echo resets the view to the bare deck
- * (`DeckViewContainer::setSideboardLocked` → `resetSideboardPlan`).
- */
 export function useLobbyDeckView(gameId: number): LobbyDeckView {
   const webClient = useWebClient();
   const localPlayer = useAppSelector((state) => games.Selectors.getLocalPlayer(state, gameId));

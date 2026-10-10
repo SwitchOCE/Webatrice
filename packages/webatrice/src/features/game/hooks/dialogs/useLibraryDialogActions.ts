@@ -22,7 +22,6 @@ export interface UseLibraryDialogActionsArgs {
 
 // Hidden-zone command addressing is positional. See .github/instructions/webatrice-game.instructions.md#servatrice-game-event-quirks.
 
-/** The local library's prompts and top-card moves, behind the game shortcuts. */
 export function useLibraryDialogActions({ env, set }: UseLibraryDialogActionsArgs): LibraryDialogActions {
   const { t } = useTranslation();
   const { gameId, webClient, readGame } = env;

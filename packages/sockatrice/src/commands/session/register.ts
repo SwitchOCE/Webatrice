@@ -83,8 +83,6 @@ export function register(options: ConnectTarget & RegisterParams, password?: str
       },
     },
     onError: (_responseCode, _raw, failure) => {
-      // Desktop registerResponse: a RespNotConnected the client synthesised on
-      // disconnect reports the lost connection but must not disconnect again.
       if (failure === CommandFailure.Disconnected) {
         WebClient.instance.response.session.registrationFailed('The connection to the server has been lost.');
         return;

@@ -53,28 +53,10 @@ import { useDeckHistory } from './useDeckHistory';
 
 export type { SaveState } from './useDeckAutosave';
 
-/**
- * State and actions behind the deck editor route: download → parse →
- * hydrate → optimistic edits → debounced autosave.
- *
- * On mount `deckDownload(deckId)` fires with a tracked request id; the
- * DECK_DOWNLOADED effect checks the deck and request identities, parses and
- * hydrates the XML, then checks ownership again before populating `deck`, so
- * background downloads and superseded lookups cannot replace this deck. A deck already opened this session is served from the
- * session cache instead, with no round-trip.
- *
- * Every mutation applies a pure transition from `deckEdits` locally,
- * records a named memento of the previous deck for undo (`useDeckHistory`;
- * derived caches such as the price are not recorded) and schedules the
- * autosave (`useDeckAutosave`), which sends the deck as a deck-id update.
- * Loading a deck from the server starts a fresh history.
- */
 export interface UseDeckEditor {
   deck: HydratedDeck | null;
   loading: boolean;
   notFound: boolean;
-  /** Why the deck could not be downloaded (timeout, lost connection, server
-   *  rejection); null while loading or once loaded. Set alongside notFound. */
   loadError: string | null;
   saveState: SaveState;
   /** Total (main + commander), excluding sideboard, for the header. */
@@ -84,22 +66,11 @@ export interface UseDeckEditor {
   // --- Mutations (all optimistic; each schedules an autosave) ---
   setName: (name: string) => void;
   setDescription: (description: string) => void;
-  /** Set the deck's format (`commander`, `modern`, or any custom string).
-   *  Persists to the `<format>` element; the editor gates MTG-specific
-   *  features off this value. */
   setFormat: (format: string) => void;
-  /** Pick the deck's banner card, or clear it with `null`. */
   setBanner: (banner: BannerCandidate | null) => void;
-  /** Replace the deck's tags. */
   setTags: (tags: readonly string[]) => void;
-  /** Cache a computed price in meta.priceUsd / priceMissingCount so the
-   *  totals survive a reload. */
   setPriceCache: (priceUsd: number | undefined, priceMissingCount: number | undefined) => void;
-  /** Cache a bracket assessment in `<bracketAssessment>` (level, flagged
-   *  cards and a deck fingerprint for staleness detection), mirroring the
-   *  level into `meta.bracketLevel`. `undefined` clears both. */
   setBracketAssessment: (assessment: BracketAssessment | undefined) => void;
-  /** Switch a row to another printing of the same card. */
   setPrinting: (index: number, printing: CardPrinting) => void;
   deleteCard: (index: number) => void;
   incQuantity: (index: number, delta: number) => void;
@@ -107,47 +78,27 @@ export interface UseDeckEditor {
   /** Toggle the commander marker on a card. Independent of category.
    *  See DeckCard.isCommander for the full rationale. */
   setCommander: (index: number, isCommander: boolean) => void;
-  /** Add a card by name to the mainboard, incrementing an existing
-   *  mainboard row for it (case-insensitive). Async because a new card
-   *  is looked up in the card catalog. */
   addCard: (name: string) => Promise<void>;
-  /** Save a pending change right now (bypass the debounce). */
   flushSave: () => void;
-  /** Send the deck again after a failed save. */
   retrySave: () => void;
-  /** Edits the server has not taken (see `useDeckAutosave`). */
   isModified: boolean;
-  /** Save now; resolves true once the server takes the deck. */
   saveNow: () => Promise<boolean>;
-  /** Drop the edits the server has not taken, as desktop's Discard does. */
   discardChanges: () => void;
-  /** Hold autosave while an open-deck confirmation is pending. */
   pauseAutosave: () => void;
-  /** Resume any held autosave after the open-deck choice. */
   resumeAutosave: () => void;
 
-  // --- Undo/redo (desktop DeckStateManager + DeckListHistoryManager) ---
   history: DeckHistory;
   canUndo: boolean;
   canRedo: boolean;
-  /** Undo `steps` edits (default 1); a history-list click jumps several. */
   undo: (steps?: number) => void;
   redo: (steps?: number) => void;
 }
 
-/**
- * The editor for a stored deck (`deckId`), or for an unsaved draft handed
- * over by `draftToken` (e.g. the game's "Open deck in deck editor", desktop
- * actOpenDeckInDeckEditor). A draft is stored by its first save, as a new
- * deck, and the editor then moves to that deck.
- */
 export function useDeckEditor(deckId: number | null, draftToken: string | null = null): UseDeckEditor {
   const webClient = useWebClient();
   const navigate = useNavigate();
   const isConnected = useAppSelector(server.Selectors.getIsConnected);
 
-  // Seed from the session cache when this deck was opened before —
-  // avoids the "Loading…" flash and the download on a tab return.
   const isDraft = deckId == null && draftToken != null;
   const initialCached = deckId != null ? getCachedDeck(deckId) : undefined;
   const initialDraft = isDraft ? getCachedDraft(draftToken) : undefined;
@@ -159,13 +110,9 @@ export function useDeckEditor(deckId: number | null, draftToken: string | null =
   const describeFailure = useCommandFailureMessage();
   const requests = useRequestTracker();
 
-  // Mirrors state so the autosave timer and back-to-back edits read the
-  // latest snapshot. Every write below updates it before `setDeck`.
   const deckRef = useRef<HydratedDeck | null>(null);
   const readDeck = useCallback(() => deckRef.current, []);
 
-  // A draft's first save came back as a new stored deck: carry the editor
-  // state over to it and move there.
   const onDraftStored = useCallback((storedId: number, signature: string) => {
     if (!isDraft || !deckRef.current) {
       return;
@@ -184,16 +131,9 @@ export function useDeckEditor(deckId: number | null, draftToken: string | null =
   const history = useDeckHistory();
   const { record, clear: clearHistory, undo: undoHistory, redo: redoHistory } = history;
 
-  // Routes keep this hook mounted across deck ids and draft tokens,
-  // so re-seed per identity: otherwise switching to a cached deck keeps
-  // the previous deck in state and the next autosave uploads it under
-  // the new id. Adjusting state during render (rather than in an
-  // effect) means no effect ever runs with the new id and the old deck.
   const identity = deckId ?? draftToken;
   const [seededIdentity, setSeededIdentity] = useState(identity);
   if (seededIdentity !== identity) {
-    // Desktop clears history when replacing the deck. Do this before the
-    // new identity exposes actions, including when its deck is cached.
     clearHistory();
     const cached = initialCached?.deck ?? initialDraft;
     setSeededIdentity(identity);
@@ -203,14 +143,10 @@ export function useDeckEditor(deckId: number | null, draftToken: string | null =
     setLoadError(null);
   }
 
-  // Synced in an effect, not during render: on a deckId change the
-  // previous id's unmount flush runs before this, so it still
-  // serializes the deck its pending edit was made on.
   useEffect(() => {
     deckRef.current = deck;
   }, [deck]);
 
-  // --- Load a draft ---
   useEffect(() => {
     if (!isDraft) {
       return;
@@ -258,8 +194,6 @@ export function useDeckEditor(deckId: number | null, draftToken: string | null =
     if (deckId == null) {
       return;
     }
-    // Cached: state was seeded above, so skip the round-trip entirely.
-    // A deck switched to from another keeps its own saved signature.
     const cached = getCachedDeck(deckId);
     if (cached) {
       if (savedSignature() !== cached.savedSignature) {
@@ -296,18 +230,10 @@ export function useDeckEditor(deckId: number | null, draftToken: string | null =
         try {
           const parsed = parseCod(payload.deck);
           const hydrated = await hydrateDeck(parsed);
-          // Parsing/hydration may outlive navigation, unmount or session end.
           if (!requests.isCurrent(payload.requestId)) {
             return;
           }
           requests.cancel();
-          // Write migrations back even if the user never edits:
-          //   • decks with no <format> were defaulted to commander;
-          //   • legacy `<zone name="commander">` cards were coerced into
-          //     main with `isCommander`, but Servatrice's setupZones only
-          //     reads main + side, so the stored file must be rewritten or
-          //     the commander drops out of the library.
-          // A null signature makes the next save upload unconditionally.
           const hasLegacyCommanderZone = payload.deck.includes('<zone name="commander"');
           const needsMigration = !parsed.format.trim() || hasLegacyCommanderZone;
           const signature = needsMigration ? null : deckSaveSignature(hydrated);
@@ -319,8 +245,6 @@ export function useDeckEditor(deckId: number | null, draftToken: string | null =
           } else {
             markSaved(signature);
           }
-          // Analytics: format distribution across opened decks, using the
-          // normalized format the editor shows (absent → commander).
           trackEvent('deck_opened', { format: hydrated.format });
           setCachedDeck(payload.deckId, { deck: hydrated, savedSignature: signature });
           setLoading(false);
@@ -342,7 +266,6 @@ export function useDeckEditor(deckId: number | null, draftToken: string | null =
     [deckId, requests],
   );
 
-  // A failed download would otherwise leave the editor skeleton up forever.
   useReduxEffect<CommandFailedPayload & { deckId: number }>(
     ({ payload }) => {
       if (payload.deckId !== deckId || !requests.isCurrent(payload.requestId) || !requests.settle(payload.requestId)) {
@@ -357,8 +280,6 @@ export function useDeckEditor(deckId: number | null, draftToken: string | null =
     [deckId, describeFailure, t, requests],
   );
 
-  // Mirror edits (including unsaved ones) into the session cache so a
-  // tab return shows the in-editor state, not the last download.
   useEffect(() => {
     if (isDraft && deck) {
       setCachedDraft(draftToken, deck);
@@ -399,7 +320,6 @@ export function useDeckEditor(deckId: number | null, draftToken: string | null =
     [record, scheduleSave],
   );
 
-  /** A user edit to the card at `index`, named after that card. */
   const editCard = useCallback(
     (index: number, edit: (current: HydratedDeck) => HydratedDeck, reason: (card: DeckCard) => DeckHistoryReason) => {
       const card = deckRef.current?.cards[index];
@@ -410,8 +330,6 @@ export function useDeckEditor(deckId: number | null, draftToken: string | null =
     [applyEdit],
   );
 
-  // Undo/redo restore a whole deck; the autosave then settles the server
-  // on it (or sends nothing when it matches the last save).
   const restore = useCallback(
     (step: (current: HydratedDeck) => HydratedDeck | null) => {
       const current = deckRef.current;
@@ -515,8 +433,6 @@ export function useDeckEditor(deckId: number | null, draftToken: string | null =
       if (current) {
         const existingIdx = findMainboardRow(current, trimmed);
         if (existingIdx >= 0) {
-          // Desktop `DeckStateManager::addCard` names an add the same way
-          // whether it creates the row or bumps it.
           editCard(
             existingIdx,
             (d) => adjustCardQuantity(d, existingIdx, 1),

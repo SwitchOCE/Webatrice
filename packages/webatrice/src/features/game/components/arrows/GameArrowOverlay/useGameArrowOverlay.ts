@@ -99,14 +99,12 @@ function pointOnCircleEdge(
   return { x: cx + (dx * r) / d, y: cy + (dy * r) / d };
 }
 
-/** An arrow's identity: desktop keys arrows by their creator and id (arrow_registry.h). */
 export function arrowKey(arrow: Pick<ResolvedArrow, 'ownerPlayerId' | 'arrowId'>): string {
   return `${arrow.ownerPlayerId}:${arrow.arrowId}`;
 }
 
 export interface GameArrowOverlay {
   arrows: ResolvedArrow[];
-  /** Every arrow in the game's state (arrowKey), drawn or not; null until the overlay is measured. */
   gameArrowKeys: ReadonlySet<string> | null;
   width: number;
   height: number;
@@ -116,9 +114,6 @@ export interface GameArrowOverlay {
 export interface UseGameArrowOverlayArgs {
   gameId: number | undefined;
   containerRef: React.RefObject<HTMLElement | null>;
-  /** Changes whenever seats move inside an unchanged board (e.g. a view
-   *  rotation): cards keep their registry entries and the board keeps its
-   *  size, so nothing else would re-measure. */
   layoutVersion?: unknown;
 }
 

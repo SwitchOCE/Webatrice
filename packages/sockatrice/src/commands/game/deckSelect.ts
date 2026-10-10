@@ -8,12 +8,6 @@ import {
 import { WebClient } from '../../WebClient';
 import type { RequestId } from '../../types/RequestId';
 
-/**
- * Selects a deck for the local seat. Servatrice answers with Response_DeckDownload carrying the
- * deck as it stored it (`writeToString_Native`, including the current sideboard plan) — desktop's
- * `DeckViewContainer::deckSelectFinished` builds its pre-game deck view from that string, so it is
- * routed into the store. Other players only see the Event_PlayerPropertiesChanged deck hash.
- */
 export function deckSelect(gameId: number, params: DeckSelectParams, ...correlation: [requestId?: RequestId]): void {
   WebClient.instance.protobuf.sendGameCommand(
     gameId,

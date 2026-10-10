@@ -25,9 +25,6 @@ import { CARD_ART_RULE_MODES, useCardArtRules } from './useCardArtRules';
 
 import './CardArtRules.css';
 
-// Servatrice's cmdAddCardArtRule rejects an empty card name or a field past
-// MAX_NAME_LENGTH. The provider id may be empty: desktop sends whatever its
-// provider box holds, which is nothing for a card missing from the local database.
 const MAX_FIELD_LENGTH = 0xff;
 
 const buildRuleSchema = (t: TFunction) =>
@@ -45,7 +42,6 @@ type RuleFormValues = z.infer<ReturnType<typeof buildRuleSchema>>;
 
 const DEFAULT_VALUES: RuleFormValues = { cardName: '', cardProviderId: '', mode: 'ALLOW', reason: '' };
 
-/** Desktop TabCardArtRules (tab_card_art_rules.cpp). */
 const CardArtRulesContent = () => {
   const { t } = useTranslation();
   const rulesState = useCardArtRules();
@@ -60,7 +56,6 @@ const CardArtRulesContent = () => {
   const resolver = useMemo(() => zodResolver(buildRuleSchema(t)), [t]);
   const { control, handleSubmit, setValue } = useForm<RuleFormValues>({ defaultValues: DEFAULT_VALUES, resolver });
 
-  // A new card's printings replace the provider choice, as desktop repopulates its combo box.
   useEffect(() => {
     setValue('cardProviderId', printings[0]?.providerId ?? '');
   }, [printings, setValue]);
@@ -141,8 +136,6 @@ const CardArtRulesContent = () => {
       </Paper>
 
       <Paper component="section" className="card-art-rules__table">
-        {/* A single-select grid with one roving tab stop: arrows, Home/End, Enter or
-            Space select a rule, so "Remove rule" works from the keyboard too. */}
         <Table size="small" stickyHeader role="grid" aria-label={t('CardArtRules.title')}>
           <TableHead>
             <TableRow>
@@ -173,8 +166,6 @@ const CardArtRulesContent = () => {
   );
 };
 
-// The guards mount the page body only when it is allowed, so its mount effects
-// never send a staff or 3.1 command the user or server cannot serve.
 const CardArtRules = () => (
   <Layout className="card-art-rules scrollable">
     <AuthGuard />

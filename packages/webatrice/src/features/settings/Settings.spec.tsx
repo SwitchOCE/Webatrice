@@ -25,7 +25,6 @@ const search = (value: string) => {
 
 describe('Settings', () => {
   beforeEach(() => {
-    // Fresh defaults per test: the store is a module singleton and Dexie is stubbed empty.
     settingsStore.reset();
   });
 
@@ -162,7 +161,6 @@ describe('Settings', () => {
     openSection(/Settings\.section\.appearance/);
     const box = screen.getByLabelText(/SettingsAppearance\.minPlayersForMultiColumnLayout\.label/);
     expect(box).toHaveValue(4);
-    // As a browser does: an input event per keystroke, then one change event on Enter or blur.
     const commit = async (value: string) => {
       fireEvent.input(box, { target: { value } });
       await act(async () => {
@@ -177,12 +175,10 @@ describe('Settings', () => {
     });
     expect(getPreferencesSnapshot().minPlayersForMultiColumnLayout).toBe(6);
 
-    // Below desktop's minimum of 2: clamped, as QSpinBox does.
     await commit('1');
     expect(getPreferencesSnapshot().minPlayersForMultiColumnLayout).toBe(2);
     expect(box).toHaveValue(2);
 
-    // A cleared box saves nothing and shows the stored value again.
     await commit('');
     expect(getPreferencesSnapshot().minPlayersForMultiColumnLayout).toBe(2);
     expect(box).toHaveValue(2);
@@ -287,7 +283,6 @@ describe('Settings', () => {
     const editor = within(panel).getByRole('group', { name: /SettingsCardSources\.pictureUrls\.label/ });
     expect(editor).toHaveAccessibleDescription(/SettingsCardSources\.pictureUrls\.description/);
     expect(within(editor).getByRole('listbox', { name: /CardSourcesSettings\.label\.list/ })).toBeInTheDocument();
-    // The templates are card data, not settings-row preferences, so the page has nothing to restore.
     expect(within(panel).queryByRole('button', { name: /Settings\.restoreDefaults/ })).not.toBeInTheDocument();
   });
 
@@ -385,7 +380,6 @@ describe('Settings', () => {
     });
   });
 });
-
 
 it('restores the playmat preferences and collection from Appearance', async () => {
   await renderSettings();

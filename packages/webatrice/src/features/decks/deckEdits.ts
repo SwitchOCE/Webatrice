@@ -3,18 +3,10 @@ import type { BracketAssessment, DeckCategory } from '@app/types';
 import { readDeckTags, writeDeckTags, type BannerCandidate } from './deckTags';
 import type { DeckCard, HydratedDeck } from './types';
 
-/**
- * Pure deck-editor transitions. Each takes the current deck and returns
- * the next one — the same object when nothing changes, so React can
- * skip the render and the undo history records no empty step.
- * `useDeckEditor` applies them optimistically and schedules the autosave.
- */
-
 export function renameDeck(deck: HydratedDeck, name: string): HydratedDeck {
   return deck.name === name ? deck : { ...deck, name };
 }
 
-/** Any format string — known MTG slug or a custom label. */
 export function setDeckFormat(deck: HydratedDeck, format: string): HydratedDeck {
   return deck.format === format ? deck : { ...deck, format };
 }
@@ -24,7 +16,6 @@ export function setDeckDescription(deck: HydratedDeck, description: string): Hyd
   return deck.meta.description === next ? deck : { ...deck, meta: { ...deck.meta, description: next } };
 }
 
-/** Set or clear (`null`) the banner card: desktop `DeckStateManager::setBannerCard`. */
 export function setDeckBanner(deck: HydratedDeck, banner: BannerCandidate | null): HydratedDeck {
   const name = banner?.name || undefined;
   const providerId = (name && banner?.providerId) || undefined;
@@ -34,7 +25,6 @@ export function setDeckBanner(deck: HydratedDeck, banner: BannerCandidate | null
   return { ...deck, bannerCard: name, bannerCardProviderId: providerId };
 }
 
-/** Replace the deck's tags, keeping unknown `<tags>` children: `DeckStateManager::setTags`. */
 export function setDeckTags(deck: HydratedDeck, tags: readonly string[]): HydratedDeck {
   const current = readDeckTags(deck.tagsXml);
   if (current.length === tags.length && current.every((tag, i) => tag === tags[i])) {
@@ -43,7 +33,6 @@ export function setDeckTags(deck: HydratedDeck, tags: readonly string[]): Hydrat
   return { ...deck, tagsXml: writeDeckTags(deck.tagsXml, tags) };
 }
 
-/** Cache the deck's computed price; a no-op when the values already match. */
 export function setDeckPriceCache(
   deck: HydratedDeck,
   priceUsd: number | undefined,
@@ -55,12 +44,6 @@ export function setDeckPriceCache(
   return { ...deck, meta: { ...deck.meta, priceUsd, priceMissingCount } };
 }
 
-/**
- * Cache a bracket assessment in `<bracketAssessment>` and mirror its level
- * into `meta.bracketLevel` for consumers that only read the JSON blob.
- * `undefined` clears both. A no-op when level and fingerprint match what
- * the deck already carries (a reopened deck replays the same result).
- */
 export function setDeckBracketAssessment(
   deck: HydratedDeck,
   assessment: BracketAssessment | undefined,
@@ -96,7 +79,6 @@ export function removeCard(deck: HydratedDeck, index: number): HydratedDeck {
   });
 }
 
-/** Change a row's quantity by `delta`; the row is removed at zero or below. */
 export function adjustCardQuantity(deck: HydratedDeck, index: number, delta: number): HydratedDeck {
   return withCards(deck, (cards) => {
     const nextQty = cards[index].quantity + delta;
@@ -112,7 +94,6 @@ export function setCardCategory(deck: HydratedDeck, index: number, category: Dec
   return deck.cards[index]?.category === category ? deck : patchCard(deck, index, { category });
 }
 
-/** The printing fields a printings-picker choice replaces on a row. */
 export interface CardPrinting {
   set?: string;
   collectorNumber?: string;
@@ -138,11 +119,6 @@ export function setCardPrinting(deck: HydratedDeck, index: number, printing: Car
   });
 }
 
-/**
- * Toggle the commander marker. Independent of category — the card stays
- * in its zone. Marking clamps the quantity to 1 (one copy of the
- * commander). A no-op for an index outside the deck.
- */
 export function setCardCommander(deck: HydratedDeck, index: number, isCommander: boolean): HydratedDeck {
   const current = deck.cards[index];
   if (!current || (current.isCommander === true) === isCommander) {
@@ -158,20 +134,10 @@ export function appendCard(deck: HydratedDeck, card: DeckCard): HydratedDeck {
   return { ...deck, cards: [...deck.cards, card] };
 }
 
-/**
- * The name a typed or suggested card is stored under. Scryfall's
- * autocomplete returns MDFC / transform cards as "A // B"; the deck
- * keeps the front face, which both the Dexie cards table and Scryfall's
- * exact-name lookup resolve to the same record.
- */
 export function normalizeAddedCardName(name: string): string {
   return name.trim().split(' // ')[0].trim();
 }
 
-/**
- * Index of the mainboard row for `name` (case-insensitive), or -1. Adding
- * a card that already has one increments it — one row per (name, zone).
- */
 export function findMainboardRow(deck: HydratedDeck, name: string): number {
   const lower = name.toLowerCase();
   return deck.cards.findIndex((c) => c.category === 'main' && c.name.toLowerCase() === lower);

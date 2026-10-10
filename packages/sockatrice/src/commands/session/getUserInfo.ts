@@ -4,7 +4,6 @@ import type { RequestId } from '../../types/RequestId';
 
 import { Command_GetUserInfo_ext, Command_GetUserInfoSchema, Response_GetUserInfo_ext } from '../../generated';
 
-/** Echo the client-only identity on both outcomes; omission preserves legacy callback arity. */
 export function getUserInfo(userName: string, ...correlation: [requestId?: RequestId]): void {
   WebClient.instance.protobuf.sendSessionCommand(Command_GetUserInfo_ext, create(Command_GetUserInfoSchema, { userName }), {
     responseExt: Response_GetUserInfo_ext,

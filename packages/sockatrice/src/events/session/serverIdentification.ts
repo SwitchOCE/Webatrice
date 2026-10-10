@@ -7,10 +7,6 @@ import { generateSalt, hashPassword, passwordHashAvailable, passwordSaltSupporte
 import * as SessionCommands from '../../commands/session';
 import { CommandFailure } from '../../types/CommandFailure';
 
-// Settles the form behind a failed password-salt request. One lost to a dropped
-// socket must not disconnect: the transport is already reconnecting (or has
-// reported why it closed), and disconnect() would cancel that reconnect.
-// Desktop's passwordSaltResponse likewise ignores RespNotConnected.
 function onSaltFailure(settle: (failure?: CommandFailure) => void) {
   return (failure?: CommandFailure) => {
     settle(failure);
@@ -32,16 +28,10 @@ export async function serverIdentification(info: Event_ServerIdentification): Pr
 
   const serverSupportsPasswordHash = passwordSaltSupported(serverOptions);
   WebClient.instance.serverSupportsPasswordHash = serverSupportsPasswordHash;
-  // Without Web Crypto (an insecure context) the client cannot hash, so it takes
-  // the same plain-password path as a server that does not support hashing.
   const getPasswordSalt = serverSupportsPasswordHash && passwordHashAvailable();
   const options = consumePendingOptions();
 
   if (!options) {
-    // Reached on a transport-level reconnect: pending options are single-use
-    // and were consumed by the original login, and the app retains no
-    // credentials to resume the session with. Land the user on the login page
-    // with an honest message instead of a cryptic internal error.
     SessionCommands.updateStatus(StatusEnum.DISCONNECTED, 'Connection lost — please log in again');
     SessionCommands.disconnect();
     return;

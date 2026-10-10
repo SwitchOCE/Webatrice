@@ -36,8 +36,6 @@ export function DeckBuyButton({
   const { pricedUnique, totalUnique } = useMemo(() => pricingProgress(cards, prices), [cards, prices]);
   const pendingUnique = Math.max(0, totalUnique - pricedUnique);
 
-  // Only listed once loading settles — mid-load the list is a moving
-  // target and the progress caption is the useful signal.
   const missingCards = useMemo(
     () => (loading ? [] : unpricedCards(cards, prices)),
     [cards, prices, loading],

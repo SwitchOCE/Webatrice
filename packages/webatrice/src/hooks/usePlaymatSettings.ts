@@ -7,7 +7,6 @@ export { parsePlaymatSettings } from '../services/dexie/playmatSettings';
 
 export const getPlaymatSettings = (): PlaymatSettings => getPreferencesSnapshot().playmatSettings;
 
-/** Uses the typed settings row; there is no separate playmat persistence store. */
 export function setPlaymatSettings(patch: Partial<PlaymatSettings>): Promise<void> {
   const current = settingsStore.peek();
   if (!current) {

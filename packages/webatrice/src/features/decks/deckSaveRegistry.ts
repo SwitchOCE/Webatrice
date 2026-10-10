@@ -27,7 +27,6 @@ interface Entry {
 type SessionStore = { getState: () => RootState; subscribe: (listener: () => void) => () => void };
 const EMPTY: DeckSaveSnapshot = { savedSignature: null, lastFailure: null, pending: new Map(), saveState: 'idle', isModified: false };
 
-/** Local editor state only. Redux is observed for session lifetime, never written. */
 export function createDeckSaveRegistry(store: SessionStore, client: WebClient) {
   const identity = () => {
     const state = store.getState();
@@ -55,7 +54,6 @@ export function createDeckSaveRegistry(store: SessionStore, client: WebClient) {
       session = next;
       entries.forEach((entry) => answerWaiters(entry, false));
       entries.clear();
-      // Cached contents and signatures also belong to the departed session.
       clearDeckEditorCache();
       emit();
     }
@@ -84,7 +82,6 @@ export function createDeckSaveRegistry(store: SessionStore, client: WebClient) {
   };
 
   const registry = {
-    // Connect once for this owner; an editor unmount must not end the session.
     connect() {
       syncSession();
       unsubscribe ??= store.subscribe(syncSession);
@@ -114,7 +111,6 @@ export function createDeckSaveRegistry(store: SessionStore, client: WebClient) {
       answerWaiters(entry, false);
       entry.dirty = false;
       entry.lastSavedRequest = 0;
-      // A newly loaded authoritative deck supersedes older local requests.
       entry.lastSettledRequest = nextRequest;
       publish(entry, { savedSignature, lastFailure: null, pending: new Map() });
     },
@@ -126,7 +122,6 @@ export function createDeckSaveRegistry(store: SessionStore, client: WebClient) {
       entry.dirty = true;
       publish(entry);
     },
-    /** Discard unsent edits without cancelling requests already owned by this deck. */
     discardChanges(deckId: number) {
       deleteCachedDeck(deckId);
       const entry = entries.get(deckId);
@@ -136,12 +131,10 @@ export function createDeckSaveRegistry(store: SessionStore, client: WebClient) {
         publish(entry, { lastFailure: null });
       }
     },
-    /** Waiters belong to the entry, so switching or closing an editor cannot orphan them. */
     saveNow(deckId: number, deck: HydratedDeck): Promise<boolean> {
       registry.save(deckId, deck);
       return registry.waitForSave(deckId);
     },
-    /** Adopt a draft's waiters without sending edits held by its paused editor. */
     waitForSave(deckId: number): Promise<boolean> {
       const entry = entries.get(deckId);
       if (!entry) {
@@ -172,8 +165,6 @@ export function createDeckSaveRegistry(store: SessionStore, client: WebClient) {
       client.request.session.deckUpdate(
         deckId, serializeDeckForSave(deck), undefined, deckColorIdentity(deck.cards),
         (error) => {
-          // Entry identity is also a session generation: late replies cannot
-          // settle a newly logged-in user's deck with the same numeric id.
           if (entries.get(deckId) !== entry || !entry.snapshot.pending.has(requestId)) {
             return;
           }
@@ -200,9 +191,6 @@ export function createDeckSaveRegistry(store: SessionStore, client: WebClient) {
   return registry;
 }
 
-// A provider/client pair identifies the connection owner. Within it, the
-// server/user identity and every disconnect delimit sessions. Keeping this
-// outside React preserves both in-flight callbacks and failures across mounts.
 const registries = new WeakMap<SessionStore, WeakMap<WebClient, ReturnType<typeof createDeckSaveRegistry>>>();
 
 export function getDeckSaveRegistry(store: SessionStore, client: WebClient) {

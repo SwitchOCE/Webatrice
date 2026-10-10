@@ -13,7 +13,6 @@ export interface LocalReplaysProps {
   model: LocalReplaysModel;
 }
 
-/** File size in the UI language's own unit names (B, kB, MB…). */
 function formatSize(bytes: number, locale: string | undefined): string {
   const [value, unit] = bytes < 1024
     ? [bytes, 'byte']
@@ -21,11 +20,6 @@ function formatSize(bytes: number, locale: string | undefined): string {
   return new Intl.NumberFormat(locale, { style: 'unit', unit, unitDisplay: 'short', maximumFractionDigits: 1 }).format(value);
 }
 
-/**
- * "Local replays": the browser-side replay library, standing in for desktop's
- * local replay directory. Every pick is a fresh file choice (no persistent file
- * handles, for cross-browser parity).
- */
 function LocalReplays({ model }: LocalReplaysProps) {
   const { t, i18n } = useTranslation();
   const watchInputRef = useRef<HTMLInputElement>(null);
@@ -36,7 +30,6 @@ function LocalReplays({ model }: LocalReplaysProps) {
     keys: [...entryByKey.keys()],
     selectedKey: selected ? String(selected.id) : null,
     onSelect: (key) => model.select(entryByKey.get(key)!.id ?? null),
-    // Enter opens like a double-click: a folder is entered, a replay is played.
     onActivate: (key) => model.activate(entryByKey.get(key)!),
   });
 

@@ -9,9 +9,6 @@ import type {
   RevealSelection,
 } from './playerBoard.types';
 
-// Type-level contract for the seat. Fixtures are typed against the model so a
-// field rename or a widened port fails here before it reaches a view.
-
 const card = (id: number, name: string): PlayerCardViewModel => ({ id: String(id), name, scryfallId: '' });
 
 const opponentSeat = {
@@ -29,10 +26,8 @@ const opponentSeat = {
     lastDrawCount: 0,
     revealTargets: [{ playerId: 1, name: 'Me' }],
   },
-  // Servatrice sends the deck list to its owner only.
   deck: [],
   zones: {
-    // An opponent hand is a count only.
     hand: { cards: [], cardCount: 7 },
     library: { cardCount: 53, revealedCards: [], topCard: null, alwaysRevealTopCard: false, alwaysLookAtTopCard: false },
     graveyard: { cards: [card(40, 'Duress')], cardCount: 1 },
@@ -41,7 +36,6 @@ const opponentSeat = {
     battlefield: {
       cards: [
         { ...card(20, 'Bear'), ownerPlayerId: 2, slot: { row: 0, col: 0 }, subSlot: 0, tapped: false },
-        // An aura owned by player 1 attached to Bear: rendered here, commanded as player 1.
         {
           ...card(21, 'Pacifism'),
           ownerPlayerId: 1,
@@ -75,7 +69,6 @@ describe('playerBoard.types', () => {
     expectTypeOf<PlayerBoardCommands['zone']['reveal']>().parameters.toEqualTypeOf<
       [ZoneNameValue, RevealRecipient, RevealSelection?]
     >();
-    // Peek is offered on the owner's seat only.
     expectTypeOf<PlayerBoardCommands['card']['peek']>().toEqualTypeOf<
       ((cardIds: readonly number[]) => void) | undefined
     >();

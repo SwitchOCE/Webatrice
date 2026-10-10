@@ -1,41 +1,17 @@
 import type { Activators, SensorInstance, SensorProps } from '@dnd-kit/core';
 
-/** A viewport point. */
 export interface Coordinates {
   x: number;
   y: number;
 }
 
-/**
- * The game's one pointer sensor for card drags.
- *
- * dnd-kit's PointerSensor takes one activation distance for the whole
- * DndContext and measures it as a straight line. The game has two gestures
- * with different, deliberately kept thresholds (see
- * .github/instructions/webatrice-game.instructions.md#pointer--click-vs-drag):
- *
- * - structured leaves start a drag on any motion (distance 0);
- * - seat cards and piles wait until the pointer leaves a four-pixel box around
- *   the press point (per axis, as PlayerBox always measured it), and a release
- *   inside the box is a click, delivered through `onRelease`.
- *
- * A draggable picks its gesture through its data (`PointerGestureData`). The
- * sensor listens on the window, so a release anywhere ends the gesture, and
- * removes every listener when it does.
- */
 export interface GamePointerSensorOptions {
-  /** Activation distance for draggables whose data doesn't set one. */
   activationDistance: number;
-  /** Sensors owned by this board; disposed when it leaves the game. */
   instances?: Set<GamePointerSensor>;
 }
 
-/** Optional fields a draggable's data may carry to tune its gesture. */
 export interface PointerGestureData {
-  /** Pixels the pointer must move along either axis before the drag starts.
-   *  Set by seat sources; leaves without it use the sensor's default. */
   activationDistance?: number;
-  /** Called when the pointer is released before the drag started. */
   onRelease?: (event: PointerEvent) => void;
 }
 
@@ -55,8 +31,6 @@ export class GamePointerSensor implements SensorInstance {
         if (nativeEvent.button !== 0) {
           return false;
         }
-        // Structured leaves keep dnd-kit's primary-pointer rule; seat sources
-        // never had it.
         const seat = (active.data.current as PointerGestureData | undefined)?.activationDistance != null;
         return seat || nativeEvent.isPrimary;
       },
@@ -76,7 +50,6 @@ export class GamePointerSensor implements SensorInstance {
     const data = gestureData(props);
     this.initial = coordinatesOf(event);
     this.distance = data?.activationDistance ?? props.options.activationDistance;
-    // Seat drags never auto-scrolled the zone they started in.
     this.autoScrollEnabled = data?.activationDistance == null;
     this.window = (event.target as Node | null)?.ownerDocument?.defaultView ?? window;
     this.window.addEventListener('pointermove', this.handleMove);
@@ -87,7 +60,6 @@ export class GamePointerSensor implements SensorInstance {
     this.window.addEventListener('dragstart', preventDefault);
   }
 
-  /** Unmount is not a release: never call the old board's click/drop handlers. */
   dispose() {
     this.detach();
   }

@@ -4,7 +4,6 @@ import HighlightWordsField from '../controls/HighlightWordsField';
 import MessageMacrosEditor from '../controls/MessageMacrosEditor';
 import { SettingsSectionId, type SettingsSection } from '../registry';
 
-/** Chat page (desktop messages_settings_page.cpp), in desktop's control order. */
 export const chatSection: SettingsSection = {
   id: SettingsSectionId.Chat,
   titleKey: 'Settings.section.chat',

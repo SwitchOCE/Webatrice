@@ -8,8 +8,6 @@ interface ModGuardProps {
   children?: ReactNode;
 }
 
-// Renders its children only for a moderator, so a staff page's body (and the
-// commands its effects send) never mounts for anyone else.
 const ModGuard = ({ children }: ModGuardProps) => {
   const { isModerator } = useUserCapabilities();
   return !isModerator

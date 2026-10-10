@@ -16,13 +16,6 @@ import { gameEventSound, isGameAttentionEvent, type ObservedAction } from './gam
 
 const GAME_ACTION_PREFIX = `${games.Types.GAME_JOINED.split('/')[0]}/`;
 
-/**
- * App-wide sound and notification feedback for server events, as desktop's tabs give it whether
- * or not they are on screen: game event sounds and the taskbar-style tab marker
- * (MessageLogWidget, TabSupervisor::tabUserEvent), room mentions and alert words (ChatView,
- * TabRoom::actShowMentionPopup) and buddies signing on or off (TabAccount, TabSupervisor).
- * Private messages have their own notifier. Renders nothing; mounted once inside the Router.
- */
 export default function AppAlerts() {
   const { t } = useTranslation();
   const navigate = useNavigate();
@@ -68,17 +61,12 @@ export default function AppAlerts() {
   function onRoomMessage({ roomId, message }: { roomId: number; message: Message }, state: RootState) {
     const prefs = getPreferencesSnapshot();
     const users = state.rooms.rooms[roomId]?.users ?? {};
-    // Desktop filters a line once, as it arrives: settle its verdict now, against the sender and
-    // preferences of this moment, and RoomChat shows what was decided. Ignored senders never get
-    // here: Datatrice drops them before ADD_MESSAGE. Client notices (flood, not sent) are added
-    // by their own action and raise nothing.
     const stored = state.rooms.messages[roomId]?.at(-1) ?? message;
     const filter = { roomHistory: prefs.roomHistory, ignoreUnregisteredUsers: prefs.ignoreUnregisteredUsers };
     if (!isRoomMessageVisible(stored, users, filter, chatFilterVerdicts)) {
       return;
     }
     const selfName = state.server.user?.name ?? null;
-    // History replays old lines on join; desktop's alerts are for new ones.
     if (message.messageType === Event_RoomSay_RoomMessageType.ChatHistory || !message.name || message.name === selfName) {
       return;
     }

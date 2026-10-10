@@ -2,7 +2,6 @@ import { fireEvent, screen } from '@testing-library/react';
 
 import { renderWithProviders } from '../../__test-utils__';
 
-// Each tab has its own spec; stub them so this covers only the dialog shell.
 vi.mock('./CardImportForm', () => ({
   default: ({ onViewSets }: { onViewSets: () => void }) => (
     <button type="button" data-testid="card-import-form" onClick={onViewSets}>view sets</button>

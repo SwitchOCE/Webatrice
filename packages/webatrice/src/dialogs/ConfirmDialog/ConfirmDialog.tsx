@@ -29,7 +29,6 @@ export interface ConfirmDialogProps {
   confirmLabel?: string;
   cancelLabel?: string;
   destructive?: boolean;
-  /** Make Cancel the initially focused action, as in desktop remediation dialogs. */
   cancelDefault?: boolean;
   onConfirm: () => void;
   onCancel: () => void;

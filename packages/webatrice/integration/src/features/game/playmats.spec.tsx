@@ -45,7 +45,6 @@ it('observes identical deck selections and settings while no game route is mount
   const sent = findAllGameCommands(Data.Command_SetPlaymat_ext);
   expect(sent).toHaveLength(2);
   expect(new Set(sent.map(({ value }) => value.playmatParams?.cardName))).toEqual(new Set(['A', 'B']));
-  // Servatrice echoes the current pick without a deck-selection context.
   const echo = create(Data.GameEventSchema, { playerId: 1 });
   setExtension(echo, Data.Event_PlayerPropertiesChanged_ext, create(Data.Event_PlayerPropertiesChangedSchema, {
     playerProperties: { playmatParams: { cardName: sent.at(-1)!.value.playmatParams!.cardName } },

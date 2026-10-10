@@ -10,7 +10,6 @@ export function removeUserAvatar(userName: string): void {
     {
       responseExt: Response_RemoveUserAvatar_ext,
       onSuccess: (response) => {
-        // Servatrice echoes the canonical account name it acted on.
         WebClient.instance.response.moderator.userAvatarRemoved?.(response.userName || userName);
       },
       onError: (responseCode, _raw, failure) => {

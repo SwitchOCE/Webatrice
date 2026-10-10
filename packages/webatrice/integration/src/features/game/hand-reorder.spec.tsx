@@ -18,7 +18,6 @@ import { buildEventGameJoined, buildEventGameStateChanged, registerGameBoardHook
 
 registerGameBoardHooks();
 
-// Scope to the local hand strip: the hand viewer dialog renders the same cards.
 const handSelector = '[data-testid="hand-zone-1"] [data-card][data-zone="hand"]';
 
 const handOrder = () => Array.from(document.querySelectorAll<HTMLElement>(handSelector), (card) => card.dataset.cardId);
@@ -35,7 +34,6 @@ function click(card: HTMLElement, x: number, init: Partial<PointerEventInit> = {
 }
 
 function deliverEcho(cardId: number, x: number) {
-  // Servatrice omits target_zone for a same-zone move.
   act(() => deliverMessage(buildGameEventMessage({
     gameId: 42, playerId: 1, ext: Event_MoveCard_ext,
     value: create(Event_MoveCardSchema, {
@@ -62,8 +60,6 @@ async function renderHand() {
   });
   await waitFor(() => expect(document.querySelectorAll(handSelector)).toHaveLength(3));
   const cards = Array.from(document.querySelectorAll<HTMLElement>(handSelector));
-  // jsdom has no layout. Give the rendered hand and its cards concrete bounds
-  // so the production pointer hit-test computes the insertion index.
   cards.forEach((card, index) => {
     vi.spyOn(card, 'getBoundingClientRect').mockReturnValue(new DOMRect(100 + index * 100, 500, 80, 120));
   });
@@ -88,7 +84,6 @@ describe('Hand drag reorder', () => {
       startPlayerId: 1, startZone: 'hand', targetPlayerId: 1, targetZone: 'hand',
       cardsToMove: { card: [{ cardId: 101 + source }] }, x: index, y: 0,
     });
-    // Applied optimistically before the server answers.
     expect(handOrder()).toEqual(expected);
 
     deliverEcho(101 + source, index);
@@ -101,7 +96,6 @@ describe('Hand drag reorder', () => {
     drag(cards[0], 140, 390);
     expect(handOrder()).toEqual(['102', '103', '101']);
 
-    // The listener path re-applies the echo's x, so a different x wins.
     deliverEcho(101, 1);
 
     expect(handOrder()).toEqual(['102', '101', '103']);

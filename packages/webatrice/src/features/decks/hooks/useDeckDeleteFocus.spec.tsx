@@ -39,7 +39,6 @@ const sections: DeckListSection[] = [
   { section: 'legacy', decks: [deck(3, 'Storm')] },
 ];
 
-/** Confirm deleting `target` from its Delete button, then let the server drop it from the list. */
 function deleteFromRow(target: FlatDeck) {
   screen.getByRole('button', { name: `Delete ${target.name}` }).focus();
   confirm(target);

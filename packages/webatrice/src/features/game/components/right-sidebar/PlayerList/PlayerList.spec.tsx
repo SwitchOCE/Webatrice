@@ -77,7 +77,6 @@ describe('PlayerList', () => {
       fireEvent.keyDown(row, { key: 'ContextMenu' });
       fireEvent.keyDown(row, { key: 'F10', shiftKey: true });
       fireEvent.click(row);
-      // Reopen for each action: selecting an item dismisses the popup.
       for (const name of ['Add to buddy list', 'Add to ignore list', 'Kick from game', 'Moderation.menu.warnUser']) {
         fireEvent.contextMenu(row);
         const button = screen.queryByRole('button', { name });

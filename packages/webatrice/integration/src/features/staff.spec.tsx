@@ -41,7 +41,6 @@ import { renderFeatureScreen } from './helpers';
 
 const { IsRegistered, IsModerator, IsAdmin } = ServerInfo_User_UserLevelFlag;
 
-// Log in as a staff account on a 3.1 Servatrice, through the real wire.
 function loginAsStaff(userLevel = IsRegistered | IsModerator | IsAdmin) {
   connectRaw({ userName: 'boss' });
   deliverMessage(buildSessionEventMessage(
@@ -183,7 +182,6 @@ describe.each(['list', 'add', 'remove'] as const)('Card art %s failure (integrat
         fireEvent.click(screen.getByRole('button', { name: 'CardArtRules.button.remove' }));
         cmdId = findLastModeratorCommand(Command_RemoveCardArtRule_ext).cmdId;
       }
-      // Settle the automatic re-list separately: it must not mask the mutation failure.
       act(() => deliverMessage(buildResponseMessage(buildResponse({
         cmdId: findLastModeratorCommand(Command_ListCardArtRules_ext).cmdId,
         responseCode: Response_ResponseCode.RespOk,

@@ -7,9 +7,7 @@ import { buildSeatGameState } from '../../__test-utils__/seatFixtures';
 import { GameIdProvider } from '../ui/GameIdContext';
 import ChatLog from './ChatLog';
 
-// 14:03:09 local time on some day, and a line logged 1h 2m 5s into the game.
 const LOGGED_AT = new Date(2026, 9, 3, 14, 3, 9).getTime();
-// Datatrice's MAX_GAME_MESSAGES: a full log drops its oldest line for each new one.
 const MAX_GAME_MESSAGES = 1000;
 
 function renderLog() {
@@ -79,7 +77,6 @@ describe('ChatLog', () => {
       const log = screen.getByRole('log', { name: 'ChatLog.heading' });
       expect(log).toHaveAttribute('aria-live', 'polite');
       expect(log).toHaveAttribute('aria-relevant', 'additions');
-      // A tab stop, so it scrolls from the keyboard in every browser.
       expect(log).toHaveAttribute('tabindex', '0');
       expect(within(log).getByText(/gg/)).toBeInTheDocument();
     });

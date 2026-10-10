@@ -8,10 +8,6 @@ import {
 } from '../../generated';
 import type { RequestId } from '../../types/RequestId';
 
-// Share either explicit `items` (stored deck ids or inline deck lists) or a whole
-// stored `folderPath`; Servatrice resolves the folder server-side.
-// Optional client-only identity is echoed on both outcomes, never sent to Servatrice.
-// The tuple preserves the existing callback arity when callers omit it.
 export function deckShareCreate(params: DeckShareCreateParams, ...correlation: [requestId?: RequestId]): void {
   WebClient.instance.protobuf.sendSessionCommand(
     Command_DeckShareCreate_ext,

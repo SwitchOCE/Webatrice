@@ -112,12 +112,6 @@ function buildAttachments(
 // output reference is what we're stabilizing here.
 const selectAllAttachments = lruMemoize(buildAttachments, { resultEqualityCheck: dequal });
 
-// The normalized playmat keeps its reference until the announced playmat
-// actually changes. playerPropertiesUpdated deep-clones the properties on every
-// non-ping update (a ready toggle, a sideboard lock), which hands the params a
-// new ref, so a ref-keyed cache alone would still churn: on a miss the result
-// is compared by value with the recently derived playmats and an equal one
-// reused. The cache is bounded, so nothing outlives a left game.
 const selectPlaymat = lruMemoize(playmatFromParams, { maxSize: 32, resultEqualityCheck: dequal });
 
 function playmatOf(player: Enriched.PlayerEntry | undefined): Playmat | null {
@@ -139,19 +133,12 @@ export const Selectors = {
   getPlayers: ({ games }: State, gameId: number): { [playerId: number]: Enriched.PlayerEntry } | undefined =>
     games.games[gameId]?.players,
 
-  /** Live ping clock per player. Authoritative over the stale
-   *  `properties.pingSeconds` snapshot inside `players` — see
-   *  `GamesState.pings`. The `?.` guards preloaded/partial states that omit
-   *  the sibling map. */
   getPings: ({ games }: State, gameId: number): { [playerId: number]: number } =>
     games.pings?.[gameId] ?? EMPTY_PINGS,
 
   getPlayerPing: ({ games }: State, gameId: number, playerId: number): number =>
     games.pings?.[gameId]?.[playerId] ?? 0,
 
-  /** The player's announced playmat (Cockatrice #7101), or null when none is
-   *  set. Arrives in the join snapshot and in Event_PlayerPropertiesChanged
-   *  after a deck select or a Command_SetPlaymat; 3.0 servers never send one. */
   getPlayerPlaymat: ({ games }: State, gameId: number, playerId: number): Playmat | null =>
     playmatOf(games.games[gameId]?.players[playerId]),
 
@@ -250,8 +237,6 @@ export const Selectors = {
   getMessages: ({ games }: State, gameId: number) =>
     games.games[gameId]?.messages ?? EMPTY_MESSAGES,
 
-  // Server games only: a replay being played back is not a joined game, so it
-  // gets no game tab, no leave command and no auto-routing.
   getActiveGameIds: createSelector(
     [({ games }: State) => games.games],
     (games) => Object.keys(games).map(Number).filter((id) => !games[id].replay)

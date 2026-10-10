@@ -6,17 +6,11 @@ import { ServerConnectionHealth, ServerLatency, ServerState, ServerStateStatus }
 import { initialStaffState } from './server.reducer.staff';
 import { initialReportsState } from './server.reducer.reports';
 
-// Healthy baseline (no missed pongs) shared by initialState, the updateStatus
-// lifecycle reset, the getConnectionHealth selector fallback, and test fixtures
-// so the four never drift. Never mutated in place — reducers that change health
-// assign a fresh object (see connectionHealthChanged).
 export const HEALTHY_CONNECTION_HEALTH: ServerConnectionHealth = {
   missedPongs: 0,
   silentForMs: 0,
 };
 
-// No samples yet: the latency display stays hidden. Shared like the health
-// baseline above; latencyStatsUpdated assigns a fresh object.
 export const EMPTY_LATENCY: ServerLatency = {
   stats: { lastMs: 0, medianMs: 0, p95Ms: 0, maxMs: 0, sampleCount: 0 },
   samplesMs: [],
@@ -80,9 +74,6 @@ export const initialState: ServerState = {
 };
 
 export const connectionReducers = {
-  // Reset reducers rebuild from initialState, which would drop the chosen UI
-  // locale on connect/disconnect; carry it through so locale-aware sorting
-  // survives a reconnect (see server.interfaces ServerState.locale).
   initialized: ((state) => ({
     ...initialState,
     initialized: true,
@@ -100,8 +91,6 @@ export const connectionReducers = {
     state.loginFailureCode = null;
   }) as CaseReducer<ServerState>,
 
-  // Signal for LOGIN_FAILED effects, and the rejection code for the login screen.
-  // Undefined payload = the login never got a Command_Login answer (salt request failed).
   loginFailed: ((state, action) => {
     state.loginFailureCode = action.payload?.responseCode ?? null;
   }) as CaseReducer<ServerState, PayloadAction<{ responseCode?: number } | undefined>>,
@@ -127,11 +116,6 @@ export const connectionReducers = {
     state.testConnectionStatus = 'failed';
   }) as CaseReducer<ServerState>,
 
-  // testConnectionStatus is a login-screen probe result, independent of the
-  // live game socket — carry it through resets (like status/locale) so a
-  // disconnect neither disables the login button (LoginForm gates on 'success')
-  // nor triggers a re-probe that would count against Servatrice's per-IP
-  // connection cap (security/max_users_per_address, default 4).
   clearStore: ((state) => ({
     ...initialState,
     status: { ...state.status },
@@ -146,11 +130,7 @@ export const connectionReducers = {
     sessionEpoch: (state.sessionEpoch ?? 0) + 1,
     locale: state.locale,
     testConnectionStatus: state.testConnectionStatus,
-    // Load-bearing: the failure sets connectUnreachable just before the same-tick
-    // DISCONNECTED that triggers this rebuild, so carry it or it's wiped before render.
     connectUnreachable: state.connectUnreachable,
-    // Same hazard: a rejected login dispatches loginFailed between the DISCONNECTED
-    // status and the socket close, whose second DISCONNECTED rebuilds the slice again.
     loginFailureCode: state.loginFailureCode,
   })) as CaseReducer<ServerState>,
 
@@ -170,12 +150,8 @@ export const connectionReducers = {
     if (status.state === WebsocketTypes.StatusEnum.LOGGED_IN && state.status.state !== status.state) {
       state.sessionEpoch = (state.sessionEpoch ?? 0) + 1;
     }
-    // DISCONNECTED increments in the disconnected action dispatched by the
-    // server listener, once for the entire status/reset sequence.
     state.status.state = status.state;
     state.status.description = status.description;
-    // Any status transition is a socket lifecycle change; stale degraded
-    // health from the previous socket must not survive it.
     state.connectionHealth = HEALTHY_CONNECTION_HEALTH;
 
     if (status.state === WebsocketTypes.StatusEnum.DISCONNECTED) {

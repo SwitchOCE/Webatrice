@@ -39,7 +39,6 @@ function renderPicker() {
   return { ...utils, picker };
 }
 
-// The fixture game is in its beginning phase: an arrow is kept until the first main phase.
 const arrow = (startCardId: number, target: object, startZone: string = ZoneName.TABLE) =>
   [1, { startPlayerId: 1, startZone, startCardId, ...target, arrowColor: ArrowColor.RED, deleteInPhase: Phase.FirstMain }];
 
@@ -79,7 +78,6 @@ describe('usePendingTarget', () => {
     fireEvent.click(target);
 
     await vi.waitFor(() => expect(game.createArrow).toHaveBeenCalled());
-    // playToStack is on by default, so the creature goes onto the stack.
     expect(vi.mocked(game.moveCard).mock.calls[0][1]).toMatchObject({ startZone: ZoneName.HAND, targetZone: ZoneName.STACK });
     expect(vi.mocked(game.createArrow).mock.calls).toEqual([
       arrow(30, { targetPlayerId: 2, targetZone: ZoneName.TABLE, targetCardId: 20 }, ZoneName.STACK),
@@ -120,7 +118,6 @@ describe('usePendingTarget', () => {
     const { picker, game } = renderPicker();
     act(() => picker().startAttach(BOLT, [11]));
 
-    // A click elsewhere does not touch an attach pick.
     fireEvent.click(cardElement(1, ZoneName.TABLE, 12));
     expect(picker().pending?.kind).toBe('attach');
 

@@ -18,13 +18,6 @@ import { useBigPreviewCard, useCardPreviewActions } from '../CardPreviewContext'
 import { CARD_CORNER_RADIUS } from '../SeatCard/cardSize';
 import PreviewCardImage from '../PreviewCardImage/PreviewCardImage';
 
-/**
- * "Big card preview" — Cockatrice's middle-click card zoom: image plus full
- * description text in one modal above the board. Any card opens it through
- * `useCardPreviewActions().openBigPreview`; the card lives in the game's
- * preview store (CardPreviewContext), which also drives the right-rail hover
- * preview. This component only draws whatever the store holds.
- */
 export function BigCardPreview() {
   const { t } = useTranslation();
   const card = useBigPreviewCard();

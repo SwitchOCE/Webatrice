@@ -26,7 +26,6 @@ const ReportQueueContent = () => {
   const joinError = useAppSelector(rooms.Selectors.getJoinGameError);
   const q = useReportQueue();
 
-  // Desktop TabReport::updateStats tallies the whole loaded page, not the filtered rows.
   const counts = useAppSelector(server.Selectors.getReportQueueStatusCounts);
 
   return (
@@ -171,12 +170,6 @@ const ReportQueueContent = () => {
   );
 };
 
-/**
- * Moderator "Report Queue" (desktop TabReport). Moderator-only, and hidden on
- * servers without the 3.1 moderation commands. The guards mount the body only
- * when both allow it, so its load effects never send a moderator command for
- * anyone else.
- */
 const ReportQueue = () => (
   <Layout>
     <AuthGuard />

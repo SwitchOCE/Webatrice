@@ -31,8 +31,6 @@ vi.mock('@app/feature-widgets/known-hosts', () => ({
   useLiveServerEndpoint: () => liveServer.value,
 }));
 
-// react-window sizes its viewport via ResizeObserver, which the jsdom harness
-// stubs to a no-op (zero rows). Emit a size so the invite list mounts rows.
 type RoCallback = (entries: { contentRect: { height: number; width: number }; target: Element }[]) => void;
 let observers: { callback: RoCallback; targets: Set<Element> }[] = [];
 let originalRo: typeof globalThis.ResizeObserver;
@@ -157,7 +155,6 @@ describe('GameInviteControls (GAME-033)', () => {
     fireEvent.click(screen.getByRole('button', { name: 'GameInvite.inviteToGame' }));
     mountRows();
     const list = screen.getByTestId('invite-user-list');
-    // Self and every participant (players and spectators) are excluded.
     expect(within(list).queryByText('me')).not.toBeInTheDocument();
     expect(within(list).queryByText('spectator')).not.toBeInTheDocument();
 

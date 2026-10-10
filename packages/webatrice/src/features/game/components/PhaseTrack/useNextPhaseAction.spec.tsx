@@ -103,7 +103,6 @@ describe('useNextPhaseAction', () => {
     expect(order()).toEqual(['nextTurn', 'setCardAttr']);
   });
 
-  // Mutation: restoring release-on-phase/player-change lets a second wrap through.
   it.each(['phase', 'player'])('End: another player changing the %s does not release the wrap', (change) => {
     const { result, store, order } = setup({ activePhase: Phase.EndCleanup, activePlayerId: 2 });
     act(() => result.current.run());
@@ -117,7 +116,6 @@ describe('useNextPhaseAction', () => {
     expect(order()).toEqual(['nextTurn', 'setCardAttr']);
   });
 
-  // Mutations: omit either outcome listener, or stop forwarding its request ID.
   it.each(['success', 'failure'])('End: its own %s releases the wrap', (outcome) => {
     const { result, store, webClient } = setup({ activePhase: Phase.EndCleanup });
     act(() => result.current.run());
@@ -133,7 +131,6 @@ describe('useNextPhaseAction', () => {
     expect(nextId).not.toBe(requestId);
   });
 
-  // Mutation: releasing on any outcome instead of matching both game and request.
   it.each(['success', 'failure'])('End: unrelated or older %s outcomes do not release a newer wrap', (outcome) => {
     const { result, store, webClient } = setup({ activePhase: Phase.EndCleanup });
     const answer = (gameId: number, requestId?: string) => store.dispatch(outcome === 'success'
@@ -152,7 +149,6 @@ describe('useNextPhaseAction', () => {
     }
   });
 
-  // Mutation: omit the module-level onSessionEnd reset.
   it('End: session end releases the wrap and an old-session answer cannot release its replacement', () => {
     const { result, store, webClient } = setup({ activePhase: Phase.EndCleanup });
     act(() => result.current.run());

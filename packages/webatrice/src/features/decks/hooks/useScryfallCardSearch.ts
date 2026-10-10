@@ -10,11 +10,6 @@ export interface ScryfallCardSearch {
   error: ScryfallSearchFailure | null;
 }
 
-/**
- * Debounced Scryfall search for a composed query. A newer query aborts
- * the in-flight request so stale results never paint; an empty query
- * clears the results.
- */
 export function useScryfallCardSearch(query: string): ScryfallCardSearch {
   const [results, setResults] = useState<ScryfallSearchCard[]>([]);
   const [loading, setLoading] = useState(false);

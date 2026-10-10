@@ -73,7 +73,6 @@ export function usePhaseBar(gameId: number | undefined): PhaseBar {
     });
   };
 
-  // Desktop asks for no confirmation (tab_game.cpp aReverseTurn).
   const handleReverseTurn = () => {
     if (!canReverseTurn || gameId == null) {
       return;
@@ -89,10 +88,6 @@ export function usePhaseBar(gameId: number | undefined): PhaseBar {
     sendUntapAll(gameId);
   };
 
-  // Desktop's wrap from End (TabGame::actNextPhaseAction): pass the turn, then
-  // run the Untap step's action on the local table. Both halves need only
-  // canPassTurn: the server takes Command_NextTurn from any player
-  // (server_player.cpp:544-556) and the untap touches only our own cards.
   const handlePassAndUntap = (...correlation: [requestId?: RequestId]): RequestId | undefined => {
     if (!canPassTurn || gameId == null) {
       return;

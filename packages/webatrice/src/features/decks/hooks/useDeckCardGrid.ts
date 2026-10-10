@@ -6,18 +6,14 @@ import type { DeckCategory } from '@app/types';
 
 import type { DeckCard } from '../types';
 
-/** Attribute that marks a card row and carries its key, so a shortcut can find the focused row. */
 export const DECK_ROW_ATTRIBUTE = 'data-deck-row';
 
 export interface DeckCardGridOptions {
   cards: readonly DeckCard[];
-  /** Indices into `cards`, in the order the rows are drawn (top to bottom, column by column). */
   order: readonly number[];
   onInc: (index: number, delta: number) => void;
   onDelete: (index: number) => void;
-  /** Moves a row between main and sideboard (Shift+S). Omitted where rows have no sideboard. */
   onSetCategory?: (index: number, category: DeckCategory) => void;
-  /** Takes focus when the last row is removed, so it doesn't fall back to the page. */
   onLastRowRemoved?: () => void;
 }
 
@@ -26,12 +22,10 @@ export interface DeckCardRowProps extends GridRowProps {
   'aria-selected': boolean;
 }
 
-/** A row's identity across edits: its section and name (a deck can hold the same name in both). */
 export function deckRowKey(card: DeckCard): string {
   return `${card.category}:${card.name}`;
 }
 
-/** The section a row moves to on Shift+S. A commander stays in the main deck, as its menu says. */
 function swappedCategory(card: DeckCard): DeckCategory | null {
   if (card.category === 'sideboard') {
     return 'main';
@@ -39,17 +33,6 @@ function swappedCategory(card: DeckCard): DeckCategory | null {
   return card.isCommander ? null : 'sideboard';
 }
 
-/**
- * Keyboard model of the deck editor's card list, after desktop's deck view
- * (`DeckEditorDeckDockWidget`): one tab stop on the current row, ↑/↓/Home/End
- * move it (`useGridRows`), and the current row takes desktop's edit keys —
- * Enter, Shift+→ and Ctrl+Alt+= add a copy, Shift+← and Ctrl+Alt+− remove
- * one, Delete removes the row, Shift+S swaps it between main and sideboard.
- * The rebindable `deck.addCard` / `deck.removeCard` shortcuts (+ / −) act on
- * the focused row too. Focus follows the row through edits that move or
- * remove it, and leaves the emptied list through `onLastRowRemoved`, so the
- * keyboard never drops back to the page.
- */
 export function useDeckCardGrid({ cards, order, onInc, onDelete, onSetCategory, onLastRowRemoved }: DeckCardGridOptions) {
   const [selectedKey, setSelectedKey] = useState<string | null>(null);
 
@@ -75,12 +58,9 @@ export function useDeckCardGrid({ cards, order, onInc, onDelete, onSetCategory, 
     keys,
     selectedKey,
     onSelect: setSelectedKey,
-    // Desktop: Enter on the deck view adds a copy (`actIncrementSelection`).
     onActivate: (key) => adjust(key, 1),
   });
 
-  // The row about to disappear hands focus to its neighbour (the next row, else the
-  // previous); the last row hands it to `onLastRowRemoved`.
   const remove = (key: string) => {
     const index = indexByKey.get(key);
     if (index == null) {
@@ -110,7 +90,6 @@ export function useDeckCardGrid({ cards, order, onInc, onDelete, onSetCategory, 
       return;
     }
     onSetCategory(index, category);
-    // The row is redrawn under its new section; focus waits for it there.
     focusRow(deckRowKey({ ...cards[index], category }));
   };
 
@@ -170,11 +149,8 @@ export function useDeckCardGrid({ cards, order, onInc, onDelete, onSetCategory, 
 
   return {
     getDeckRowProps,
-    /** Remove the row at `index`, handing focus to its neighbour. */
     removeRow: (index: number) => remove(deckRowKey(cards[index])),
-    /** Remove one copy at `index`; the last copy removes the row, as `removeRow` does. */
     decrementRow: (index: number) => decrement(deckRowKey(cards[index])),
-    /** Move the row at `index` to `category`; focus follows it into its new section. */
     moveRow: move,
   };
 }

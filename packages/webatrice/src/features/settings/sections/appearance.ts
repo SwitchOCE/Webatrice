@@ -3,10 +3,6 @@ import { Palette } from 'lucide-react';
 import ZoneBackgroundsEditor from '../controls/ZoneBackgroundsEditor';
 import { SettingsSectionId, type SettingsSection } from '../registry';
 
-/**
- * Appearance page (desktop appearance_settings_page.cpp): how cards are drawn, and the board's
- * hand and table layout. Themes and playmats register further groups on this section id.
- */
 export const appearanceSection: SettingsSection = {
   id: SettingsSectionId.Appearance,
   titleKey: 'Settings.section.appearance',
@@ -75,7 +71,6 @@ export const appearanceSection: SettingsSection = {
         {
           id: 'maxFontSizeForCards',
           labelKey: 'SettingsAppearance.maxFontSizeForCards.label',
-          // Desktop's spin box: 9 to 100 pixels at card scale.
           control: { kind: 'number', key: 'maxFontSizeForCards', min: 9, max: 100 },
         },
       ],
@@ -92,8 +87,6 @@ export const appearanceSection: SettingsSection = {
         {
           id: 'cardViewInitialRowsMax',
           labelKey: 'SettingsAppearance.cardViewInitialRowsMax.label',
-          // Desktop keeps initial <= expanded by moving the other box
-          // (AppearanceSettingsPage::cardViewInitialRowsMaxChanged / ExpandedRowsMaxChanged).
           control: {
             kind: 'number',
             key: 'cardViewInitialRowsMax',
@@ -185,7 +178,6 @@ export const appearanceSection: SettingsSection = {
         {
           id: 'minPlayersForMultiColumnLayout',
           labelKey: 'SettingsAppearance.minPlayersForMultiColumnLayout.label',
-          // Desktop's spin box: at least 2, and QSpinBox's default ceiling.
           control: { kind: 'number', key: 'minPlayersForMultiColumnLayout', min: 2, max: 99 },
         },
       ],

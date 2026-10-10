@@ -123,9 +123,6 @@ describe('resolveHandOrZoneCardMenu', () => {
     expect(deps.moveCards).toHaveBeenCalledWith(ZoneName.HAND, [10, 11], { zone: ZoneName.DECK, reversed: true, shuffleMoved: true });
   });
 
-  // Desktop cmMoveToTable (player_actions.cpp:1925-1950): one command per
-  // card, x -1, the card's own row, printed P/T and cipt, face up; an
-  // instant lands on the battlefield too.
   it('moves each target onto the battlefield in its own row, with its P/T and cipt', () => {
     const deps = makeDeps({
       handSelection: { zone: 'hand', ids: new Set(['10', '11', '12']) },

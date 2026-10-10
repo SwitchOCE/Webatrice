@@ -9,8 +9,6 @@ const source = (zone: SeatDragSource['zone'], cards: SeatDragSource['cards'], ex
   ({ kind: 'seat', seatPlayerId: 1, zone, cards, ...extra });
 const ids = (...list: string[]) => list.map((id) => ({ id }));
 
-// Each board's drop grid as its Battlefield publishes it: six columns, and
-// the empty bottom row still offers the layout's five.
 const GRID = { rows: 3, cols: 6, colsByWireRow: [6, 6, 5] };
 const BOARD: MoveBoard = {
   players: PLAYERS,
@@ -20,7 +18,6 @@ const BOARD: MoveBoard = {
   geometry: () => GRID,
 };
 
-/** The target the board's drop zone resolves for a pointer drop on a slot. */
 const pointerDrop = (playerId: number, row: number, col: number): SeatDropTarget =>
   ({ zone: 'battlefield', playerId, slot: { row, col }, grid: { rows: GRID.rows, cols: GRID.cols } });
 
@@ -79,7 +76,6 @@ describe('a keyboard move sends what the pointer drop sends', () => {
   };
 
   it('keeps a selection with gaps apart, on the grid the board uses', () => {
-    // Two cards at columns 0 and 4 of row 0, moved to column 1 of row 1.
     const s = source('battlefield', [{ id: '10', slot: { row: 0, col: 0 } }, { id: '11', slot: { row: 0, col: 4 } }]);
     const plan = same(s, moveTarget({ zone: 'battlefield', playerId: 1 }, BOARD, { position: 1, row: 1 }), pointerDrop(1, 1, 0));
     expect(plan.map((p) => [p.x, p.y])).toEqual([[0, 1], [12, 1]]);

@@ -19,7 +19,6 @@ import { toBcp47 } from '@app/utils';
 import type { CustomControlProps } from '../registry';
 import { refreshStorageStatus, useStorageStatus, type StorageStatus } from './useStorageStatus';
 
-/** Bytes as the largest unit that keeps the number at or above 1, in the UI's locale. */
 export function formatBytes(bytes: number, language: string): string {
   const units = ['byte', 'kilobyte', 'megabyte', 'gigabyte'] as const;
   let value = bytes;
@@ -39,7 +38,6 @@ export function formatBytes(bytes: number, language: string): string {
 const total = (status: StorageStatus, stores: readonly Stores[]) =>
   stores.reduce((sum, store) => sum + (status.counts[store] ?? 0), 0);
 
-/** Origin usage against quota (navigator.storage.estimate), with every table's row count. */
 export function StorageUsageControl({ labelId, describedBy }: CustomControlProps) {
   const { t, i18n } = useTranslation();
   const status = useStorageStatus();
@@ -77,7 +75,6 @@ export function StorageUsageControl({ labelId, describedBy }: CustomControlProps
   );
 }
 
-/** Asks the browser not to evict this origin's data (navigator.storage.persist). */
 export function PersistentStorageControl({ id, labelId, describedBy, disabled }: CustomControlProps) {
   const { t } = useTranslation();
   const { persisted } = useStorageStatus();
@@ -109,7 +106,6 @@ export function PersistentStorageControl({ id, labelId, describedBy, disabled }:
 interface ClearStoresControlProps extends CustomControlProps {
   stores: readonly Stores[];
   clear: () => Promise<void>;
-  /** i18n prefix holding `count`, `button` and, when the clear needs confirming, `confirm.*`. */
   keyPrefix: string;
   confirm: boolean;
 }
@@ -166,7 +162,6 @@ function ClearStoresControl({ id, labelId, describedBy, disabled, stores, clear,
   );
 }
 
-/** Card lookups cached from Scryfall; refetched on demand, so no confirmation. */
 export function ClearScryfallCacheControl(props: CustomControlProps) {
   return (
     <ClearStoresControl
@@ -179,16 +174,11 @@ export function ClearScryfallCacheControl(props: CustomControlProps) {
   );
 }
 
-/**
- * Deletes the card database, then reloads the card-data preferences so set names and the deck
- * editor's lookup cache stop serving the deleted cards.
- */
 async function deleteCardData(): Promise<void> {
   await clearCardData();
   await refreshCardDataPreferences();
 }
 
-/** The imported card database; only a fresh import brings it back, so it asks first. */
 export function ClearCardDataControl(props: CustomControlProps) {
   return (
     <ClearStoresControl

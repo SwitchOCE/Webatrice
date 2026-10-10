@@ -9,7 +9,6 @@ import { nextTurn } from './nextTurn';
 const { getLastSendOpts } = makeCallbackHelpers(WebClient.instance.protobuf.sendGameCommand as Mock, 3);
 
 describe('nextTurn request identity', () => {
-  // Catches dropping the success ID or sharing the newest ID across pending calls.
   it('echoes each same-game success identity without sending it over the wire', () => {
     nextTurn(7, 'first');
     const first = getLastSendOpts();
@@ -24,7 +23,6 @@ describe('nextTurn request identity', () => {
     expect(WebClient.instance.response.game.nextTurnAnswered).toHaveBeenNthCalledWith(2, 7, 'first');
   });
 
-  // Catches omitting the failure callback, its transport reason, or its original ID.
   it.each([undefined, CommandFailure.Timeout, CommandFailure.Disconnected, CommandFailure.NotSent])(
     'identifies a late failure %s after a newer same-game pass succeeds', (failure) => {
       nextTurn(7, 'first');
@@ -37,7 +35,6 @@ describe('nextTurn request identity', () => {
     },
   );
 
-  // Catches replacing the optional rest tuple with an always-forwarded undefined ID.
   it('preserves callback arity when correlation is omitted', () => {
     nextTurn(7);
     getLastSendOpts().onSuccess();
@@ -46,7 +43,6 @@ describe('nextTurn request identity', () => {
     expect(WebClient.instance.response.game.nextTurnFailed).toHaveBeenCalledWith(7, 7, undefined);
   });
 
-  // Catches calling optional response members unconditionally.
   it('supports response implementations without next-turn callbacks', () => {
     const game = WebClient.instance.response.game;
     const { nextTurnAnswered, nextTurnFailed } = game;

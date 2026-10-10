@@ -24,11 +24,6 @@ export interface GameBoardCellProps {
   totalPlayers: number;
 }
 
-/**
- * One seat in the adaptive board grid: composes the seat model
- * (usePlayerSeatViewModel) and the grouped command ports (usePlayer*Commands)
- * and hands them to the seat view.
- */
 function GameBoardCell({ cell, totalPlayers }: GameBoardCellProps) {
   const model = usePlayerSeatViewModel(cell, totalPlayers);
   const zone = usePlayerZoneCommands(cell.playerId);
@@ -38,8 +33,6 @@ function GameBoardCell({ cell, totalPlayers }: GameBoardCellProps) {
   const onOpenDeckInEditor = useOpenDeckInEditor(cell.playerId, cell.isLocal);
   const onSay = useGameSay(cell.isLocal);
 
-  // Every port is undefined while the game id is unknown; there is no seat to
-  // command until then.
   const commands = useMemo(
     () => (zone && card && counter && target ? { zone, card, counter, target } : undefined),
     [zone, card, counter, target],

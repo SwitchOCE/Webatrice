@@ -27,7 +27,6 @@ describe('DeckBreakdown', () => {
     expect(screen.getByText('15').nextSibling).toHaveTextContent('DeckBreakdown.stat.total');
     expect(screen.getByText('DeckBreakdown.stat.nonland').previousSibling).toHaveTextContent('5');
     expect(screen.getByText('2.40')).toBeInTheDocument();
-    // Buckets 0–7+: four 1-drops are the tallest bar, Ugin (8) lands in 7+.
     const bars = screen.getAllByTitle('DeckBreakdown.curve.barTitle');
     expect(bars).toHaveLength(8);
     expect(bars[1]).toHaveStyle({ height: '100%' });

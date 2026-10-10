@@ -8,25 +8,6 @@ import { Menu, MenuSeparator, type MenuAnchor } from '@app/components';
 import type { ContextMenuItem } from '../../context-menus/ContextMenu/ContextMenu';
 import ContextMenuEntries from '../../context-menus/ContextMenu/ContextMenuEntries';
 
-/**
- * Right-click context menu for PlayerList rows. Ports
- * `Cockatrice/cockatrice/src/interface/widgets/server/user/user_context_menu.cpp:348`
- * (the `showContextMenu` overload) into a Tailwind popup. Item visibility
- * mirrors Cockatrice's role gating exactly:
- *
- *   - Always shown: header label, User details, Private chat
- *   - Both users registered: Add/remove buddy + ignore toggles
- *   - Local user is host or moderator: Kick from game
- *   - Moderator / admin section: supplied by the moderation feature-widget
- *     (`useModerationMenu`), shared with every other user context menu
- *
- * This is a "controlled" menu — the parent tracks {anchor, target} in
- * state and passes them in, so one menu serves every row, opened by a
- * right-click on the row (at the pointer) or by the row's "More actions"
- * button (under it). It is the shared `Menu`: it takes focus, moves with
- * the arrow keys, and gives focus back to the button on close.
- */
-
 export interface PlayerListMenuTarget {
   userName: string;
   deckHash: string;
@@ -37,9 +18,7 @@ export interface PlayerListMenuTarget {
 export interface PlayerListMenuLocal {
   isHost: boolean;
   isRegistered: boolean;
-  /** A moderator with the admin lock off (desktop `!TabSupervisor::getAdminLocked()`). */
   isModerator: boolean;
-  /** Server takes reports and the local user is registered (desktop isOwnUserRegistered). */
   canReport?: boolean;
 }
 
@@ -57,13 +36,11 @@ export interface PlayerListMenuActions {
 
 interface Props {
   anchor: MenuAnchor | null;
-  /** The row's "More actions" button, when it opened the menu: focus returns there. */
   triggerRef?: RefObject<HTMLElement | null>;
   target: PlayerListMenuTarget | null;
   local: PlayerListMenuLocal;
   buddyList: { [userName: string]: ServerInfo_User };
   ignoreList: { [userName: string]: ServerInfo_User };
-  /** The moderator/admin section, already labelled and gated (empty for regular users). */
   moderationItems: ContextMenuItem[];
   actions: PlayerListMenuActions;
   onDismiss: () => void;
@@ -119,8 +96,6 @@ function buildItems(
     });
   }
 
-  // Report user — desktop lists it for registered users (#7091,
-  // user_context_menu.cpp) and disables it on yourself; the game is attached.
   if (local.canReport && actions.onReportUser) {
     const onReportUser = actions.onReportUser;
     items.push({ divider: true });
@@ -131,8 +106,6 @@ function buildItems(
     });
   }
 
-  // Kick from game — Cockatrice offers this to the game host OR to a
-  // moderator whose admin lock is off (user_context_menu.cpp:416).
   if (!target.isSelf && (local.isHost || local.isModerator)) {
     items.push({ divider: true });
     items.push({
@@ -169,9 +142,6 @@ function PlayerListContextMenu({
       onClose={onDismiss}
       triggerRef={triggerRef}
     >
-      {/* Header — Cockatrice shows the user name first so a right-clicked
-          row always shows WHO is being acted on. Not an entry: the menu's
-          name already says it to assistive technology. */}
       <div className="px-3 py-1.5 text-sm font-semibold text-text-primary truncate" aria-hidden>
         {target.userName}
       </div>

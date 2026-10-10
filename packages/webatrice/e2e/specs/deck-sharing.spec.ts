@@ -14,12 +14,10 @@ import { LoginPage } from '../pages';
 // Against the pinned 3.0 release the spec checks that sharing stays hidden.
 const SERVER_IS_3_1 = /master|3\.1/.test(process.env.SERVATRICE_IMAGE ?? '');
 
-// The Players Online panel (RoomUsers) renders a UserDisplay per online user.
 function userRow(page: Page, name: string) {
   return page.locator('.user-display').filter({ hasText: name });
 }
 
-// Create an empty deck from My Decks, then come back to the list.
 async function createDeck(page: Page, name: string): Promise<void> {
   await page.getByTitle('View your decks').click();
   await page.getByRole('button', { name: /New deck/ }).first().click();
@@ -30,7 +28,6 @@ async function createDeck(page: Page, name: string): Promise<void> {
   await expect(page.getByRole('heading', { level: 1, name: 'My Decks' })).toBeVisible();
 }
 
-// "Import to my decks" stores a copy and opens it in the editor.
 async function expectImported(page: Page, name: string): Promise<void> {
   await page.getByRole('button', { name: 'Import to my decks' }).click();
   await expect(page.getByPlaceholder('Untitled Deck')).toHaveValue(name, { timeout: 15_000 });
@@ -74,16 +71,13 @@ test.describe('on a 3.1 server', () => {
     const linkField = shareDialog.getByRole('textbox', { name: 'Share link' });
     await expect(linkField).toHaveValue(/#share=/, { timeout: 15_000 });
     const link = await linkField.inputValue();
-    // The token rides in the fragment, which the browser never sends to the web host.
     expect(new URL(link).search).toBe('');
     expect(new URLSearchParams(new URL(link).hash.slice(1)).get('hostname')).toBe(E2E_HOST.host);
     await shareDialog.getByRole('button', { name: 'Close', exact: true }).click();
 
-    // The viewer arrives through the link, logged out: it waits for login.
     await viewerPage.goto(link);
     const login = new LoginPage(viewerPage);
     await expect(login.hostPicker).toBeVisible();
-    // The app took the link out of the address bar on load.
     expect(viewerPage.url()).not.toContain('share=');
     await login.addHost(E2E_HOST_LABEL, E2E_HOST.host, E2E_HOST.port);
     await login.selectHost(E2E_HOST_LABEL);
@@ -96,14 +90,12 @@ test.describe('on a 3.1 server', () => {
     await expect(viewerPage.getByRole('region', { name: deckName })).toBeVisible({ timeout: 15_000 });
     await expectImported(viewerPage, deckName);
 
-    // The owner revokes the link from their share links.
     await ownerPage.getByRole('button', { name: 'Share links' }).click();
     const links = ownerPage.getByRole('dialog', { name: 'My share links' });
     await links.getByRole('button', { name: 'Revoke For a friend' }).click({ timeout: 15_000 });
     await links.getByRole('button', { name: 'Revoke', exact: true }).click();
     await expect(links.getByText('You have no active share links.')).toBeVisible({ timeout: 15_000 });
 
-    // Pasting the revoked link now reports desktop's "not found or expired".
     await viewerPage.getByTitle('View your decks').click();
     await viewerPage.getByRole('button', { name: 'Open shared deck' }).click();
     await viewerPage.getByRole('textbox', { name: 'Share link:' }).fill(link);

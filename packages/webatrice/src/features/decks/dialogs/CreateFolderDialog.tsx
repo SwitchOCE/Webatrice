@@ -11,12 +11,9 @@ import { DeckDialogFrame } from './DeckDialogFrame';
 
 export interface CreateFolderDialogProps {
   open: boolean;
-  /** The folder the new one goes into. */
   parentPath: string;
-  /** Names already used next to it. */
   siblings: readonly string[];
   onClose: () => void;
-  /** The checked name (`/` replaced, trimmed). */
   onCreate: (name: string) => void;
 }
 
@@ -33,7 +30,6 @@ export function buildCreateFolderSchema(t: TFunction, parentPath: string, siblin
 
 type CreateFolderValues = z.infer<ReturnType<typeof buildCreateFolderSchema>>;
 
-/** Desktop "New folder" — "Name of new folder:". */
 export function CreateFolderDialog({ open, parentPath, siblings, onClose, onCreate }: CreateFolderDialogProps) {
   const { t } = useTranslation();
   const schema = useMemo(() => buildCreateFolderSchema(t, parentPath, siblings), [t, parentPath, siblings]);
@@ -42,8 +38,6 @@ export function CreateFolderDialog({ open, parentPath, siblings, onClose, onCrea
     resolver: zodResolver(schema),
   });
 
-  // Cleared on close, not on open: an effect after opening could wipe what
-  // the user already typed into the autofocused field.
   useEffect(() => {
     if (!open) {
       reset({ name: '' });

@@ -5,11 +5,6 @@ import { useWebClient } from '@cockatrice/datatrice/react';
 import { openReplay, parseReplay } from '@app/services';
 import { RouteEnum } from '@app/types';
 
-/**
- * Decodes replay bytes and opens them in a replay tab (desktop's `openReplay`
- * signal → a replay TabGame). Throws `ReplayParseError` for bytes that are not
- * a Cockatrice replay, leaving the caller to report it.
- */
 export function useWatchReplay(): (data: Uint8Array, title: string) => void {
   const navigate = useNavigate();
   const webClient = useWebClient();

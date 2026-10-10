@@ -1,4 +1,3 @@
-// Moderation-queue commands (Cockatrice 3.1, #7091).
 
 vi.mock('../../WebClient');
 

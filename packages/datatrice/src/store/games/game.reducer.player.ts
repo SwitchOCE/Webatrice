@@ -35,10 +35,6 @@ export const playerReducers = {
     delete state.pings[gameId][playerId];
   }) as CaseReducer<GamesState, PayloadAction<{ gameId: number; playerId: number; reason: number; timeReceived: number }>>,
 
-  // Response_DeckDownload to the local seat's Command_DeckSelect: the server's
-  // copy of the deck (with its current sideboard plan). Desktop builds the
-  // pre-game deck view from it (DeckViewContainer::deckSelectFinished); a
-  // later Event_GameStateChanged resync carries the same string in deck_list.
   deckSelected: ((state, action) => {
     const { gameId, deckList } = action.payload;
     const game = state.games[gameId];
@@ -49,14 +45,12 @@ export const playerReducers = {
     player.deckList = deckList;
   }) as CaseReducer<GamesState, PayloadAction<{ gameId: number; deckList: string; requestId?: string }>>,
 
-  // Signal only: the lobby reports a failed Command_DeckSelect and stays on the deck picker.
   deckSelectFailed: (() => {}) as CaseReducer<GamesState, PayloadAction<GameCommandFailedPayload>>,
 
   playerPropertiesChanged: (() => {}) as CaseReducer<GamesState, PayloadAction<{
     gameId: number;
     playerId: number;
     properties: ServerInfo_PlayerProperties;
-    /** Protocol Context_DeckSelect; remains true when selecting the same deck again. */
     isDeckSelect?: boolean;
   }>>,
 };

@@ -12,16 +12,10 @@ export interface ObservedAction {
 const T = games.Types;
 const PROPERTIES_UPDATED = games.Actions.playerPropertiesUpdated.type;
 
-/** Ping value Servatrice reports for a player who has lost their connection. */
 const DISCONNECTED_PING = -1;
 
 type Payload = { gameId: number; playerId: number };
 
-/**
- * The sound desktop's MessageLogWidget plays for a game event (message_log_widget.cpp, every
- * `soundEngine->playSound` call), or null. `before` / `after` are the games slice either side of
- * the action, for events whose meaning depends on what changed.
- */
 export function gameEventSound(action: ObservedAction, before: GamesState, after: GamesState): SoundName | null {
   const payload = action.payload as Payload & Record<string, unknown>;
   switch (action.type) {
@@ -56,7 +50,6 @@ export function gameEventSound(action: ObservedAction, before: GamesState, after
 
     case T.PLAYER_JOINED: {
       const { playerProperties } = payload as unknown as { playerProperties: { playerId: number; spectator: boolean } };
-      // Desktop ignores a join for someone already seated (GameEventHandler::eventJoin).
       if (before.games[payload.gameId]?.players[playerProperties.playerId]) {
         return null;
       }
@@ -88,12 +81,10 @@ function moveSound(payload: Payload & Record<string, unknown>): SoundName | null
   };
   const target = targetZone || startZone;
   const ownerChanged = targetPlayerId >= 0 && startPlayerId >= 0 && targetPlayerId !== startPlayerId;
-  // Handing a card to someone else is logged as "gives control", without a sound.
   if (ownerChanged && startPlayerId === payload.playerId) {
     return null;
   }
   if (target === ZoneName.TABLE) {
-    // Moving a card around one's own battlefield is not logged.
     return startZone === ZoneName.TABLE && !ownerChanged ? null : 'play_card';
   }
   return target === ZoneName.STACK ? 'play_card' : null;
@@ -104,7 +95,6 @@ function propertiesSound(payload: Payload, before: GamesState, after: GamesState
   const was = before.games[gameId]?.players[playerId]?.properties;
   const now = after.games[gameId]?.players[playerId]?.properties;
   if (was && now && Boolean(was.conceded) !== Boolean(now.conceded)) {
-    // Desktop plays the concede sound for both conceding and unconceding.
     return 'player_concede';
   }
   const pingBefore = before.pings[gameId]?.[playerId];
@@ -118,10 +108,6 @@ function propertiesSound(payload: Payload, before: GamesState, after: GamesState
   return pingBefore === DISCONNECTED_PING ? 'player_reconnect' : null;
 }
 
-/**
- * Game events desktop raises a taskbar alert for (GameEventHandler::emitUserEvent): everything
- * that changes the game, but not property updates such as ping ticks.
- */
 const ATTENTION_EVENTS: ReadonlySet<string> = new Set([
   T.GAME_STATE_CHANGED, T.GAME_CLOSED, T.KICKED, T.PLAYER_JOINED, T.PLAYER_LEFT,
   T.CARD_MOVED, T.CARD_FLIPPED, T.CARD_DESTROYED, T.CARD_ATTACHED, T.TOKEN_CREATED, T.CARD_ATTR_CHANGED,

@@ -20,7 +20,6 @@ async function renderCallout(token: object = SAPROLING) {
   vi.mocked(CardDTO.get).mockResolvedValue(undefined as never);
   vi.mocked(TokenDTO.get).mockResolvedValue(token as never);
   render(<CardCallout name="Saproling" />);
-  // Let the token lookup resolve.
   await act(async () => {});
   return screen.getByRole('button', { name: 'Saproling' });
 }

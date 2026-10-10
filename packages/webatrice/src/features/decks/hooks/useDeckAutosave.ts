@@ -16,40 +16,23 @@ export type { SaveState } from '../deckSaveRegistry';
 
 export interface DeckAutosave {
   saveState: SaveState;
-  /** Mark the deck dirty and (re)start the debounce. */
   scheduleSave: () => void;
-  /** Save a pending change right now. Also runs on unmount. */
   flushSave: () => void;
-  /** Edits waiting on the debounce, or a failed save. */
   isModified: boolean;
-  /** Save now and wait until this deck's saves settle. */
   saveNow: () => Promise<boolean>;
-  /** Cancel unsent edits and forget their cached contents. */
   discardChanges: () => void;
-  /** Hold autosave until the open-deck choice is resolved. */
   pauseAutosave: () => void;
-  /** Schedule held edits once, unless explicitly saved or discarded. */
   resumeAutosave: () => void;
-  /** Record the signature as what the server holds. */
   markSaved: (signature: string) => void;
-  /** Forget the saved signature: the next save uploads whatever the deck holds. */
   resetSaved: () => void;
-  /** The last signature the server acknowledged, if any. */
   savedSignature: () => string | null;
 }
 
-/** An unsaved draft's autosave (`deckId` null): its first save stores it. */
 export interface DraftAutosave {
-  /** Handoff token: changing route tokens need not remount the editor. */
   key: string;
-  /** The draft's first save was stored as deck `deckId`, holding `signature`. */
   onStored: (deckId: number, signature: string) => void;
 }
 
-/**
- * Debounce belongs to the editor; stored saves settle in the per-deck registry.
- * A draft keeps its first upload local until the server assigns it a deck id.
- */
 export function useDeckAutosave(
   deckId: number | null,
   readDeck: () => HydratedDeck | null,
@@ -59,8 +42,6 @@ export function useDeckAutosave(
   const webClient = useWebClient();
   const store = useStore<RootState>();
   const registry = useMemo(() => getDeckSaveRegistry(store, webClient), [store, webClient]);
-  // The upload can finish before navigation supplies the stored deck id.
-  // Read this ref in callbacks too, so a pending cleanup cannot upload again.
   const storedIdRef = useRef<number | null>(null);
   const getSnapshot = useCallback(() => registry.getSnapshot(deckId ?? storedIdRef.current), [registry, deckId]);
   const { saveState: storedSaveState, isModified: storedIsModified } = useSyncExternalStore(registry.subscribe, getSnapshot);
@@ -69,21 +50,18 @@ export function useDeckAutosave(
   const autosavePausedRef = useRef(false);
   const [draftSaveState, setDraftSaveState] = useState<SaveState>('idle');
   const draftSavedSignatureRef = useRef<string | null>(deckId == null ? initialSavedSignature : null);
-  // Only the matching DECK_UPLOAD / DECK_UPLOAD_FAILED may settle this save.
   const draftUploadRef = useRef<{ signature: string; requestId: string } | null>(null);
   const draftRef = useRef(draft);
   draftRef.current = draft;
   const draftKey = draft?.key ?? null;
   const previousDraftKeyRef = useRef(draftKey);
   const previousIdentityRef = useRef({ deckId, draftKey });
-  // Stored-deck waiters live in the registry; only the first upload waits here.
   const draftWaitersRef = useRef<((saved: boolean) => void)[]>([]);
   const answerDraftWaiters = useCallback((saved: boolean) => {
     const waiters = draftWaitersRef.current;
     draftWaitersRef.current = [];
     waiters.forEach((resolve) => resolve(saved));
   }, []);
-  // Cancelling a timer does not discard edits or change request settlement.
   const cancelScheduledSave = useCallback(() => {
     if (saveTimerRef.current != null) {
       window.clearTimeout(saveTimerRef.current);
@@ -96,7 +74,6 @@ export function useDeckAutosave(
     if (previous.deckId === deckId && previous.draftKey === draftKey) {
       return;
     }
-    // Keep a hold across this draft's handoff, but never carry it to another deck.
     const handoff = previous.deckId == null && deckId != null && storedIdRef.current === deckId;
     if (!handoff) {
       autosavePausedRef.current = false;
@@ -109,8 +86,6 @@ export function useDeckAutosave(
     if (previousDraftKeyRef.current === draftKey) {
       return;
     }
-    // The previous identity's cleanup flushes before this reset, while
-    // readDeck still holds its contents. B must never inherit A's stored id.
     previousDraftKeyRef.current = draftKey;
     storedIdRef.current = null;
     draftUploadRef.current = null;
@@ -153,7 +128,6 @@ export function useDeckAutosave(
     }
   }, [registry, deckId, webClient, readDeck]);
 
-  // A draft's first save came back as a new stored deck.
   useReduxEffect<{ path: string; treeItem: { id: number }; requestId?: string }>(
     ({ payload }) => {
       const upload = draftUploadRef.current;
@@ -173,13 +147,9 @@ export function useDeckAutosave(
       if (savePendingRef.current) {
         registry.markDirty(payload.treeItem.id);
       }
-      // Detach before onStored navigates: reset/unmount must not fail waiters
-      // whose remaining work now belongs to the stored deck's registry entry.
       const waiters = draftWaitersRef.current;
       draftWaitersRef.current = [];
       draftRef.current?.onStored(payload.treeItem.id, signature);
-      // Include edits whose debounce already fired as well as ones still
-      // waiting on it. The registry skips unchanged contents and owns replies.
       if (current) {
         if (waiters.length) {
           const completion = paused ? registry.waitForSave(payload.treeItem.id) : registry.saveNow(payload.treeItem.id, current);
@@ -229,8 +199,6 @@ export function useDeckAutosave(
     }, AUTOSAVE_DEBOUNCE_MS);
   }, [registry, deckId, persistNow, cancelScheduledSave]);
 
-  // On an identity change this cleanup runs while readDeck still reads the
-  // previous deck, before the editor installs the next deck's snapshot.
   const flushSave = useCallback(() => {
     if (savePendingRef.current && !autosavePausedRef.current) {
       cancelScheduledSave();
@@ -256,7 +224,6 @@ export function useDeckAutosave(
   }, [scheduleSave]);
 
   const saveNow = useCallback((): Promise<boolean> => {
-    // Choosing Save ends the hold. Later edits can also settle its registry waiter.
     autosavePausedRef.current = false;
     savePendingRef.current = false;
     cancelScheduledSave();
@@ -319,8 +286,6 @@ export function useDeckAutosave(
     const targetId = deckId ?? storedIdRef.current;
     return targetId == null ? draftSavedSignatureRef.current : registry.getSnapshot(targetId).savedSignature;
   }, [registry, deckId]);
-  // A newly initialized entry is idle. Until navigation, retain the upload's
-  // saved indicator unless the registry has an update to report.
   const saveState = deckId == null && (storedIdRef.current == null || storedSaveState === 'idle')
     ? draftSaveState : storedSaveState;
   const isModified = (deckId ?? storedIdRef.current) != null

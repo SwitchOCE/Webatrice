@@ -32,8 +32,6 @@ import { ReplayRewindProvider } from '../components/ui/ReplayRewindContext';
 
 export const LIFE_COUNTER_ID = 1;
 
-// Servatrice pre-creates these on seat (server_player.cpp); GameBoardCell maps
-// them to the W/U/B/R/G/C/O pips by wire name.
 const MANA_COUNTER_NAMES = ['w', 'u', 'b', 'r', 'g', 'x', 'storm'] as const;
 export const MANA_COUNTER_IDS: Record<(typeof MANA_COUNTER_NAMES)[number], number> = {
   w: 2,
@@ -49,13 +47,8 @@ export interface SeatSpec {
   playerId: number;
   name?: string;
   table?: ServerInfo_Card[];
-  /** Hand cards known to the local client (own seat, or omniscient view). */
   hand?: ServerInfo_Card[];
-  /** Authoritative hand size. Defaults to `hand.length`; set it alone for a
-   *  hidden hand whose contents the client never receives. */
   handCount?: number;
-  /** Authoritative library size. The library is a hidden zone, so its `order`
-   *  stays empty and only the count is known. */
   deckCount?: number;
   grave?: ServerInfo_Card[];
   exile?: ServerInfo_Card[];
@@ -63,7 +56,6 @@ export interface SeatSpec {
   sideboardCount?: number;
   life?: number;
   deckList?: string;
-  /** The playmat the player announced (shown on a 3.1 server, `server31`). */
   playmat?: ServerInfo_PlayerProperties_PlaymatParams;
 }
 
@@ -76,7 +68,6 @@ export interface SeatGameSpec {
   spectator?: boolean;
   judge?: boolean;
   omniscient?: boolean;
-  /** Connected to a Servatrice 3.1 server (playmats and the other 3.1 capabilities). */
   server31?: boolean;
 }
 
@@ -148,10 +139,6 @@ export function buildSeatGameState({
   });
 }
 
-// --- Hook helper -----------------------------------------------------------
-
-/** Render a seat hook inside the full provider stack (game 1, mock WebClient)
- *  and expose its latest result, the store and the game request spies. */
 export function renderSeatHook<T>(
   useHook: () => T,
   spec: SeatGameSpec,
@@ -169,10 +156,6 @@ export function renderSeatHook<T>(
   return { ...utils, result: () => latest as T, game: webClient.request.game };
 }
 
-/** Render one seat (GameBoardCell → PlayerBoard, with the real seat model and
- *  command ports) on its own: the given player's cell, local when it is the
- *  spec's local player and mirrored otherwise. `rewindCount` plays it as a
- *  replay with that rewind count. Exposes the game request spies. */
 export function renderSeatCell(
   spec: SeatGameSpec,
   playerId: number = spec.localPlayerId,
@@ -184,7 +167,6 @@ export function renderSeatCell(
   const preloadedState = buildSeatGameState(spec);
   const webClient = createMockWebClient();
   const isLocal = playerId === spec.localPlayerId;
-  // computeCanAct: a judge may act on every seat.
   const canAct = isLocal || !!spec.judge;
   const cell: BoardCell = { playerId, isLocal, mirrored: !isLocal, canAct, showHand: isLocal, row: 0, col: 0 };
   const board = createElement(GameBoardCell, { cell, totalPlayers: spec.seats.length });
@@ -195,18 +177,12 @@ export function renderSeatCell(
   return { ...utils, game: webClient.request.game };
 }
 
-// --- Menu helpers ----------------------------------------------------------
-
-// The seat's own popups, and the shared Menu (the hand menu).
 const MENU_SELECTOR = '[role="menu"]';
 
-/** Every currently-open seat menu popup (zone/pile menus and card menus). */
 export function openMenus(): HTMLElement[] {
   return Array.from(document.querySelectorAll<HTMLElement>(MENU_SELECTOR));
 }
 
-/** Labels of one menu's own rows, in order, without shortcut hints or chevrons.
- *  Disabled rows are suffixed with ` (disabled)`. */
 export function menuLabels(menu: HTMLElement): string[] {
   return Array.from(menu.querySelectorAll<HTMLButtonElement>(':scope > div > button, :scope > button')).map(
     (button) => {
@@ -216,7 +192,6 @@ export function menuLabels(menu: HTMLElement): string[] {
   );
 }
 
-/** Right-clicks `el` and returns the menu it opened (the newest popup). */
 export function openContextMenu(el: Element): HTMLElement {
   const before = new Set(openMenus());
   act(() => {
@@ -240,9 +215,6 @@ function findMenuButton(label: string): HTMLButtonElement {
   throw new Error(`no open menu item labelled "${label}"`);
 }
 
-/** Clicks a menu path, hovering each submenu parent first (a shared Menu's
- *  submenu entry is clicked, which opens it at once):
- *  `chooseMenuPath('Move to', 'Graveyard')`. */
 export function chooseMenuPath(...labels: string[]) {
   labels.forEach((label, i) => {
     const button = findMenuButton(label);
@@ -258,8 +230,6 @@ export function chooseMenuPath(...labels: string[]) {
   });
 }
 
-/** Closes every open seat menu as the user does: Escape in the root menu
- *  (which closes its submenus with it), after flushing any pending effects. */
 export async function dismissMenus() {
   await act(async () => {
     await new Promise((resolve) => setTimeout(resolve, 0));
@@ -270,8 +240,6 @@ export async function dismissMenus() {
     });
   }
 }
-
-// --- Seat anchors ----------------------------------------------------------
 
 export function cardEl(cardId: number, zone?: 'battlefield' | 'hand' | 'stack'): HTMLElement {
   const selector = zone ? `[data-card][data-zone="${zone}"][data-card-id="${cardId}"]` : `[data-card][data-card-id="${cardId}"]`;
@@ -290,13 +258,9 @@ export function battlefieldEl(ownerId: number): HTMLElement {
   return el;
 }
 
-/** The pile boxes carry their counts in a `title` ("Library — 40"). Seats are
- *  rendered local seat first. */
 export function pileEl(label: 'Library' | 'Graveyard' | 'Exile' | 'Hand', seatIndex = 0): HTMLElement {
   return screen.getAllByTitle(new RegExp(`^${label}(?:, | — )`))[seatIndex];
 }
-
-// --- jsdom layout ----------------------------------------------------------
 
 export interface Box {
   left: number;
@@ -321,9 +285,6 @@ function toRect({ left, top, width, height }: Box): DOMRect {
   } as DOMRect;
 }
 
-/** jsdom has no layout. Gives the elements matched by each predicate a fixed
- *  box (first match wins); everything else sits off-screen so hit-tests that
- *  scan the document only see the zones a test laid out. */
 export function layoutBoxes(boxes: Array<[(el: Element) => boolean, Box]>) {
   return vi.spyOn(Element.prototype, 'getBoundingClientRect').mockImplementation(function boxFor(this: Element) {
     for (const [matches, box] of boxes) {
@@ -335,8 +296,6 @@ export function layoutBoxes(boxes: Array<[(el: Element) => boolean, Box]>) {
   });
 }
 
-/** Presses on `source` at `from`, moves to `to` and releases there — the
- *  seat pointer drag (window-level pointermove/pointerup listeners). */
 export function pointerDrag(source: Element, from: { x: number; y: number }, to: { x: number; y: number }) {
   act(() => {
     fireEvent.pointerDown(source, { button: 0, clientX: from.x, clientY: from.y });

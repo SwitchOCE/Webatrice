@@ -28,7 +28,6 @@ import './Login.css';
 // blue login card. Palette is now driven entirely by Login.css using
 // our fancy tokens.
 
-// Sample player names on the showcase cards: names, not UI text.
 const SHOWCASE_PLAYERS = ['1mrlee', 'CyberX', 'Gamer69'];
 
 const Login = () => {
@@ -57,8 +56,6 @@ const Login = () => {
   } = useLogin();
   const destination = useStartupDestination(isConnected);
   const version = useVersion();
-  // Desktop's Help › View debug log works while disconnected, which is when connection
-  // and login failures need it; the signed-in menus are not reachable from here.
   const [debugLogOpen, setDebugLogOpen] = useState(false);
 
   return (

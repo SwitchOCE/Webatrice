@@ -3,10 +3,6 @@ import { Globe } from 'lucide-react';
 
 import type { DeckVisibility } from '../../deckTree';
 
-/**
- * Desktop's Public / Public (inherited) column, with its tooltips. Private
- * decks and folders (and everything on a 3.0 server) show nothing.
- */
 export function DeckVisibilityBadge({ visibility, kind }: { visibility: DeckVisibility; kind: 'deck' | 'folder' }) {
   const { t } = useTranslation();
   if (visibility === 'private') {

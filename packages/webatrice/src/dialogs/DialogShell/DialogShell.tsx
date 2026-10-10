@@ -9,11 +9,8 @@ export interface DialogShellProps {
   isOpen: boolean;
   handleClose?: () => void;
   title: string;
-  /** Text that explains the dialog, read out with its title (`aria-describedby`). */
   description?: ReactNode;
   children: ReactNode;
-  /** Actions pinned below the scrolling content. A form inside `children` reaches its submit
-   *  button here through the button's `form` attribute. */
   footer?: ReactNode;
   className?: string;
   contentClassName?: string;
@@ -22,24 +19,9 @@ export interface DialogShellProps {
    *  want the pre-redo `xs`/`sm`/`md` breakpoints should pass the
    *  matching Tailwind class. */
   maxWidth?: string;
-  /** Where focus goes on close if the control that opened the dialog has unmounted meanwhile.
-   *  Defaults to a `DialogReturnFocusContext` above, else the opener's nearest landmark. */
   returnFocusTo?: ReturnFocusTo;
 }
 
-/**
- * Reusable Tailwind modal shell. Replaces the pre-redo MUI Dialog +
- * DialogTitle + DialogContent + IconButton wrapper. Backdrop click
- * and Escape close the modal (only when `handleClose` is provided —
- * matching MUI's behavior where an omitted `onClose` prop kept the
- * modal open). Same public prop contract so every existing caller
- * (KnownHostDialog, Registration, Reset flows) keeps working.
- *
- * Focus follows `useDialogFocus`: it moves into the content on open (mark a
- * control `data-autofocus` to pick it), Tab stays inside, and closing returns
- * focus to the opener (or `returnFocusTo` if the opener has gone). The dialog
- * is named by its heading.
- */
 const DialogShell = ({
   isOpen,
   handleClose,
@@ -71,7 +53,6 @@ const DialogShell = ({
     <div
       data-modal-layer
       className="fixed inset-0 z-[1300] flex items-center justify-center p-4"
-      // @critical React bubbles synthetic submit events along the React tree
       onSubmit={(e) => e.stopPropagation()}
     >
       <div

@@ -123,8 +123,6 @@ export class GamePage {
   // ---- Card actions ----
 
   async drawCard(): Promise<void> {
-    // The seat's library pile: right-click → "Draw card" (ports the
-    // Cockatrice LibraryMenu order).
     const deckStack = this.zoneStack('deck');
     await deckStack.click({ button: 'right' });
     await this.clickContextMenuItem(t('ShortcutsTab.action.game.drawCard'));
@@ -185,9 +183,6 @@ export class GamePage {
     await expect(this.container).toBeHidden({ timeout: 30_000 });
   }
 
-  // BattlefieldSidebar's "Game" button opens the game menu (desktop's Game
-  // menu: phase and turn actions), on the shared `Menu` named "Game";
-  // items are `menuitem`s named by their label alone.
   async clickGameMenuItem(key: `GameMenu.item.${string}`): Promise<void> {
     const menuName = t('GameMenu.button');
     await this.rightPanel.getByRole('button', { name: menuName, exact: true }).click();
@@ -198,15 +193,11 @@ export class GamePage {
     await expect(menu).toBeHidden();
   }
 
-  // Whether the local player may change phases (the active player or a
-  // judge): PhaseTrack marks its phase buttons aria-disabled otherwise (they
-  // stay focusable, so the current phase can be read).
   async canAdvancePhase(): Promise<boolean> {
     const button = this.page.getByTestId('phase-bar').locator('button[data-phase="1"]');
     return (await button.getAttribute('aria-disabled')) !== 'true';
   }
 
-  // A line in the game's message log (ChatLog, in the right panel).
   logLine(text: string | RegExp): Locator {
     return this.rightPanel.getByText(text);
   }
@@ -217,8 +208,6 @@ export class GamePage {
 
   // ---- Zones / cards / popups ----
 
-  // Match the pile's translated accessible-name prefix. The complete name
-  // also includes its count and optional top card.
   zoneStack(zoneName: PileZone, board: Locator = this.localBoard): Locator {
     const zone = t(PILE_LABEL_KEYS[zoneName]);
     return board.getByLabel(new RegExp(`^${escapeRegex(zone)},`)).first();
@@ -242,7 +231,6 @@ export class GamePage {
     return board.locator('[data-card][data-zone="battlefield"]');
   }
 
-  // Both pile renderers expose the count independently of their visible markup.
   async zoneStackCount(zoneName: PileZone, board: Locator = this.localBoard): Promise<number> {
     return Number(await this.zoneStack(zoneName, board).getAttribute('data-pile-count'));
   }
@@ -303,8 +291,6 @@ export class GamePage {
     return dialog;
   }
 
-  // Move a card through the translated "Move to" submenu. Hand cards and
-  // pile-view cards retain the drag shim needed by the existing UI.
   async moveViaCardMenu(card: Locator, target: CardMoveZone): Promise<void> {
     const zone = await card.getAttribute('data-zone');
 
@@ -337,8 +323,6 @@ export class GamePage {
     await this.clickCardContextMenuItem(t(CARD_MOVE_LABEL_KEYS[target]));
   }
 
-  // A local hand card by name (`[data-card][data-zone="hand"]`, whose Card
-  // carries `title="{cardName}"`).
   handCard(cardName: string): Locator {
     return this.localBoard
       .locator('[data-card][data-zone="hand"]')
@@ -346,9 +330,6 @@ export class GamePage {
       .first();
   }
 
-  // Right-click `card` and follow a card-menu path: hover each submenu
-  // parent, then click the leaf. Product labels come from the catalogue;
-  // dynamic player and card names pass through unchanged.
   async chooseCardMenuPath(card: Locator, ...path: string[]): Promise<void> {
     await card.click({ button: 'right' });
     for (const [i, label] of path.entries()) {
@@ -389,8 +370,6 @@ export class GamePage {
     await this.page.mouse.up();
   }
 
-  // ---- Internal: seat context-menu helpers ----
-
   private menuItemButton(menu: Locator, name: string): Locator {
     return menu.getByRole('menuitem', { name, exact: true });
   }
@@ -401,7 +380,6 @@ export class GamePage {
     await this.menuItemButton(menu, name).first().click();
   }
 
-  // Card context menu: the same `Menu`.
   private async clickCardContextMenuItem(name: string): Promise<void> {
     // Card menu opens as a portal and a submenu is a SECOND portal.
     // When clicking a leaf we want to hit the most-recently-opened one

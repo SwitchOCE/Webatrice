@@ -6,10 +6,8 @@ import { useGameDialogsContext } from '../GameDialogsContext';
 import type { PlayerCardViewModel, PlayerZoneCommands, SeatMoveDestination } from '../PlayerBoard/playerBoard.types';
 import { toRecipient } from '../PlayerBoard/revealRecipient';
 
-
 export interface UsePileMenusArgs {
   seatId: number;
-  /** Every other seated player. */
   revealTargets: readonly { playerId: number; name: string }[];
   graveDisplayList: readonly PlayerCardViewModel[];
   exileDisplayList: readonly PlayerCardViewModel[];
@@ -19,11 +17,6 @@ export interface UsePileMenusArgs {
   zoneCommands: PlayerZoneCommands;
 }
 
-/**
- * The graveyard and exile menus (desktop GraveyardMenu / RfgMenu), in their own
- * seat's and another viewer's variants. The piles show them on right-click and
- * the battlefield menu nests the own variants, as desktop's PlayerMenu does.
- */
 export function usePileMenus({
   seatId,
   revealTargets,

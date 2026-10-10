@@ -22,11 +22,6 @@ import Card from '../SeatCard/SeatCard';
 import { GAME_FOCUS_RING } from '../focusRing';
 import { OVER_ART_SHADOW } from '../seatColors/seatColors';
 
-/** Synthetic drag payload for pulling the top of the library. The library
- *  is a HiddenZone — the client never knows which face is at deck[0]
- *  (that's the server's shuffle) so the drag carries no identity. The id
- *  is a non-numeric sentinel, which planSeatMove sends as position 0, the
- *  top of the deck (Cockatrice's HiddenZone convention). */
 const LIBRARY_TOP_DRAG_PAYLOAD: PlayerCardViewModel = {
   id: '__library_top__',
   name: '',
@@ -60,7 +55,6 @@ const LargeZoneBox = forwardRef<
      *  `findCardEl` fallback path. */
     arrowAnchorPlayerId?: number;
     arrowAnchorZone?: string;
-    /** The pile's control props: its name, count and top card, and its menu opener. */
     pileProps?: HTMLAttributes<HTMLDivElement>;
       }
       >(function LargeZoneBox(
@@ -158,7 +152,6 @@ const CardBackZone = forwardRef<
      *  supplies this when the appropriate zone-property flag is
      *  active for the viewer. */
     topCard?: { name: string; scryfallId: string } | null;
-    /** The pile's control props: its name, count and top card, and its menu opener. */
     pileProps?: HTMLAttributes<HTMLDivElement>;
       }
       >(function CardBackZone({ label, count, onPointerDown, topCard, pileProps }, ref) {
@@ -245,14 +238,6 @@ type PileName = 'library' | 'graveyard' | 'exile';
 
 const NO_MODIFIERS = (event: KeyboardEvent) => !event.shiftKey && !event.ctrlKey && !event.altKey && !event.metaKey;
 
-/**
- * A pile as a control (desktop's PileZone, which right-clicks to its zone
- * menu): it reads out its name, card count and top card. Enter, Space,
- * Shift+F10 or the Menu key open its menu below it, as a right-click does at
- * the pointer, and focus comes back to the pile when the menu, or a zone view
- * opened from it, closes. A pile with no menu (another player's library) is a
- * labelled image, out of the tab order.
- */
 function usePile(pile: PileName, count: number, top: { name: string } | null | undefined, items?: readonly ContextMenuItem[]) {
   const { t } = useTranslation();
   const [anchor, setAnchor] = useState<MenuAnchor | null>(null);
@@ -290,12 +275,6 @@ function usePile(pile: PileName, count: number, top: { name: string } | null | u
   return { pileProps, popup };
 }
 
-/**
- * The seat's zone piles — library, graveyard and exile — stacked in the info
- * column under the mana pool. Each opens Cockatrice's LibraryMenu /
- * GraveyardMenu / RfgMenu (another player's library opens none); the owner can
- * drag the top card off each pile.
- */
 export default function ZoneStack() {
   const { t } = useTranslation();
   const {
@@ -318,7 +297,6 @@ export default function ZoneStack() {
     playerId,
     startPileDrag,
   } = usePlayerSeatContext();
-  // A pile shows its top card, or the one under it while the top is dragged off.
   const graveyardTopIdx =
     graveDisplayList.length - 1 - (seatDrag?.zone === 'graveyard' ? 1 : 0);
   const exileTopIdx =
@@ -327,10 +305,6 @@ export default function ZoneStack() {
     graveyardTopIdx >= 0 ? graveDisplayList[graveyardTopIdx] : null;
   const exileTop = exileTopIdx >= 0 ? exileDisplayList[exileTopIdx] : null;
 
-  // Cockatrice opens no menu on another player's library. On another
-  // player's graveyard and exile, GraveyardMenu / RfgMenu gate the move and
-  // reveal entries behind local-or-judge (grave_menu.cpp:19,42,
-  // rfg_menu.cpp:16); every viewer still gets the view, the zones are public.
   const library = usePile('library', displayedDeckCount, deckTopCard, isSelf ? libraryMenuItems : undefined);
   const graveyard = usePile('graveyard', displayedGraveyardCount, graveyardTop, isSelf ? graveMenuItemsSelf : graveMenuItemsOpponent);
   const exile = usePile('exile', displayedExileCount, exileTop, isSelf ? exileMenuItemsSelf : exileMenuItemsOpponent);
@@ -343,12 +317,6 @@ export default function ZoneStack() {
           label={t('ZoneStack.library')}
           count={displayedDeckCount}
           pileProps={library.pileProps}
-          // Pile face: whatever `deckTopCard` holds. The state is the guard:
-          // the datatrice cardsRevealed reducer sets topRevealedCard only for
-          // the reveal audience (the owner for always-look-at, everyone for
-          // always-reveal), and clears it when the top card moves. Toggling
-          // off does not clear it: desktop keeps the face until the top
-          // changes.
           topCard={deckTopCard ?? null}
           onPointerDown={
             isSelf && displayedDeckCount > 0

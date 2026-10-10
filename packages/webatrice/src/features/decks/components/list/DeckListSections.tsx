@@ -18,7 +18,6 @@ export interface DeckListSectionsProps {
   onTogglePublic?: (deck: FlatDeck) => void;
 }
 
-/** The deck rows, one titled section per format. */
 export function DeckListSections({
   sections,
   summaries,

@@ -61,13 +61,6 @@ const MyReportsContent = () => {
   );
 };
 
-/**
- * "My Reports" (desktop DlgMyReports, opened from the Account tab): the
- * reports you filed with their status, and for the selected one its
- * description, chat log and comment thread with a reply box. Hidden on 3.0
- * servers; a stale route (e.g. restored after reconnecting to an older
- * server) falls back to the lobby before the body sends anything.
- */
 const MyReports = () => (
   <Layout>
     <AuthGuard />

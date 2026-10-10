@@ -40,7 +40,6 @@ it('settles before singleton replacement and blocks callback sends during asynch
     send(old, reentrant);
   });
   send(old, failure);
-  // close() does not deliver onclose in this harness.
   WebClient.dispose();
   expect(failure).toHaveBeenCalledExactlyOnceWith(expect.anything(), expect.anything(), CommandFailure.Disconnected);
   expect(reentrant).toHaveBeenCalledExactlyOnceWith(expect.anything(), expect.anything(), CommandFailure.NotSent);

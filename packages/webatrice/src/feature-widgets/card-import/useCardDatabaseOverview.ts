@@ -15,7 +15,6 @@ export type OverviewAction = 'reload' | 'addCustom' | 'remove' | 'tokens' | 'spo
 
 export interface OverviewMessage {
   severity: 'success' | 'info' | 'error';
-  /** i18n key under `CardDatabaseOverview.message`. */
   key: string;
   params?: Record<string, string | number>;
 }
@@ -27,7 +26,6 @@ export interface CardDatabaseOverview {
   summary: CardDatabaseSummary | null;
   lastUpdateCheck?: string;
   message: OverviewMessage | null;
-  /** Sets awaiting desktop's "New sets found" answer. */
   unknownSets: string[];
   reload: () => Promise<void>;
   addCustomFiles: (files: File[]) => Promise<void>;
@@ -76,7 +74,6 @@ export function useCardDatabaseOverview(): CardDatabaseOverview {
     refresh().catch((e) => setMessage(errorMessage(e))).finally(() => setLoading(false));
   }, [refresh]);
 
-  /** Run one action at a time; report a rebuild's outcome and refresh the listing. */
   const run = async (action: OverviewAction, work: () => Promise<OverviewMessage | RebuildResult | null>) => {
     setBusy(action);
     setMessage(null);
@@ -112,8 +109,6 @@ export function useCardDatabaseOverview(): CardDatabaseOverview {
       if (ingest.files.length === 0) {
         return { severity: 'error', key: 'noXml' };
       }
-      // Desktop treats a picked spoiler.xml as the spoiler file and anything
-      // else as a numbered custom set, never as a replacement cards.xml.
       return cardDatabaseService.addSources(ingest.files.map((file) => ({
         fileName: file.name,
         xml: file.xml,

@@ -44,10 +44,9 @@ describe('SampleHandPanel', () => {
     const distinct = ['A', 'B', 'C', 'D', 'E'].map((name) => card(name, 1));
     let roll = 0;
     open(distinct, () => roll);
-    // roll 0 swaps every slot with the first: B C D E A.
     expect(handNames()).toEqual(['B', 'C', 'D', 'E', 'A']);
 
-    roll = 0.99; // keeps every slot in place
+    roll = 0.99;
     fireEvent.click(screen.getByRole('button', { name: 'SampleHand.redraw' }));
     expect(handNames()).toEqual(['A', 'B', 'C', 'D', 'E']);
     expect(distinct.map((c) => c.quantity)).toEqual([1, 1, 1, 1, 1]);

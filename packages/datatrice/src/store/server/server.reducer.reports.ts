@@ -20,8 +20,6 @@ export const initialReportsState: ServerStateReports = {
   lastNotice: null,
 };
 
-// Rows are shared by "my reports" and the moderator queue (a moderator's own
-// report sits in both), so a list arrival only drops rows neither list holds.
 function pruneRows(reports: ServerStateReports): void {
   const keep = new Set<number>([...(reports.mine ?? []), ...(reports.queue ?? [])]);
   for (const id of Object.keys(reports.byId)) {
@@ -40,9 +38,6 @@ function storeRows(reports: ServerStateReports, rows: ServerInfo_Report[]): numb
   return ids;
 }
 
-// Applies a server-confirmed status change to a stored row and its details.
-// Fresh clones, never in-place writes: Immer can't draft protobuf-es messages
-// (see datatrice-store.instructions.md#reducer-author-hazards).
 function patchReport(reports: ServerStateReports, reportId: number, patch: Partial<ServerInfo_Report>): void {
   const row = reports.byId[reportId];
   if (row) {
@@ -55,21 +50,17 @@ function patchReport(reports: ServerStateReports, reportId: number, patch: Parti
 }
 
 export const reportReducers = {
-  // Command_ReportMyList: the caller's reports, newest first, at most 200.
   reportMyList: ((state, action) => {
     state.reports.mine = storeRows(state.reports, action.payload.reports);
     pruneRows(state.reports);
   }) as CaseReducer<ServerState, PayloadAction<{ reports: ServerInfo_Report[]; requestId?: string }>>,
 
-  // Command_ReportList: one page of the moderator queue, newest first.
   reportList: ((state, action) => {
     state.reports.queue = storeRows(state.reports, action.payload.reports);
     state.reports.queueTotalCount = action.payload.totalCount;
     pruneRows(state.reports);
   }) as CaseReducer<ServerState, PayloadAction<{ reports: ServerInfo_Report[]; totalCount: number; requestId?: string }>>,
 
-  // Command_ReportDetails adds the chat log and comment thread the lists omit.
-  // It is also the freshest copy of the row, so a listed row is replaced too.
   reportDetails: ((state, action) => {
     const { report } = action.payload;
     state.reports.details[report.reportId] = report;
@@ -78,7 +69,6 @@ export const reportReducers = {
     }
   }) as CaseReducer<ServerState, PayloadAction<{ report: ServerInfo_Report; requestId?: string }>>,
 
-  // Servatrice cmdReportAssign: status 'assigned', assigned_to = the caller.
   reportAssigned: ((state, action) => {
     patchReport(state.reports, action.payload.reportId, {
       status: ReportStatus.ASSIGNED,
@@ -86,7 +76,6 @@ export const reportReducers = {
     });
   }) as CaseReducer<ServerState, PayloadAction<{ reportId: number; requestId?: string }>>,
 
-  // Servatrice cmdReportResolve: status 'resolved', or 'dismissed' when dismissed.
   reportResolved: ((state, action) => {
     const { reportId, dismissed } = action.payload;
     patchReport(state.reports, reportId, { status: dismissed ? ReportStatus.DISMISSED : ReportStatus.RESOLVED });
@@ -96,24 +85,15 @@ export const reportReducers = {
     state.reports.stats = action.payload.stats;
   }) as CaseReducer<ServerState, PayloadAction<{ stats: Response_ReportStats; requestId?: string }>>,
 
-  // A new request drops the stored replay, so a second download of the same
-  // game can only match the replay that answers it.
   reportReplayRequested: ((state) => {
     state.reports.replay = null;
   }) as CaseReducer<ServerState>,
 
-  // Only the latest download is kept: the queue opens it right away.
-  // The bytes travel bare, not inside the response message: the dev freeze
-  // guard can't freeze a message holding a byte array (like replayDownloaded).
   reportReplayDownloaded: ((state, action) => {
     const { gameId, replayId, replayData } = action.payload;
     state.reports.replay = { gameId, replayId, replayData };
   }) as CaseReducer<ServerState, PayloadAction<{ gameId: number; replayId: number; replayData: Uint8Array; requestId?: string }>>,
 
-  // REPORT_RESOLVED / REPORT_COMMENT, also kept in `notifications`. Each notice
-  // is a new object, so a view tells a new one from the one it last handled by
-  // identity: that survives the slice reset on disconnect, where a counter kept
-  // here would restart and repeat a value a long-lived view already saw.
   reportNotified: ((state, action) => {
     state.reports.lastNotice = { notification: action.payload.notification };
   }) as CaseReducer<ServerState, PayloadAction<{ notification: Event_NotifyUser }>>,

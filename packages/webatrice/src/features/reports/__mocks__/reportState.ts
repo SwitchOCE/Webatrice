@@ -12,7 +12,6 @@ const Flag = ServerInfo_User_UserLevelFlag;
 
 export { makeReport };
 
-/** A logged-in state on the given server, as a registered user or a moderator. */
 export function reportsRootState(options: {
   version?: string;
   moderator?: boolean;

@@ -7,35 +7,20 @@ import { usePendingTargetContext } from '../PendingTargetContext';
 
 type Geom = NonNullable<ReturnType<typeof buildArrowGeometry>>;
 
-/**
- * The live arrow of a pick started from this seat, from the source card to
- * the cursor: green for "Attach to card...", red for "Draw arrow...". Ports
- * Cockatrice's ArrowAttachItem / ArrowDragItem mouse-grabbed visuals
- * (arrow_item.cpp:177+, 288+) with the curved-leaf path the right-button drag
- * uses. Only this component follows the pointer, so a mouse move doesn't
- * re-render the seats.
- */
 function PendingTargetArrows({ playerId, pending }: { playerId: number; pending: PendingTarget }) {
   const pointer = usePendingPointer(usePendingTargetContext().pointer);
   if (!pointer) {
     return null;
   }
   const color = pending.kind === 'attach' ? ArrowColor.GREEN : ArrowColor.RED;
-  // An attach draws one arrow per card it attaches, all converging on the
-  // pointer; an arrow pick has one source.
   const sourceIds: readonly number[] = pending.kind === 'attach'
     ? [pending.source.cardId, ...pending.extraSourceIds]
     : [pending.source.cardId];
-  // Cockatrice's ArrowItem::paint uses alpha 150 while unlocked and 200 when
-  // snapped to a target. A pick resolves on click, so there is no snap
-  // preview: always 200, to read as "committed direction".
   const fill = rgbaToCss({ ...color, a: 200 });
   const ownerSel = CSS.escape(String(playerId));
   const zoneSel = CSS.escape(pending.source.zone);
   const geoms: { sourceId: number; geom: Geom }[] = [];
   for (const sourceId of sourceIds) {
-    // Each source card is found by its data attributes, so no ref has to be
-    // plumbed out of the zones' render loops.
     const el = document.querySelector<HTMLElement>(
       `[data-card-id="${CSS.escape(String(sourceId))}"][data-card-owner="${ownerSel}"][data-card-zone="${zoneSel}"]`,
     );

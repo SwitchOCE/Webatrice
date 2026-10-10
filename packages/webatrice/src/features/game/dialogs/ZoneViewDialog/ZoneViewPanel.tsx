@@ -24,18 +24,11 @@ import { buildCardGroups, type GroupMode, type SortMode } from '../shared/zoneVi
 
 type HandCard = { id: string; name: string; scryfallId: string };
 
-/** Where the view keeps its geometry and choices. Cockatrice desktop persists
- *  these via SettingsCache (view_zone_widget.cpp:161-163). */
 const STORAGE_KEY = 'webatrice.searchLibrary';
 
 const MIN_SIZE = { w: 400, h: 300 };
-/** The card height inside a card view (its --card-height). */
 const CARD_VIEW_CARD_HEIGHT_REM = 12.6;
 
-/**
- * A card view's measurements for desktop's row-based heights: everything around its card area
- * (title bar, controls, padding), the card area itself, and its card height in pixels.
- */
 function measureCardView(dialog: HTMLElement, content: HTMLElement): { chrome: number; area: number; cardHeightPx: number } {
   const style = window.getComputedStyle(content);
   const paddingY = (parseFloat(style.paddingTop) || 0) + (parseFloat(style.paddingBottom) || 0);
@@ -48,9 +41,6 @@ function measureCardView(dialog: HTMLElement, content: HTMLElement): { chrome: n
   };
 }
 
-
-/** The cards around a right-clicked card, in display order: every card the
- *  view shows (after the search filter), and those in its column (group). */
 export interface ZoneViewCardScope {
   shownIds: string[];
   columnIds: string[];
@@ -64,7 +54,6 @@ type Props = {
    *  render the toggle and always receive `false` here. */
   onClose: (shuffleOnClose: boolean) => void;
   library: readonly HandCard[];
-  /** Header title: "P1's library", "Graveyard — P1". */
   title: string;
   /** Whether to render the "shuffle when closing" checkbox. On by
    *  default (library flow). Non-library zones (graveyard, exile)
@@ -78,24 +67,13 @@ type Props = {
     e: React.PointerEvent<HTMLElement>,
     card: HandCard,
   ) => void;
-  /** Fired on right-click of a card, at the pointer, and on Shift+F10 or the
-   *  Menu key on a focused card, under it. Parent renders its own per-card
-   *  context menu — used by the graveyard / exile pile-view flow to
-   *  offer Draw arrow / Clone / etc. Undefined suppresses the menu
-   *  and lets the browser's default context menu through (matches the
-   *  library-search flow, which has no per-card menu). */
   onCardContextMenu?: (
     at: { x: number; y: number },
     card: HandCard,
     scope: ZoneViewCardScope,
   ) => void;
-  /** Enter on a focused card, on its element: the game's pending arrow pick
-   *  takes it, as a click would. */
   onCardActivate?: (card: HandCard, element: HTMLElement) => void;
-  /** M on a focused card: the keyboard move (MoveCardsDialog). */
   onCardMove?: (card: HandCard) => void;
-  /** Escape first offers itself here: true when it cancelled something (a
-   *  pending target pick), which keeps the view open. */
   onEscapeCancel?: () => boolean;
   /** IDs of library cards currently being dragged by the parent. Those
    *  cards render at opacity 0 in the dialog so the user only sees the
@@ -107,12 +85,8 @@ type Props = {
    *  area's library pile, drops on the modal itself must resolve to
    *  the library too. */
   dropRef?: React.Ref<HTMLDivElement>;
-  /** Ids of the cards selected in the view, and the marquee's update to them. */
   selectedIds: ReadonlySet<string>;
   onSelectedIdsChange: (ids: Set<string>) => void;
-  /** Whose zone the cards are in, marked on each card for arrow hit-testing:
-   *  an arrow pick or a right-button drag can then land on, or start from, a
-   *  card in the view. */
   cardOwner?: { playerId: number; zone: string };
 };
 
@@ -136,7 +110,6 @@ export default function ZoneViewPanel({
   const focusSearchBar = usePreference('focusCardViewSearchBar');
   const cardViewInitialRowsMax = usePreference('cardViewInitialRowsMax');
   const cardViewExpandedRowsMax = usePreference('cardViewExpandedRowsMax');
-  // Desktop hides the search box while "Keep game chat focused" is on: typing goes to the chat.
   const showSearchBar = !usePreference('keepGameChatFocus');
   const activeQuery = showSearchBar ? query : '';
   const { groupBy, setGroupBy, sortBy, setSortBy, pileView, setPileView } = useZoneViewPreferences(STORAGE_KEY);
@@ -149,19 +122,15 @@ export default function ZoneViewPanel({
   }, [shuffleOnClose]);
 
   const contentRef = useRef<HTMLDivElement>(null);
-  // The scroll viewport fills the dialog; only this inner group has the cards' intrinsic height.
   const cardsRef = useRef<HTMLDivElement>(null);
   const { panelRef: dialogRef, panelStyle, dragging, onHeaderPointerDown } = useFloatingPanelGeometry({
     storageKey: STORAGE_KEY,
     minSize: MIN_SIZE,
-    // Desktop's "Maximum initial height for card view window", in rows, and no taller than the
-    // cards need (unknown, 0, before layout). A size the user set by hand, stored, wins.
     initialSize: (el) => {
       if (!contentRef.current) {
         return;
       }
       const { chrome, cardHeightPx } = measureCardView(el, contentRef.current);
-      // As on desktop, no taller than the cards need (unknown, 0, before layout).
       const cardsHeight = cardsRef.current?.scrollHeight ?? 0;
       const rowsHeight = cardViewRowsHeight(cardViewInitialRowsMax, cardHeightPx);
       const height = chrome + (cardsHeight > 0 ? Math.min(rowsHeight, cardsHeight) : rowsHeight);
@@ -172,11 +141,6 @@ export default function ZoneViewPanel({
   const { t } = useTranslation();
   const titleId = useId();
   const close = () => onClose(showShuffleOnClose && shuffleOnClose);
-  // Desktop's ZoneViewWidget is a floating window the player works beside, not a modal: focus
-  // moves in when it opens (unless typing is kept in the game chat), Tab moves on past its last
-  // control, Escape closes this view, and focus goes back to where it was, e.g. the control
-  // that opened it.
-  // While a target pick is pending, Escape cancels the pick and leaves the view open.
   const { getDialogProps } = useDialogFocus({
     isOpen: true,
     onEscape: () => {
@@ -188,13 +152,7 @@ export default function ZoneViewPanel({
     moveFocusIn: showSearchBar,
   });
   const dialogFocusProps = getDialogProps();
-  // Whether the last expand/shrink left the view taller than its initial height (the header
-  // button's pressed state).
   const [expanded, setExpanded] = useState(false);
-  // Desktop's title-bar double-click (ZoneViewWidget::expandWindow): between the initial height
-  // and "Maximum expanded height for card view window", never taller than the cards need (the
-  // widget's maximum size) or the page allows. Expanded is never below initial, as desktop's
-  // coupled spin boxes keep it.
   const toggleExpanded = () => {
     const el = dialogRef.current;
     const content = contentRef.current;
@@ -214,9 +172,6 @@ export default function ZoneViewPanel({
     el.style.height = `${Math.round(Math.max(MIN_SIZE.h, chrome + next))}px`;
   };
 
-  // Marquee selection scoped to the view: the band never spans into the
-  // play area behind it, and picks from the view's own cards. The selection
-  // itself is the caller's.
   const { marquee, begin } = useMarquee<undefined>((rect) => {
     const ids = new Set<string>();
     contentRef.current?.querySelectorAll<HTMLElement>('[data-card]').forEach((el) => {
@@ -298,8 +253,6 @@ export default function ZoneViewPanel({
     shownIds,
     columnIds: groups.find((g) => g.cards.some((c) => c.handCard.id === cardId))?.cards.map((c) => c.handCard.id) ?? [],
   });
-  // The cards on the keyboard: a listbox laid out as the view draws it, its
-  // groups as columns in the pile view and as rows otherwise.
   const { cardProps } = useCardFocus<HandCard>({
     zone: cardOwner?.zone ?? '',
     cards: groups.flatMap((g) => g.cards.map((c) => c.handCard)),
@@ -327,9 +280,6 @@ export default function ZoneViewPanel({
     >
       <div
         {...dialogFocusProps}
-        // A non-modal dialog (no aria-modal): Tab moves focus inside it
-        // instead of advancing the phase, and Escape still closes the
-        // most recent view.
         role="dialog"
         aria-labelledby={titleId}
         ref={(el) => {
@@ -357,7 +307,6 @@ export default function ZoneViewPanel({
         <div
           onPointerDown={onHeaderPointerDown}
           onDoubleClick={(e) => {
-            // The header's buttons take their own clicks.
             if (!(e.target as HTMLElement).closest('button')) {
               toggleExpanded();
             }
@@ -367,7 +316,6 @@ export default function ZoneViewPanel({
             dragging ? 'cursor-grabbing' : 'cursor-grab',
           ].join(' ')}
         >
-          {/* Focus lands on the title when the search box doesn't take it. */}
           <h2
             className={`text-lg font-semibold text-text-primary rounded ${GAME_FOCUS_RING}`}
             tabIndex={-1}
@@ -391,7 +339,6 @@ export default function ZoneViewPanel({
                 {t('ZoneViewPanel.shuffleOnClose')}
               </label>
             )}
-            {/* The keyboard's way to the title bar's double-click. */}
             <button
               type="button"
               onClick={toggleExpanded}
@@ -424,7 +371,6 @@ export default function ZoneViewPanel({
               />
               <input
                 type="text"
-                // Desktop's "Auto focus search bar when card view window is opened".
                 autoFocus={focusSearchBar}
                 value={query}
                 onChange={(e) => setQuery(e.target.value)}

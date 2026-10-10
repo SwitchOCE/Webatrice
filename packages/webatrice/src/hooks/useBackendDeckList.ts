@@ -12,7 +12,6 @@ export function flattenBackendDecks(folder: ServerInfo_DeckStorage_Folder | unde
     : item.folder ? flattenBackendDecks(item.folder) : []);
 }
 
-/** One request/selector owner for the server's deck tree. Consumers retain their own summary caches. */
 export function useBackendDeckList({ beforeRequest }: { beforeRequest?: () => void } = {}) {
   const client = useWebClient();
   const backendDecks = useAppSelector(server.Selectors.getBackendDecks);

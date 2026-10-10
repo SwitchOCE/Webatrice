@@ -20,7 +20,6 @@ function localLibrary(): HTMLElement {
   });
 }
 
-/** The local library's "Reveal library to..." menu, choosing `recipient`. */
 function revealLibraryTo(recipient: string) {
   act(() => {
     fireEvent.contextMenu(localLibrary(), { clientX: 10, clientY: 10 });
@@ -33,10 +32,6 @@ function revealLibraryTo(recipient: string) {
   });
 }
 
-// Command_RevealCards.player_id is proto2 `optional sint32 [default = -1]` and
-// Servatrice's cmdRevealCards answers RespNameNotFound to any PRESENT player_id
-// that names no player. "All players" must therefore leave the field off the
-// wire, which these specs check on the encoded bytes.
 describe('Command_RevealCards wire shape', () => {
   const lastReveal = () => findLastGameCommand(Command_RevealCards_ext).value;
 

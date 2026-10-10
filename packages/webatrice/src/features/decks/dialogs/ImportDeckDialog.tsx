@@ -21,15 +21,9 @@ const PRIMARY_BUTTON_CLASS =
 export interface ImportDeckDialogProps {
   open: boolean;
   onClose: () => void;
-  /** Receives the `.cod` XML to upload as a new deck. */
   onImport: (xml: string, colorIdentity: string) => void;
 }
 
-/**
- * Two-path importer: paste a list (Moxfield, Arena, MTGO, Cockatrice…)
- * → look the cards up → review matched / unknown → import; or upload a
- * `.cod` file, which skips the review and keeps its metadata.
- */
 export function ImportDeckDialog({ open, onClose, onImport }: ImportDeckDialogProps) {
   const { t } = useTranslation();
   const flow = useDeckImportFlow(open, onImport);
@@ -268,10 +262,6 @@ function ImportReviewStep({ flow }: { flow: DeckImportFlow }) {
   );
 }
 
-/**
- * Shown in place of the paste box once a `.cod` file is picked, so the
- * user can confirm the right file before importing.
- */
 function ImportedFileSummary({ fileName, parsed }: { fileName: string; parsed: ParsedDeck }) {
   const { t } = useTranslation();
   const { total: totalCount, main, sideboard } = summarizeUploadedDeck(parsed);

@@ -5,20 +5,9 @@ import { MTG_FORMAT_LABELS, MTG_FORMATS, normalizeFormat } from '@app/types';
 
 import { SELECT_CHEVRON_BACKGROUND } from '../selectChevron';
 
-/**
- * Format dropdown plus a custom-value text field, used by the create and
- * import dialogs and, compactly, by the editor sidebar.
- *   - The MTG options gate MTG features in the editor.
- *   - "Other" reveals a text input so non-MTG decks (Netrunner,
- *     playtesting, …) can be labelled; they are stored the same way,
- *     just without MTG-specific UI.
- *   - A value outside the MTG list (an imported `<format>pauper</format>`
- *     variant, say) opens in Other mode with the text prefilled.
- */
 export interface FormatPickerProps {
   value: string;
   onChange: (value: string) => void;
-  /** `dialog` for the create/import dialogs, `sidebar` for the editor rail. */
   variant: 'dialog' | 'sidebar';
 }
 
@@ -58,10 +47,6 @@ export function FormatPicker({ value, onChange, variant }: FormatPickerProps) {
   const normalized = normalizeFormat(value);
   const isKnown = MTG_FORMATS.includes(normalized);
 
-  // "User explicitly picked Other". An empty value alone is ambiguous —
-  // a fresh picker defaulting to Commander, or Other picked with nothing
-  // typed yet — so the flag persists independently of `value`, seeded
-  // from it so an existing custom format opens in Other mode.
   const [otherMode, setOtherMode] = useState(() => !isKnown && normalized !== '');
 
   const inOtherMode = otherMode || (!isKnown && normalized !== '');
@@ -101,7 +86,6 @@ export function FormatPicker({ value, onChange, variant }: FormatPickerProps) {
           onChange={(e) => {
             const next = e.target.value;
             onChange(next);
-            // Typing a canonical slug snaps the dropdown back to it.
             if (MTG_FORMATS.includes(normalizeFormat(next))) {
               setOtherMode(false);
             }

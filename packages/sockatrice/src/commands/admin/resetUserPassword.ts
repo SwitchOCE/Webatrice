@@ -3,9 +3,6 @@ import { Command_ResetUserPassword_ext, Command_ResetUserPasswordSchema, Respons
 import type { CommandFailure } from '../../types/CommandFailure';
 import { WebClient } from '../../WebClient';
 
-// Servatrice serves Command_ResetUserPassword only through the admin family
-// (processExtendedAdminCommand). The temporary password is a one-time secret
-// for the requesting dialog, so it goes to the caller and never into the store.
 export function resetUserPassword(
   userName: string,
   onReset?: (userName: string, temporaryPassword: string) => void,

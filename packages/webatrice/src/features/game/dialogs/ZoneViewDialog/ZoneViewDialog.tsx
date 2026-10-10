@@ -32,11 +32,9 @@ import { isOrderedView, offersShuffleOnClose } from './zoneViewTarget';
 
 export interface ZoneViewDialogProps {
   view: ZoneViewTarget;
-  /** Closes the view; a whole-library view passes its "shuffle when closing" box. */
   handleClose: (shuffleOnClose?: boolean) => void;
 }
 
-/** The seat zone each wire zone a view can show is dragged from and dropped on. */
 const SEAT_ZONE: Partial<Record<string, SeatZone>> = {
   [ZoneName.DECK]: 'library',
   [ZoneName.GRAVE]: 'graveyard',
@@ -45,10 +43,6 @@ const SEAT_ZONE: Partial<Record<string, SeatZone>> = {
   [ZoneName.SIDEBOARD]: 'sideboard',
 };
 
-/** The card menu each zone's view cards get, rendered by the owning seat:
- *  graveyard and exile cards desktop's zone-view menu (Draw arrow, Clone,
- *  Select All, Select Column), library and sideboard cards its
- *  hand-or-custom-zone menu (Play, Reveal to..., Move to, ...). */
 const CARD_MENU_KIND: Partial<Record<string, 'pile' | 'zoneView'>> = {
   [ZoneName.GRAVE]: 'pile',
   [ZoneName.EXILE]: 'pile',
@@ -56,16 +50,6 @@ const CARD_MENU_KIND: Partial<Record<string, 'pile' | 'zoneView'>> = {
   [ZoneName.SIDEBOARD]: 'zoneView',
 };
 
-/**
- * One zone view (desktop ZoneViewWidget), stacked by Game from the game
- * dialog state's `zoneViews`. A whole zone lists through ZoneViewPanel
- * (search, sort, group, pile view); a top / bottom N library view lists its
- * cards in server order through ZoneRevealPanel.
- *
- * The view owns its seat DnD surface: the local player drags cards out of
- * their own zone, and a drop on the view lands in the zone it shows. Its card
- * selection is the game's (useGameSelection), keyed like every other card.
- */
 function ZoneViewDialog({ view, handleClose }: ZoneViewDialogProps) {
   const { t } = useTranslation();
   const gameId = useGameId();
@@ -74,11 +58,6 @@ function ZoneViewDialog({ view, handleClose }: ZoneViewDialogProps) {
   const ordered = isOrderedView(view);
   const seatZone = SEAT_ZONE[zoneName];
 
-  // "Close card view window when last card is removed" (desktop ViewZoneLogic): close once the
-  // view goes from showing cards to showing none, not when it opens on an empty zone. A
-  // whole-library view closes through its "shuffle when closing" choice, as closing by hand does.
-  // Game keys views by seat and zone, so a top N view replacing a library view reuses this
-  // instance: the count is tracked per view so the replacement opening empty is not a removal.
   const closeEmptyCardView = usePreference('closeEmptyCardView');
   const viewKey = `${view.numberCards ?? -1}:${view.isReversed ?? false}`;
   const shown = useRef({ viewKey, count: cards.length });
@@ -90,8 +69,6 @@ function ZoneViewDialog({ view, handleClose }: ZoneViewDialogProps) {
     }
   }, [cards.length, closeEmptyCardView, handleClose, view, viewKey]);
 
-  // Desktop starts a drag only on the local player's cards
-  // (CardItem::mouseMoveEvent); another player's view is read-only.
   const canActFor = useCanActFor();
   const viewId = `zone-view-${playerId}-${zoneName}`;
   const startDrag = useSeatDragSource(viewId, {
@@ -109,15 +86,6 @@ function ZoneViewDialog({ view, handleClose }: ZoneViewDialogProps) {
     ? new Set(activeDrag.cards.map((c) => c.id))
     : undefined;
 
-  // A drop on the view lands in the zone it shows, so a drop back on it is a
-  // same-zone no-op. The hand view appends (it sorts and groups, so a
-  // positional insert wouldn't match what the user sees), except for a hand
-  // card dropped back on it: that append would send it to the end of the
-  // hand, so the drop resolves to no target and the card snaps back. The
-  // sideboard is hidden and appends too. A top / bottom N view inserts
-  // between two of its cards (past a card's centre means after it), at the
-  // deck position that slot shows: slot k is position k from the top, or
-  // deckCount - N + k.
   const panelRef = useRef<HTMLDivElement | null>(null);
   const resolveDrop = ({ pointer }: SeatDropPoint, source: SeatDragSource): SeatDropTarget | null => {
     switch (seatZone) {
@@ -159,8 +127,6 @@ function ZoneViewDialog({ view, handleClose }: ZoneViewDialogProps) {
 
   const { selectedIds, setSelectedIds } = useZoneViewSelection(playerId, zoneName, cards);
 
-  // M on a card: the keyboard move, carrying what a drag from the view would
-  // (the selection when the card is in it), for the cards a drag may move.
   const requestKeyboardMove = useKeyboardMove();
   const onCardMove = isLocal && seatZone != null && requestKeyboardMove && canActFor(playerId)
     ? (card: { id: string; name: string }) => {
@@ -173,12 +139,8 @@ function ZoneViewDialog({ view, handleClose }: ZoneViewDialogProps) {
     : undefined;
 
   const { openSeatCardMenu } = useGameDialogsContext();
-  // Enter on a card while an arrow pick is pending takes it, by the click rule.
   const { pending, pickArrowAt, cancel: cancelPick } = usePendingTargetContext();
 
-  // A top / bottom N view's cards on the keyboard, as ZoneViewPanel's are: a
-  // row of options in server order, keyed by their deck position, with
-  // Enter for a pending pick and M for the keyboard move.
   const { cardProps: orderedCardProps } = useCardFocus<(typeof cards)[number]>({
     zone: ZoneName.DECK,
     cards,
@@ -214,8 +176,6 @@ function ZoneViewDialog({ view, handleClose }: ZoneViewDialogProps) {
       <ZoneRevealPanel
         title={title}
         cards={cards}
-        // The snapshot's ids are deck positions (the reveal reindex,
-        // view_zone_logic.cpp); the ends read "Top" / "Bottom".
         labels={cards.map((c) => {
           const libraryPos = Number(c.id);
           if (!Number.isFinite(libraryPos)) {
@@ -264,8 +224,6 @@ function ZoneViewDialog({ view, handleClose }: ZoneViewDialogProps) {
   );
 }
 
-/** Views float over the board and take drops before it; the order among
- *  them is the one PlayerBox hit-tested its dialogs in. */
 function dropPriority(view: ZoneViewTarget): number {
   switch (view.zoneName) {
     case ZoneName.DECK:
@@ -277,11 +235,6 @@ function dropPriority(view: ZoneViewTarget): number {
   }
 }
 
-/**
- * The view's share of the game selection, as the ids its cards carry. A new
- * set replaces the game selection; closing the view drops its cards from it.
- * Outside a game (isolated renders) the view keeps a selection of its own.
- */
 function useZoneViewSelection(playerId: number, zoneName: string, cards: readonly { id: string }[]) {
   const game = useGameSelectionState();
   const [localKeys, setLocalKeys] = useState<ReadonlySet<string>>(EMPTY_SELECTION);

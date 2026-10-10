@@ -13,23 +13,16 @@ interface CardCalloutProps {
   name: string;
 }
 
-// Popper's bottom-left corner on the name's top-right corner.
 const POPPER_MODIFIERS = [
   { name: 'offset', options: { offset: ({ reference }: { reference: { width: number } }) => [reference.width, 0] } },
 ];
 
-/**
- * A card named in chat. Hovering or focusing it previews the card; blur,
- * mouse-out or Escape hides the preview. The preview is a non-modal Popper so
- * focus and the rest of the page stay where they are while it shows.
- */
 const CardCallout = ({ name }: CardCalloutProps) => {
   const { card, token, anchorEl, open, handlePopoverOpen, handlePopoverClose } =
     useCardCallout(name);
   const previewId = useId();
   const summaryId = useId();
   const showPreview = open && Boolean(card || token);
-  // The preview is visual; screen readers get the type line and P/T as the name's description.
   const props = (card ?? token)?.prop?.value;
   const summary = [props?.type?.value || props?.maintype?.value, props?.pt?.value].filter(Boolean).join(', ');
 

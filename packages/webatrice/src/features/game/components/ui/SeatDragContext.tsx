@@ -22,13 +22,6 @@ import {
   type SeatZone,
 } from '../../hooks/seatDropPlan';
 
-/**
- * The seat side of the game's DnD (useGameDnd): drag sources, drop zones and
- * the drag ghost for the seat (PlayerBoard) surfaces.
- */
-
-/** Pixels the pointer must leave the press point by, along either axis, before
- *  a seat press becomes a drag; a release inside is a click. */
 export const SEAT_DRAG_THRESHOLD_PX = 4;
 
 const ActiveSeatDragContext = createContext<SeatDragSource | null>(null);
@@ -40,11 +33,7 @@ type SeatDragActivator = (
 ) => void;
 const SeatDragActivatorContext = createContext<SeatDragActivator | null>(null);
 
-/** Provided by Game from useGameDnd. */
 export function ActiveSeatDragProvider({ value, children }: ProviderProps<SeatDragSource | null>) {
-  // Keep dnd-kit's reactive draggable subscription at the game boundary. If
-  // each seat called useDraggable itself, every pointer update from dnd-kit
-  // would re-render that seat's entire PlayerBoard hook tree.
   const data = useRef<SeatDragSource>({
     kind: 'seat',
     seatPlayerId: 0,
@@ -70,8 +59,6 @@ export function ActiveSeatDragProvider({ value, children }: ProviderProps<SeatDr
       });
       setNodeRef(event.currentTarget);
       listeners.onPointerDown(event);
-      // After dnd-kit has seen the press (it ignores prevented events): no
-      // text selection and no native HTML5 drag of the card art.
       event.preventDefault();
     },
     [data, listeners, setNodeRef],
@@ -86,7 +73,6 @@ export function ActiveSeatDragProvider({ value, children }: ProviderProps<SeatDr
   );
 }
 
-/** The seat drag in progress (after the threshold), or null. */
 export function useActiveSeatDrag(): SeatDragSource | null {
   return useContext(ActiveSeatDragContext);
 }
@@ -94,30 +80,17 @@ export function useActiveSeatDrag(): SeatDragSource | null {
 export interface SeatDragSourceOptions {
   seatPlayerId: number;
   zone: SeatZone;
-  /** Owner of a lent zone; see SeatDragSource. */
   lenderPlayerId?: number;
-  /** Whether the local user may move a card of this owner: their own, or any
-   *  as a judge (desktop CardItem::mouseMoveEvent, getLocalOrJudge). A press
-   *  on a card they may not move still clicks (selection) but never becomes a
-   *  drag. Each card's owner is its `ownerPlayerId`, else the seat's player.
-   *  Without it every card drags. */
   canMoveFor?: (ownerPlayerId: number) => boolean;
   disabled?: boolean;
 }
 
-/** Starts a seat drag from a pointerdown: the cards to drag (in display order)
- *  and what a click (a release before the threshold) does. */
 export type SeatDragStart = (
   event: ReactPointerEvent<HTMLElement>,
   cards: readonly SeatDragCard[],
   onRelease?: (event: PointerEvent) => void,
 ) => void;
 
-/**
- * One seat surface cards are dragged from (a zone, or a dialog over it). The
- * surface calls the returned `start` from its cards' pointerdown; the pressed
- * element becomes the drag's anchor, so the ghost stays where it was grabbed.
- */
 export function useSeatDragSource(_id: string, options: SeatDragSourceOptions): SeatDragStart {
   const activate = useContext(SeatDragActivatorContext);
   return useCallback<SeatDragStart>(
@@ -131,10 +104,6 @@ export function useSeatDragSource(_id: string, options: SeatDragSourceOptions): 
   );
 }
 
-/**
- * One seat zone cards can be dropped on. Returns the ref for the zone's
- * element; the zone's `resolve` says where in it a drop lands.
- */
 export function useSeatDropZone(
   id: string,
   zone: Omit<SeatDropZone, 'kind'>,
@@ -144,11 +113,6 @@ export function useSeatDropZone(
   return setNodeRef;
 }
 
-/**
- * Draws the drag ghost for a seat drag: `children` gets the dragged card's
- * top-left as it follows the pointer. Only this component re-renders while
- * the pointer moves.
- */
 export function SeatDragGhost({ children }: { children: (origin: Coordinates) => ReactNode }) {
   const { active } = useDndContext();
   const [delta, setDelta] = useState<Coordinates>({ x: 0, y: 0 });
@@ -164,8 +128,6 @@ export function SeatDragGhost({ children }: { children: (origin: Coordinates) =>
   return <>{children({ x: initial.left + delta.x, y: initial.top + delta.y })}</>;
 }
 
-/** The pointer and the dragged card's top-left during or at the end of a
- *  drag: where the drag was grabbed plus how far it has travelled. */
 export function seatDropPointOf(event: Pick<DragMoveEvent, 'activatorEvent' | 'active' | 'delta'>): SeatDropPoint {
   const activator = event.activatorEvent as PointerEvent | null;
   const start = { x: activator?.clientX ?? 0, y: activator?.clientY ?? 0 };
@@ -176,12 +138,6 @@ export function seatDropPointOf(event: Pick<DragMoveEvent, 'activatorEvent' | 'a
   };
 }
 
-/**
- * Where a seat drag would land on the drop zone `dropId` right now, for a
- * drop preview: the same resolution the drop itself uses. `children` gets
- * null while the drag is elsewhere or there is none. Only this component
- * re-renders while the pointer moves.
- */
 export function SeatDropPreview({
   dropId,
   children,
@@ -190,8 +146,6 @@ export function SeatDropPreview({
   children: (target: SeatDropTarget | null) => ReactNode;
 }) {
   const [target, setTarget] = useState<SeatDropTarget | null>(null);
-  // Moves update the slot; entering or leaving the zone (which can follow
-  // the move that caused it) updates it too.
   const follow = (event: DragMoveEvent) => {
     const zone = event.over?.data.current;
     const source = event.active.data.current;

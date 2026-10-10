@@ -7,12 +7,6 @@ import { useAppSelector } from '@app/store';
 
 import LatencyGraph from './LatencyGraph';
 
-/**
- * Port of desktop LatencyStatusWidget (Cockatrice #7153): "Ping: N ms" beside a
- * sparkline of the rolling round-trip window, with the aggregate stats as the
- * tooltip. Clicking opens a larger graph with the same stats. Hidden until the
- * first sample and again after a disconnect zeroes the window.
- */
 export default function LatencyStatus() {
   const { t } = useTranslation();
   const { stats, samplesMs } = useAppSelector(server.Selectors.getLatency);

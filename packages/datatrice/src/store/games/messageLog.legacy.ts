@@ -1,4 +1,3 @@
-// One-release English compatibility renderer. New hosts render descriptor kind/params with i18n.
 import { ZoneName } from '@cockatrice/sockatrice';
 import { CardAttribute } from '@cockatrice/sockatrice/generated';
 import { App } from '../../types';
@@ -175,7 +174,6 @@ function displayCounterName(name: string | undefined): string {
   return COUNTER_DISPLAY_NAME[name.toLowerCase()] ?? name;
 }
 
-/** Event_Leave reasons (`event_leave.proto` LeaveReason), as desktop words them. */
 const LEAVE_REASON_MESSAGES: Record<number, string> = {
   1: 'reason unknown',
   2: 'kicked by game host or moderator',
@@ -596,7 +594,6 @@ function renderArrowCreated(params: LogParamsByKind['arrowCreated']): LegacyLogT
 
 }
 
-/** @internal English compatibility for the deprecated text field. */
 export function renderLegacyLog(entry: LogDescriptor): LegacyLogText {
   switch (entry.kind) {
     case 'cardMoved': return renderCardMoved(entry.params)!;

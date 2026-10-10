@@ -40,7 +40,6 @@ const setPreferences = async (patch: Partial<Preferences>) => {
 
 const renderAlerts = (route = '/') => renderWithProviders(<AppAlerts />, { preloadedState, route });
 
-// The inbound path: Datatrice's listener drops ignored senders, then stores the rest.
 const roomSay = (name: string, message: string, messageType = Event_RoomSay_RoomMessageType.UserMessage) =>
   rooms.Actions.roomSayReceived({
     roomId: 1,

@@ -1,7 +1,5 @@
-/** The two palettes the appearance preference chooses between. */
 export type ColorScheme = 'light' | 'dark';
 
-/** The design tokens of `styles/tokens.css`, by CSS custom-property name (without `--`). */
 export type PaletteToken =
   | 'bg-base'
   | 'bg-surface'
@@ -39,11 +37,6 @@ export type PaletteToken =
 
 export type Palette = Readonly<Record<PaletteToken, string>>;
 
-/**
- * Every token in both palettes, as hex. CSS reads the tokens from `styles/tokens.css`; this copy
- * exists for the MUI theme, whose palette needs concrete colours. palettes.spec.ts fails if the
- * two drift apart, and checks the contrast of each palette's text on each of its surfaces.
- */
 export const PALETTES: Readonly<Record<ColorScheme, Palette>> = {
   dark: {
     'bg-base': '#14101F',

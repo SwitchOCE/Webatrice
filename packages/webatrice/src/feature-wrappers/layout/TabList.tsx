@@ -35,17 +35,9 @@ export interface TabListProps {
   onClose: (tab: Tab) => void;
 }
 
-/**
- * The open rooms, games, replays and pages. Each tab is a route, so this is
- * page navigation (links with aria-current), not an ARIA tablist: there are no
- * tab panels and every tab is reachable with Tab. The current tab comes from
- * `activeKey` rather than NavLink's own matching, which can't express the
- * fall-back to the Lobby. Close is a sibling button, never nested in the link.
- */
 export default function TabList({ tabs, activeKey, onClose }: TabListProps) {
   const { t } = useTranslation();
   const links = useRef(new Map<string, HTMLAnchorElement>());
-  // Closing a tab removes its close button: focus moves to the next tab, else the previous one.
   const closeTab = (tab: Tab) => {
     const index = tabs.indexOf(tab);
     const successor = tabs[index + 1] ?? tabs[index - 1];
@@ -63,8 +55,6 @@ export default function TabList({ tabs, activeKey, onClose }: TabListProps) {
           return (
             <li
               key={tab.key}
-              // Middle-click closes, like desktop's tab bar (and instead of
-              // opening the link in a new browser tab).
               onAuxClick={(e) => {
                 if (e.button === 1 && tab.closeable) {
                   e.preventDefault();
@@ -101,7 +91,6 @@ export default function TabList({ tabs, activeKey, onClose }: TabListProps) {
                 <button
                   type="button"
                   onClick={() => closeTab(tab)}
-                  // Never dimmed: the icon needs its full 3:1 against the tab.
                   className="p-0.5 rounded hover:bg-border-subtle text-text-muted hover:text-text-primary"
                   title={t('TopBar.tabs.close', { title: tabTitle(tab, t) })}
                   aria-label={t('TopBar.tabs.close', { title: tabTitle(tab, t) })}

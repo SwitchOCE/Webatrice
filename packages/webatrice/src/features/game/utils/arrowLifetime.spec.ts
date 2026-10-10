@@ -11,7 +11,6 @@ describe('arrowDeleteInPhase', () => {
     expect(arrowDeleteInPhase(Phase.DeclareAttackers, true)).toBe(Phase.SecondMain);
     expect(arrowDeleteInPhase(Phase.EndCombat, true)).toBe(Phase.SecondMain);
     expect(arrowDeleteInPhase(Phase.SecondMain, true)).toBe(Phase.EndCleanup);
-    // Past the last phase: Servatrice drops it when the turn wraps back to untap.
     expect(arrowDeleteInPhase(Phase.EndCleanup, true)).toBe(11);
   });
 

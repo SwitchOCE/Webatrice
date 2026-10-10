@@ -24,9 +24,7 @@ import {
 } from './moveCardsTarget';
 
 export interface MoveCardsRequest {
-  /** The cards to move, as a drag of them would carry them. */
   source: SeatDragSource;
-  /** The card's name when one card moves. */
   name: string;
 }
 
@@ -40,8 +38,6 @@ const FIELD_CLASS = [
   'focus:outline-none focus:border-accent focus:ring-1 focus:ring-accent',
 ].join(' ');
 
-/** A board with no published grid (not on screen): its rows' columns as
- *  the layout reserves them, one past the last card, at least the minimum. */
 function fallbackGeometry(cards: readonly ServerInfo_Card[]): BattlefieldGeometry {
   const colsByWireRow = Array.from({ length: ROW_COUNT }, (_, row) => {
     const last = Math.max(-1, ...cards.filter((c) => (c.y ?? 0) === row).map((c) => getStackColumn(c.x ?? 0)));
@@ -52,9 +48,6 @@ function fallbackGeometry(cards: readonly ServerInfo_Card[]): BattlefieldGeometr
 
 const destinationKey = (d: MoveDestination) => (d.zone === 'battlefield' ? `battlefield:${d.playerId}` : d.zone);
 
-/** The board as the dialog needs it: seated players, the owner's hand order
- *  and zone sizes, and each battlefield's drop grid as its board publishes
- *  it (the grid a drop resolves against). */
 function useMoveBoard(ownerId: number): MoveBoard & { firstFreeColumn: (playerId: number, row: number) => number } {
   const gameId = useGameId();
   const geometry = useBattlefieldGeometryRegistry();
@@ -71,25 +64,15 @@ function useMoveBoard(ownerId: number): MoveBoard & { firstFreeColumn: (playerId
         playerId: p.properties.playerId,
         name: p.properties.userInfo?.name ?? `Player ${p.properties.playerId}`,
       })),
-      // The hand strip shows the hand in its zone order (zoneToSeatCards).
       handOrder: (zoneOf(ownerId, ZoneName.HAND)?.order ?? []).map(String),
       stackSize: zoneOf(ownerId, ZoneName.STACK)?.cardCount ?? 0,
       deckSize: zoneOf(ownerId, ZoneName.DECK)?.cardCount ?? 0,
       geometry: (playerId) => geometry?.get(playerId) ?? fallbackGeometry(tableCards(playerId)),
-      // Where a new column starts in a row, 1-based: the default column.
       firstFreeColumn: (playerId, row) => nextAvailableColumn(tableCards(playerId), row) + 1,
     };
   }, [seated, zones, ownerId, geometry]);
 }
 
-/**
- * "Move to…" from the keyboard (M on a card): every move a drag can make,
- * with the zone, a battlefield of any player, and the position chosen in
- * fields instead of by the pointer. Desktop has no keyboard move; its drag
- * is the reference for what may go where (planSeatMove), and the chosen
- * move is sent as a drop there would be. Built on DialogShell: focus starts
- * in the destination, Escape cancels and focus goes back to the card.
- */
 export default function MoveCardsDialog({
   request,
   onCancel,
@@ -117,8 +100,6 @@ export default function MoveCardsDialog({
   const startRow = source.zone === 'battlefield' ? source.cards[0]?.slot?.row : undefined;
   const [row, setRow] = useState(startRow ?? rows.find((r) => r.kind === 'creatures')!.row);
   const max = destination ? positionCount(destination, source, board, row) : 0;
-  // A battlefield defaults to the row's first free column, the hand and the
-  // stack to the end, the library to its top.
   const [positionDraft, setPositionDraft] = useState<string | null>(null);
   const defaultPosition = destination?.zone === 'library'
     ? 1
@@ -151,8 +132,6 @@ export default function MoveCardsDialog({
       handleClose={onCancel}
       title={t('MoveCardsDialog.title', { count: source.cards.length, name: request.name })}
       maxWidth="max-w-sm"
-      // The card has usually gone when this closes: focus goes to its zone's
-      // nearest card that stayed, else the next tab stop.
       returnFocusTo={cardFocusFallback}
       footer={(
         <>

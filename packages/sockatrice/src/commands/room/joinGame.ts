@@ -6,8 +6,6 @@ import type { JoinGameParams } from '../../generated';
 import type { RequestId } from '../../types/RequestId';
 import { outlivedSession } from '../outlivedSession';
 
-// Codes handled by GameSelector::checkResponse (game_selector.cpp:228-270).
-// Presentation belongs to the UI; unrecognized rejections remain silent.
 const ERROR_CODES = [
   Response_ResponseCode.RespNotInRoom,
   Response_ResponseCode.RespNameNotFound,
@@ -29,7 +27,6 @@ export function joinGame(roomId: number, joinGameParams: JoinGameParams, ...corr
   };
   for (const code of ERROR_CODES) {
     onResponseCode[code] = () => {
-      // Preserve legacy callback arity when the caller did not supply an identity.
       if (correlation.length) {
         response.setJoinGameError(code, '', undefined, ...correlation);
       } else {

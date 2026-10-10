@@ -56,7 +56,6 @@ describe('Player (integration)', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Common.action.send' }));
     expect(input).toHaveValue('');
 
-    // bob went offline before the command reached the server.
     const sent = findLastSessionCommand(Command_Message_ext);
     expect(sent.value).toMatchObject({ userName: 'bob', message: 'you there?' });
     deliverMessage(buildResponseMessage(buildResponse({

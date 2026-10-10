@@ -16,20 +16,11 @@ export interface ModeratorFunctions {
 
 interface FailedPayload { command: string; responseCode: number; target: string; failure?: WebsocketTypes.CommandFailure }
 
-/**
- * TabAdmin's "Server moderator functions" (tab_admin.cpp): grant yourself access
- * to a replay by id, and force-activate an account by user name. Both send the
- * local user as `moderator_name`, and report the outcome in a message box keyed
- * on the response code exactly as grantReplayAccessProcessResponse /
- * activateUserProcessResponse do; a request the server never answered gets the
- * transport reason instead.
- */
 export function useModeratorFunctions(notify: (notice: AlertDialogNotice) => void): ModeratorFunctions {
   const { t } = useTranslation();
   const describeFailure = useCommandFailureMessage();
   const webClient = useWebClient();
   const ownName = useAppSelector((state) => server.Selectors.getUser(state)?.name ?? '');
-  // Only report outcomes of requests this page sent.
   const pendingReplays = useRef(new Set<string>());
   const pendingActivations = useRef(new Set<string>());
 
@@ -50,7 +41,6 @@ export function useModeratorFunctions(notify: (notice: AlertDialogNotice) => voi
   useReduxEffect<{ replayId: number }>(({ payload }) => {
     if (pendingReplays.current.delete(String(payload.replayId))) {
       success(t('Administration.result.replayAccessGranted'));
-      // Desktop fires an empty Event_ReplayAdded so the replays tab re-reads its list.
       webClient.request.session.replayList();
     }
   }, server.Types.GRANT_REPLAY_ACCESS, [t, webClient, notify]);

@@ -8,25 +8,11 @@ import type { ParsedEntry } from './decklistParser';
 import { assembleDeckCard } from './hydrate';
 import type { DeckCard } from './types';
 
-/**
- * Import pipeline for the MyDecks importer: a pasted decklist is
- * resolved against the card catalog and turned into `.cod` XML; a
- * `.cod` file is re-serialized with the user's name and format.
- */
-
 export interface ResolvedImportRow {
   entry: ParsedEntry;
   lookup: LookupResult;
 }
 
-/**
- * Resolve parsed decklist entries through the card catalog (Dexie first,
- * Scryfall fallback). Set + collector travel with the name so Scryfall's
- * collection batch can identify freshly printed / Universes Beyond cards
- * by exact printing instead of fuzzy-matching on name. Duplicates by name
- * resolve once — the first hint wins. Unknown names come back as
- * `found: false` rows rather than being dropped.
- */
 export async function resolveImportEntries(entries: ParsedEntry[]): Promise<ResolvedImportRow[]> {
   const uniqueHints = new Map<string, { name: string; set?: string; collectorNumber?: string }>();
   for (const e of entries) {
@@ -46,12 +32,10 @@ export async function resolveImportEntries(entries: ParsedEntry[]): Promise<Reso
   }));
 }
 
-/** Storage metadata uses the same resolved card colors as editor saves. */
 export function resolvedImportColorIdentity(rows: ResolvedImportRow[]): string {
   return deckColorIdentity(rows.map((r) => assembleDeckCard(r.entry, r.lookup)));
 }
 
-/** Matched / unknown card totals (by quantity) for the review step. */
 export function countResolvedRows(rows: ResolvedImportRow[]): { matched: number; missing: number } {
   let matched = 0;
   let missing = 0;
@@ -65,10 +49,6 @@ export function countResolvedRows(rows: ResolvedImportRow[]): { matched: number;
   return { matched, missing };
 }
 
-/**
- * `.cod` XML for a reviewed paste. Unmatched entries are kept — the
- * editor flags them (`lookupSource: 'unknown'`) so typos can be fixed.
- */
 export function buildPastedDeckCod(rows: ResolvedImportRow[], name: string, format: string, t: TFunction): string {
   const cards: DeckCard[] = rows.map((r) => assembleDeckCard(r.entry, r.lookup));
   return serializeCod({
@@ -79,17 +59,10 @@ export function buildPastedDeckCod(rows: ResolvedImportRow[], name: string, form
   });
 }
 
-/**
- * `.cod` XML for an uploaded file: applies the typed name (else the
- * file's) and format (else the file's) while preserving the file's
- * metadata, printing hints and desktop bookkeeping elements.
- */
 export function buildUploadedDeckCod(file: ParsedDeck, name: string, format: string, t: TFunction): string {
   return serializeCod({
     name: name.trim() || file.name || t('DeckImport.defaultName'),
     meta: file.meta,
-    // Parsed cards carry set/collector/scryfallId hints that serializeCod
-    // emits back onto the <card> attributes.
     cards: file.cards as unknown as DeckCard[],
     format: format.trim().toLowerCase() || file.format || 'commander',
     bannerCard: file.bannerCard,
@@ -101,7 +74,6 @@ export function buildUploadedDeckCod(file: ParsedDeck, name: string, format: str
   });
 }
 
-/** Per-zone card totals for the uploaded-file summary card. */
 export function summarizeUploadedDeck(file: ParsedDeck): { total: number; main: number; sideboard: number } {
   const totals = file.cards.reduce(
     (acc, c) => {

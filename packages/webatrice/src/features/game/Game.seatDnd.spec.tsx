@@ -1,7 +1,3 @@
-// Seat drags run on the game's one DnD coordinator (useGameDnd, PB-16). For
-// each converted seat source these pin the convergence gate: one command per
-// gesture, only the sensor's window listeners while dragging (no second, seat
-// level handler), and the ghost portal and grabbing cursor gone after the drop.
 
 import { act, fireEvent } from '@testing-library/react';
 import { ZoneName } from '@cockatrice/sockatrice';
@@ -97,7 +93,6 @@ function trackWindowListeners() {
 
 const ghosts = () => document.querySelectorAll('[data-drag-ghost]');
 
-/** Press, move past the threshold, check the in-flight state, release. */
 function dragThrough(
   source: Element,
   from: { x: number; y: number },
@@ -155,7 +150,6 @@ describe('seat drags on the game DnD coordinator', () => {
 
     dragThrough(pileEl('Library', 0), { x: 5, y: 5 }, { x: 200, y: 550 }, () => {
       expect(live('pointermove')).toBe(1);
-      // A library drag shows a card back: the server decides which card it is.
       expect(ghosts()).toHaveLength(1);
       expect(ghosts()[0].querySelector('img')).not.toBeNull();
     });

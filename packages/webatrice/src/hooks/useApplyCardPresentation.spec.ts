@@ -28,7 +28,6 @@ describe('useApplyCardPresentation', () => {
     expect(rootVar('--card-hover-scale')).toBe('1');
     expect(rootVar('--card-info-font-size')).toBe('20px');
 
-    // Desktop never draws card text below 9 px.
     await act(async () => {
       settingsStore.setValue(Object.assign(settings, { maxFontSizeForCards: 4 }));
     });

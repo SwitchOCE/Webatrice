@@ -2,7 +2,6 @@
 import { readFileSync, readdirSync } from 'node:fs';
 import path from 'node:path';
 
-// All TSX motion owners changed in the board-preferences review live here, including portals.
 const sourceRoots = [path.resolve(__dirname, '../features/game')];
 
 function sourceFiles(directory: string): string[] {
@@ -15,8 +14,6 @@ function sourceFiles(directory: string): string[] {
   });
 }
 
-// Read the actual policy rather than exempting a whole component because it contains a seat-card.
-// Only unconditional class selectors whose rule disables motion qualify as covered owners.
 const policy = readFileSync(path.resolve(__dirname, 'board-motion.css'), 'utf8').replace(/\/\*[\s\S]*?\*\//g, '');
 const coveredClasses = new Set<string>();
 for (const [, selectors, declarations] of policy.matchAll(/([^{}]+)\{([^{}]*)\}/g)) {
@@ -32,8 +29,6 @@ for (const [, selectors, declarations] of policy.matchAll(/([^{}]+)\{([^{}]*)\}/
 
 function uncoveredStrings(source: string): string[] {
   const problems: string[] = [];
-  // Scan literals, including class constants, array entries, concatenation and template strings.
-  // Consume comments first so examples in comments are not mistaken for rendered classes.
   const literals = /\/\/[^\r\n]*|\/\*[\s\S]*?\*\/|'(?:\\.|[^'\\\r\n])*'|"(?:\\.|[^"\\\r\n])*"|`(?:\\.|[^`\\])*`/g;
   for (const match of source.matchAll(literals)) {
     if (match[0].startsWith('/')) {
@@ -41,8 +36,6 @@ function uncoveredStrings(source: string): string[] {
     }
     const value = match[0].slice(1, -1);
     const classes = value.split(/[\s'"`]+/);
-    // A marker in a conditional template expression cannot protect the unconditional classes.
-    // Keep templates conservative: put the owner in their static portion.
     const owners = match[0].startsWith('`') ? value.replace(/\$\{[^}]*\}/g, ' ').split(/\s+/) : classes;
     const hasMotion = classes.some((token) => /(?:^|:)!?(?:transition(?:-\S+)?|animate-\S+|duration-\S+)!?$/.test(token));
     if (hasMotion && !owners.some((token) => coveredClasses.has(token))) {
@@ -91,8 +84,6 @@ describe('board motion ownership guard', () => {
     const files = sourceRoots.flatMap(sourceFiles);
     expect(files.length).toBeGreaterThan(0);
     expect(coveredClasses.has('board-motion')).toBe(true);
-    // No exemptions are needed. Any future exception must name the exact file/literal and
-    // explain why it must keep animating; never exempt an entire file or directory.
     const problems = files.flatMap((file) => uncoveredStrings(readFileSync(file, 'utf8'))
       .map((problem) => `${path.relative(sourceRoots[0], file).replaceAll('\\', '/')}:${problem}`));
     expect(problems, 'Add board-motion to each animation owner (including portals).').toEqual([]);

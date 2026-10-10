@@ -29,7 +29,6 @@ export interface GameBoardLayout {
   bottomHand: { playerId: number; canAct: boolean } | undefined;
 }
 
-/** One step of desktop's GameScene::adjustPlayerRotation: clockwise is -1, counterclockwise +1. */
 export type RotationStep = 1 | -1;
 export const ROTATE_CLOCKWISE: RotationStep = -1;
 export const ROTATE_COUNTERCLOCKWISE: RotationStep = 1;
@@ -42,24 +41,6 @@ const EMPTY_LAYOUT: GameBoardLayout = {
   bottomHand: undefined,
 };
 
-/**
- * Board view-model for a game: where each seated player renders, whether the local
- * user can act on it, and how hands are shown. A port of Cockatrice's
- * GameScene::rearrange() (collectActivePlayers -> rotatePlayers ->
- * computeSceneSizeAndPlayerLayout): seated players sit in a cyclic ring in join
- * order; the local player anchors the bottom-left cell and the ring is rotated so
- * everyone else keeps their seating order relative to the local player. Cells fill
- * up the left column (bottom -> top) then down the right column (top -> bottom).
- *
- * `rotation` is desktop's playerRotation (GameScene::adjustPlayerRotation): each
- * step turns the ring one seat further, -1 per "Rotate View Clockwise" and +1
- * per "Rotate View Counterclockwise". Mirroring stays by row, as on desktop, so
- * a rotated local seat away from the bottom row renders mirrored.
- *
- * `minPlayersForMultiColumn` is desktop's "Minimum player count for multi-column layout"
- * (Appearance › Table grid layout, default 4; see Cockatrice issue #3533): at that many seated
- * players the board splits into two columns.
- */
 export function useGameBoardLayout(
   game: GameEntry | undefined,
   rotation = 0,
@@ -102,9 +83,6 @@ export function useGameBoardLayout(
     const columns = n >= minPlayersForMultiColumn ? 2 : 1;
     const rows = Math.ceil(n / columns);
 
-    // Rotate the ring so the anchored (local) player leads, then by the view
-    // rotation. Spectators (and a conceded local player, who is not seated)
-    // have no anchor, so the seats start in plain join order.
     const localIndex = isSpectator
       ? -1
       : players.findIndex((p) => p === localPlayerId);

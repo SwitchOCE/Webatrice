@@ -7,7 +7,6 @@ interface CardProps {
 }
 
 const Card = ({ card }: CardProps) => {
-  // Oracle picurl → picture URL templates per set priority → Scryfall by name.
   const { src, onError } = useImageCandidates(useCardImageUrls(card));
 
   if (!card) {

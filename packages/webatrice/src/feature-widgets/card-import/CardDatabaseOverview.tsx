@@ -13,19 +13,13 @@ import { useCardDatabaseOverview } from './useCardDatabaseOverview';
 import './CardDatabase.css';
 
 export interface CardDatabaseOverviewProps {
-  /** Desktop's "View sets" answer opens Manage Sets. */
   onViewSets?: () => void;
 }
 
-// An earlier (pre-v7) import can be removed once the user has imported what they need again.
 const REMOVABLE: ReadonlyArray<CardSource['kind']> = ['custom', 'spoiler', 'legacy'];
 
 const formatDate = (iso?: string) => (iso ? new Date(iso).toLocaleString() : '');
 
-/**
- * What is loaded and where it came from, plus desktop's card-database menu
- * actions: reload, add custom sets/cards, and the card/token/spoiler updates.
- */
 const CardDatabaseOverview = ({ onViewSets }: CardDatabaseOverviewProps) => {
   const { t } = useTranslation();
   const overview = useCardDatabaseOverview();

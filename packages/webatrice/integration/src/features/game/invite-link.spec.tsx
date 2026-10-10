@@ -39,13 +39,11 @@ registerGameBoardHooks();
 
 const user = (name: string) => create(ServerInfo_UserSchema, { name });
 
-/** Browser Back: one step from the game must land on the room, which a doubled push of /game/77 breaks. */
 function BackButton() {
   const navigate = useNavigate();
   return <button type="button" onClick={() => navigate(-1)}>back</button>;
 }
 
-/** The Room page (GamesList included) with a game link posted in its chat, and the app-wide link host. */
 function renderRoomWithLink() {
   connectRaw();
   simulateConnected();
@@ -82,7 +80,6 @@ function renderRoomWithLink() {
 
 describe('Game invites and links (GAME-033)', () => {
   it('Invite to Game sends the desktop join link as a private message', () => {
-    // react-window sizes its rows from ResizeObserver; emit a size so the invite list mounts rows.
     const originalRo = globalThis.ResizeObserver;
     const observed: Array<{ cb: ResizeObserverCallback; target?: Element }> = [];
     globalThis.ResizeObserver = class {
@@ -180,7 +177,6 @@ describe('Game invites and links (GAME-033)', () => {
       deliverMessage(buildSessionEventMessage(Event_GameJoined_ext, buildEventGameJoined({ gameId: 77, localPlayerId: 2, hostId: 1 })));
     });
     await waitFor(() => expect(screen.getByTestId('app-location')).toHaveTextContent('/game/77'));
-    // MUI keeps the rest of the page aria-hidden until the link dialog's exit transition ends.
     await waitFor(() => expect(screen.queryByText('GameLink.confirm.title')).not.toBeInTheDocument());
     fireEvent.click(screen.getByRole('button', { name: 'back' }));
     await waitFor(() => expect(screen.getByTestId('app-location')).toHaveTextContent('/room/1'));
@@ -193,7 +189,6 @@ describe('Game invites and links (GAME-033)', () => {
     });
     const message = 'JoinGameError.full';
     await screen.findByText(message);
-    // Count hidden dialogs too: MUI marks every modal under the top one aria-hidden.
     const errorDialogs = screen.getAllByRole('dialog', { hidden: true }).filter((dialog) => dialog.textContent?.includes(message));
     expect(errorDialogs).toHaveLength(1);
   });

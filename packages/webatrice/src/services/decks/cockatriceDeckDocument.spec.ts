@@ -108,7 +108,6 @@ describe('parseCod', () => {
 
 describe('serializeCod → parseCod round-trip', () => {
   it('round-trips a hydrated deck (name, cards, categories, printings, meta)', () => {
-    // Hydrated editor cards carry lookup fields the codec ignores.
     const cards: Array<ParsedCard & { lookupSource: 'dexie' }> = [
       {
         name: 'Sol Ring',

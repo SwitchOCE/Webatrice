@@ -114,7 +114,6 @@ describe('verdicts taken on arrival', () => {
     const first = { senderName: 'peer' };
     const ctx = { selfName: 'me', peer: member, peerIsBuddy: true };
     expect(visiblePrivateMessages([first], ctx, filter, verdicts)).toEqual([first]);
-    // Unbuddied since: the conversation is already open, so the next message still gets through.
     const next = { senderName: 'peer' };
     expect(visiblePrivateMessages([first, next], { ...ctx, peerIsBuddy: false }, filter, verdicts)).toEqual([first, next]);
   });

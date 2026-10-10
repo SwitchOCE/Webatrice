@@ -11,7 +11,6 @@ export const isAdmin = hasLevel(Level.IsAdmin);
 export const isDeveloper = hasLevel(Level.IsDeveloper);
 export const canReadLogs: UserLevelPredicate = (userLevel) => isModerator(userLevel) || isDeveloper(userLevel);
 
-/** Shared by navigation, guards and command-family selection. */
 export function useUserCapabilities() {
   const user = useAppSelector(server.Selectors.getUser);
   const level = user?.userLevel ?? 0;
@@ -22,7 +21,6 @@ export function useUserCapabilities() {
     isAdmin: isAdmin(level),
     isDeveloper: developer,
     canReadLogs: canReadLogs(level),
-    // tab_supervisor.cpp:853-860 gives moderators the full log command family even if also developers.
     developerOnlyLogs: developer && !moderator,
   };
 }

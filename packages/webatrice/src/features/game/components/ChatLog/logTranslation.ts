@@ -6,8 +6,6 @@ export const plain = (text: string): LogSegment => ({ text, kind: 'plain' });
 export const p = (text: string): LogSegment => ({ text, kind: 'player' });
 export const n = (value: number | string): LogSegment => ({ text: String(value), kind: 'number' });
 
-/** Translate the sentence first, then insert styled values without parsing user text as markup.
- * Translators may reorder or repeat placeholders. Player/card names remain literal text nodes. */
 export function translatedLog(t: TFunction, key: string, values: Record<string, string | LogSegment> = {}): FormattedLog {
   const tokens = Object.values(values).map(value => typeof value === 'string' ? plain(value) : value);
   const placeholders = Object.fromEntries(Object.keys(values).map((name, index) => [name, `\uE000${index}\uE001`]));

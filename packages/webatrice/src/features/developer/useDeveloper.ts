@@ -9,8 +9,6 @@ import type { WebsocketTypes } from '@cockatrice/sockatrice/types';
 import { useAppSelector } from '@app/store';
 import { formatLocalDateTime } from '@app/utils';
 
-
-// Desktop TabDeveloper: the interval spin box runs 5..3600 s, default 30.
 export const MIN_REFRESH_INTERVAL_SECS = 5;
 export const MAX_REFRESH_INTERVAL_SECS = 3600;
 export const DEFAULT_REFRESH_INTERVAL_SECS = 30;
@@ -28,11 +26,6 @@ export interface Developer {
 const clampInterval = (secs: number): number =>
   Math.min(MAX_REFRESH_INTERVAL_SECS, Math.max(MIN_REFRESH_INTERVAL_SECS, Math.round(secs) || MIN_REFRESH_INTERVAL_SECS));
 
-/**
- * Desktop TabDeveloper: server statistics on demand, with an optional
- * auto-refresh. Like desktop, nothing is requested until the user refreshes,
- * and a refresh is skipped while the previous request is still pending.
- */
 export function useDeveloper(): Developer {
   const { t } = useTranslation();
   const webClient = useWebClient();
@@ -48,8 +41,6 @@ export function useDeveloper(): Developer {
     setStatus(t('Developer.status.updated', { time: formatLocalDateTime(new Date()) }));
   }, server.Types.SERVER_STATS, [t]);
 
-  // Desktop: any non-OK answer reads "No server statistics available yet."; a
-  // request the server never answered says why instead.
   useReduxEffect<{ command: string; failure?: WebsocketTypes.CommandFailure }>(({ payload }) => {
     if (payload.command === 'getServerStats') {
       pendingRef.current = false;
@@ -75,7 +66,6 @@ export function useDeveloper(): Developer {
 
   const setAutoRefresh = (on: boolean) => {
     setAutoRefreshState(on);
-    // Desktop refreshes immediately when auto-refresh is switched on.
     if (on) {
       refresh();
     }

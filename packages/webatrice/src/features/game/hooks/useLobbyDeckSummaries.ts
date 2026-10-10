@@ -6,8 +6,6 @@ import { parseCod } from '@app/services';
 import { onSessionEnd } from '@app/services/session';
 import type { DeckSummary } from '../components/lobby/lobbyDeckGrouping';
 
-// Preserve summaries across lobby visits; an unreadable deck gets an empty summary too.
-// Dropped at a session boundary: deck ids belong to one account on one server.
 const deckSummaryCache = new Map<number, DeckSummary>();
 onSessionEnd(() => deckSummaryCache.clear());
 
@@ -81,7 +79,6 @@ export function useLobbyDeckSummaries(myDecks: BackendDeck[], isConnected: boole
     }
     return out;
   }, [summaryByDeckId]);
-
 
   const stillLoadingFormats = myDecks.some((deck) => !summaryByDeckId.has(deck.id));
   return { summaryByDeckId, bracketByDeckId, stillLoadingFormats };

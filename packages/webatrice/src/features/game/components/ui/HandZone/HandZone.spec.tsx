@@ -34,17 +34,14 @@ const SPEC: SeatGameSpec = {
 const found = (name: string, typeLine: string) =>
   ({ found: true, source: 'scryfall', name, typeLine, printings: [] }) as Awaited<ReturnType<typeof lookupCard>>;
 
-/** A 2/2 creature that comes into play tapped (cards.xml cipt). */
 const tappedBear = (name: string) =>
   ({ ...found(name, 'Creature — Bear'), power: '2', toughness: '2', cipt: true }) as Awaited<ReturnType<typeof lookupCard>>;
 
-// Read by the next render: useSettings is mocked, so a change does not re-render a mounted seat.
 const setPreferences = (patch: Partial<Preferences>) => {
   vi.mocked(usePreferences).mockReturnValue({ ...PREFERENCE_DEFAULTS, ...patch });
 };
 
 const handButton = () => screen.getByTitle(/^Hand — /);
-// The hand row is the element the hand button sits in.
 const handBacks = () => handButton().parentElement!.querySelectorAll(`img[src="${CARD_BACK_URL}"]`);
 
 afterEach(() => {
@@ -125,7 +122,6 @@ describe('HandZone', () => {
 
       const menu = screen.getByRole('menu', { name: 'Hand' });
       expect(button).toHaveAttribute('aria-expanded', 'true');
-      // Below the button (its bottom edge plus the menu's 2px gap), not at the viewport's corner.
       expect(menu.style.top).toBe(`${BUTTON_RECT.bottom + 2}px`);
       expect(menu.style.left).toBe(`${BUTTON_RECT.left}px`);
       expect(within(menu).getByRole('menuitem', { name: 'View hand' })).toHaveFocus();
@@ -166,7 +162,6 @@ describe('HandZone', () => {
     const deckList = '<?xml version="1.0"?><cockatrice_deck version="1"><zone name="main">'
       + '<card number="1" name="Shock"/></zone></cockatrice_deck>';
     const { game } = renderSeatCell({ ...SPEC, seats: [{ ...SPEC.seats[0], deckList }, SPEC.seats[1]] });
-    // The seat's deck prefetch fills cardMetaByName before the double-click.
     await waitFor(() => expect(lookupCard).toHaveBeenCalledWith('Shock'));
     await act(async () => {});
     vi.mocked(lookupCard).mockClear();

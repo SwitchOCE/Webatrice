@@ -3,7 +3,6 @@ import type { TFunction } from 'i18next';
 
 import { MAX_NAME_LENGTH } from '../accountLimits';
 
-/** Desktop `DlgEditPassword::actOk` rejects new passwords shorter than this before sending. */
 export const MIN_PASSWORD_LENGTH = 8;
 
 export const buildChangePasswordFormSchema = (t: TFunction) => {

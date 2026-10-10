@@ -13,7 +13,6 @@ import { DialogShell } from '@app/dialogs';
 import { MAX_AVATAR_DIMENSION } from './encodeAvatar';
 import { useChangeAvatar } from './useChangeAvatar';
 
-/** Desktop's file dialog filter: "Image Files (*.png *.jpg *.bmp)". */
 const ACCEPTED_TYPES = 'image/png,image/jpeg,image/bmp,.png,.jpg,.jpeg,.bmp';
 
 const buildChangeAvatarFormSchema = (t: TFunction) =>
@@ -90,7 +89,6 @@ const ChangeAvatarForm = ({ handleClose }: { handleClose: () => void }) => {
   );
 };
 
-/** Desktop `DlgEditAvatar`: choose an image (downscaled and re-encoded as JPEG), or confirm empty to remove. */
 const ChangeAvatarDialog = ({ isOpen, handleClose }: ChangeAvatarDialogProps) => {
   const { t } = useTranslation();
 

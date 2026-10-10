@@ -19,8 +19,6 @@ export const accountReducers = {
 
   accountEditChanged: ((state, action) => {
     if (state.user) {
-      // Servatrice only updates the fields the edit carried; an omitted one (e.g. an unchanged email on
-      // a hash-capable server) must keep its stored value rather than be blanked by `undefined`.
       const changed = Object.fromEntries(Object.entries(action.payload.user).filter(([, value]) => value !== undefined));
       state.user = create(ServerInfo_UserSchema, { ...state.user, ...changed });
       delete state.userInfo[state.user.name];

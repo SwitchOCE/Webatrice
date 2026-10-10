@@ -10,10 +10,8 @@ import { formatReportCategory, formatReportTime, reportStatusClass } from '../re
 export type ReportColumn =
   | 'id' | 'time' | 'reporter' | 'reportedUser' | 'category' | 'gameId' | 'status' | 'assignedTo' | 'replay' | 'room';
 
-/** Desktop DlgMyReports columns. */
 export const MY_REPORT_COLUMNS: ReportColumn[] = ['id', 'time', 'reportedUser', 'category', 'gameId', 'status', 'assignedTo'];
 
-/** Desktop TabReport columns. */
 export const QUEUE_COLUMNS: ReportColumn[] = [
   'id', 'time', 'reporter', 'reportedUser', 'category', 'gameId', 'status', 'assignedTo', 'replay', 'room',
 ];
@@ -38,20 +36,11 @@ interface ReportTableProps {
   columns: ReportColumn[];
   selectedId: number | null;
   onSelect: (reportId: number) => void;
-  /** Accessible name of the grid. */
   label: string;
 }
 
-/**
- * Report list shared by My Reports and the Report Queue, mirroring desktop's
- * QTableWidget: single-row selection, header-click sorting, status colours
- * (report_utils::fillReportTableRow). Lists are capped server-side (200 own
- * reports, one 100-row queue page), so rows render directly. Rows are a
- * keyboard grid like the QTableWidget: ↑/↓/Home/End move the selection.
- */
 export default function ReportTable({ reports, columns, selectedId, onSelect, label }: ReportTableProps) {
   const { t } = useTranslation();
-  // No sort until a header is clicked: rows keep the server's newest-first order.
   const [sort, setSort] = useState<{ column: ReportColumn; ascending: boolean } | null>(null);
 
   const rows = useMemo(() => {
@@ -71,7 +60,6 @@ export default function ReportTable({ reports, columns, selectedId, onSelect, la
     keys: rows.map((r) => String(r.reportId)),
     selectedKey: selectedId != null ? String(selectedId) : null,
     onSelect: (key) => onSelect(Number(key)),
-    // Desktop's table has no activation action; Enter selects like Space.
     onActivate: (key) => onSelect(Number(key)),
   });
 

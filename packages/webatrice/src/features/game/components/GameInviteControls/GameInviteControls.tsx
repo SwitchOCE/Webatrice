@@ -16,11 +16,6 @@ const BUTTON_CLASS = [
   'disabled:opacity-60 disabled:cursor-not-allowed board-motion transition-colors',
 ].join(' ');
 
-/**
- * Desktop's Game menu entries "Copy game link" and "Invite to Game..."
- * (tab_game.cpp aCopyGameLink / aInviteToGame). Both need a server link, so
- * they are disabled until the client knows which server it is on.
- */
 export default function GameInviteControls({ gameId, className }: GameInviteControlsProps) {
   const { t } = useTranslation();
   const invite = useGameInvite(gameId);

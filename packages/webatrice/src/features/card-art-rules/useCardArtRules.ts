@@ -11,7 +11,6 @@ import { useAppSelector } from '@app/store';
 
 import { loadCardPrintings, type CardPrinting } from './cardPrintings';
 
-/** Wire values Servatrice accepts for a rule's mode (desktop's mode combo box). */
 export const CARD_ART_RULE_MODES = ['ALLOW', 'DENY'] as const;
 export type CardArtRuleMode = typeof CARD_ART_RULE_MODES[number];
 
@@ -44,11 +43,6 @@ const FAILURE_KEYS: Partial<Record<WebsocketTypes.ModeratorCommandName, string>>
 
 const NO_RULES: Response_CardArtRuleEntry[] = [];
 
-/**
- * Desktop TabCardArtRules. Like desktop, add and remove send the command and
- * re-list the rules straight away; Servatrice answers in order, so the list
- * reflects the change.
- */
 export function useCardArtRules(): CardArtRules {
   const webClient = useWebClient();
   const { t } = useTranslation();

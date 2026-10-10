@@ -15,7 +15,6 @@ import {
   formatTokenCreated,
 } from './messageLog';
 
-// Card listeners: attributes, attachments, tokens, destruction and flips.
 export function registerCardsListeners(mw: ListenerMiddlewareInstance<unknown>): void {
   mw.startListening({
     actionCreator: Actions.cardAttrChanged,

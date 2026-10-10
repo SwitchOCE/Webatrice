@@ -19,10 +19,7 @@ export interface GameDnd {
   handleDragEnd: (event: DragEndEvent) => void;
   handleDragCancel: () => void;
   collisionDetection: CollisionDetection;
-  /** The seat drag in progress, from activation until the drop. */
   activeSeatDrag: SeatDragSource | null;
-  /** Moves `source`'s cards to `target` as a drop there would: the keyboard
-   *  move (MoveCardsDialog) lands cards through the same plan and commands. */
   moveSeatCards: (source: SeatDragSource, target: SeatDropTarget) => void;
 }
 
@@ -32,21 +29,13 @@ export interface UseGameDndArgs {
   // judge drags a foreign card, else undefined → bare). Passed in to keep this hook
   // store-decoupled. See useJudgeTarget.
   judgeTarget: (ownerPlayerId: number) => number | undefined;
-  // Whether the local client judges the game: a judge may move a lent card to
-  // any battlefield (planSeatMove), as Servatrice allows.
   isJudge?: boolean;
   cancelPendingArrow: () => void;
-  // A seat drop ends the selection that rode it, like PlayerBox always did.
   clearSelection?: () => void;
-  // Sends one optimistic Command_MoveCard (useMoveCard); seat drops go through it.
   moveCard?: (params: MoveCardParams) => void;
 }
 
-// Seat zones are hit-tested in paint order so the visible panel owns the drop.
-// Priority is only a fallback in environments without DOM hit testing.
 function seatCollision(args: Parameters<CollisionDetection>[0], source: SeatDragSource): Collision[] {
-  // Browser paint order includes floating panels' stacking contexts and DOM
-  // order. Fixed zone priorities cannot distinguish overlapping zone views.
   const pointer = args.pointerCoordinates;
   const doc = args.droppableContainers.find((c) => c.node.current)?.node.current?.ownerDocument;
   if (pointer && doc?.elementsFromPoint) {
@@ -58,8 +47,6 @@ function seatCollision(args: Parameters<CollisionDetection>[0], source: SeatDrag
         container.node.current?.contains(element),
       );
       if (front) {
-        // A view which refuses this source must not drop through to a hidden
-        // accepting view/board behind it.
         const zone = front.data.current;
         return isSeatDropZone(zone) && seatDropAccepts(zone, source)
           ? hits.filter((hit) => hit.id === front.id)
@@ -80,15 +67,11 @@ function seatCollision(args: Parameters<CollisionDetection>[0], source: SeatDrag
     .sort((a, b) => priorityOf(b.id) - priorityOf(a.id));
 }
 
-// Every card drag on the board is a seat drag (useSeatDragSource); a drag
-// from anything else has nowhere to land.
 const collisionDetection: CollisionDetection = (args) => {
   const source = args.active.data?.current;
   return isSeatDragSource(source) ? seatCollision(args, source) : [];
 };
 
-// While a seat drag is active the whole document shows the grabbing cursor, so
-// the OS cursor doesn't pick up `not-allowed` from whatever is underneath.
 function useGrabbingCursor(active: boolean) {
   useEffect(() => {
     if (!active) {
@@ -118,26 +101,17 @@ export function useGameDnd({
   const [activeSeatDrag, setActiveSeatDrag] = useState<SeatDragSource | null>(null);
   useGrabbingCursor(activeSeatDrag !== null);
 
-  // A drag cancels any pending arrow.
   const handleDragStart = useCallback(
     (event: DragStartEvent) => {
       cancelPendingArrow();
       const data = event.active.data.current;
       if (isSeatDragSource(data)) {
-        // A snapshot: the seat reuses its drag data object for the next press.
         setActiveSeatDrag({ ...data });
       }
     },
     [cancelPendingArrow],
   );
 
-  // planSeatMove turns a move into the command set, and each command goes
-  // through the optimistic move path. A judge moving another player's cards
-  // acts as their owner (the move's start player) through Command_Judge,
-  // like desktop's PlayerActions::sendGameCommand, and waits for the server
-  // rather than moving optimistically. A lent zone is moved by its borrower
-  // under the lender's write permission. The selection that rode the move
-  // ends with it.
   const moveSeatCards = useCallback(
     (source: SeatDragSource, target: SeatDropTarget) => {
       if (moveCard && gameId) {
@@ -155,7 +129,6 @@ export function useGameDnd({
     [gameId, webClient, moveCard, clearSelection, judgeTarget, isJudge],
   );
 
-  // A seat drop: the zone under the pointer says where in it the cards land.
   const handleSeatDragEnd = useCallback(
     (event: DragEndEvent, source: SeatDragSource) => {
       setActiveSeatDrag(null);

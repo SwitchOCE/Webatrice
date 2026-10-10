@@ -6,15 +6,12 @@ import { schemaV1 } from '../../../../src/services/dexie/DexieSchemas/v1.schema'
 import { schemaV2, Stores } from '../../../../src/services/dexie/DexieSchemas/v2.schema';
 import { schemaV6 } from '../../../../src/services/dexie/DexieSchemas/v6.schema';
 
-// A private database per test, opened first at the pre-settings-page schema (v4) and then again
-// with the v6 upgrade, so the real Dexie upgrade path runs against fake-indexeddb.
 let dbName: string;
 
 const openAt = async (latest: 4 | 6) => {
   const db = new Dexie(dbName);
   schemaV1(db);
   if (latest === 4) {
-    // Historical v4 schema, before schemaV2 also began registering replay schema v5.
     db.version(4).stores({
       [Stores.CARDS]: 'name.value',
       [Stores.SETS]: 'name.value',
@@ -63,7 +60,6 @@ describe('settings schema v6 upgrade (real Dexie)', () => {
       autoConnect: true,
       invertVerticalCoordinate: true,
       shortcuts: { 'game.drawCard': ['Ctrl+KeyD'] },
-      // Settings v2: an existing user keeps the dark palette they have always had.
       themeMode: ThemeMode.Dark,
     });
   });

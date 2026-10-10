@@ -1,8 +1,3 @@
-/**
- * Every UI catalogue shipped in `public/locales/<code>/translation.json`. Codes are the
- * Cockatrice/Transifex underscore form, which is also the directory name the i18n backend
- * fetches from; `toBcp47` converts to the hyphen form only where `Intl` needs it.
- */
 export enum Language {
   'en_US' = 'en_US',
   'de' = 'de',
@@ -18,10 +13,8 @@ export enum Language {
   'yue' = 'yue',
 }
 
-/** The bundled source catalogue, and the fallback for every missing key. */
 export const DEFAULT_LANGUAGE = Language.en_US;
 
-/** Flag shown beside each language (an `Images.Countries` key). Toki Pona has no country. */
 export const LanguageCountry: Readonly<Record<Language, string | undefined>> = {
   [Language.en_US]: 'us',
   [Language.de]: 'de',
@@ -37,7 +30,6 @@ export const LanguageCountry: Readonly<Record<Language, string | undefined>> = {
   [Language.yue]: 'hk',
 };
 
-/** Each language's name in itself, as desktop's language combo lists them. */
 export const LanguageNative: Readonly<Record<Language, string>> = {
   [Language.en_US]: 'English - US',
   [Language.de]: 'Deutsch',

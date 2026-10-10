@@ -5,14 +5,12 @@ import { useReduxEffect, useRequestTracker, type ReduxEffectAction } from '@app/
 
 export type ReportListLoadState = 'loading' | 'failed' | 'ready';
 
-/** The Datatrice signals and command name for a list load. */
 export interface ReportListFailure {
   type: string;
   command: string;
   successType: string;
 }
 
-/** Store selectors own the rows; only this view's current request settles its loading state. */
 export function useReportListLoad(
   send: (requestId: RequestId) => void,
   failure: ReportListFailure,

@@ -343,11 +343,6 @@ function hasUsd(info: PriceInfo | undefined): boolean {
   return info?.usd != null && Number.isFinite(info.usd);
 }
 
-/**
- * Unique-name pricing progress for the loading caption. Unique names,
- * not quantities: "45 of 100" is what the user perceives as cards being
- * looked up — quantities affect the total but not the pending lookups.
- */
 export function pricingProgress(
   cards: DeckCard[],
   prices: PriceLookup,
@@ -366,11 +361,6 @@ export function pricingProgress(
   return { pricedUnique: priced, totalUnique: seen.size };
 }
 
-/**
- * Cards `priceForCard` couldn't price, grouped by name with summed
- * quantities and sorted by name, so the user can tell a surprising miss
- * ("Sol Ring") from an expected one (a custom token).
- */
 export function unpricedCards(
   cards: DeckCard[],
   prices: PriceLookup,

@@ -1,9 +1,3 @@
-// Terminal-outcome contract for in-flight commands: every command that reaches
-// the wire settles exactly once — with the server's response, or with a
-// CommandFailure when its deadline passes or the connection resets. Mirrors
-// desktop RemoteClient::ping (PendingCommand expiry) and
-// RemoteClient::doDisconnectFromServer, which both answer RespNotConnected.
-// Uses real protobuf encoding so responses travel the same path as the wire.
 
 import { create, toBinary } from '@bufbuild/protobuf';
 import type { GenExtension } from '@bufbuild/protobuf/codegenv2';
@@ -215,7 +209,6 @@ describe('connection reset', () => {
       CommandFailure.Disconnected,
     );
 
-    // Their deadlines are cancelled: no second (timeout) outcome later.
     vi.advanceTimersByTime(DEFAULT_COMMAND_TIMEOUT_MS);
     expect(a).toHaveBeenCalledTimes(1);
     expect(b).toHaveBeenCalledTimes(1);
@@ -242,7 +235,6 @@ describe('connection reset', () => {
     service.resetCommands();
 
     expect(resend).toHaveBeenCalledTimes(1);
-    // The resend took cmdId 2; the next command must use cmdId 3.
     const onError = vi.fn();
     service.sendSessionCommand(pingExt, {}, { onError });
     service.resetCommands();
@@ -302,7 +294,6 @@ describe('raw sendCommand', () => {
   });
 });
 
-
 describe('reset isolation', () => {
   it('cancels all deadlines before a throwing callback and still settles its siblings', () => {
     const service = makeService();
@@ -337,7 +328,6 @@ describe('reset isolation', () => {
   });
 });
 
-// Desktop AbstractClient::recordLatency / clearLatencyStats (#7153).
 describe('round-trip timing', () => {
   const makeTimedService = (onLatencyStats: ReturnType<typeof vi.fn>) =>
     new ProtobufService(socket, { game: [], room: [], session: [] }, undefined, onLatencyStats);
@@ -402,8 +392,6 @@ describe('round-trip timing', () => {
       [],
     );
 
-    // The throttle restarts with the window, so the first sample after a reconnect shows at once.
-    // Command ids keep counting across a reset, so this is command 2.
     service.sendSessionCommand(pingExt, {});
     vi.advanceTimersByTime(70);
     deliverResponse(service, 2);

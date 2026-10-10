@@ -3,23 +3,6 @@ import { useEffect, useRef, useState } from 'react';
 import { previewImageUrls } from '../scryfallImage';
 import type { HydratedDeck } from '../types';
 
-/**
- * Preloads every card's sidebar-preview image ahead of first hover so
- * the CardPreview `<img>` mounts hit the browser HTTP cache instantly
- * instead of triggering a fresh Scryfall CDN fetch (which was the
- * "hovering feels laggy" symptom on cold decks).
- *
- * The preload runs exactly once per deck (`deckId`, or a draft key) — a value guard on
- * `readyDeckId` prevents subsequent card additions / printing swaps
- * from re-blocking the UI. A card added after the initial preload
- * fetches its image the normal way when its `<img>` first mounts;
- * only navigating to a different deck resets the gate.
- *
- * URLs are `upgradeScryfallImageSize`-normalized to match the exact
- * strings the sidebar `<img src>` will request, so the browser sees
- * a cache hit (not a similar-but-different URL). Errors count as done
- * so a single 404 on a Scryfall-unknown card doesn't stall the deck.
- */
 export interface PreloadProgress {
   ready: boolean;
   loaded: number;

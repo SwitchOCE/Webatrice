@@ -6,7 +6,6 @@ import zoneText from '../../../dialogs/shared/zoneLabels.i18n.json';
 import type { ContextMenuItem as CardMenuItem } from '../ContextMenu/ContextMenu';
 import { buildHandOrZoneCardMenu, type BuildHandOrZoneCardMenuArgs } from './handCardMenu.model';
 
-// Every hint renders as its action id, so the tree pins which binding each row shows.
 const menuShortcut = (id: ActionId) => ({ shortcut: `<${id}>`, keyShortcuts: '' });
 const t = catalogT(menuText, zoneText);
 
@@ -28,7 +27,6 @@ function makeArgs(overrides: Partial<BuildHandOrZoneCardMenuArgs> = {}): BuildHa
   };
 }
 
-/** One line per row: label and [shortcut]; submenus indented. */
 function tree(items: CardMenuItem[], depth = 0): string[] {
   return items.flatMap((item) => {
     const pad = '  '.repeat(depth);

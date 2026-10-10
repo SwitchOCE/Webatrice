@@ -6,15 +6,11 @@ import { defaults } from './defaults';
 import { displaySequenceForOs, isMacPlatform, parseSequence } from './shortcutSequence';
 import { ActionId } from './types';
 
-/** The two shortcut props of a `Menu` entry, spread onto it as one value. */
 export interface MenuShortcut {
-  /** The first binding as the user reads it ("Ctrl+D", or "⌘D" on a Mac); empty when unbound. */
   shortcut: string;
-  /** Every binding in `aria-keyshortcuts` syntax ("Control+D", alternatives separated by spaces). */
   keyShortcuts: string;
 }
 
-// `aria-keyshortcuts` names keys by their `KeyboardEvent.key` value; bindings are stored by `code`.
 const ARIA_KEY: Record<string, string> = {
   Equal: '=',
   Minus: '-',
@@ -55,7 +51,6 @@ function ariaSequence(sequence: string): string {
     .join('+');
 }
 
-/** The `MenuShortcut` for an action's bindings, in stored `Ctrl+KeyD` form. */
 export function toMenuShortcut(sequences: readonly string[], isMac: boolean): MenuShortcut {
   return {
     shortcut: sequences.length > 0 ? displaySequenceForOs(sequences[0], isMac) : '',
@@ -69,18 +64,6 @@ export function toMenuShortcut(sequences: readonly string[], isMac: boolean): Me
   };
 }
 
-/**
- * Returns `menuShortcut(actionId)`, the shortcut props of the menu entry that runs that action,
- * following the user's rebinding in the Shortcuts tab:
- *
- * ```tsx
- * const menuShortcut = useMenuShortcut();
- * <MenuItem onSelect={onDraw} {...menuShortcut('game.drawCard')}>Draw a card</MenuItem>
- * ```
- *
- * Context menus (PR 30's card, zone and player menus) use this rather than writing the display
- * and ARIA strings by hand, so the two never drift apart or from the binding.
- */
 export function useMenuShortcut(): (actionId: ActionId) => MenuShortcut {
   const overrides = useAppSelector(shortcuts.Selectors.getOverrides);
   return useCallback(

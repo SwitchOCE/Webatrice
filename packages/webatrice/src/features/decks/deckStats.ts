@@ -1,12 +1,6 @@
 import { MANA_COLORS, type ManaColor } from './manaSymbols';
 import { primaryType, type CardTypeGroup, type DeckCard } from './types';
 
-/**
- * Aggregate deck statistics behind the editor's breakdown panel: totals,
- * mana curve, colour distribution and card-type counts.
- */
-
-/** Mana-curve buckets; 7 is the "7+" bucket. */
 export const CURVE_BUCKETS = [0, 1, 2, 3, 4, 5, 6, 7] as const;
 
 export interface DeckStats {
@@ -71,7 +65,6 @@ export function computeDeckStats(cards: DeckCard[]): DeckStats {
   };
 }
 
-/** Type counts with at least one card, most common first. */
 export function sortedTypeCounts(
   counts: Partial<Record<CardTypeGroup, number>>,
 ): Array<[CardTypeGroup, number]> {
@@ -80,18 +73,11 @@ export function sortedTypeCounts(
     .sort((a, b) => b[1] - a[1]);
 }
 
-// ---------- Colour pie geometry ----------
-
 function polar(cx: number, cy: number, r: number, angleDeg: number) {
   const rad = ((angleDeg - 90) * Math.PI) / 180;
   return { x: cx + r * Math.cos(rad), y: cy + r * Math.sin(rad) };
 }
 
-/**
- * SVG paths for a pie of `radius` centred in a `2·radius` square, one
- * slice per colour with a non-zero count, clockwise from 12 o'clock in
- * WUBRG-C order. Empty when every count is zero.
- */
 export function colorPieSlices(
   pips: Record<ManaColor, number>,
   radius: number,

@@ -27,11 +27,7 @@ export function makeCallbackHelpers(mockFn: Mock, optsArgIndex = 2) {
     }
   }
 
-  // `failure` simulates a transport outcome (timeout, disconnect, not sent);
-  // leave it undefined for a server-sent rejection.
   function invokeOnError(code: number = 99, raw: any = {}, failure?: CommandFailure) {
-    // Only pass `failure` when simulating one, so a server rejection reaches
-    // onError with exactly the (code, raw) a real response would.
     if (failure === undefined) {
       getLastSendOpts()?.onError?.(code, raw);
     } else {

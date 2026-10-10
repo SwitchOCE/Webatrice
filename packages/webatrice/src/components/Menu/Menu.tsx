@@ -17,7 +17,6 @@ import { ChevronRight } from 'lucide-react';
 
 import { closestList, focusFallback, tabbableElements, useDialogReturnFocus } from '../../hooks/useDialogFocus';
 
-/** A viewport rectangle, as `getBoundingClientRect` returns it. */
 export interface MenuRect {
   left: number;
   top: number;
@@ -25,53 +24,34 @@ export interface MenuRect {
   bottom: number;
 }
 
-/** Where a menu opens: a point in viewport pixels (a pointer press), or beside a control. A point
- *  is a zero-size control: the menu opens below and to the right of it, flipping to the other side
- *  where that has no room, as QMenu::popup does. */
 export type MenuAnchor =
   | {
     x: number;
     y: number;
-    /** `end`: `x` is the menu's right edge (a menu dropping from a right-aligned button). */
     align?: 'start' | 'end';
   }
   | {
-    /** The control the menu belongs to. */
     rect: MenuRect;
-    /** `below` drops under it (flipping above when there is no room), `right` opens to its side
-     *  (flipping to its left), as a submenu does. */
     placement: 'below' | 'right';
-    /** `end`: line the menu's right edge up with the control's (`below` only). */
     align?: 'start' | 'end';
   };
 
 export interface MenuProps {
   anchor: MenuAnchor;
-  /** Accessible name of the menu. */
   label: string;
   onClose: () => void;
-  /** The control that opened the menu: focus goes back to it on close, and pressing it is not an
-   *  outside click (so a toggle button can close its own menu). Defaults to the focused element. */
   triggerRef?: RefObject<HTMLElement | null>;
-  /** Move focus to the first item on open. A submenu opened by hovering leaves focus where it is. */
   autoFocus?: boolean;
   id?: string;
-  /** Width and other panel classes. */
   className?: string;
-  /** Sees this level's keys before navigation and type-ahead, so an entry's `aria-keyshortcuts`
-   *  can work while the menu is open; `preventDefault` claims the key. */
   onKeyDown?: (event: KeyboardEvent<HTMLDivElement>) => void;
   children: ReactNode;
 }
 
 const ITEM_SELECTOR = '[role="menuitem"], [role="menuitemcheckbox"], [role="menuitemradio"]';
 const EDGE = 8;
-/** How long the pointer rests on a submenu entry before the submenu opens. */
 export const SUBMENU_OPEN_DELAY = 200;
-/** How long a submenu stays open after the pointer moves to a sibling, so a diagonal path into it
- *  can cross other entries. */
 export const SUBMENU_CLOSE_DELAY = 300;
-/** Typed letters within this many milliseconds of each other are one type-ahead search. */
 export const TYPEAHEAD_TIMEOUT = 500;
 
 export const MENU_ITEM_CLASS =
@@ -83,27 +63,18 @@ export const MENU_ITEM_CLASS =
 interface MenuLevel {
   ancestors: string[];
   portalTarget: HTMLElement;
-  /** The submenu of this menu that is open, by id. */
   openSubmenu: string | null;
   setOpenSubmenu: (id: string | null) => void;
-  /** Closes the whole menu, every level. */
   closeAll: () => void;
 }
 
 const MenuLevelContext = createContext<MenuLevel | null>(null);
 
-/** The items of `menu` itself, not those of a submenu portalled out of it, that can take focus.
- *  `aria-disabled` items stay reachable, so users learn the action exists and why it is off. */
 function menuItems(menu: HTMLElement): HTMLElement[] {
   return Array.from(menu.querySelectorAll<HTMLElement>(ITEM_SELECTOR))
     .filter((item) => item.closest('[role="menu"]') === menu && !item.matches(':disabled'));
 }
 
-/**
- * Where a `width` × `height` menu goes for `anchor` in a `viewport`: it first flips to the side of
- * the anchor that has room, then is clamped inside the viewport. A menu taller than the room left
- * scrolls (`maxHeight`).
- */
 export function placeMenu(
   anchor: MenuAnchor,
   { width, height }: { width: number; height: number },
@@ -116,7 +87,6 @@ export function placeMenu(
   if ('rect' in anchor) {
     const { rect, placement } = anchor;
     if (placement === 'right') {
-      // Line the first item up with the entry: the panel has 4px of padding.
       left = fitsRight(rect.right) || rect.left - width < EDGE ? rect.right : rect.left - width;
       top = fitsBelow(rect.top - 4) || rect.bottom + 4 - height < EDGE ? rect.top - 4 : rect.bottom + 4 - height;
     } else {
@@ -143,17 +113,6 @@ function anchorKey(anchor: MenuAnchor): string {
     : `${anchor.align}:${anchor.x},${anchor.y}`;
 }
 
-/**
- * Popup menu with the keyboard model of a desktop QMenu (WAI-ARIA menu pattern): opening moves
- * focus to the first item, ↑/↓/Home/End move between items and wrap, typing jumps to the next
- * item starting with the typed text, → and Enter open a submenu and ← closes it, Escape closes one
- * level, Tab closes the whole menu, and closing returns focus to the control that opened it.
- * Outside presses close it too. The pointer moves focus with it; resting on a submenu entry opens
- * the submenu without taking focus, and it stays open briefly while the pointer crosses siblings.
- *
- * Items are found in the DOM, so entries rendered by an extension slot take part as long as they
- * carry a `menuitem` role. Portalled to `document.body` so scrolling ancestors never clip it.
- */
 export function Menu({
   anchor, label, onClose, triggerRef, autoFocus = true, id, className, onKeyDown: onShortcutKey, children,
 }: MenuProps) {
@@ -168,9 +127,6 @@ export function Menu({
   const ref = useRef<HTMLDivElement>(null);
   const [openSubmenu, setOpenSubmenu] = useState<string | null>(null);
   const placement = anchorKey(anchor);
-  // Placed for one anchor at a time: while `position` is null the panel renders at 0,0 without a
-  // height cap, so the layout effect below measures its natural size (a capped panel would always
-  // "fit" below the anchor). Both renders happen before the browser paints.
   const [placed, setPlaced] = useState<{ for: string; position: ReturnType<typeof placeMenu> } | null>(null);
   const position = placed?.for === placement ? placed.position : null;
   const onCloseRef = useRef(onClose);
@@ -178,8 +134,6 @@ export function Menu({
   const typed = useRef({ text: '', at: 0 });
   const closeTimer = useRef<number | undefined>(undefined);
 
-  // Place it once its natural size is known: it flips to the side of the anchor with room, and is
-  // then slid back on-screen; a menu taller than the screen scrolls instead of spilling.
   useLayoutEffect(() => {
     if (position) {
       return;
@@ -189,9 +143,6 @@ export function Menu({
     // eslint-disable-next-line react-hooks/exhaustive-deps -- re-placed when the anchor's numbers change
   }, [placement, position]);
 
-  // Focus in on open, back out on close. A layout effect, so focus is back on the opener before
-  // a dialog opened by the chosen item (in the same commit) focuses its own field and records
-  // where focus came from.
   useLayoutEffect(() => {
     const menu = ref.current;
     const opener = triggerRef?.current
@@ -199,7 +150,6 @@ export function Menu({
     const fallback = opener ? (returnFocusTo ?? closestList)(opener) : null;
     return () => {
       const active = document.activeElement;
-      // Focus is ours to hand back while it is on <body>, in this menu or in a submenu of it.
       const ours = active == null || active === document.body || menu?.contains(active)
         || active.closest('[role="menu"]')?.getAttribute('data-menu-ancestors')?.split(' ').includes(menuIdentity);
       if (!ours) {
@@ -235,8 +185,6 @@ export function Menu({
 
   useEffect(() => () => window.clearTimeout(closeTimer.current), []);
 
-  // Outside presses close the root menu (a submenu closes with it). Attached a frame late so the
-  // press that opened the menu doesn't close it straight away.
   useEffect(() => {
     if (parent) {
       return;
@@ -257,8 +205,6 @@ export function Menu({
 
   const onKeyDown = (event: KeyboardEvent<HTMLDivElement>) => {
     const menu = ref.current;
-    // Leaving the menu closes every level: Tab from a submenu bubbles up to the root menu through
-    // the React tree, and focus advances from the opener in the requested direction.
     if (event.key === 'Tab') {
       if (!parent) {
         event.preventDefault();
@@ -267,7 +213,6 @@ export function Menu({
       }
       return;
     }
-    // Other keys from a submenu bubble here too; that level handles its own.
     if (!menu || (event.target as Element).closest('[role="menu"]') !== menu) {
       return;
     }
@@ -282,8 +227,6 @@ export function Menu({
       const next = items[(i + items.length) % items.length];
       next?.focus();
       typed.current = { text: '', at: 0 };
-      // Moving off the entry of a submenu opened by hovering closes it, as QMenu does when its
-      // current action changes.
       if (openSubmenu != null && next?.dataset.submenu !== openSubmenu) {
         window.clearTimeout(closeTimer.current);
         setOpenSubmenu(null);
@@ -306,7 +249,6 @@ export function Menu({
         onClose();
         break;
       case 'ArrowLeft':
-        // Only a submenu closes on ←, handing focus back to its entry in the parent menu.
         if (!parent) {
           return;
         }
@@ -316,13 +258,9 @@ export function Menu({
         if (event.key.length !== 1 || event.altKey || event.ctrlKey || event.metaKey) {
           return;
         }
-        // Type-ahead: letters typed in quick succession build one prefix ("mo" → "Move to"). A
-        // repeated single letter keeps cycling through the items starting with it.
         const key = event.key.toLocaleLowerCase();
         const now = Date.now();
         const searching = typed.current.text !== '' && now - typed.current.at <= TYPEAHEAD_TIMEOUT;
-        // Space activates the focused item, except inside a search ("move c"), where running the
-        // item it passes over would be an action the user was only looking for.
         if (key === ' ' && !searching) {
           return;
         }
@@ -330,7 +268,6 @@ export function Menu({
         typed.current = { text, at: now };
         const cycling = [...text].every((letter) => letter === key);
         const prefix = cycling ? key : text;
-        // A new search starts after the focused item; a growing prefix may still match it.
         const start = cycling ? index + 1 : Math.max(index, 0);
         const next = [...items.slice(start), ...items.slice(0, start)]
           .find((item) => item.textContent?.trim().toLocaleLowerCase().startsWith(prefix));
@@ -341,14 +278,10 @@ export function Menu({
     event.stopPropagation();
   };
 
-  // The pointer moves focus with it, so one row is highlighted, and pointing at another entry
-  // closes an open submenu after a short delay (QMenu's behaviour); pointing back at the open
-  // submenu's entry, or into the submenu, keeps it open.
   const onMouseOver = (event: MouseEvent<HTMLDivElement>) => {
     const menu = ref.current;
     const target = event.target as Element;
     const item = target.closest<HTMLElement>(ITEM_SELECTOR);
-    // Events from a submenu reach this level through the React tree: the pointer is inside it.
     if (!menu || !menu.contains(target)) {
       window.clearTimeout(closeTimer.current);
       return;
@@ -405,18 +338,11 @@ export function Menu({
 
 interface MenuEntryProps {
   disabled?: boolean;
-  /** Why a disabled entry is off. Read out with it (`aria-describedby`) and shown on hover. */
   disabledReason?: string;
   icon?: ReactNode;
-  /** Shortcut hint drawn on the right, as the user reads it (e.g. "Ctrl+Shift+A"). For an action
-   *  the user can rebind, spread `useMenuShortcut()(actionId)` (feature-widgets/shortcuts) instead
-   *  of writing this and `keyShortcuts` by hand. */
   shortcut?: string;
-  /** The same shortcut for assistive technology, in `aria-keyshortcuts` syntax (e.g.
-   *  "Control+Shift+A"; alternatives separated by spaces). */
   keyShortcuts?: string;
   title?: string;
-  /** Close the whole menu after this entry is chosen. */
   closeOnSelect?: boolean;
   children: ReactNode;
 }
@@ -426,7 +352,6 @@ interface MenuEntryButtonProps extends Omit<MenuEntryProps, 'closeOnSelect'> {
   checked?: boolean;
   onActivate: () => void;
   closeOnSelect: boolean;
-  /** Drawn after the shortcut (a check mark or radio dot). */
   indicator?: ReactNode;
 }
 
@@ -481,7 +406,6 @@ export interface MenuItemProps extends MenuEntryProps {
   onSelect: () => void;
 }
 
-/** A menu entry. Choosing it runs `onSelect` and closes the menu, unless `closeOnSelect` is false. */
 export function MenuItem({ onSelect, closeOnSelect = true, ...props }: MenuItemProps) {
   return <MenuEntryButton role="menuitem" onActivate={onSelect} closeOnSelect={closeOnSelect} {...props} />;
 }
@@ -491,7 +415,6 @@ export interface MenuCheckboxItemProps extends MenuEntryProps {
   onChange: (checked: boolean) => void;
 }
 
-/** A checkable entry (`menuitemcheckbox`); toggling it leaves the menu open unless `closeOnSelect`. */
 export function MenuCheckboxItem({ checked, onChange, closeOnSelect = false, ...props }: MenuCheckboxItemProps) {
   return (
     <MenuEntryButton
@@ -506,16 +429,10 @@ export function MenuCheckboxItem({ checked, onChange, closeOnSelect = false, ...
 }
 
 export interface MenuRadioItemProps extends MenuEntryProps {
-  /** This entry is the group's current choice. */
   checked: boolean;
   onSelect: () => void;
 }
 
-/**
- * One choice of an exclusive group (`menuitemradio`), like a QAction in a QActionGroup. Wrap the
- * group in `MenuGroup`, or separate it with `MenuSeparator`s. Choosing it leaves the menu open
- * unless `closeOnSelect`.
- */
 export function MenuRadioItem({ checked, onSelect, closeOnSelect = false, ...props }: MenuRadioItemProps) {
   return (
     <MenuEntryButton
@@ -530,12 +447,10 @@ export function MenuRadioItem({ checked, onSelect, closeOnSelect = false, ...pro
 }
 
 export interface MenuGroupProps {
-  /** Accessible name of the group. */
   label: string;
   children: ReactNode;
 }
 
-/** A labelled group of entries (`role="group"`), e.g. the radio items of one choice. */
 export function MenuGroup({ label, children }: MenuGroupProps) {
   return <div role="group" aria-label={label}>{children}</div>;
 }
@@ -545,23 +460,14 @@ export function MenuSeparator() {
 }
 
 export interface MenuSubmenuProps {
-  /** The entry's text. A prop rather than `children` (which the entries take) because it is also
-   *  the submenu's accessible name, and `children` holds the submenu's own entries. */
   label: string;
   icon?: ReactNode;
   disabled?: boolean;
-  /** Why the submenu is off; see `MenuItem`'s `disabledReason`. */
   disabledReason?: string;
-  /** Width and other classes of the submenu panel. */
   className?: string;
   children: ReactNode;
 }
 
-/**
- * An entry that opens a nested menu to its side (to its left when the right has no room). → ,
- * Enter, Space or a click open it and move focus in; resting the pointer on it opens it after
- * `SUBMENU_OPEN_DELAY` and leaves focus where it is, so → still moves in.
- */
 export function MenuSubmenu({ label, icon, disabled, disabledReason, className, children }: MenuSubmenuProps) {
   const level = useContext(MenuLevelContext);
   const id = useId();
@@ -583,7 +489,6 @@ export function MenuSubmenu({ label, icon, disabled, disabledReason, className, 
       return;
     }
     if (open) {
-      // Already open from a hover: the keyboard still moves into it.
       const submenu = document.getElementById(menuId);
       if (moveFocus && submenu) {
         menuItems(submenu)[0]?.focus();
@@ -648,9 +553,7 @@ export function MenuSubmenu({ label, icon, disabled, disabledReason, className, 
 }
 
 export interface ContextMenuTrigger {
-  /** Where the menu is open, or null while closed. */
   anchor: MenuAnchor | null;
-  /** The control that opened it, for `Menu`'s `triggerRef`. */
   triggerRef: RefObject<HTMLElement | null>;
   close: () => void;
   getTriggerProps: () => {
@@ -661,7 +564,6 @@ export interface ContextMenuTrigger {
   };
 }
 
-/** True for the keys that open a context menu on every desktop platform: Shift+F10 and the Menu key. */
 export function isContextMenuKey(event: KeyboardEvent): boolean {
   if (event.key === 'ContextMenu') {
     return true;
@@ -669,11 +571,6 @@ export function isContextMenuKey(event: KeyboardEvent): boolean {
   return event.key === 'F10' && event.shiftKey && !event.ctrlKey && !event.altKey && !event.metaKey;
 }
 
-/**
- * Opener for a context menu on a focusable element: a right-click opens it at the pointer, and
- * Shift+F10 or the Menu key open it below the element (above it near the bottom of the screen),
- * so everything a right-click offers is reachable from the keyboard.
- */
 export function useContextMenu(): ContextMenuTrigger {
   const [anchor, setAnchor] = useState<MenuAnchor | null>(null);
   const triggerRef = useRef<HTMLElement | null>(null);
@@ -692,7 +589,6 @@ export function useContextMenu(): ContextMenuTrigger {
       onContextMenu: (event) => {
         event.preventDefault();
         triggerRef.current = event.currentTarget;
-        // A keyboard-raised contextmenu event carries no pointer position.
         if (event.clientX === 0 && event.clientY === 0) {
           openBelow(event.currentTarget);
         } else {

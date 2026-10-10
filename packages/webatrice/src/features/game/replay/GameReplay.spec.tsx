@@ -23,10 +23,7 @@ import { GameBoard } from '../Game';
 import { GameReadOnlyProvider } from '../components/ui/GameReadOnlyContext';
 import GameReplay from './GameReplay';
 
-// Block the Dexie-backed settings store from settling after mount.
 vi.mock('../../../hooks/useSettings');
-// A double-clicked hand card looks its type up before it moves; the real
-// catalog settles after the file ends and dispatches into a torn-down store.
 vi.mock('../../../services/cards/cardCatalog', async () =>
   (await import('../__test-utils__/unknownCardCatalog')).unknownCardCatalog());
 
@@ -53,10 +50,6 @@ function makeStore() {
   });
 }
 
-/**
- * Opens a replay with a mock client whose replay-game calls reach the store the
- * shipped way: WebClient → Datatrice's GameResponseImpl.
- */
 function openTestReplay(replay = buildReplay([sayContainer(0)])) {
   const store = makeStore();
   const webClient = createMockWebClient();
@@ -71,7 +64,6 @@ afterEach(() => {
   getOpenedReplays().forEach(({ key }) => closeReplay(key));
 });
 
-/** Every request facade method of the mock client, flattened. */
 function allRequestSpies(webClient: WebClient) {
   return Object.values(webClient.request).flatMap((scope) => Object.values(scope as unknown as Record<string, ReturnType<typeof vi.fn>>));
 }
@@ -93,7 +85,6 @@ describe('GameReplay route', () => {
     expect(screen.getByTestId('game-container')).toHaveAttribute('data-readonly', 'true');
     expect(screen.getByTestId('spectating-tag')).toHaveTextContent('GameReplay.sidebar.tag');
     expect(screen.queryByTestId('game-log-timer')).not.toBeInTheDocument();
-    // Desktop's replay tab has no say box.
     expect(screen.getByLabelText('ChatLog.inputLabel').closest('form')).not.toBeVisible();
     expect(screen.queryByRole('button', { name: 'GameInvite.copyLink' })).not.toBeInTheDocument();
     expect(screen.queryByRole('button', { name: 'GameInvite.inviteToGame' })).not.toBeInTheDocument();
@@ -131,8 +122,6 @@ describe('GameReplay route', () => {
 describe('GameBoard in read-only mode', () => {
   const REPLAY_GAME_ID = -1001;
 
-  // A seated local player (unlike a real replay) so the board would act on input
-  // if anything let it through.
   function boardState() {
     const players = Object.fromEntries([0, 1].map((pid) => [pid, makePlayerEntry({
       properties: makePlayerProperties({ playerId: pid, userInfo: makeUser({ name: `P${pid}` }) }),
@@ -170,7 +159,6 @@ describe('GameBoard in read-only mode', () => {
       </GameReadOnlyProvider>,
       { preloadedState: boardState(), webClient, gameId: undefined },
     );
-    // Mount-time fetches (the top bar's deck list) are not board input.
     vi.clearAllMocks();
     const board = screen.getByTestId('game-container').querySelector('.game__board')!;
     for (const element of [board, ...Array.from(board.querySelectorAll('*'))]) {
@@ -180,7 +168,6 @@ describe('GameBoard in read-only mode', () => {
       fireEvent.doubleClick(element);
       fireEvent.contextMenu(element);
     }
-    // Let the double-click card lookups settle and send their moves.
     await act(async () => {});
     return allRequestSpies(webClient).filter((spy) => spy.mock.calls.length > 0);
   }

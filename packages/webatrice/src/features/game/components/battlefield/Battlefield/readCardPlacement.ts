@@ -2,8 +2,6 @@ import { CardDTO, lookupCard } from '@app/services';
 
 import { parseTableRow, type CardPlacementMeta, type PlayedCardMeta } from './cardPlacement';
 
-/** Read cards.xml first; a card absent from the import uses the catalog's
- * type line. Keep XML's pt verbatim, as desktop CardInfo::getPowTough does. */
 export async function readCardPlacement(name: string): Promise<CardPlacementMeta & PlayedCardMeta> {
   const entry = await CardDTO.get(name).catch(() => undefined);
   if (entry) {

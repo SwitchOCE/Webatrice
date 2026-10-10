@@ -22,11 +22,6 @@ function Opener({ autofocus = false }: { autofocus?: boolean }) {
 }
 
 describe('DialogShell', () => {
-  // @critical Regression: a form submit inside a dialog must not bubble through
-  // the React tree to an ancestor <form> on the page behind the modal. The
-  // dialog portals to document.body, but React dispatches synthetic submit
-  // events along the component tree, so without containment the outer form's
-  // onSubmit would fire (the "Add Host auto-logs you in" bug).
   it('does not leak a dialog form submit to an ancestor form', () => {
     const outerSubmit = vi.fn((e: React.FormEvent) => e.preventDefault());
     const innerSubmit = vi.fn((e: React.FormEvent) => e.preventDefault());
@@ -72,7 +67,6 @@ describe('DialogShell', () => {
     renderWithProviders(<Opener />);
     await user.click(screen.getByRole('button', { name: 'Open' }));
 
-    // Name → Address, then past the last control back round to the header's Close button.
     await user.tab();
     expect(screen.getByRole('textbox', { name: 'Address' })).toHaveFocus();
     await user.tab();

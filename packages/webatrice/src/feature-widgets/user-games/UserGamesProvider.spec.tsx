@@ -23,7 +23,6 @@ const withBobOnline = (online: boolean): Partial<RootState> => ({
   server: { ...(connectedState.server as RootState['server']), users: online ? { bob } : {} },
 });
 
-// Stands in for the moderation widget's entries, which fill the slot from further out.
 const OuterSlot = ({ userName }: UserMenuSlotProps) => <button type="button" role="menuitem">{`outer ${userName}`}</button>;
 
 function renderMenu({ online = true, showRow = true } = {}) {

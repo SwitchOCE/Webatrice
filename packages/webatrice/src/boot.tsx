@@ -17,9 +17,7 @@ import CardPreviewPopupPage from './features/game/components/CardPreviewPopup/Ca
 import './i18n';
 import './index.css';
 
-// Keep the client log for "View debug log" from here on. The console still prints everything.
 installConsoleCapture();
-// Desktop's Logger opens with the client version, system and locale (logger.cpp).
 debugLog.setHeader([
   `Client: ${CLIENT_CONFIG.clientid} ${CLIENT_CONFIG.clientver}`,
   `Browser: ${navigator.userAgent}`,
@@ -62,8 +60,6 @@ const isCardPreviewPopup =
   typeof window !== 'undefined'
   && window.location.hash === '#/card-preview-popup';
 
-// Paint with the user's palette from the first frame (both the app and the popup window);
-// AppThemeProvider takes over once settings load and follows every later change.
 bootColorScheme();
 if (isCardPreviewPopup) {
   followBootColorScheme();

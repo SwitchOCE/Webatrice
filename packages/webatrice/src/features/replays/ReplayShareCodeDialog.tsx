@@ -12,7 +12,6 @@ export interface ReplayShareCodeDialogProps {
   onClose: () => void;
 }
 
-/** Desktop's "Replay Share Code" message box, with its Copy to clipboard button. */
 function ReplayShareCodeDialog({ code, onClose }: ReplayShareCodeDialogProps) {
   const { t } = useTranslation();
   const [copied, setCopied] = useState(false);

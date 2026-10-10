@@ -35,7 +35,6 @@ function setup() {
     },
     requestId: () => vi.mocked(client.request.session.replayList).mock.lastCall?.[0],
     requestCount: () => vi.mocked(client.request.session.replayList).mock.calls.length,
-    // Replacing the context client re-runs the hook's refresh without remounting it.
     refresh: () => {
       client = createMockWebClient();
       view.rerender(ui());

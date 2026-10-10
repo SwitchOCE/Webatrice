@@ -1,30 +1,16 @@
-// What a battlefield card action applies to, and the per-card maths it sends:
-// shared by the battlefield card menu and the seat's keyboard shortcuts
-// (useBattlefieldCardOps binds these to the seat ports). Pure: no React, no
-// requests.
 
 import type { SeatSelection } from '../../../hooks/useSeatSelection';
 import { applyPTDelta, parsePT } from '../../context-menus/CardContextMenu/cardAttributeEdits';
 import { MAX_COUNTER_VALUE } from './counterLimits';
 import type { BattlefieldCardViewModel, CardCloneSource } from './playerBoard.types';
 
-/** The cards a battlefield action applies to, and the card whose state drives
- *  its toggles and prompt prefills. */
 export interface BattlefieldTargets {
   cards: readonly BattlefieldCardViewModel[];
   anchor: BattlefieldCardViewModel;
 }
 
-/** The printed P/T of a card by name, or '' when unknown. */
 type PrintedPT = (cardName: string) => string;
 
-/**
- * Desktop's cardMenuAction rule (player_actions.cpp:1761-1808). From a card
- * menu (`anchorId` given): the whole battlefield selection when the clicked
- * card is part of it, otherwise that card alone. From a shortcut (no anchor):
- * the battlefield selection, anchored on its first card. Cards come back in
- * display order; null when there is nothing to act on.
- */
 export function resolveTargets(
   cards: readonly BattlefieldCardViewModel[],
   selection: SeatSelection | null,
@@ -47,8 +33,6 @@ export function resolveTargets(
   return selected.length > 0 ? { cards: selected, anchor: selected[0] } : null;
 }
 
-/** The battlefield selection when there is one, else the whole battlefield
- *  (desktop actIncrementAllCardCounters). */
 export function selectionOrAll(
   cards: readonly BattlefieldCardViewModel[],
   selection: SeatSelection | null,
@@ -58,21 +42,14 @@ export function selectionOrAll(
     : cards;
 }
 
-/** Server ids of the cards; optimistic placeholders without one drop out. */
 export function cardIdsOf(cards: readonly BattlefieldCardViewModel[]): number[] {
   return cards.map((c) => Number(c.id)).filter((id) => Number.isFinite(id));
 }
 
-/** The P/T a card shows: the server's, else its printed one. */
 export function currentPT(card: BattlefieldCardViewModel, printedPT: PrintedPT): string {
   return card.pt || printedPT(card.name);
 }
 
-/**
- * Desktop actIncPT over the cards: each card moves from its OWN current P/T,
- * so a mixed selection keeps its differences. A card with no P/T starts from
- * `0/0`, so `+1/+0` gives `1/0` rather than dropping the toughness.
- */
 export function ptDeltaEntries(
   cards: readonly BattlefieldCardViewModel[],
   printedPT: PrintedPT,
@@ -85,10 +62,6 @@ export function ptDeltaEntries(
   }));
 }
 
-/**
- * Desktop actResetPT: a face-down card resets to no P/T, a face-up one to its
- * printed P/T. Cards already there are skipped.
- */
 export function resetPTEntries(
   cards: readonly BattlefieldCardViewModel[],
   printedPT: PrintedPT,
@@ -99,8 +72,6 @@ export function resetPTEntries(
   });
 }
 
-/** One step of counter `counterId` on each card, from each card's own value,
- *  skipping cards already at the [0, MAX_COUNTER_VALUE] bound. */
 export function counterStepEntries(
   cards: readonly BattlefieldCardViewModel[],
   counterId: number,
@@ -112,8 +83,6 @@ export function counterStepEntries(
   });
 }
 
-/** Desktop actIncrementAllCardCounters: +1 on every counter the cards already
- *  carry, skipping counters at MAX_COUNTER_VALUE. */
 export function incrementAllCounterEntries(
   cards: readonly BattlefieldCardViewModel[],
 ): { cardId: number; counterId: number; value: number }[] {
@@ -128,11 +97,6 @@ export function counterValue(card: BattlefieldCardViewModel, counterId: number):
   return card.counters?.find((counter) => counter.id === counterId)?.value ?? 0;
 }
 
-/**
- * Desktop actReduceLifeByPower (player_actions.cpp:1432-1455): the summed
- * power of the cards, from the server's P/T only (no printed fallback), with
- * a negative power counting as 0.
- */
 export function totalPower(cards: readonly BattlefieldCardViewModel[]): number {
   let total = 0;
   for (const card of cards) {
@@ -148,7 +112,6 @@ export function totalPower(cards: readonly BattlefieldCardViewModel[]): number {
   return total;
 }
 
-/** Desktop cmClone: a token copying the card, on the card's own row. */
 export function cloneSource(card: BattlefieldCardViewModel): CardCloneSource {
   return {
     name: card.name,
@@ -160,7 +123,6 @@ export function cloneSource(card: BattlefieldCardViewModel): CardCloneSource {
   };
 }
 
-/** Ids of every card sharing the anchor's battlefield row or column. */
 export function sameSlotIds(
   cards: readonly BattlefieldCardViewModel[],
   anchor: BattlefieldCardViewModel,

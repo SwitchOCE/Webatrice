@@ -54,14 +54,11 @@ const KnownHosts = ({ onChange, error, touched, disabled }: KnownHostsProps) => 
   const hostLabelId = useId();
   const popupId = useId();
 
-  // Picking a host or pressing Escape unmounts the focused popup item, so hand
-  // focus back to the trigger instead of dropping it on <body>.
   const close = () => {
     setOpen(false);
     triggerRef.current?.focus();
   };
 
-  // Each opening starts the keyboard on the selected host.
   const toggle = () => {
     setActiveId(undefined);
     setOpen((o) => !o);
@@ -91,8 +88,6 @@ const KnownHosts = ({ onChange, error, touched, disabled }: KnownHostsProps) => 
     };
   }, [open]);
 
-  // The saved-hosts listbox keeps focus itself and points at the keyboard's
-  // current option with aria-activedescendant (APG single-select listbox).
   const typeahead = useRef({ text: '', at: 0 });
   const activeHost = hosts.find((h) => h.id === activeId) ?? selectedHost ?? hosts[0];
   const optionId = (id: number) => `${popupId}-host-${id}`;
@@ -139,7 +134,6 @@ const KnownHosts = ({ onChange, error, touched, disabled }: KnownHostsProps) => 
         return;
       default:
         if (e.key.length === 1 && !e.ctrlKey && !e.metaKey && !e.altKey) {
-          // Type-ahead: keys typed within half a second build a name prefix.
           const now = Date.now();
           const text = (now - typeahead.current.at < 500 ? typeahead.current.text : '') + e.key.toLowerCase();
           typeahead.current = { text, at: now };
@@ -239,7 +233,6 @@ const KnownHosts = ({ onChange, error, touched, disabled }: KnownHostsProps) => 
         </div>
       </div>
 
-      {/* The status icon is colour-only; announce the connection test result. */}
       <span role="status" className="sr-only">
         {selectedHost && testConnectionStatus != null && t(`KnownHosts.status.${testConnectionStatus}`)}
       </span>
@@ -314,8 +307,6 @@ const KnownHosts = ({ onChange, error, touched, disabled }: KnownHostsProps) => 
               );
             })}
           </ul>
-          {/* Edit lives outside the listbox (only options may sit inside one)
-              and acts on the selected host. */}
           {selectedHost && (
             <button
               type="button"

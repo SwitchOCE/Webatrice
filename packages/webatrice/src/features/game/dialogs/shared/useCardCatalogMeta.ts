@@ -16,17 +16,6 @@ export function zoneViewMetaFromLookup(name: string, r: LookupResult): ZoneViewC
   };
 }
 
-/**
- * The catalog fields (type line, mana value, colours, set, P/T) a zone view
- * sorts, groups and searches on, keyed by card name: dumps and reveals often
- * leave the provider id empty, and these fields are the same across printings.
- * Names already answered skip the round trip; new ones are looked up in one
- * batch. A name the catalog leaves out of its answer counts as unknown.
- *
- * `metadataLoaded` is true once every listed name has an answer. Until then a
- * view lists its cards ungrouped and unsorted, so a card whose metadata landed
- * first is never briefly the only one outside "Other".
- */
 export function useCardCatalogMeta(cards: readonly { name: string }[]) {
   const [metaByName, setMetaByName] = useState<ReadonlyMap<string, ZoneViewCardMetadata>>(() => new Map());
   const names = useMemo(() => [...new Set(cards.map((c) => c.name).filter((n) => n.length > 0))], [cards]);

@@ -4,7 +4,6 @@ import { dexieService, REPLAY_LIBRARY_ROOT, ReplayFileDTO, ReplayNameTakenError 
 import { resetDexie } from './resetDexie';
 
 const bytes = (...values: number[]) => new Uint8Array(values);
-// fake-indexeddb structured-clones into another realm, so compare contents.
 const contents = (data: Uint8Array | undefined) => (data ? Array.from(data) : undefined);
 
 beforeEach(async () => {

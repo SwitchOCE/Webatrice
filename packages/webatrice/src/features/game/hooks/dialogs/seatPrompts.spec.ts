@@ -123,8 +123,6 @@ describe('moveXFromTopPrompt', () => {
 });
 
 describe('tokenCountPrompt', () => {
-  // Desktop asks QInputDialog::getInt(…, "Create tokens", "Number:", default, 1, 99)
-  // (player_dialogs.cpp:205-206).
   it('takes 1 to 99, seeded with the default count', () => {
     const onSubmit = vi.fn();
     const prompt = tokenCountPrompt({ tokenName: 'Treasure', initial: 3, onSubmit });

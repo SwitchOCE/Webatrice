@@ -7,22 +7,12 @@ import { useListboxCombobox } from '@app/hooks';
 import { useQuickAddSuggestions } from '../../hooks/useQuickAddSuggestions';
 
 export interface QuickAddSearchProps {
-  /** Controlled query state — lifted to the parent so the Advanced
-   *  search button can take it over on switch (see DeckMainPane). */
   query: string;
   onQueryChange: (query: string) => void;
   onAdd: (name: string) => void;
-  /** The combobox input, for a parent that hands focus to it. */
   inputRef?: RefObject<HTMLInputElement | null>;
 }
 
-/**
- * Card-name autocomplete for the MTG toolbar, as an ARIA 1.2 combobox: the
- * input keeps focus while ↑/↓ move the highlighted option (announced through
- * `aria-activedescendant`), Enter adds it (or, with the list closed, the
- * typed name), and Escape closes the popup, then clears the field. A polite status reports searching,
- * the number of suggestions and no matches.
- */
 export function QuickAddSearch({ query, onQueryChange, onAdd, inputRef: externalInputRef }: QuickAddSearchProps) {
   const { t } = useTranslation();
   const setQuery = onQueryChange;
@@ -72,14 +62,12 @@ export function QuickAddSearch({ query, onQueryChange, onAdd, inputRef: external
     highlight,
     onHighlightChange: setHighlight,
     onAccept: (index) => handleAdd(suggestions[index].name),
-    // A searching or no-matches panel closes like the list.
     popupShown: searching,
     onClose: () => {
       setOpen(false);
       setHighlight(-1);
     },
     onOpen: () => setOpen(true),
-    // With the list closed, Enter adds what was typed, not a suggestion the user can't see.
     onEnterWithoutOption: () => {
       if (query.trim()) {
         handleAdd(query.trim());
@@ -136,7 +124,6 @@ export function QuickAddSearch({ query, onQueryChange, onAdd, inputRef: external
 
       <p role="status" className="sr-only">{status}</p>
 
-      {/* Always rendered, hidden while closed: the combobox's aria-controls points at the listbox. */}
       <div
         hidden={!searching}
         className={[

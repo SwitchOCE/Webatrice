@@ -17,7 +17,6 @@ const A = deck('A');
 const B = deck('B');
 const C = deck('C');
 
-/** A → B → C, each step recorded with a rename reason. */
 function twoEdits(): DeckHistory {
   let h = recordDeckEdit(EMPTY_DECK_HISTORY, A, { kind: 'rename', from: 'A', to: 'B' }, { now: 0 });
   h = recordDeckEdit(h, B, { kind: 'rename', from: 'B', to: 'C' }, { now: 1000 });
@@ -98,7 +97,6 @@ describe('deckHistoryRows', () => {
     expect(rows.redo.map((r) => [r.reason.kind, r.steps])).toEqual([['tags', 2], ['rename', 1]]);
     expect(rows.undo.map((r) => [r.reason.kind, r.steps])).toEqual([['rename', 1]]);
 
-    // Clicking the furthest redo row redoes both steps.
     expect(redoDeck(history, B, rows.redo[0].steps)!.deck.name).toBe('D');
   });
 });

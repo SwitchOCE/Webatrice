@@ -29,7 +29,6 @@ function dispatchThroughStore<P>(
   return store.getState().rooms;
 }
 
-
 describe('Initialisation', () => {
   it('returns initialState when called with undefined state', () => {
     const result = roomsReducer(undefined, { type: '@@INIT' });
@@ -50,7 +49,6 @@ describe('Initialisation', () => {
     expect(result).toEqual(state);
   });
 });
-
 
 describe('UPDATE_ROOMS', () => {
   it('creates RoomEntry with empty normalized games/users for new room', () => {
@@ -100,8 +98,6 @@ describe('UPDATE_ROOMS', () => {
   });
 
   it('no-op re-broadcast leaves the room entry untouched by reference', () => {
-    // Steady-state Event_ListRooms re-broadcasts must not flip room refs — see
-    // datatrice-store.instructions.md § UPDATE_ROOMS.
     const state = makeRoomsState({ rooms: {} });
     const room = makeRoom({ roomId: 1, name: 'Main Hall' }).info;
     const first = dispatchThroughStore(state, Actions.updateRooms({ rooms: [room] }));
@@ -158,7 +154,6 @@ describe('UPDATE_ROOMS', () => {
   });
 });
 
-
 describe('JOIN_ROOM', () => {
   it('normalizes raw room into keyed games/users maps and marks joined', () => {
     const state = makeRoomsState({ rooms: {}, joinedRoomIds: {} });
@@ -177,7 +172,6 @@ describe('JOIN_ROOM', () => {
   });
 });
 
-
 describe('LEAVE_ROOM', () => {
   it('removes joinedRoomIds entry and messages for roomId', () => {
     const state = makeRoomsState({
@@ -189,7 +183,6 @@ describe('LEAVE_ROOM', () => {
     expect(result.messages[1]).toBeUndefined();
   });
 });
-
 
 describe('ADD_MESSAGE', () => {
   it('appends message preserving the timeReceived from the event handler', () => {
@@ -221,9 +214,6 @@ describe('ADD_MESSAGE', () => {
   });
 
   it('keeps each surviving message\'s id across the cap trim (chat rows key on id)', () => {
-    // Chat rows key on message.id, not the array index. When the head is
-    // trimmed at the cap, every survivor must keep the id it was stored with —
-    // otherwise the keys shift and React remounts the whole scrollback.
     const seeded = Array.from({ length: MAX_ROOM_MESSAGES }, (_, i) =>
       makeMessage({ message: `msg-${i}`, id: i })
     );
@@ -284,7 +274,6 @@ describe('ROOM_SAY_FAILED', () => {
     expect(result.messages[1][0]).toMatchObject({ notice: 'notSent', failure: WebsocketTypes.CommandFailure.Disconnected });
   });
 });
-
 
 describe('UPDATE_GAMES', () => {
   it('removes closed games from the keyed games map', () => {
@@ -363,7 +352,6 @@ describe('UPDATE_GAMES', () => {
   });
 });
 
-
 describe('USER_JOINED', () => {
   it('inserts user into the keyed users map', () => {
     const room = makeRoom({ roomId: 1, users: { Zane: makeUser({ name: 'Zane' }) } });
@@ -388,7 +376,6 @@ describe('USER_LEFT', () => {
   });
 });
 
-
 describe('SORT_GAMES', () => {
   it('updates sortGamesBy on state (sorting itself is now derived in selectors)', () => {
     const state = makeRoomsState({ rooms: {} });
@@ -400,7 +387,6 @@ describe('SORT_GAMES', () => {
     expect(result.sortGamesBy).toEqual({ field: App.GameSortField.START_TIME, order: App.SortDirection.ASC });
   });
 });
-
 
 describe('REMOVE_MESSAGES', () => {
   it('removes messages starting with "name:" up to amount, in reverse scan order', () => {
@@ -443,8 +429,6 @@ describe('REMOVE_MESSAGES', () => {
   });
 });
 
-
-
 describe('JOINED_GAME', () => {
   it('sets joinedGameIds[roomId][gameId] = true', () => {
     const state = makeRoomsState({ joinedGameIds: {} });
@@ -459,7 +443,6 @@ describe('JOINED_GAME', () => {
     expect(result.joinedGameIds[1][5]).toBe(true);
   });
 });
-
 
 describe('SELECT_GAME', () => {
   it('records the selected gameId for the room', () => {
@@ -480,7 +463,6 @@ describe('SELECT_GAME', () => {
     expect(result.selectedGameIds[2]).toBe(11);
   });
 });
-
 
 describe('UPDATE_GAMES \u2014 selection lifecycle', () => {
   it('clears selectedGameIds[roomId] when the selected game is closed', () => {
@@ -504,7 +486,6 @@ describe('UPDATE_GAMES \u2014 selection lifecycle', () => {
   });
 });
 
-
 describe('LEAVE_ROOM \u2014 selection and filters', () => {
   it('clears selectedGameIds and gameFilters for the leaving room', () => {
     const state = makeRoomsState({
@@ -517,7 +498,6 @@ describe('LEAVE_ROOM \u2014 selection and filters', () => {
     expect(result.gameFilters[1]).toBeUndefined();
   });
 });
-
 
 describe('JoinGame error state', () => {
   it('SET_JOIN_GAME_PENDING toggles joinGamePending', () => {
@@ -568,7 +548,6 @@ describe('JoinGame error state', () => {
   });
 });
 
-
 describe('SET_GAME_FILTERS / CLEAR_GAME_FILTERS', () => {
   it('SET_GAME_FILTERS stores filter state for the room', () => {
     const state = makeRoomsState();
@@ -585,7 +564,6 @@ describe('SET_GAME_FILTERS / CLEAR_GAME_FILTERS', () => {
     expect(result.gameFilters[1]).toEqual(DEFAULT_GAME_FILTERS);
   });
 });
-
 
 describe('Cross-slice cleanup on game removal', () => {
   it('GAME_LEFT strips the gameId from joinedGameIds across rooms', () => {
@@ -628,7 +606,6 @@ describe('Cross-slice cleanup on game removal', () => {
     expect(result.selectedGameIds[1]).toBeUndefined();
   });
 });
-
 
 describe('malformed input', () => {
   it('reducer with an unrecognized action type → identical state reference', () => {

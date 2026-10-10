@@ -135,7 +135,6 @@ describe('useSharedDeck', () => {
 
   it('reports a failed download for the item it asked for', () => {
     const { store } = setupShared();
-    // The failure names the share token only; the item is the one requested.
     act(() => shared.openItem(3));
     act(() => {
       store.dispatch(server.Actions.sessionCommandFailed({ command: 'deckShareDownload', target: 'tok', responseCode: 15 }));

@@ -15,10 +15,6 @@ interface TemporaryPasswordDialogProps {
   onDismiss: () => void;
 }
 
-/**
- * Desktop TabModeration::resetPasswordResponse. The temporary password is shown
- * once; dismissing the dialog drops the only copy the client holds.
- */
 const TemporaryPasswordDialog = ({ result, onDismiss }: TemporaryPasswordDialogProps) => {
   const { t } = useTranslation();
 

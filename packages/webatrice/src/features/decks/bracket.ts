@@ -1,17 +1,3 @@
-/**
- * Bracket assessment for Commander decks. Faithful port of the
- * algorithm edhpowerlevel.com runs client-side (see `bracketData.ts`
- * for constants copied from their bundle). We use their algorithm
- * because it's the community's de-facto standard — WotC's official
- * bracket rules are looser and don't match player consensus,
- * especially on combos.
- *
- * The third-party data it needs (Game Changers, oracle text, Spellbook
- * combos) comes through `bracketSources`, which reports outages instead
- * of returning empty data. An analysis missing any source is marked
- * incomplete: the signals it did find still set a floor, but the result
- * is not authoritative and must not be cached on the deck.
- */
 
 import {
   COMBO_PREREQUISITE_RULES,
@@ -75,10 +61,6 @@ export interface BracketReport {
 // `<bracketAssessment>` element so consumers can tell at a glance whether
 // the cache is still valid.
 
-/** Canonical string form of a deck for fingerprinting. Case-insensitive
- *  on names, quantity-, zone- and commander-aware, order-independent.
- *  A plain main-deck card keeps the original `namexqty` form, so caches
- *  written before zones mattered stay valid for decks they still fit. */
 export function deckFingerprintSource(cards: DeckCard[]): string {
   return cards
     .map((c) => {
@@ -254,7 +236,6 @@ function filterAndSplitCombos(
 
 // ---------- Top-level analysis ----------
 
-/** A source the analysis had to do without (in whole, or `missing` of `total` items), and why. */
 export interface UnavailableSource {
   source: BracketSource;
   failure: SourceFailure;
@@ -264,21 +245,13 @@ export interface UnavailableSource {
 
 export interface BracketAnalysis {
   report: BracketReport;
-  /** Sources that failed or answered in part; empty when the analysis is complete. */
   unavailable: UnavailableSource[];
 }
 
-/** An analysis built from every source — the only kind that may be cached. */
 export function isCompleteAnalysis(analysis: BracketAnalysis): boolean {
   return analysis.unavailable.length === 0;
 }
 
-/**
- * Run the full bracket assessment on a deck: fetch the three data
- * sources in parallel, then apply the local classifier to whatever
- * arrived. Missing data can only hide signals, so an incomplete
- * analysis's level is a floor.
- */
 export async function analyzeBracket(cards: DeckCard[]): Promise<BracketAnalysis> {
   const names = Array.from(new Set(cards.map((c) => c.name)));
 

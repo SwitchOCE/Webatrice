@@ -99,8 +99,6 @@ beforeEach(() => {
   mockNavigate.mockReset();
 });
 
-// Moved from GameSelector.spec when PR 27 deleted GameSelector; the gating
-// came with useCanOverrideGameRestrictions.
 const { IsRegistered, IsModerator, IsJudge } = ServerInfo_User_UserLevelFlag;
 describe('GamesList restriction gating', () => {
   it.each([

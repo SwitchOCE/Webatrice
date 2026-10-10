@@ -54,11 +54,8 @@ function AppShell() {
         <Router initialEntries={initialEntries}>
           <ShortcutProvider>
             <FeatureDetection />
-            {/* Final outcomes must survive session teardown until dismissed. */}
             <CommandFailureNotices />
             <ServerNotices />
-            {/* Desktop's "server supports features your client lacks" box, after a login. Outside
-             *  SessionScope: the login that raises it also starts the new session. */}
             <MissingFeaturesNotice />
             <SessionScope>
               {/* Global listener for incoming private-chat messages —
@@ -68,13 +65,9 @@ function AppShell() {
                *  useLocation work; inside ToastProvider so pushToast
                *  is available. */}
               <PrivateMessageNotifier />
-              {/* Sounds and notifications for game, room and buddy events. */}
               <AppAlerts />
-              {/* Runs the join flow for game links clicked in any chat. */}
               <GameLinkJoinHost endpoint={liveServer} />
-              {/* REPORT_RESOLVED / REPORT_COMMENT popups (desktop processNotifyUserEvent). */}
               <ReportNotifier />
-              {/* Hosts the report-user dialog for useReportUser().openReportUser. */}
               <ReportUserProvider>
                 <ModerationProvider>
                   <UserGamesProvider>
@@ -87,10 +80,6 @@ function AppShell() {
                 </ModerationProvider>
               </ReportUserProvider>
             </SessionScope>
-            {/* Opens a deck share link the page was loaded with, after
-             *  login. After the routes so it navigates after the login
-             *  page's own redirect. Outside SessionScope: it reads the
-             *  page-load address once and keeps the link in session storage. */}
             <DeckShareLinkRedirect />
           </ShortcutProvider>
         </Router>

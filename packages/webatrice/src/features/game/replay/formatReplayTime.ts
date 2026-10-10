@@ -1,4 +1,3 @@
-/** `m:ss` (or `h:mm:ss`) for a playback position in milliseconds. */
 export function formatReplayTime(ms: number): string {
   const totalSeconds = Math.max(0, Math.floor(ms / 1000));
   const hours = Math.floor(totalSeconds / 3600);

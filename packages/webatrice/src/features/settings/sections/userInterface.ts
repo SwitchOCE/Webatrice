@@ -7,10 +7,8 @@ import { AnimationButtons, animationToggle } from '../controls/AnimationControls
 import NotificationPermissionControl from '../controls/NotificationPermissionControl';
 import { SettingsSectionId, type SettingsSection } from '../registry';
 
-// Restoring the animations' defaults also hands them back to the system's reduced-motion setting.
 const ANIMATION_CHOICE_KEYS: readonly PreferenceKey[] = [...ANIMATION_PREFERENCE_KEYS, 'animationsChosen'];
 
-/** User Interface page (desktop user_interface_settings_page.cpp): behaviour the board honours. */
 export const userInterfaceSection: SettingsSection = {
   id: SettingsSectionId.UserInterface,
   titleKey: 'Settings.section.userInterface',
@@ -168,8 +166,6 @@ export const userInterfaceSection: SettingsSection = {
           control: {
             kind: 'select',
             key: 'commanderSpellbookIntegration',
-            // Desktop's three modes; its selector has no entry for the unprompted default and
-            // shows "Disabled" for it, so that state is named here rather than misreported.
             options: [
               {
                 value: CommanderSpellbookIntegration.Unprompted,
@@ -200,7 +196,6 @@ export const userInterfaceSection: SettingsSection = {
           id: 'replayRewindBufferingMs',
           labelKey: 'SettingsUserInterface.replayRewindBufferingMs.label',
           descriptionKey: 'SettingsUserInterface.replayRewindBufferingMs.description',
-          // Desktop's spin box range (user_interface_settings_page.cpp).
           control: {
             kind: 'number',
             key: 'replayRewindBufferingMs',

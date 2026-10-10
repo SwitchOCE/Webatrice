@@ -15,15 +15,10 @@ interface RoomChatProps {
   roomId: number;
   roomName: string;
   messages: Message[] | undefined;
-  /** The room's user list, for the sender's registration and moderator status. */
   users: Readonly<Record<string, ServerInfo_User>>;
   onSay: (args: { message: string }) => void;
 }
 
-/**
- * A report opened from a name in this chat attaches the room chat log, as
- * desktop does for a report raised from a room's ChatView.
- */
 export default function RoomChat(props: RoomChatProps) {
   const { messages: allMessages, users } = props;
   const filter = useRoomChatFilter();
@@ -55,13 +50,8 @@ function RoomChatView({ roomId, roomName, messages, users, onSay }: RoomChatProp
   const [draft, setDraft] = useState('');
   const userNames = useMemo(() => Object.keys(users), [users]);
   const mention = useMentionCompleter({ names: userNames, value: draft, onValueChange: setDraft, inputRef });
-  // Settings → Chat: room history and unregistered-sender filtering, and the reader's mention /
-  // alert-word highlighting. Ignored senders never reach the store (Datatrice drops them). Each
-  // line keeps the verdict AppAlerts gave it on arrival.
   const highlights = useChatHighlight();
 
-  // A message was rejected as flooding or never answered: the chat shows a notice
-  // line, and the unsent text comes back into an empty input so it isn't lost.
   useReduxEffect<{ roomId: number; message: string }>((action) => {
     if (action.payload.roomId === roomId) {
       setDraft((current) => current || action.payload.message);
@@ -96,8 +86,6 @@ function RoomChatView({ roomId, roomName, messages, users, onSay }: RoomChatProp
         </span>
       </div>
 
-      {/* Desktop ChatView reads out nothing, but a browser has no other way to hear new lines:
-       *  role=log announces additions politely, and tabIndex lets a keyboard user scroll it. */}
       <div
         ref={scrollRef}
         role="log"

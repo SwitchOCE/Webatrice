@@ -2,9 +2,6 @@ import type { TFunction } from 'i18next';
 
 import type { ServerInfo_Game } from '@cockatrice/sockatrice/generated';
 
-// Cell text for a game's Restrictions and Spectators columns, shared by every
-// game list (a room's games, a user's games). Desktop GamesModel::data.
-
 export function formatRestrictions(t: TFunction, info: ServerInfo_Game): string {
   const parts: string[] = [];
   if (info.withPassword) {

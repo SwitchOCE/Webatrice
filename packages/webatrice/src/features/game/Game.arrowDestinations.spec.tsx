@@ -60,7 +60,6 @@ it.each(picks)('cancels a hand arrow on a non-public %s card (%s) without playin
   chooseMenuPath('Draw arrow...');
   const target = document.querySelector(`[data-card-zone="${zone}"][data-card-id="${zone === ZoneName.HAND ? 31 : 0}"]`);
   expect(target).not.toBeNull();
-  // Flush the asynchronous card lookup/play chain before checking for no sends.
   await act(async () => {
     if (how === 'click') {
       fireEvent.click(target!);

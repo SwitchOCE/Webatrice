@@ -5,7 +5,6 @@ const card = (name: string, quantity: number, cmc: number, overrides: Partial<De
   name, quantity, cmc, category: 'main', lookupSource: 'scryfall', ...overrides,
 });
 
-/** Always picks index 0: each Fisher–Yates step swaps the current slot with the first. */
 const first = () => 0;
 
 describe('sampleLibrary', () => {
@@ -24,7 +23,6 @@ describe('drawSampleHand', () => {
   const library = sampleLibrary([card('A', 1, 3), card('B', 1, 1), card('C', 1, 10), card('D', 1, 2), card('E', 1, 0)]);
 
   it('draws N cards with the injected randomness, sorted numerically by mana value', () => {
-    // With `first`, the shuffle yields B, C, D, E, A; the first three sorted: B(1), D(2), C(10).
     expect(drawSampleHand(library, 3, first).map((c) => c.name)).toEqual(['B', 'D', 'C']);
   });
 

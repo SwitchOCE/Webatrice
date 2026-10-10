@@ -39,7 +39,6 @@ export interface ManageSets {
   sort: SetSort | null;
   setSearch: (search: string) => void;
   select: (code: string, modifiers?: SelectModifiers) => void;
-  /** Ctrl+A: every set the search shows. */
   selectAll: () => void;
   toggleEnabled: (code: string) => void;
   enableAll: (enabled: boolean) => void;

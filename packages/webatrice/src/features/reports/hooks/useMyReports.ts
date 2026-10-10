@@ -23,12 +23,6 @@ export interface MyReports {
   thread: ReportThread;
 }
 
-/**
- * The caller's own reports (desktop DlgMyReports). Loads on mount, keeps the
- * selection across refreshes, and refreshes when a REPORT_RESOLVED or
- * REPORT_COMMENT notification arrives so a resolution shows up without
- * pressing Refresh.
- */
 export function useMyReports(): MyReports {
   const webClient = useWebClient();
   const reports = useAppSelector(server.Selectors.getMyReports);
@@ -52,7 +46,6 @@ export function useMyReports(): MyReports {
     refreshList();
   }, [refreshList]);
 
-  // Skip the notice already in the store when the page opens.
   const seenNotice = useRef(lastNotice);
   useEffect(() => {
     if (lastNotice && lastNotice !== seenNotice.current) {

@@ -2,11 +2,6 @@ import type { TFunction } from 'i18next';
 
 import type { ContextMenuItem } from '../../context-menus/ContextMenu/ContextMenu';
 
-/**
- * The "Custom Zones" submenu, one "View custom zone '<name>'" item per zone
- * (desktop CustomZoneMenu, custom_zone_menu.cpp), or nothing when the player
- * has none: desktop hides the menu while it is empty.
- */
 export function buildCustomZonesMenu(
   t: TFunction,
   zones: readonly { name: string }[],

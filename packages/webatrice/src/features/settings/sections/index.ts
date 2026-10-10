@@ -10,14 +10,8 @@ import { storageSection } from './storage';
 import { themeSection } from './theme';
 import { userInterfaceSection } from './userInterface';
 
-/**
- * The one list of Settings page registrations. To add a page or extend one, export a
- * `SettingsSection` from a module in this folder and list it here; order within the page comes
- * from SECTION_ORDER, and registrations sharing an id have their groups merged.
- */
 const registrations: readonly SettingsSection[] = [
   generalSection,
-  // Appearance in desktop's group order: theme, playmats, then the rest (appearance.ts).
   themeSection,
   playmatsSection,
   appearanceSection,

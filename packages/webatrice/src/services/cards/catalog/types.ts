@@ -10,10 +10,7 @@ export interface LookupResult {
   colors?: string[]; // ["W", "U", ...]
   power?: string;
   toughness?: string;
-  /** cards.xml `<cipt>1</cipt>`: the card comes into play tapped. */
   cipt?: boolean;
-  /** cards.xml `<tablerow>`: the battlefield row the card goes to (desktop
-   *  CardInfo::UiAttributes::tableRow; 0 lands, 3 instants and sorceries). */
   tableRow?: number;
   /** All known printings. Cards from Dexie may have many; a Scryfall
    *  `/cards/named` lookup returns a single (default) printing. */
@@ -42,19 +39,9 @@ export interface LookupResult {
    *  needs to fire Command_CreateToken correctly (name, mana cost,
    *  colors, PT, type line). Absent for single-face cards. */
   faces?: LookupCardFace[];
-  /** Rules text (cards.xml `<text>`, Scryfall `oracle_text`). */
   text?: string;
-  /** A sideways-layout card (battles, split cards, planes) whose art is landscape inside a
-   *  portrait frame: cards.xml `<landscapeOrientation>`, or Oracle's rule for Scryfall records. */
   landscape?: boolean;
-  /** Card properties by Cockatrice name (cards.xml `<prop>` children such
-   *  as `type`, `maintype`, `cmc`). Scryfall records carry `type` only.
-   *  Format rules' exception conditions match against these. */
   properties?: Record<string, string>;
-  /** Format legality by format name, Cockatrice labels (`legal`,
-   *  `restricted`, `banned`, …): cards.xml `format-<name>` props, or
-   *  Scryfall `legalities`. A format missing from a present map means
-   *  "not legal"; `undefined` means the source has no legality data. */
   legalities?: Record<string, string>;
 }
 
@@ -70,7 +57,6 @@ export interface LookupCardFace {
   colors?: string[];
   power?: string;
   toughness?: string;
-  /** The face's rules text (Scryfall `card_faces[N].oracle_text`). */
   text?: string;
   /** Per-face image URL (typically Scryfall's `normal` / ~488×680
    *  JPG). Used by Card.tsx to render the back-face art after a
@@ -89,8 +75,6 @@ export interface RelatedCardRef {
   count?: string;
   attach?: string;
   persistent?: string;
-  /** cards.xml `exclude`: present when "Create all related tokens" skips
-   *  this relation (desktop CardRelation::getIsCreateAllExclusion). */
   exclude?: string;
   component?: 'token' | 'combo_piece' | 'meld_part' | 'meld_result';
   /** Provenance of the relation. `'scryfall'` means the ref came

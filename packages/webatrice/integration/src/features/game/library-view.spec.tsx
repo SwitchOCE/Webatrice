@@ -21,10 +21,6 @@ import { testI18n } from '../../../../src/__test-utils__/renderWithProviders';
 
 registerGameBoardHooks();
 
-// "View library" end to end: the library pile's menu sends Command_DumpZone, the
-// Response_DumpZone snapshot fills the game-level ZoneViewDialog, and closing
-// the view shuffles the library (the default) and drops the snapshot.
-
 async function renderBoard() {
   connectRaw();
   renderFeatureScreen(<Game />);

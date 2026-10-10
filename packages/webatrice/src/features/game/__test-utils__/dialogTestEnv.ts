@@ -7,7 +7,6 @@ import { createMockWebClient } from '../../../__test-utils__';
 import type { GameDialogEnv } from '../hooks/dialogs/gameDialogEnv';
 import type { GameDialogSetters } from '../hooks/dialogs/useGameDialogState';
 
-/** A local seat (player 1) with `deckCount` library cards and the `hand` card ids. */
 export function makeDialogTestGame({ deckCount = 40, hand = [] as number[] } = {}): GameEntry {
   const local = makePlayerEntry({
     properties: makePlayerProperties({ playerId: 1 }),
@@ -19,7 +18,6 @@ export function makeDialogTestGame({ deckCount = 40, hand = [] as number[] } = {
   return makeGameEntry({ localPlayerId: 1, started: true, players: { 1: local } });
 }
 
-/** A dialog env over a fixed game (id 1) and a mock WebClient, for the action-hook specs. */
 export function makeDialogTestEnv(game: GameEntry = makeDialogTestGame()) {
   const webClient = createMockWebClient();
   const env: GameDialogEnv = {
@@ -45,7 +43,6 @@ const SETTER_NAMES: ReadonlyArray<keyof GameDialogSetters> = [
   'setLeaveConfirm',
 ];
 
-/** Every dialog state setter as a spy. */
 export function makeSetterSpies(): SetterSpies {
   return Object.fromEntries(SETTER_NAMES.map((name) => [name, vi.fn()])) as unknown as SetterSpies;
 }

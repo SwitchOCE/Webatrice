@@ -12,7 +12,6 @@ import { useDeckCardGrid } from './useDeckCardGrid';
 const card = (name: string, quantity = 1, extra: Partial<DeckCard> = {}): DeckCard =>
   ({ name, quantity, category: 'main', lookupSource: 'scryfall', ...extra });
 
-/** A deck list drawn main first, then sideboard, with the editor's edits applied to local state. */
 function DeckList({ initial, onLastRowRemoved }: { initial: DeckCard[]; onLastRowRemoved?: () => void }) {
   const [cards, setCards] = useState(initial);
   const order = [
@@ -148,7 +147,6 @@ describe('useDeckCardGrid', () => {
 
   it('matches Shift+S by the typed letter, so other layouts swap on their own S key', () => {
     const { row } = renderList([card('Bolt')]);
-    // Dvorak: the key labelled S sits where QWERTY has ;, and QWERTY's S types O.
     fireEvent.keyDown(row('Bolt'), { key: 'O', code: 'KeyS', shiftKey: true });
     expect(row('Bolt')).toHaveTextContent('1 main');
     fireEvent.keyDown(row('Bolt'), { key: 'S', code: 'Semicolon', shiftKey: true });

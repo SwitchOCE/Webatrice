@@ -13,8 +13,6 @@ vi.mock('../DexieService', () => ({
 
 import { TokenDTO } from './TokenDTO';
 
-// Read once at load: the global afterEach clears mock calls, so the import-time
-// registration is gone by the time any test but the first runs.
 const mapToClassCalls = [...tokensTable.mapToClass.mock.calls];
 
 describe('TokenDTO', () => {

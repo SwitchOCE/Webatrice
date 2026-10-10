@@ -3,8 +3,6 @@ import { act, render, screen, within } from '@testing-library/react';
 import { CardPreviewProvider, createCardPreviewStore } from '../ui/CardPreviewContext';
 import BattlefieldSidebar from './BattlefieldSidebar';
 
-// Only the card-preview image is under test: the seat list, chat and game
-// state the other sections read are stubbed out.
 vi.mock('../right-sidebar/PlayerList/PlayerList', () => ({ default: () => null }));
 vi.mock('../ChatLog/ChatLog', () => ({ default: () => null }));
 vi.mock('../GameInviteControls/GameInviteControls', () => ({ default: () => null }));
@@ -33,7 +31,6 @@ function hover(card: { name: string; scryfallId?: string }) {
 
 describe('BattlefieldSidebar card preview image', () => {
   beforeEach(() => {
-    // The card-detail fetch never settles: only the image is under test.
     vi.stubGlobal('fetch', vi.fn(() => new Promise(() => {})));
   });
 

@@ -5,7 +5,6 @@ import { useAppSelector } from '@app/store';
 import { useContextMenu, type ContextMenuTrigger } from '../Menu';
 
 export interface UserDisplay {
-  /** The user's context menu: right-click, Shift+F10 or the Menu key on the name open it. */
   menu: ContextMenuTrigger;
   isABuddy: boolean;
   isIgnored: boolean;

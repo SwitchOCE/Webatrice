@@ -6,10 +6,6 @@ interface NotificationToastProps {
 
 const PREVIEW_LIMIT = 100;
 
-/**
- * Body of an in-app notification toast: a heading plus an optional preview, the whole pill
- * clickable when the notification leads somewhere (a private chat, a room).
- */
 export default function NotificationToast({ title, body, onActivate }: NotificationToastProps) {
   const preview = body && body.length > PREVIEW_LIMIT ? `${body.slice(0, PREVIEW_LIMIT)}…` : body;
   const content = (

@@ -72,7 +72,6 @@ describe('StorageService', () => {
     expect(clear).toHaveBeenCalledWith([Stores.SCRYFALL_CACHE]);
   });
 
-  // clearCardData itself runs against real IndexedDB in integration/src/services/dexie/storage.spec.ts.
   test('groups every imported card table and the files they were built from, and never preferences, settings or hosts', () => {
     expect(CARD_DATA_STORES).toEqual(expect.arrayContaining([
       Stores.CARDS,

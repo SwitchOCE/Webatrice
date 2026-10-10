@@ -24,7 +24,6 @@ export function createLogContext(t: TFunction) {
   const displayCounterName = (name: string) => !name ? t('GameLog.counter.unknown')
     : counterKeys[name.toLowerCase()] ? t(`GameLog.counter.${counterKeys[name.toLowerCase()]}`) : name;
 
-  // Desktop getFromStr distinguishes unnamed top/bottom cards from named card links.
   const fromContext = (data: LogParamsByKind['cardMoved'], own: boolean, hasCardName: boolean) => {
     if (data.startZone === ZoneName.DECK) {
       const position = data.position === 0 ? 'top'

@@ -9,18 +9,9 @@ export interface CardPrintings {
   printings: PrintingSummary[];
   loading: boolean;
   error: string | null;
-  /** Per-printing prices, keyed by scryfallId; they stream in after the list. */
   prices: PriceLookup;
 }
 
-/**
- * Every printing of `cardName` for the printings picker. Scryfall's
- * `unique=prints` search is the source of truth — the local card
- * database usually knows a single printing, which would wrongly suggest
- * there is nothing to choose from — with the catalog's printings as the
- * offline fallback. Prices load after the list so the grid paints first.
- * Reloads only when the card name changes; `undefined` loads nothing.
- */
 export function useCardPrintings(cardName: string | undefined): CardPrintings {
   const { t } = useTranslation();
   const [printings, setPrintings] = useState<PrintingSummary[]>([]);
@@ -47,8 +38,6 @@ export function useCardPrintings(cardName: string | undefined): CardPrintings {
         if (scryfall.length > 0) {
           resolved = scryfall;
         } else {
-          // Scryfall miss (offline / unknown card): show what the
-          // catalog has so the picker isn't empty.
           const local = await lookupCard(cardName);
           if (cancelled) {
             return;
@@ -58,8 +47,6 @@ export function useCardPrintings(cardName: string | undefined): CardPrintings {
         setPrintings(resolved);
         setLoading(false);
 
-        // The shared pricing cache means printings seen before show
-        // their prices immediately.
         const cards = resolved
           .filter((p) => p.scryfallId)
           .map((p) => ({ scryfallId: p.scryfallId!, name: cardName }));

@@ -62,15 +62,10 @@ vi.mock('../../services/cards/catalog/lookup', () => {
   };
 });
 
-// The play-then-arrow path reads the card's tablerow and printed P/T from the
-// card database.
 vi.mock('../../services/dexie/DexieDTOs/CardDTO', () => ({
   CardDTO: { get: vi.fn(async () => ({ tablerow: { value: '1' }, prop: { value: { pt: { value: '2/2' } } } })) },
 }));
 
-// Local seat 1: Ogre (3/3, two A counters and a B counter), a face-down
-// Morph and a Wall on the back row; a Shock in hand; an arrow from Ogre to
-// the Bear. Opponent seat 2: a Bear.
 const OGRE = makeCard({ id: 10, name: 'Ogre', x: 0, y: 0, pt: '3/3', counterList: [{ id: 0, value: 2 }, { id: 1, value: 1 }] });
 const MORPH = makeCard({ id: 11, name: 'Morph', x: 3, y: 0, faceDown: true });
 const WALL = makeCard({ id: 12, name: 'Wall', x: 0, y: 2, pt: '0/4', annotation: 'note', doesntUntap: true });
@@ -97,9 +92,6 @@ function renderGame(spec: SeatGameSpec = SPEC) {
 
 type GameRequests = ReturnType<typeof createMockWebClient>['request']['game'];
 
-/** Every game request sent so far, as `[method, params]` (plus the judge
- *  target, or the command options, when one was passed; moveCardAndShuffle
- *  keeps its shuffle params). */
 function wire(game: GameRequests) {
   return Object.entries(game).flatMap(([method, fn]) =>
     vi.isMockFunction(fn)
@@ -117,8 +109,6 @@ function wire(game: GameRequests) {
   ).sort((a, b) => a.order - b.order).map(({ call }) => call);
 }
 
-// Two battlefield cards to the top / bottom of the library: desktop shuffles
-// the moved block in the same container (player_actions.cpp:1853-1888).
 const TO_LIBRARY_TOP = [
   'moveCardAndShuffle', moveFromTable([10, 11], ZoneName.DECK, 0, false), { zoneName: ZoneName.DECK, start: 0, end: 1 },
 ];
@@ -135,7 +125,6 @@ function click(el: Element, init: { ctrlKey?: boolean } = {}) {
   });
 }
 
-/** Select Ogre and the face-down Morph on the local battlefield. */
 function selectOgreAndMorph() {
   click(cardEl(OGRE.id, 'battlefield'));
   click(cardEl(MORPH.id, 'battlefield'), { ctrlKey: true });
@@ -166,15 +155,12 @@ const attr = (cardId: number, attribute: CardAttribute, attrValue: string) =>
 afterEach(() => {
   captured.registry = null;
   vi.restoreAllMocks();
-  // clearAllMocks keeps implementations: restore the preference defaults.
   vi.mocked(usePreference).mockImplementation(
     ((key: keyof typeof PREFERENCE_DEFAULTS) => PREFERENCE_DEFAULTS[key]) as typeof usePreference,
   );
 });
 
 describe('seat shortcut actions, with Ogre and the face-down Morph selected', () => {
-  // What each seat action does from that selection: the requests
-  // it sends, the dialog it opens, or the selection it leaves.
   const EXPECTED: Record<SeatShortcutActionId, {
     wire?: unknown[];
     dialogs?: unknown[];
@@ -254,7 +240,6 @@ describe('seat shortcut actions, with Ogre and the face-down Morph selected', ()
         [...attr(11, CardAttribute.AttrTapped, '1'), 'options'],
       ],
     },
-    // Play acts on the hand selection; Ogre has no related tokens.
     'game.playCard': {},
     'game.playCardFaceDown': {},
     'game.createRelatedTokens': {},
@@ -262,15 +247,12 @@ describe('seat shortcut actions, with Ogre and the face-down Morph selected', ()
     'game.moveSelectedToHand': { wire: [['moveCard', moveFromTable([10, 11], ZoneName.HAND, 0, false)]] },
     'game.moveSelectedToLibraryTop': { wire: [TO_LIBRARY_TOP] },
     'game.moveSelectedToBattlefield': { wire: [['moveCard', moveFromTable([10, 11], ZoneName.TABLE, 0, false)]] },
-    // The zone views open as non-modal dialogs titled by zone and owner.
     'game.viewHand': { dialogs: ['Hand — P1'] },
     'game.viewExile': { dialogs: ['Exile — P1'] },
     'game.sortHandByName': {},
     'game.sortHandByManaValue': {},
     'game.revealHandToAll': { wire: [['revealCards', { zoneName: ZoneName.HAND }]] },
     'game.revealRandomHandCardToAll': { wire: [['revealCards', { zoneName: ZoneName.HAND, cardId: [-2] }]] },
-    // The library holds 40 cards: the top one is 0, the bottom one 39.
-    // A battlefield "end" placement goes out as desktop's x = -1.
     'game.moveTopToPlayFaceDown': { wire: [['moveCard', moveFromDeck({ cardId: 0, faceDown: true }, ZoneName.TABLE, -1)]] },
     'game.moveTopNToGraveFaceDown': {
       dialogs: ['Move top cards to Graveyard'],
@@ -311,7 +293,6 @@ describe('seat shortcut actions, with Ogre and the face-down Morph selected', ()
     'game.drawBottomCards': { dialogs: ['Draw bottom cards'] },
     'game.shuffleTopCards': { dialogs: ['Shuffle top cards of library'] },
     'game.shuffleBottomCards': { dialogs: ['Shuffle bottom cards of library'] },
-    // Ogre has two A counters; Morph none.
     'game.addCounterD': { wire: [['bulkSetCardCounterEntries', counters([10, 3, 1], [11, 3, 1])]] },
     'game.removeCounterD': {},
     'game.setCounterD': { dialogs: ['Set counter D'] },
@@ -383,7 +364,6 @@ describe('seat shortcut actions, with Ogre and the face-down Morph selected', ()
       selected: expected.selected ?? ['battlefield:10', 'battlefield:11'],
     });
     if (expected.afterMove) {
-      // Desktop omits face-down from the prompt title; keep checking that distinction on the wire.
       const dialog = screen.getByRole('dialog');
       fireEvent.change(within(dialog).getByRole('spinbutton'), { target: { value: '2' } });
       fireEvent.click(within(dialog).getByRole('button', { name: 'Move' }));
@@ -396,8 +376,6 @@ describe('seat shortcut actions, with Ogre and the face-down Morph selected', ()
     expect(Object.keys(EXPECTED).sort()).toEqual([...SEAT_SHORTCUT_ACTIONS].sort());
   });
 
-  // Desktop actCreateAllRelatedCards (player_actions.cpp:977-1062) on the
-  // active card, here the anchor: Ogre's one relation, count 2.
   it('creates the anchor\'s related tokens', async () => {
     const unknownCard = vi.mocked(lookupCard).getMockImplementation()!;
     const unknownCards = vi.mocked(lookupCards).getMockImplementation()!;
@@ -443,10 +421,6 @@ describe('seat shortcut actions, with Ogre and the face-down Morph selected', ()
   });
 });
 
-// Desktop cmMoveToTable (player_actions.cpp:1928-1951) sends x = -1, which
-// Servatrice reads as "stack on a same-name pile, else the row's first free
-// column" (Server_CardZone::getFreeGridColumn, server_cardzone.cpp:192-235).
-// Shock has no catalog entry, so it takes the type-line fallback's middle row.
 describe('a hand card moved onto the battlefield', () => {
   const SHOCK_TO_TABLE = ['moveCard', {
     startPlayerId: 1,
@@ -486,7 +460,6 @@ function moveFromTable(cardIds: number[], targetZone: string, x: number, isRever
   };
 }
 
-/** A Command_MoveCard of library cards, addressed by position. */
 function moveFromDeck(
   card: { cardId: number; faceDown?: boolean } | Array<{ cardId: number; faceDown?: boolean }>,
   targetZone: string,
@@ -507,7 +480,6 @@ function counters(...entries: Array<[number, number, number]>) {
   return entries.map(([cardId, counterId, counterValue]) => ({ ownerPlayerId: 1, zone: ZoneName.TABLE, cardId, counterId, counterValue }));
 }
 
-/** One optimistic Command_SetCardAttr(AttrPT), with its rollback options. */
 function setPT(cardId: number, pt: string) {
   return [...attr(cardId, CardAttribute.AttrPT, pt), 'options'];
 }
@@ -517,8 +489,6 @@ function clone(name: string, pt: string, y = 0) {
 }
 
 describe('battlefield card menu actions', () => {
-  // Right-click Ogre while Ogre and Morph are selected: every action applies
-  // to the selection, and toggles follow the clicked card.
   const OWN: Array<[string[], { wire?: unknown[]; dialogs?: unknown[]; selected?: string[] }]> = [
     [['Tap / Untap'], {
       wire: [
@@ -585,7 +555,6 @@ describe('battlefield card menu actions', () => {
     expect(wire(game)).toEqual([['createToken', { ...clone('Wall', '0/4', 2), annotation: 'note' }]]);
   });
 
-  // Desktop cmTap sends 1 - tapped for each card (player_actions.cpp:1768-1776).
   it('flips each selected card\'s tapped state', () => {
     const tapped = makeCard({ ...OGRE, tapped: true });
     const { game } = renderGame({ ...SPEC, seats: [{ ...SPEC.seats[0], table: [tapped, MORPH, WALL] }, SPEC.seats[1]] });
@@ -619,7 +588,6 @@ describe('battlefield card menu actions', () => {
     expect(wire(game)).toEqual([['attachCard', { startZone: ZoneName.TABLE, cardId: 12 }]]);
   });
 
-  // The viewer's menu on the opponent's Bear.
   const OPPONENT: Array<[string, { wire?: unknown[]; selected?: string[] }]> = [
     ['Clone', { wire: [['createToken', clone('Bear', '2/2')]] }],
     ['Reduce life by power', { wire: [['incCounter', { counterId: LIFE_COUNTER_ID, delta: -2 }, 'options']] }],
@@ -648,8 +616,6 @@ describe('arrows and attachments', () => {
   const playerTarget = (playerId: number) =>
     document.querySelector<HTMLElement>(`[data-arrow-target-kind="player"][data-arrow-target-player-id="${playerId}"]`)!;
 
-  // The fixture game is in its beginning phase, and "Do not delete arrows inside of subphases" is
-  // on by default: every arrow is kept until the first main phase.
   const ARROW_LIFETIME = { deleteInPhase: Phase.FirstMain };
   const arrowTo = (startCardId: number, target: object, startZone: string = ZoneName.TABLE, arrowColor = ArrowColor.RED) =>
     ['createArrow', { startPlayerId: 1, startZone, startCardId, ...target, arrowColor, ...ARROW_LIFETIME }];
@@ -716,8 +682,6 @@ describe('arrows and attachments', () => {
     it('holds one pick for the whole game: a pick from another seat replaces it', () => {
       const { game } = renderGame();
       openContextMenu(cardEl(OGRE.id, 'battlefield'));
-      // An attach stays pending while the other seat's menu opens; an arrow
-      // would be cancelled by the menu click before replacement was tested.
       chooseMenuPath('Attach to card...');
       openContextMenu(cardEl(BEAR.id, 'battlefield'));
       chooseMenuPath('Draw arrow...');
@@ -773,10 +737,8 @@ describe('arrows and attachments', () => {
         ['moveCard', {
           startPlayerId: 1,
           startZone: ZoneName.HAND,
-          // The card database's printed P/T rides on the play (desktop playCard).
           cardsToMove: { card: [{ cardId: 30, faceDown: false, pt: '2/2' }] },
           targetPlayerId: 1,
-          // A creature (tablerow 1) lands in the middle row; the server picks the column (x = -1).
           targetZone: ZoneName.TABLE,
           x: -1,
           y: 1,
@@ -881,7 +843,6 @@ describe('arrows and attachments', () => {
     type Modifiers = { ctrlKey?: boolean; altKey?: boolean; shiftKey?: boolean };
 
     function rightDrag(source: HTMLElement, target: Element | null, modifiers: Modifiers = {}) {
-      // jsdom has no layout, so no elementFromPoint: the hit test sees `target`.
       Object.defineProperty(document, 'elementFromPoint', { configurable: true, value: () => target });
       act(() => {
         fireEvent.mouseDown(source, { button: 2, clientX: 10, clientY: 10 });

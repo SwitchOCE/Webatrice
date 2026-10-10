@@ -178,7 +178,6 @@ describe('ReportQueue', () => {
     expect(screen.getByTestId('report-queue-status').textContent).toBe('Reports.queue.assigning');
     expect(button('Reports.queue.resolve').disabled).toBe(true);
 
-    // Another report's failure is not this assignment's.
     act(() => {
       store.dispatch(failed('reportAssign', '2'));
     });
@@ -337,7 +336,6 @@ describe('ReportQueue', () => {
     expect(moderator.replayDownloadByGameId).toHaveBeenCalledWith(30, expect.any(String));
     expect(screen.getByTestId('report-queue-status').textContent).toBe('Reports.queue.loadingReplay');
 
-    // A replay for another game (a stale response) is ignored.
     const replayData = toBinary(GameReplaySchema, buildReplay([sayContainer(0)], 30));
     act(() => {
       store.dispatch(server.Actions.reportReplayDownloaded({ requestId: requestId('replayDownloadByGameId'),

@@ -13,11 +13,6 @@ import { CARD_CORNER_RADIUS, CARD_HEIGHT, CARD_WIDTH } from '../SeatCard/cardSiz
 import Card from '../SeatCard/SeatCard';
 import { SELECTED_RING } from '../seatColors/seatColors';
 
-/**
- * Stack column — sits in the play row (opposite the hand). Only
- * the battlefield is mirrored for top-row boxes; the stack
- * always renders in the same orientation.
- */
 export default function StackColumn() {
   const { t } = useTranslation();
   const {
@@ -38,7 +33,6 @@ export default function StackColumn() {
     stackZoneRef,
     startSeatCardDrag,
   } = usePlayerSeatContext();
-  // The pile lays itself out in the space the column gives it.
   const sizeRef = useRef<HTMLDivElement>(null);
   const stackRef = useForkRef(stackZoneRef, sizeRef);
   const [stackSize, setStackSize] = useState({ w: 0, h: 0 });
@@ -58,7 +52,6 @@ export default function StackColumn() {
   }, []);
 
   const keysHintId = useId();
-  // Cards dragged off the stack are hidden, so the pile re-flows without them.
   const visible = stackDisplayList.filter((c) => !isDragging(c.id, 'stack'));
   const { cardProps } = useSeatCardFocus('stack', {
     cards: visible,
@@ -129,8 +122,6 @@ export default function StackColumn() {
                     y: e.clientY,
                   });
                 }}
-                // Click to play resolves the card: an instant or sorcery
-                // to the graveyard, anything else onto the battlefield.
                 onDoubleClick={(e) => onCardDoubleClick('stack', c, e)}
                 className={`absolute hover:z-10 focus-visible:z-10 ${GAME_FOCUS_RING}`}
                 style={{

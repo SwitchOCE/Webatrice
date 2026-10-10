@@ -21,11 +21,9 @@ function entry(id: number, name: string, kind: 'folder' | 'replay' = 'replay', p
 
 const replayBytes = () => toBinary(GameReplaySchema, buildReplay([sayContainer(0)]));
 
-/** Library contents by folder id. */
 let library: Record<number, ReplayFileDTO[]>;
 
 function renderReplays() {
-  // Local replays work offline: no login needed.
   return renderWithProviders(
     <Routes>
       <Route path={RouteEnum.REPLAYS} element={<Replays />} />
@@ -56,7 +54,6 @@ describe('Local replays', () => {
     await localPane().findByTestId('local-replay-zeta.cor');
     const names = localPane().getAllByRole('row').slice(1).map((row) => row.getAttribute('data-testid'));
     expect(names).toEqual(['local-replay-Tournament', 'local-replay-alpha.cor', 'local-replay-zeta.cor']);
-    // Sizes use the UI language's unit names, not hard-coded English ones.
     expect(localPane().getByTestId('local-replay-zeta.cor')).toHaveTextContent('2 kB');
   });
 

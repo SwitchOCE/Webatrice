@@ -11,7 +11,6 @@ import './GameArrowOverlay.css';
 
 export interface GameArrowOverlayProps {
   containerRef: React.RefObject<HTMLElement | null>;
-  /** Re-measures the arrows when it changes; see useGameArrowOverlay. */
   layoutVersion?: unknown;
   /** Live drag preview endpoint (viewport → board-relative coords). The
    *  `fullColor` flag mirrors Cockatrice's `ArrowDragItem::fullColor`
@@ -65,7 +64,6 @@ function ArrowShape({
   onClick?: () => void;
   testId?: string;
   className?: string;
-  /** Reveal the arrow from start to tip as it appears; the id names its clip. */
   drawIn?: { id: string; animate: boolean };
 }) {
   const length = Math.hypot(x2 - x1, y2 - y1);
@@ -74,9 +72,6 @@ function ArrowShape({
   if (!geom) {
     return null;
   }
-  // While drawing, clip the arrow (in its local frame: start at the origin,
-  // tip at +length) to the part drawn so far; the margins cover the bowed
-  // shaft, the head and the outline.
   const clipId = drawIn && progress < 1 ? `arrow-draw-${drawIn.id}` : undefined;
   return (
     <g
@@ -115,10 +110,8 @@ function ArrowShape({
 function GameArrowOverlay({ containerRef, layoutVersion, dragPreview = null }: GameArrowOverlayProps) {
   const gameId = useGameId();
   const { arrows, gameArrowKeys, width, height, handleArrowClick } = useGameArrowOverlay({ gameId, containerRef, layoutVersion });
-  // Desktop's "Arrow draw animation", for arrows as the game adds them.
   const arrowDrawAnimation = useAnimationPreference('arrowDrawAnimation');
   const arriving = useArrivingArrows(gameArrowKeys, arrows.map(arrowKey));
-  // Clip ids are document-wide: scope them to this overlay, and to the arrow's creator and id.
   const clipScope = useId().replace(/[^\w-]/g, '');
 
   // Committed arrows always render at Cockatrice's "locked target" alpha

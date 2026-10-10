@@ -7,9 +7,6 @@ interface MessagesProps {
   messages?: MessageData[];
 }
 
-// Variable-height chat rows can't use fixed-height virtualization; memoize rows
-// instead (see webatrice.instructions.md § Virtualized lists) and key on the
-// store-assigned `message.id`, not the array index (see rooms.reducer.inline.ts).
 const MemoMessage = memo(Message);
 
 const Messages = ({ messages }: MessagesProps) => (

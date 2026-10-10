@@ -4,7 +4,6 @@ import type { RequestId } from '../../types/RequestId';
 
 import { Command_GetAdminNotes_ext, Command_GetAdminNotesSchema, Response_GetAdminNotes_ext } from '../../generated';
 
-/** Echo the client-only identity on both outcomes; omission preserves legacy callback arity. */
 export function getAdminNotes(userName: string, ...correlation: [requestId?: RequestId]): void {
   WebClient.instance.protobuf.sendModeratorCommand(Command_GetAdminNotes_ext, create(Command_GetAdminNotesSchema, { userName }), {
     responseExt: Response_GetAdminNotes_ext,

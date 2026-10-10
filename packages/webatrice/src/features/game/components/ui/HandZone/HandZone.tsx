@@ -19,38 +19,6 @@ import ZoneBackground from '../ZoneBackground/ZoneBackground';
 import { GAME_FOCUS_RING } from '../focusRing';
 import { OVER_ART_SHADOW_SMALL, SELECTED_RING } from '../seatColors/seatColors';
 
-/**
- * Hand — every player gets one. Desktop's Appearance › Hand layout picks a
- * row (the default; below) or a column (`VerticalHand`, further down).
- *
- * Row: flips based on handOnTop.
- * Idle: overflow-hidden clips cards to half their height so
- * the hand row only occupies half a card of vertical space.
- * Hovered: overflow-visible + z-30 lets cards render at full
- * height, floating over the play area WITHOUT reflowing the
- * grid (the reserved row height doesn't change). Alignment
- * per row direction so the visible half always sits toward
- * the screen edge and expansion goes toward the play area:
- *   • Bottom hand: items-end → bottom half visible, top half
- *     overflows upward into the play area on hover.
- *   • Top hand:    items-start → top half visible, bottom
- *     half overflows downward into the play area on hover.
- *
- * Nested structure — two problems solved:
- *   1. CSS silently promotes overflow-visible to auto when
- *      the other axis is auto/hidden, spawning a vertical
- *      scrollbar. Splitting vertical vs horizontal overflow
- *      across nested elements avoids the promotion.
- *   2. On hover, the bottom hand needs to "slide up" so the
- *      top half stays visible while the bottom half now sits
- *      inside the strip and the top half floats into the
- *      play area above. That's the transform on the inner
- *      container (top hand doesn't need it — its natural
- *      overflow direction IS toward the play area).
- * Layout invariant: cards render top-aligned in the strip so
- * the TOP half of every card (name / mana / art — the part
- * you actually need to read) is what's visible in idle.
- */
 export default function HandZone() {
   const {
     CARD_H_PX,
@@ -78,16 +46,12 @@ export default function HandZone() {
   } = usePlayerSeatContext();
   const keysHintId = useId();
   const { t } = useTranslation();
-  // The hand menu (desktop's HandMenu), opened from the count button: at the pointer for a
-  // right-click or a click, under the button for Enter / Space, Shift+F10 or the Menu key.
   const [handMenuAnchor, setHandMenuAnchor] = useState<MenuAnchor | null>(null);
   const handButtonRef = useRef<HTMLButtonElement>(null);
   const openHandMenuBelow = (button: HTMLElement) =>
     setHandMenuAnchor({ rect: button.getBoundingClientRect(), placement: 'below' });
   const handButtonLabel = t('HandZone.button', { count: handSize });
   const handLabel = t('PlayerBoard.hand', { name, count: handSize });
-  // Desktop's "Enable left justification": the row starts at the left (past
-  // the count badge) instead of centring.
   const leftJustified = usePreference('leftJustifiedHand');
   // Whether the hand row is being hovered — controls the auto-expand
   // that reveals full-size cards over the play area without reflowing
@@ -99,7 +63,6 @@ export default function HandZone() {
   // the wrapper clips its own cards mid-slide when hover ends.
   const [handAnimating, setHandAnimating] = useState(false);
 
-  // Keyboard focus on a card expands the row, as hovering it does.
   const [handFocused, setHandFocused] = useState(false);
   const { cardProps } = useSeatCardFocus('hand', {
     cards: isSelf ? handDisplayList : [],
@@ -109,7 +72,6 @@ export default function HandZone() {
     onKeyboardFocus: setHandFocused,
   });
 
-  // One of the owner's hand cards, in either layout.
   const renderOwnCard = (c: PlayerCardViewModel) => {
     const dragging = isDragging(c.id, 'hand');
     const selected = selection?.zone === 'hand' && selection.ids.has(c.id);
@@ -122,8 +84,6 @@ export default function HandZone() {
         data-zone="hand"
         data-card-id={c.id}
         data-selected={selected || undefined}
-        // Arrow hit-testing, as on the battlefield and stack:
-        // a right-button drag starts here and a pick lands here.
         data-card-owner={playerId}
         data-card-zone={ZoneName.HAND}
         onPointerDown={(e) => startSeatCardDrag(e, c, 'hand', handDisplayList)}
@@ -145,14 +105,6 @@ export default function HandZone() {
       >
         <Card
           name={c.name}
-          // Prefer any scryfallId we've already resolved via the Scryfall
-          // metadata cache — the wire's `c.scryfallId` is empty when the deck
-          // was uploaded without per-card `uuid` attributes, which forces
-          // Card.tsx to hit /cards/named?exact= for the image. That endpoint
-          // is rate-limited; several hand cards fetching in parallel at game
-          // start means some silently 429 and never retry. The batched
-          // cardMetaByName lookup gives us a real id → CDN path with no rate
-          // limit.
           scryfallId={c.scryfallId || cardMetaByName.get(c.name)?.scryfallId}
           pt={cardMetaByName.get(c.name)?.pt}
         />
@@ -160,17 +112,6 @@ export default function HandZone() {
     );
   };
 
-  /* Hand icon + count badge overlay. Top-left of the hand
-   * zone for every player. A click or right-click on the OWN
-   * button opens the hand menu (ports Cockatrice's HandMenu
-   * — see handMenuItems above), as do Enter / Space,
-   * Shift+F10 and the Menu key, which open it under the
-   * button. Opponent buttons are inert (Cockatrice doesn't
-   * offer a menu on opponent hands either — you can't act on
-   * cards you can't see); the browser default is suppressed
-   * on their onContextMenu. Both are named by the hand's
-   * size. z-40 sits above the expanded hand's z-30 so the
-   * button stays clickable when cards float up on hover. */
   const countBadge = isSelf ? (
     <>
       <button
@@ -189,7 +130,6 @@ export default function HandZone() {
         aria-expanded={handMenuAnchor != null}
         onContextMenu={(e: MouseEvent<HTMLButtonElement>) => {
           e.preventDefault();
-          // A keyboard-raised contextmenu event carries no pointer position.
           if (e.clientX === 0 && e.clientY === 0) {
             openHandMenuBelow(e.currentTarget);
           } else {
@@ -197,8 +137,6 @@ export default function HandZone() {
           }
         }}
         onClick={(e) => {
-          // A click from Enter or Space has no pointer (detail 0): open
-          // under the button rather than at the viewport's corner.
           if (e.detail === 0) {
             openHandMenuBelow(e.currentTarget);
           } else {
@@ -277,12 +215,6 @@ export default function HandZone() {
         width: CARD_WIDTH,
         height: CARD_HEIGHT,
         borderRadius: CARD_CORNER_RADIUS,
-        // Only rotate 180° when this player's hand renders at the TOP of
-        // their seat (handOnTop). A bottom-row opponent in a 4-player layout
-        // has flipHandCardBacks=true (the per-count flag) but
-        // handOnTop=false — their hand is at the bottom of the screen where a
-        // natural orientation reads correctly. Without the handOnTop gate,
-        // those cards render upside-down.
         transform: (handOnTop && flipHandCardBacks) ? 'rotate(180deg)' : undefined,
       }}
     />
@@ -352,7 +284,6 @@ export default function HandZone() {
       <motion.div
         ref={handZoneRef}
         data-testid={`hand-zone-${playerId}`}
-        // The owner's cards are a listbox; an opponent's card backs are only counted.
         role={isSelf ? 'listbox' : 'group'}
         aria-multiselectable={isSelf || undefined}
         aria-orientation={isSelf ? 'horizontal' : undefined}
@@ -363,7 +294,6 @@ export default function HandZone() {
         // axis to `auto` — that's what was spawning a phantom
         // vertical scrollbar even though cards fit exactly.
         className='w-full flex items-center overflow-x-auto overflow-y-hidden'
-        // Not a tab stop, like the battlefield's scroller (Firefox tabs to scrollers).
         tabIndex={-1}
         style={{ height: CARD_HEIGHT }}
         // Own hand slides UP on hover (top half of card floats
@@ -397,14 +327,6 @@ export default function HandZone() {
         onAnimationStart={() => setHandAnimating(true)}
         onAnimationComplete={() => setHandAnimating(false)}
       >
-        {/* Static hand — the owner sees the real card faces; everyone else
-        sees face-down card backs (one per card the server says
-        they're holding). `m-auto` on the inner row centers the
-        cards when they fit and collapses to 0 when they don't —
-        unlike `justify-center`, this leaves the leading edge
-        reachable when the hand overflows and needs to scroll. Left
-        justified, the row starts 1.4 card widths in, as desktop's does,
-        which also clears the count badge. */}
         {isSelf
           ? handDisplayList.length > 0 && (
             <div
@@ -442,18 +364,10 @@ interface VerticalHandProps {
   pileOptions: VerticalPileOptions;
   zoneRef: React.Ref<HTMLDivElement>;
   testId: string;
-  /** The zone's name for assistive technology: whose hand, and how many cards. */
   label: string;
-  /** The element that describes the cards' keys. */
   describedBy?: string;
 }
 
-/**
- * Desktop's vertical hand: a column beside the info column, its cards
- * overlapping top to bottom and zig-zagging left and right
- * (layoutVerticalPile). Every card stays in view, so there is no hover
- * expansion; the hovered card comes to the front, as on desktop.
- */
 function VerticalHand({
   placement,
   badge,
@@ -492,7 +406,6 @@ function VerticalHand({
     >
       <ZoneBackground zone="hand" />
       {badge}
-      {/* The cards start under the count badge. */}
       <div
         ref={ref}
         data-testid={testId}
@@ -506,7 +419,6 @@ function VerticalHand({
         {positions.map((pos, i) => {
           const key = cardKey(i);
           return (
-            // The hovered card comes to the front in CSS, so a hover re-renders nothing.
             <div
               key={key}
               className="absolute hover:!z-[999]"

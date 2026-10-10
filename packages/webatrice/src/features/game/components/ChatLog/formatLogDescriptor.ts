@@ -451,7 +451,6 @@ function renderArrowCreated(params: LogParamsByKind['arrowCreated'], context: Lo
 
 }
 
-/** Render a structured event with the current locale, retaining styled player, card and number spans. */
 export function formatLogDescriptor(entry: LogDescriptor, t: TFunction): FormattedLog {
   const context = createLogContext(t);
   const { line, playerName } = context;

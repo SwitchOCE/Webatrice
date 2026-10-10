@@ -13,7 +13,6 @@ const DURESS = makeCard({ id: 40, name: 'Duress' });
 const OPT = makeCard({ id: 41, name: 'Opt' });
 const SPELL = makeCard({ id: 50, name: 'Counterspell', annotation: 'targets Bolt' });
 const BEAR = makeCard({ id: 20, name: 'Bear', x: 0, y: 0 });
-// P2's aura attached to Bolt, and P1's equipment attached to Bear.
 const AURA = makeCard({ id: 21, name: 'Pacifism', x: 3, y: 0, attachPlayerId: 1, attachZone: ZoneName.TABLE, attachCardId: 10 });
 const SWORD = makeCard({ id: 12, name: 'Sword', x: 6, y: 0, attachPlayerId: 2, attachZone: ZoneName.TABLE, attachCardId: 20 });
 
@@ -80,7 +79,6 @@ describe('usePlayerSeatViewModel', () => {
     expect(renderModel({ ...OWN, playerId: 9 }).model().seat).toMatchObject({ displayName: 'You', username: 'you' });
     expect(zones.library.cardCount).toBeUndefined();
     expect(zones.hand.cards).toEqual([]);
-    // The selector hands back an empty counter map, so mana is an empty pool.
     expect(counters).toEqual({ life: undefined, mana: {} });
   });
 
@@ -127,7 +125,6 @@ describe('usePlayerSeatViewModel', () => {
 
   it('moves cross-player attachments under their parent while keeping the owner', () => {
     const own = renderModel(OWN).model().zones.battlefield.cards.map((c) => [c.id, c.ownerPlayerId]);
-    // Sword (attached to P2's Bear) leaves P1's board; P2's Pacifism joins it.
     expect(own).toEqual([['10', 1], ['11', 1], ['21', 2]]);
     const opp = renderModel(OPP).model().zones.battlefield.cards;
     expect(opp.map((c) => [c.id, c.ownerPlayerId])).toEqual([['20', 2], ['12', 1]]);
@@ -184,7 +181,6 @@ describe('usePlayerSeatViewModel', () => {
       { name: 'Smash to Smithereens', scryfallId: '', sideboard: true },
     ]);
     expect(renderModel(OWN, { mutate: withDeck('not a deck') }).model().deck).toEqual([]);
-    // Servatrice sends the list to its owner only; other seats hold none.
     expect(renderModel(OPP).model().deck).toEqual([]);
   });
 

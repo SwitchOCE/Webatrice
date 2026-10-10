@@ -25,10 +25,6 @@ interface GamesListProps {
   room: Room;
 }
 
-// Column definitions kept next to the grid so header labels + sort
-// fields stay in sync with what the row cells render. Column widths live in
-// GRID_COLS (shared by header and rows) — the body is virtualized with
-// react-window, so table layout is replaced by a fixed grid template.
 const COLUMNS: Array<{ id: string; field?: string }> = [
   { id: 'age', field: 'info.startTime' },
   { id: 'description', field: 'info.description' },
@@ -40,15 +36,8 @@ const COLUMNS: Array<{ id: string; field?: string }> = [
 ];
 
 const GRID_COLS = 'grid grid-cols-[6rem_minmax(0,1fr)_10rem_8rem_14rem_5rem_8rem]';
-// px-3 py-2 text-sm cells: 16px padding + 20px line box + 1px bottom border.
 const GAME_ROW_HEIGHT = 37;
 
-/**
- * A room's open games, mirroring desktop's GameSelector: a sortable table with
- * single-row selection, a toolbar (filter, create, join, spectate, judge) and
- * the password and join-error dialogs. Rows are a keyboard grid like the
- * QTreeView: ↑/↓/Home/End move the selection, Enter joins like a double-click.
- */
 export default function GamesList({ room }: GamesListProps) {
   const { t } = useTranslation();
   const roomId = room.info.roomId;
@@ -85,8 +74,6 @@ export default function GamesList({ room }: GamesListProps) {
   const [createOpen, setCreateOpen] = useState(false);
   const [filterOpen, setFilterOpen] = useState(false);
 
-  // By id rather than through `selectedGame`: Enter or a double-click selects
-  // and joins in one go, before the selection has re-rendered.
   function joinById(gameId: number, asSpectator: boolean, asJudge: boolean) {
     const game = roomGames[gameId];
     if (game) {
@@ -100,8 +87,6 @@ export default function GamesList({ room }: GamesListProps) {
     }
   }
 
-  // The body is virtualized, so a keyboard move to a row outside the window
-  // scrolls it in; useGridRows focuses it once react-window mounts it.
   const listRef = useRef<ListImperativeAPI>(null);
   const keys = useMemo(() => gameList.map((game) => String(game.info.gameId)), [gameList]);
   const selectRow = useCallback((key: string) => {
@@ -132,9 +117,6 @@ export default function GamesList({ room }: GamesListProps) {
 
   const sortOrder = sortBy.order.toLowerCase() === 'asc' ? 'asc' : 'desc';
 
-  // Stable renderRow identity (deps are only what changes a row's drawing:
-  // selection + the row handlers) so react-window's row memoization holds — see
-  // webatrice.instructions.md § Virtualized lists.
   const renderGameRow = useCallback((game: Game, index: number, style: CSSProperties) => {
     const { info, gameType } = game;
     const isSelected = info.gameId === selectedGameId;
@@ -145,7 +127,6 @@ export default function GamesList({ room }: GamesListProps) {
         style={style}
         {...getRowProps(String(info.gameId))}
         aria-selected={isSelected}
-        // Row 1 is the header; react-window renders only a window of the rest.
         aria-rowindex={index + 2}
         onClick={() => handleSelect(info.gameId)}
         onDoubleClick={() => handleActivate(info.gameId)}
@@ -195,13 +176,6 @@ export default function GamesList({ room }: GamesListProps) {
         </div>
       </div>
 
-      {/* Games grid — header fixed above a virtualized row window so a busy
-          server's thousands of games cost O(viewport) per delta frame. The
-          header and the row scroller both reserve a stable scrollbar gutter so
-          their shared GRID_COLS tracks stay aligned once the body overflows
-          (the row pane's scrollbar would otherwise narrow the rows vs the
-          header). The gutter's track is transparent (thin-scrollbar.css), so
-          the header's reserved-but-unused gutter is invisible. */}
       <div
         role="grid"
         aria-label={t('GamesList.heading', { room: room.info.name })}

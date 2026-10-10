@@ -103,7 +103,6 @@ const EditUserForm = ({ profile, supportsPasswordHash, pending, error, submit, h
   );
 };
 
-/** Desktop `DlgEditUser`: edit email, country and real name. */
 const EditUserContent = ({ handleClose }: { handleClose: () => void }) => {
   const { t } = useTranslation();
   const edit = useEditUser(handleClose);

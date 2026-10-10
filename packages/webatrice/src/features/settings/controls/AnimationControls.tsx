@@ -13,7 +13,6 @@ import {
 
 import type { CustomControlProps } from '../registry';
 
-/** Records an animation choice (see chooseAnimations) with the preferences as they are now. */
 function useChooseAnimations() {
   const settings = useSettings();
   const preferences = usePreferences();
@@ -27,10 +26,6 @@ function useChooseAnimations() {
   };
 }
 
-/**
- * One animation's switch. It shows whether the animation plays now, which until the user chooses
- * follows the system's reduced-motion setting; flipping it records the choice for every animation.
- */
 export function animationToggle(key: AnimationPreferenceKey): ComponentType<CustomControlProps> {
   function AnimationToggle({ id, labelId, describedBy, disabled }: CustomControlProps) {
     const { preferences, reducedMotion, choose } = useChooseAnimations();
@@ -52,7 +47,6 @@ export function animationToggle(key: AnimationPreferenceKey): ComponentType<Cust
   return AnimationToggle;
 }
 
-/** Desktop's "Enable all animations" and "Disable all animations" buttons. */
 export function AnimationButtons({ labelId, disabled }: CustomControlProps) {
   const { t } = useTranslation();
   const { choose } = useChooseAnimations();

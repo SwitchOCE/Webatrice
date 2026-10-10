@@ -80,7 +80,6 @@ describe('useSelectionTally', () => {
   it('sums power across seats and zones, the live P/T first, else the printed one', async () => {
     renderTally(ALL);
     act(() => latest.setType!('power'));
-    // Guide's live 3, Bear's printed 2, the face-down card's live 2; Bolt has none.
     await waitFor(() => expect(latest.tally!.rows).toEqual([{ name: 'Total Power', value: '7' }]));
   });
 

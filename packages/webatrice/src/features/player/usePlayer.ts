@@ -17,13 +17,7 @@ export interface PlayerViewModel {
   isSelf: boolean;
   isABuddy: boolean;
   isIgnored: boolean;
-  // Private-chat history with this user (both sides), with the client's
-  // notices (delivery failures, the user leaving/joining) in place, less the
-  // messages the Chat preferences filter out. Empty until the first message
-  // goes either way. The reducer keys both sent + received under the OTHER
-  // user's name, so a single lookup returns the conversation.
   conversation: PrivateConversationEntry[];
-  // Whether the user is in the server's online user list.
   isOnline: boolean;
 
   onAddBuddy: () => void;
@@ -63,9 +57,6 @@ export function usePlayer(): PlayerViewModel {
     isIgnored: Boolean(name && ignoreList[name]),
   }), [currentUser, name, buddyList, ignoreList]);
 
-  // Settings → Chat private-message filters apply to messages, each keeping the
-  // verdict PrivateMessageNotifier gave it on arrival; the client's notices stay
-  // where Datatrice put them.
   const conversation = useMemo(() => {
     const messages = fullConversation.flatMap((entry) => (entry.type === 'message' ? [entry.message] : []));
     const visible = new Set(visiblePrivateMessages(

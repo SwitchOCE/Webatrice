@@ -89,8 +89,6 @@ const Player = () => {
     onRemoveIgnore,
     onSendMessage,
   } = usePlayer();
-  // The same moderator/admin entries every user context menu offers
-  // (user_context_menu.cpp), disabled on your own profile.
   const moderation = useModerationMenu(name ?? '', userInfo?.userLevel);
 
   const { canReportUser, openReportUser } = useReportUser();
@@ -165,8 +163,6 @@ const Player = () => {
                   <Button variant="outlined" onClick={isIgnored ? onRemoveIgnore : onAddIgnore}>
                     {isIgnored ? t('Player.action.removeIgnore') : t('Player.action.addIgnore')}
                   </Button>
-                  {/* Desktop's UserContextMenu entry, enabled only while the user is online
-                   *  (aShowGames->setEnabled(online)). The context menu is the other way in. */}
                   {name && userGames && (
                     <Button variant="outlined" disabled={!isOnline} onClick={() => userGames.open(name)}>
                       {t('UserGamesDialog.menu.showGames')}

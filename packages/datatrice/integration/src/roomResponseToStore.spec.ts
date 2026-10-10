@@ -79,9 +79,6 @@ describe('integration: room lifecycle', () => {
     response.room.joinRoom(makeRoom(1, 'Main'));
 
     const before = rooms.Selectors.getRoom(store.getState(), 1);
-    // A full-room re-broadcast must value-compare as a no-op (normalizeGametypeMap
-    // allocates a fresh map, so a reference check never matches) and leave the
-    // room ref untouched — see datatrice-store.instructions.md § UPDATE_ROOMS.
     response.room.updateRooms([makeRoom(1, 'Main')]);
 
     expect(rooms.Selectors.getRoom(store.getState(), 1)).toBe(before);
@@ -245,11 +242,9 @@ describe('integration: room chat and users', () => {
     });
     response.room.addMessage(1, { name: 'alice', message: 'hi', timeReceived: 4 });
 
-    // Desktop filters on arrival: a line shown before the ignore stays.
     expect(rooms.Selectors.getRoomMessages(store.getState(), 1).map(m => m.message))
       .toEqual(['troll: before', 'alice: hi']);
 
-    // Un-ignoring does not bring back what was dropped; new lines show again.
     response.session.removeFromIgnoreList('troll');
     response.room.addMessage(1, { name: 'troll', message: 'after', timeReceived: 5 });
     expect(rooms.Selectors.getRoomMessages(store.getState(), 1).map(m => m.message))

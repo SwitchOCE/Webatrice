@@ -69,11 +69,6 @@ function Game() {
   );
 }
 
-// Replay mode swallows every press and click on the board grid in the capture
-// phase, so no card, zone or player control can send a command or apply an
-// optimistic update; hover still reaches the cards for the preview pane. Keys
-// are left alone: the board's keyboard handlers are window-level and gated on
-// owning a seat, and the replay shortcuts listen on the window too.
 function swallowBoardInput(event: React.SyntheticEvent) {
   event.preventDefault();
   event.stopPropagation();
@@ -91,19 +86,11 @@ const READ_ONLY_BOARD_GUARD = {
 const noop = () => {};
 
 export interface GameBoardProps {
-  /** Game to render; defaults to the `/game/:gameId` route param. */
   gameId?: number;
-  /** Chrome rendered as a full-width row under the board (the replay timeline). */
   footer?: ReactNode;
-  /** Replaces the sidebar's Leave action (a replay closes instead of leaving). */
   onLeave?: () => void;
 }
 
-/**
- * The battlefield for a game. Inside a `GameReadOnlyProvider` (replay playback)
- * it renders the same board as a spectator would see, with every way to act on
- * the game removed.
- */
 export function GameBoard({ gameId: boardGameId, footer, onLeave }: GameBoardProps = {}) {
   const { t } = useTranslation();
   const readOnly = useGameReadOnly();
@@ -134,7 +121,6 @@ export function GameBoard({ gameId: boardGameId, footer, onLeave }: GameBoardPro
   // to 112 px so the always-expanded PhaseTrack takes real width
   // instead of floating over the play area.
   const phaseTrackPinned = usePhaseTrackPinned();
-  // Desktop's "Keep game chat focused when clicking in game".
   const keepGameChatFocus = usePreference('keepGameChatFocus');
   const phaseTrackColumnWidth = phaseTrackPinned ? 112 : 8;
 
@@ -268,10 +254,6 @@ export function GameBoard({ gameId: boardGameId, footer, onLeave }: GameBoardPro
                                         </div>
                                       )}
                                       <TallyOverlay />
-                                      {/* Bottom-bar HandZone removed: each seat now
-                                renders its own hand inline. Kept the space so
-                                downstream layout hooks that watched the empty
-                                bottom bar don't recompute their heights. */}
                                     </div>
 
                                     <SidebarResizer width={sidebarWidth} onResize={setSidebarWidth} />
@@ -279,7 +261,6 @@ export function GameBoard({ gameId: boardGameId, footer, onLeave }: GameBoardPro
                                     <BattlefieldSidebar />
 
                                     <GameArrowOverlay containerRef={gameRef} layoutVersion={layout} dragPreview={arrows.dragPreview} />
-
 
                                     {!readOnly && <DeckSelectDialog />}
 
@@ -346,7 +327,6 @@ export function GameBoard({ gameId: boardGameId, footer, onLeave }: GameBoardPro
                                     />
 
                                     <GameInfoDialog />
-
 
                                     {footer && <div className="game__footer">{footer}</div>}
                                   </div>

@@ -5,7 +5,6 @@ import type { CardInSet, CardProperties, XmlNode } from '../dexie/types';
 import { expandPictureUrlTemplate } from './pictureUrlTemplates';
 import { sortBySetPreference, type SetPreferenceMap } from './setPriority';
 
-/** The parts of a cards.xml `<card>` (or tokens.xml token) the resolver reads. */
 export interface CardImageSubject {
   name?: XmlNode<string>;
   prop?: CardProperties;
@@ -15,13 +14,9 @@ export interface CardImageSubject {
 export interface CardImageOptions {
   templates: readonly string[];
   setPreferences: SetPreferenceMap;
-  /** Set code → long name, for `!setname!`. */
   setLongNames?: ReadonlyMap<string, string>;
-  /** Printing to try before the user's set priority (desktop: the card's own provider id). */
   preferredSet?: string;
-  /** `!sflang!`; defaults to `'en'` until Webatrice has a card-language setting. */
   lang?: string;
-  /** Size of the trailing Scryfall by-name fallback. */
   fallbackSize?: ScryfallImageSize;
 }
 
@@ -32,7 +27,6 @@ export function printingsOf(card: CardImageSubject): CardInSet[] {
   return Array.isArray(card.set) ? card.set : [card.set];
 }
 
-/** `<set>` attributes, with the legacy `picURL` spelling folded into `picurl` like desktop's parser. */
 export function printingProperties(printing: CardInSet): Record<string, string> {
   const props: Record<string, string> = {};
   for (const [key, value] of Object.entries(printing)) {
@@ -53,10 +47,6 @@ export function cardProperties(card: CardImageSubject): Record<string, string> {
   return props;
 }
 
-/**
- * Candidate URLs for one printing, in desktop's `populateSetUrls` order:
- * the printing's own `picurl` first, then every template that resolves.
- */
 export function resolvePrintingImageUrls(
   card: CardImageSubject,
   printing: CardInSet | undefined,
@@ -84,12 +74,6 @@ export function resolvePrintingImageUrls(
   return urls;
 }
 
-/**
- * Ordered, de-duplicated image candidates for a card: each printing in set
- * priority order (`CardPictureToLoad::extractSetsSorted`), the preferred
- * printing first, then a Scryfall by-name lookup as the browser fallback
- * (see webatrice.instructions.md#protocol-quirks). Callers try them in turn.
- */
 export function resolveCardImageUrls(card: CardImageSubject, options: CardImageOptions): string[] {
   const sorted = sortBySetPreference(printingsOf(card), (p) => p.value, options.setPreferences);
   if (options.preferredSet) {

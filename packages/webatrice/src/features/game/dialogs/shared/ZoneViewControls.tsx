@@ -14,7 +14,6 @@ export interface ZoneViewSortControlsProps {
   onSortByChange: (sortBy: SortMode) => void;
 }
 
-/** Desktop's group and sort boxes (view_zone_widget.cpp:234-250). */
 export function ZoneViewSortControls({ groupBy, sortBy, onGroupByChange, onSortByChange }: ZoneViewSortControlsProps): ReactElement {
   const { t } = useTranslation();
   return (
@@ -54,7 +53,6 @@ export interface PileViewToggleProps {
   onChange: (pileView: boolean) => void;
 }
 
-/** Desktop's pile view box, which it disables while ungrouped (view_zone_widget.cpp:197). */
 export function PileViewToggle({ groupBy, pileView, onChange }: PileViewToggleProps): ReactElement {
   const { t } = useTranslation();
   const ungrouped = groupBy === 'none';

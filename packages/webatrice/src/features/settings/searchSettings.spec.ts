@@ -68,7 +68,6 @@ describe('searchSettings', () => {
 
   it('orders hits by relevance', () => {
     const { hits } = searchSettings(sections, 'so', t);
-    // Label contains (80), group prefix (60), description (20).
     expect(hits.map((h) => h.entry.id)).toEqual(['enable', 'volume', 'theme']);
 
     const ranked = searchSettings(sections, 'en', t).hits;

@@ -1,11 +1,4 @@
-// Power / toughness edits from the card menu and the set-P/T prompt, ported from
-// desktop CardItem::parsePT and PlayerActions::actIncPT / actSetPT
-// (refactor plan PB-11).
 
-/** Port of Cockatrice's `CardItem::parsePT`. The PT wire string is a
- *  '/'-separated list of tokens; a leading '+' or '-' marks the token
- *  as a signed integer, otherwise it stays a string. Empty input →
- *  empty list. */
 export function parsePT(pt: string): (number | string)[] {
   if (!pt) {
     return [];

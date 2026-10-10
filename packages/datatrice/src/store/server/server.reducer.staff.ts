@@ -11,16 +11,12 @@ import {
 import { cloneWith } from '../../common';
 import { ServerState, ServerStateStaff, UserInvestigation } from './server.interfaces';
 
-// Staff tooling results (desktop TabModeration, TabCardArtRules, TabDeveloper).
-// Each list starts as null ("never loaded") so a view can tell an empty answer
-// from one that has not arrived yet.
 export const initialStaffState: ServerStateStaff = {
   investigation: null,
   moderatorLastLogins: null,
   cardArtRules: null,
   serverStats: null,
 };
-
 
 function investigation(state: ServerState, userName: string): UserInvestigation | undefined {
   const active = state.staff.investigation;
@@ -32,7 +28,6 @@ export const staffReducers = {
     state.staff.investigation = { userName: action.payload.userName, results: {} };
   }) as CaseReducer<ServerState, PayloadAction<{ userName: string }>>,
 
-  // Keyed by the name the server echoes (Servatrice copies the requested user_name).
   userInfoReport: ((state, action) => {
     const active = investigation(state, action.payload.info.userName);
     if (active) {
@@ -58,8 +53,6 @@ export const staffReducers = {
     state.staff.moderatorLastLogins = action.payload.logins;
   }) as CaseReducer<ServerState, PayloadAction<{ logins: ServerInfo_ModeratorLogin[] }>>,
 
-  // The avatar is gone server-side; drop any cached copy so profile views stop
-  // showing it. Fresh clones, since Immer can't draft protobuf-es messages.
   userAvatarRemoved: ((state, action) => {
     const { userName } = action.payload;
     const noAvatar = { avatarBmp: new Uint8Array() };
@@ -75,8 +68,6 @@ export const staffReducers = {
     state.staff.cardArtRules = action.payload.entries;
   }) as CaseReducer<ServerState, PayloadAction<{ entries: Response_CardArtRuleEntry[] }>>,
 
-  // Mutation acknowledgements are signals only. The following list response
-  // owns the cache, as in desktop TabCardArtRules.
   cardArtRuleAdded: (() => {}) as CaseReducer<
     ServerState, PayloadAction<{ cardName: string; cardProviderId: string; mode: string; reason: string }>
   >,

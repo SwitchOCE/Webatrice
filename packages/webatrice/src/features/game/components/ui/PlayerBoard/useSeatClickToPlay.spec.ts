@@ -201,7 +201,6 @@ describe('useSeatClickToPlay', () => {
     });
 
     it('reads a single click\'s selection from before the click, not the one the release made', async () => {
-      // The release has already narrowed the selection to the clicked card.
       const { result, moveCards } = setup({ selection: { zone: 'hand', ids: new Set(['30']) } });
       await setPreferences({ doubleClickToPlay: false });
       result.current.onCardClick('hand', FOREST, click, selection);
@@ -229,10 +228,8 @@ describe('useSeatClickToPlay', () => {
 
     it('taps the whole selection unless all of it is tapped, sending only the cards that change', async () => {
       const { result, setTapped } = setup({ selection: { zone: 'battlefield', ids: new Set(['40', '41']) } });
-      // Desktop's TableZone::toggleTapped: one untapped card means "tap all", whichever is clicked.
       result.current.onCardDoubleClick('battlefield', onTable(41, true), click);
       expect(setTapped).toHaveBeenCalledWith([40], true);
-      // Regardless of "Clicking plays all selected cards".
       await setPreferences({ clickPlaysAllSelected: false });
       result.current.onCardDoubleClick('battlefield', onTable(40, false), click);
       expect(setTapped).toHaveBeenLastCalledWith([40], true);

@@ -107,7 +107,6 @@ describe('ModerationProvider', () => {
         store.dispatch(server.Actions.warnListOptions({ requestId: ids.warnings(),
           warnList: [create(Response_WarnListSchema, {
             warning: ['Spamming', 'Flaming', 'Cheating'],
-            // 3.1 servers send each reason's starting intervention level; a short list defaults to 1.
             warningIl: [1, 3],
             userName: 'alice',
             userClientid: 'cid-alice',
@@ -116,7 +115,6 @@ describe('ModerationProvider', () => {
       });
       const dialog = screen.getByRole('dialog', { name: 'Moderation.warn.title' });
       const options = within(dialog).getAllByRole('option');
-      // The test i18n returns keys, so a levelled reason shows the suffix key.
       expect(options.map((option) => option.textContent)).toEqual(['', 'Spamming', 'Moderation.warn.withLevel', 'Cheating']);
       expect(options.map((option) => option.getAttribute('value'))).toEqual(['', 'Spamming', 'Flaming', 'Cheating']);
     });

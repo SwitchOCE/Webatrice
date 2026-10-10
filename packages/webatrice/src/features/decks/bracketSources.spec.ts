@@ -21,7 +21,6 @@ function malformed(): Response {
   } as unknown as Response;
 }
 
-/** A fetch that only settles when its signal aborts. */
 function hanging(_url: unknown, init?: RequestInit): Promise<Response> {
   return new Promise((_resolve, reject) => {
     init?.signal?.addEventListener('abort', () => reject(Object.assign(new Error('aborted'), { name: 'AbortError' })));

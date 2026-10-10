@@ -2,33 +2,20 @@ import type { ServerInfo_DeckStorage_File, ServerInfo_DeckStorage_Folder } from 
 
 import { deckVisibility, flattenFolder, type DeckVisibility, type FlatDeck } from './deckTree';
 
-/**
- * Folders of Servatrice deck storage, as desktop's remote tree in
- * `TabDeckStorage` shows them. Paths are `/`-joined folder names from the
- * root; the root itself is `""`.
- */
-
-/** Servatrice's `MAX_NAME_LENGTH`: a folder path, name included, fits in 255. */
 export const MAX_DECK_PATH_LENGTH = 0xff;
 
 export interface DeckFolderEntry {
   name: string;
   path: string;
-  /** Decks in the folder and all its subfolders. */
   deckCount: number;
-  /** Decks directly in the folder: what sharing it sends (Servatrice shares no subfolders). */
   directDeckCount: number;
-  /** Subfolders at any depth. */
   folderCount: number;
   visibility: DeckVisibility;
 }
 
 export interface DeckFolderView {
-  /** The folder actually shown: the requested path, or the root when it doesn't exist. */
   path: string;
-  /** Subfolders, by name. */
   folders: DeckFolderEntry[];
-  /** Decks directly in the folder, newest first. */
   decks: FlatDeck[];
 }
 
@@ -41,7 +28,6 @@ export function parentDeckPath(path: string): string {
   return slash < 0 ? '' : path.slice(0, slash);
 }
 
-/** Breadcrumbs below the root: each segment with its own path. */
 export function deckPathCrumbs(path: string): { name: string; path: string }[] {
   if (!path) {
     return [];
@@ -50,7 +36,6 @@ export function deckPathCrumbs(path: string): { name: string; path: string }[] {
   return segments.map((name, i) => ({ name, path: segments.slice(0, i + 1).join('/') }));
 }
 
-/** Whether `path` or a folder above it is public, so what it holds inherits it. */
 export function isUnderPublicFolder(root: ServerInfo_DeckStorage_Folder | undefined, path: string): boolean {
   if (!root) {
     return false;
@@ -71,7 +56,6 @@ export function isUnderPublicFolder(root: ServerInfo_DeckStorage_Folder | undefi
   return false;
 }
 
-/** The folder at `path`, or `undefined` when there is none. */
 export function findDeckFolder(
   root: ServerInfo_DeckStorage_Folder | undefined,
   path: string,
@@ -93,7 +77,6 @@ function countFolders(folder: ServerInfo_DeckStorage_Folder): number {
   return folder.items.reduce((sum, item) => sum + (item.folder ? 1 + countFolders(item.folder) : 0), 0);
 }
 
-/** One level of the tree: what desktop's tree shows when a folder is expanded. */
 export function listDeckFolder(root: ServerInfo_DeckStorage_Folder | undefined, path: string): DeckFolderView {
   const folder = findDeckFolder(root, path);
   const shownPath = folder ? path : '';
@@ -121,22 +104,18 @@ export function listDeckFolder(root: ServerInfo_DeckStorage_Folder | undefined, 
   return { path: shownPath, folders, decks };
 }
 
-/** Every deck at or below `path` — the scope of a folder delete or download. */
 export function decksUnderFolder(root: ServerInfo_DeckStorage_Folder | undefined, path: string): FlatDeck[] {
   const folder = findDeckFolder(root, path);
   return folder ? flattenFolder(folder, path, isUnderPublicFolder(root, parentDeckPath(path))) : [];
 }
 
-/** A deck in another user's public tree, with the preview metadata Servatrice keeps for it. */
 export interface PublicDeckEntry {
   id: number;
   name: string;
-  /** Folder path in the owner's storage. */
   path: string;
   file: ServerInfo_DeckStorage_File;
 }
 
-/** Every deck in a public deck tree (`Command_DeckListOtherUser`), folders flattened into paths. */
 export function listPublicDecks(folder: ServerInfo_DeckStorage_Folder | undefined, path = ''): PublicDeckEntry[] {
   if (!folder) {
     return [];
@@ -149,7 +128,6 @@ export function listPublicDecks(folder: ServerInfo_DeckStorage_Folder | undefine
   });
 }
 
-/** Every folder path, root first, for picking where a deck goes. */
 export function allDeckFolderPaths(root: ServerInfo_DeckStorage_Folder | undefined): string[] {
   const out = [''];
   const walk = (folder: ServerInfo_DeckStorage_Folder, path: string) => {
@@ -169,12 +147,6 @@ export function allDeckFolderPaths(root: ServerInfo_DeckStorage_Folder | undefin
 
 export type FolderNameProblem = 'empty' | 'tooLong' | 'exists';
 
-/**
- * Desktop `TabDeckStorage::actNewFolder`: `/` can't be part of a name, so
- * it becomes `-`; the whole path must stay within the server's limit. A
- * name already used by a sibling folder is refused too — Servatrice would
- * store it, but the two folders would then share one path.
- */
 export function checkNewFolderName(
   name: string,
   parentPath: string,

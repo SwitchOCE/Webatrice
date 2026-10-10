@@ -118,7 +118,6 @@ describe('CardPreviewContext hooks', () => {
     fireEvent.mouseEnter(screen.getByText('publisher'));
     expect(screen.getByTestId('preview')).toHaveTextContent('Lightning Bolt');
 
-    // Pointer movement across many cards: readers follow, publishers stay put.
     for (const card of [OGRE, BOLT, OGRE, null]) {
       act(() => store.setHoveredCard(card));
     }

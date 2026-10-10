@@ -5,7 +5,6 @@ import { server } from '@cockatrice/datatrice';
 import { connectedState, makeUser, renderWithProviders } from '../../../../__test-utils__';
 import EditUserDialog from './EditUserDialog';
 
-// Omitted → a server without password hashing; an explicit `undefined` → capability not yet known.
 function stateWith(options: { supportsPasswordHash?: boolean | undefined }) {
   const supportsPasswordHash = 'supportsPasswordHash' in options ? options.supportsPasswordHash : false;
   return {

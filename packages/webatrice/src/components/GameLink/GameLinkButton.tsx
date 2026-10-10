@@ -10,11 +10,6 @@ interface GameLinkButtonProps {
   url: string;
 }
 
-/**
- * A `cockatrice://joingame` link inside a chat message, labelled like
- * desktop's chat anchor (ChatView::appendGameLinkTag). Clicking hands the
- * link to GameLinkJoinHost, which confirms and joins.
- */
 export function GameLinkButton({ url }: GameLinkButtonProps) {
   const { t } = useTranslation();
   const parsed = parseGameJoinLink(url);
@@ -41,7 +36,6 @@ export function GameLinkButton({ url }: GameLinkButtonProps) {
   );
 }
 
-/** Splits chat text into plain strings and game-link buttons. */
 export function renderGameLinks(text: string): ReactNode[] {
   if (!containsGameLink(text)) {
     return [text];

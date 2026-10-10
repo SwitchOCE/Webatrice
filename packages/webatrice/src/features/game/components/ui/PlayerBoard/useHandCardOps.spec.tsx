@@ -30,7 +30,6 @@ describe('useHandCardOps', () => {
   it('plays each selected card where the hand menu\'s Play sends it, highest id first', () => {
     const { ops, moveCards } = setup();
     ops.forSelection()!.play(false);
-    // Positional ids shift as cards leave the hand; "Play to stack" (on by default) stacks the creature.
     expect(moveCards.mock.calls).toEqual([
       [ZoneName.HAND, [32], { zone: ZoneName.STACK, index: 'end' }],
       [ZoneName.HAND, [31], { zone: ZoneName.TABLE, index: 'end', row: expect.any(Number) }],
@@ -53,9 +52,6 @@ describe('useHandCardOps', () => {
     expect(moveCards).toHaveBeenCalledExactlyOnceWith(ZoneName.HAND, [31, 32], { zone: ZoneName.EXILE, reversed: false });
   });
 
-  // Desktop cmMoveToTable (player_actions.cpp:1925-1950), the hand menu's
-  // "Move to > Table" and the move-to-battlefield shortcut: one command per
-  // card, x -1, its row, printed P/T and cipt.
   it('moves each card onto the battlefield in its own command, row, P/T and cipt', () => {
     const { ops, moveCards } = setup({
       selection: hand('30', '31', '32'),

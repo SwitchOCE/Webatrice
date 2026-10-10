@@ -1,11 +1,6 @@
 import { isFieldSet } from '@bufbuild/protobuf';
 import { ServerInfo_DeckStorage_FileSchema, type ServerInfo_DeckStorage_Folder } from '@cockatrice/sockatrice/generated';
 
-/**
- * Whether other users see a deck or folder (Cockatrice 3.1 public decks).
- * `inherited`: private itself, but a folder above it is public — desktop's
- * "Public (inherited)" column. Always `private` on a 3.0 server.
- */
 export type DeckVisibility = 'public' | 'inherited' | 'private';
 
 export function deckVisibility(ownBit: boolean | undefined, underPublicFolder: boolean): DeckVisibility {
@@ -15,10 +10,6 @@ export function deckVisibility(ownBit: boolean | undefined, underPublicFolder: b
   return underPublicFolder ? 'inherited' : 'private';
 }
 
-/**
- * A deck file from the Servatrice deck-storage tree, with the path of the
- * folder it sits in (see `deckFolders` for the folders themselves).
- */
 export interface FlatDeck {
   id: number;
   name: string;
@@ -26,19 +17,11 @@ export interface FlatDeck {
   path: string;
   /** Unix seconds. Not `updated_at` — Servatrice only tracks creation. */
   creationTime: number;
-  /** Published to other users (3.1 servers; absent means private). */
   isPublic?: boolean;
-  /** Stored color identity, e.g. "WUB" (3.1 servers; empty for older uploads). */
   colorIdentity?: string;
-  /** What other users see, counting a public folder above the deck. */
   visibility: DeckVisibility;
 }
 
-/**
- * Recursively walk a Servatrice folder tree collecting only files (leaf
- * decks). `pathPrefix` is the display path from the root; `underPublicFolder`
- * says whether a folder above `folder` is public.
- */
 export function flattenFolder(
   folder: ServerInfo_DeckStorage_Folder,
   pathPrefix: string,
@@ -66,13 +49,8 @@ export function flattenFolder(
   return out;
 }
 
-/**
- * A deck's age for the list view: a key (`Decks.list.age.*`) for the two
- * worded cases, else text already formatted for `locale`.
- */
 export type DeckAge = { key: 'unknown' | 'justNow' } | { text: string };
 
-// One formatter per locale: the list formats every row's age on each render.
 const relativeFormats = new Map<string, Intl.RelativeTimeFormat>();
 
 function relativeFormat(locale: string): Intl.RelativeTimeFormat {
@@ -84,11 +62,6 @@ function relativeFormat(locale: string): Intl.RelativeTimeFormat {
   return format;
 }
 
-/**
- * Loose "3h ago" formatter for Unix seconds. Good enough for the list view;
- * the editor can show absolute timestamps. `locale` is a BCP 47 tag (the UI
- * language); empty falls back to the runtime default.
- */
 export function formatDeckAge(unixSeconds: number, locale: string, now = Date.now()): DeckAge {
   if (!unixSeconds) {
     return { key: 'unknown' };

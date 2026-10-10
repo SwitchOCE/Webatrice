@@ -13,24 +13,14 @@ import { useAppSelector } from '@app/store';
 import { makeGameJoinLink } from '@app/utils';
 
 export interface GameInvite {
-  /** The desktop join link for this game; null when the game or server is unknown. */
   link: string | null;
-  /** Why link actions are unavailable, when endpoint configuration is the cause. */
   unavailableReason: string | null;
   onlyBuddies: boolean;
-  /** Self, players and spectators — never offered in the invite list. */
   excludeNames: ReadonlySet<string>;
   copyLink: () => void;
   sendInvite: (userName: string) => void;
 }
 
-/**
- * Copy game link / Invite to Game (desktop tab_game.cpp actCopyGameLink /
- * actInviteToGame + DlgInviteToGame::inviteCurrentUser). The invite is a
- * private message carrying the join link, prefixed with the game's
- * description and id, exactly as desktop sends it. A Command_Message the
- * server rejects or never answers is reported for the invites sent here.
- */
 export function useGameInvite(gameId: number): GameInvite {
   const { t } = useTranslation();
   const webClient = useWebClient();
@@ -39,7 +29,6 @@ export function useGameInvite(gameId: number): GameInvite {
   const game = useAppSelector((state) => games.Selectors.getGame(state, gameId));
   const selfName = useAppSelector((state) => server.Selectors.getUser(state)?.name ?? null);
   const failureMessage = useCommandFailureMessage();
-  // The invite text sent to each user, so a failure is reported only for invites.
   const sentInvites = useRef(new Map<string, string>());
 
   const roomId = game?.info.roomId;

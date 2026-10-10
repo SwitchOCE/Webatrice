@@ -28,8 +28,6 @@ function pickFromCollection(
     case PlaymatFallbackBehavior.ROUND_ROBIN:
       return list[rotationIndex % list.length];
     case PlaymatFallbackBehavior.RANDOM: {
-      // With two or more entries, never repeat the previous pick
-      // (DeckViewContainer::resolveAndSendPlaymat).
       const candidates = list.length > 1 ? list.filter((entry) => !samePlaymat(entry, lastResolved)) : list;
       const pool = candidates.length > 0 ? candidates : list;
       return pool[Math.floor(random() * pool.length)];
@@ -39,12 +37,6 @@ function pickFromCollection(
   }
 }
 
-/**
- * The playmat to announce for a deck, per the user's collection mode. Port of
- * desktop `resolvePlaymatForDeck` (playmat_resolver.cpp): override uses only
- * the collection, fallback prefers the deck's own playmat, deck-only ignores
- * the collection. Null when nothing in the chain resolves, which clears it.
- */
 export function resolvePlaymat(
   deckPlaymat: games.Playmat | null,
   settings: PlaymatSettings,
@@ -64,11 +56,6 @@ export function resolvePlaymat(
 
 type CollectionSettings = Pick<PlaymatSettings, 'mode' | 'fallbackBehavior' | 'fallbackList'>;
 
-/**
- * Whether two settings resolve the same way. Visibility only changes what is
- * drawn: desktop's setPlaymatVisibility emits playmatVisibilityChanged, not
- * the playmatSettingsChanged that re-resolves (interface_settings.cpp).
- */
 export function sameCollectionSettings(a: CollectionSettings | undefined, b: CollectionSettings): boolean {
   return a !== undefined
     && a.mode === b.mode

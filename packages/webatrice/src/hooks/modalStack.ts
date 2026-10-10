@@ -1,4 +1,3 @@
-/** Custom and MUI dialogs share one background-isolation stack. */
 const stack: HTMLElement[] = [];
 const previous = new Map<HTMLElement, boolean>();
 let observer: MutationObserver | undefined;
@@ -16,8 +15,6 @@ function refresh() {
   if (!top) {
     return;
   }
-  // Isolate siblings along the path to body, including lower modal portals and
-  // notifications added while the dialog is already open.
   let branch: HTMLElement = top.closest<HTMLElement>('[data-modal-layer],.MuiModal-root') ?? top;
   while (branch.parentElement) {
     for (const sibling of branch.parentElement.children) {

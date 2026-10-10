@@ -11,7 +11,6 @@ const C = mat('C');
 
 const settings = (patch: Partial<PlaymatSettings>): PlaymatSettings => ({ ...DEFAULT_PLAYMAT_SETTINGS, ...patch });
 
-// Cases follow desktop tests/playmat_resolver_test.cpp.
 describe('resolvePlaymat', () => {
   describe('fallback mode', () => {
     it('prefers the deck playmat', () => {

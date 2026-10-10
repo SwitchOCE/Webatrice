@@ -154,8 +154,6 @@ describe('card database sources (real Dexie)', () => {
   });
 });
 
-// Opens a private database at `version` with exactly the schema steps up to it, the way an
-// install that last ran that release would hold it.
 const STEPS: Array<[number, (db: Dexie) => void]> = [[4, schemaV2], [6, schemaV6], [7, schemaV7]];
 
 function openAt(name: string, version: number): Promise<Dexie> {
@@ -181,7 +179,6 @@ async function expectMigratedCardData(db: Dexie) {
   ]);
   const legacy = await db.table('cardSources').get('legacy');
   expect(legacy).toMatchObject({ kind: 'legacy', origin: 'migration', counts: { cards: 1, sets: 2, tokens: 0, formats: 0 } });
-  // Only a marker: the upgrade copies no cards. Earlier tables are untouched.
   expect(legacy.records).toBeUndefined();
   expect(await db.table('cardSourcePayloads').count()).toBe(0);
   expect(await db.table('cards').count()).toBe(1);
@@ -230,7 +227,6 @@ describe('Dexie v7 migration (real IndexedDB)', () => {
   });
 });
 
-// DexieService's database name.
 const APP_DB = 'Webatrice';
 
 const legacyTokensXml = `<?xml version="1.0" encoding="UTF-8"?>
@@ -239,11 +235,6 @@ const legacyTokensXml = `<?xml version="1.0" encoding="UTF-8"?>
   <cards><card><name>Goblin</name><text>updated</text><token>1</token><set>TOK</set></card></cards>
 </cockatrice_carddatabase>`;
 
-/**
- * Rebuilds the app's own database as a v6 install left it: before v7, cards.xml, tokens.xml and
- * spoiler.xml were all imported into the same tables. The next query reopens it and runs the
- * real v7 upgrade.
- */
 async function installPreV7CardData() {
   await Dexie.delete(APP_DB);
   const v6 = await openAt(APP_DB, 6);
@@ -271,7 +262,6 @@ describe('rebuilding after the v7 migration (real IndexedDB)', () => {
 
     expect(result.summary).toEqual({ cards: 2, sets: 3, tokens: 1, formats: 0 });
     expect(await dexieService.cardSourcePayloads.get('legacy')).toBeDefined();
-    // A second rebuild reads the stored payload, not the tables the first one wrote.
     await dexieService.cards.clear();
     expect((await cardDatabaseService.reload()).summary).toEqual({ cards: 2, sets: 3, tokens: 1, formats: 0 });
     expect(await cardNamed('Spoiled Card')).toBeDefined();

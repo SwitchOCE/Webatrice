@@ -1,5 +1,3 @@
-// The seat mana pool, in desktop order: one pip per Servatrice player counter
-// (w/u/b/r/g/x/storm, server_player.cpp:96-102). Tints are the --mana-* tokens.
 export const MANA_COLORS: Array<{
   symbol: 'W' | 'U' | 'B' | 'R' | 'G' | 'C' | 'O';
   tint: string;

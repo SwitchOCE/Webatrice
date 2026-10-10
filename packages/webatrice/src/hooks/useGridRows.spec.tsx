@@ -77,7 +77,6 @@ describe('useGridRows', () => {
   });
 
   it('focuses a moved-to row that mounts only after the move, as in a virtualized list', () => {
-    // Renders just the selected row, the way a scrolled react-window shows a new window.
     function OneRowGrid() {
       const [selected, setSelected] = useState<string | null>('a');
       const rows = useGridRows({ keys: KEYS, selectedKey: selected, onSelect: setSelected, onActivate: vi.fn() });
@@ -114,7 +113,6 @@ describe('useGridRows', () => {
   it('re-homes the tab stop to the first visible row while the selected row is scrolled out of a window', () => {
     const keys = ['a', 'b', 'c', 'd', 'e'];
     let report: (visible: [number, number], all: [number, number]) => void = () => {};
-    // Mounts only the rows in the reported window, the way react-window does.
     function WindowedGrid() {
       const [window, setWindow] = useState<[number, number]>([0, 1]);
       const rows = useGridRows({ keys, selectedKey: 'a', onSelect: vi.fn(), onActivate: vi.fn() });
@@ -134,13 +132,11 @@ describe('useGridRows', () => {
     act(() => report([0, 0], [0, 1]));
     expect(screen.getByTestId('a').tabIndex).toBe(0);
 
-    // Scrolled so 'c'..'d' are visible and 'b'..'e' rendered (overscan): 'a' is gone.
     act(() => report([2, 3], [1, 4]));
     expect(screen.queryByTestId('a')).not.toBeInTheDocument();
     expect(screen.getByTestId('c').tabIndex).toBe(0);
     expect(['b', 'd', 'e'].map((key) => screen.getByTestId(key).tabIndex)).toEqual([-1, -1, -1]);
 
-    // Scrolled back: the selected row holds the tab stop again.
     act(() => report([0, 1], [0, 2]));
     expect(screen.getByTestId('a').tabIndex).toBe(0);
     expect(screen.getByTestId('b').tabIndex).toBe(-1);
@@ -164,10 +160,8 @@ describe('useGridRows', () => {
 
     fireEvent.keyDown(screen.getByTestId('a1'), { key: 'End' });
     expect(screen.getByTestId('a3')).toHaveFocus();
-    // ↓ skips the empty middle line and clamps to the last place of the shorter one.
     fireEvent.keyDown(screen.getByTestId('a3'), { key: 'ArrowDown' });
     expect(screen.getByTestId('c1')).toHaveFocus();
-    // Nothing below the last line: focus stays.
     expect(fireEvent.keyDown(screen.getByTestId('c1'), { key: 'ArrowDown' })).toBe(false);
     fireEvent.keyDown(screen.getByTestId('c1'), { key: 'ArrowUp' });
     expect(onSelect.mock.calls.map(([key]) => key)).toEqual(['a3', 'c1', 'a1']);

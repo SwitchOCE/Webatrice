@@ -8,11 +8,6 @@ import { saveTextFile } from '../browserHandoff';
 import { exportFileName } from '../deckExport';
 import type { FlatDeck } from '../deckTree';
 
-/**
- * The `.cod` file name for a downloaded deck. Desktop writes `deck_<id>.cod`
- * into a local folder tree; a browser saves flat files, so the deck's folder
- * below the downloaded one prefixes its name instead.
- */
 export function deckFileName(deck: FlatDeck, fromFolder: string): string {
   let relative = deck.path;
   if (deck.path === fromFolder) {
@@ -24,14 +19,8 @@ export function deckFileName(deck: FlatDeck, fromFolder: string): string {
   return exportFileName([...folders, deck.name].join(' '), 'cod');
 }
 
-/**
- * Desktop `TabDeckStorage::actDownload` for a browser: download remote
- * decks and save each as a `.cod` file. A folder downloads every deck in
- * it, at any depth.
- */
 export function useDeckFileDownloads(): { download: (decks: readonly FlatDeck[], fromFolder?: string) => void } {
   const webClient = useWebClient();
-  // Deck id → file name, while the deck's XML is on its way.
   const pendingRef = useRef<Map<number, string>>(new Map());
 
   useReduxEffect<{ deckId: number; deck: string }>(

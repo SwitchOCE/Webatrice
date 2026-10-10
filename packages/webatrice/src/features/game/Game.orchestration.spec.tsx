@@ -127,7 +127,6 @@ describe('Game orchestration', () => {
         startCardId: BOLT.id,
         targetPlayerId: 2,
         arrowColor: ArrowColor.RED,
-        // Drawn in the beginning phase: kept until the first main phase.
         deleteInPhase: Phase.FirstMain,
         targetZone: ZoneName.TABLE,
         targetCardId: BEAR.id,

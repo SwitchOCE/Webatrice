@@ -12,7 +12,6 @@ vi.mock('@app/feature-wrappers/layout', () => ({
 }));
 vi.mock('@app/components', () => ({ AuthGuard: () => null }));
 
-// Trans renders nothing without an i18n instance; this one echoes keys.
 const testI18n = i18n.createInstance();
 testI18n.use(initReactI18next).init({ lng: 'en-US', resources: { 'en-US': { translation: {} } } });
 

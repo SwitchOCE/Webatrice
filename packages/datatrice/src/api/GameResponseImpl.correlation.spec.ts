@@ -54,7 +54,6 @@ describe('deck-select outcome identity', () => {
 });
 
 describe('next-turn outcome identity', () => {
-  // Catches dropped/swapped IDs and storing response metadata in game state.
   it('carries out-of-order success identities as signals without changing game state', () => {
     const { dispatch, game } = setup();
     game.nextTurnAnswered(7, 'second');
@@ -67,7 +66,6 @@ describe('next-turn outcome identity', () => {
     }
   });
 
-  // Catches losing the failure reason/ID or mutating state on either outcome.
   it.each([undefined, ...Object.values(WebsocketTypes.CommandFailure)])(
     'carries a late failure %s identity without changing game state', (failure) => {
       const { dispatch, game } = setup();

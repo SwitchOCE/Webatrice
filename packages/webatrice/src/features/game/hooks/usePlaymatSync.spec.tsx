@@ -28,7 +28,6 @@ function setup({ version = '3.1.0 ()', spectator = false, replay = false } = {})
   const announce = (patch: Parameters<typeof create<typeof ServerInfo_PlayerPropertiesSchema>>[1], isDeckSelect = false) => {
     act(() => {
       const properties = create(ServerInfo_PlayerPropertiesSchema, patch);
-      // The real bridge emits the action before its listener merges sparse properties.
       store.dispatch(games.Actions.playerPropertiesChanged({ gameId: 1, playerId: 1, properties, isDeckSelect }));
       store.dispatch(games.Actions.playerPropertiesUpdated({ gameId: 1, playerId: 1, properties }));
     });

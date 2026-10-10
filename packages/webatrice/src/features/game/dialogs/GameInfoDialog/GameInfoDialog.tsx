@@ -18,15 +18,6 @@ function formatElapsed(totalSeconds: number): string {
 
 type PlayerTag = 'host' | 'spectator' | 'judge' | 'you';
 
-/**
- * Game info modal — read-only summary of the current game (id, name,
- * description, elapsed time, host) + the seated players with role tags.
- * Built on DialogShell: focus moves to Close on open, Tab stays inside,
- * Escape or the backdrop dismisses, and focus returns to where it was.
- *
- * Preserves the `game-info-dialog__player-name` class + `<li>` structure the
- * tests key off (see GameInfoDialog.spec.tsx).
- */
 function GameInfoDialog() {
   const { t } = useTranslation();
   const { gameInfoOpen: isOpen, closeGameInfo: onClose } = useGameDialogsContext();

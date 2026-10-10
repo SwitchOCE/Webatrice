@@ -15,7 +15,6 @@ describe('counterColors', () => {
   });
 
   it('reads the counter\'s colour from Appearance › Card counters, with desktop\'s default', () => {
-    // QColor::fromHsv(id × 60, 150, 255).
     expect(counterColorForId(0)).toBe('var(--card-counter-0, #FF6969)');
     expect(counterColorForId(1)).toBe('var(--card-counter-1, #FFFF69)');
     expect(counterColorForId(5)).toBe('var(--card-counter-5, #FF69FF)');

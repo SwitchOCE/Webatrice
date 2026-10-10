@@ -18,7 +18,6 @@ interface StaffTableProps {
   loading?: boolean;
 }
 
-/** Read-only result table, one per desktop QTableWidget on the Moderation tab. */
 const StaffTable = ({ label, columns, rows, loading = false }: StaffTableProps) => {
   const { t } = useTranslation();
 

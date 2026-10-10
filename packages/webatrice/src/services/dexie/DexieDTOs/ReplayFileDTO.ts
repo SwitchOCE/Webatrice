@@ -12,7 +12,6 @@ function sameName(a: string, b: string): boolean {
   return a.localeCompare(b, undefined, { sensitivity: 'accent' }) === 0;
 }
 
-/** `name`, or `name (2)`, `name (3)`… keeping a file's extension last. */
 function uniqueName(name: string, taken: readonly string[]): string {
   if (!taken.some((t) => sameName(t, name))) {
     return name;
@@ -28,10 +27,6 @@ function uniqueName(name: string, taken: readonly string[]): string {
   }
 }
 
-/**
- * The local replay library, a folder tree in IndexedDB standing in for
- * desktop's local replay directory (TabReplays' QFileSystemModel pane).
- */
 export class ReplayFileDTO extends ReplayFile {
   static listFolder(parentId: number = REPLAY_LIBRARY_ROOT): Promise<ReplayFileDTO[]> {
     return dexieService.replays.where('parentId').equals(parentId).toArray();
@@ -50,7 +45,6 @@ export class ReplayFileDTO extends ReplayFile {
     return row?.data;
   }
 
-  /** Stores a replay in `parentId`, renaming it `name (2)…` if the name is taken. */
   static addReplay(parentId: number, name: string, data: Uint8Array): Promise<number> {
     return dexieService.readWrite([dexieService.replays, dexieService.replayData], async () => {
       if (parentId !== REPLAY_LIBRARY_ROOT) {
@@ -87,7 +81,6 @@ export class ReplayFileDTO extends ReplayFile {
     });
   }
 
-  /** Renames an entry; like a file system, a sibling may not already hold the name. */
   static rename(id: number, name: string): Promise<void> {
     return dexieService.readWrite([dexieService.replays], async () => {
       const entry = await ReplayFileDTO.get(id);
@@ -99,7 +92,6 @@ export class ReplayFileDTO extends ReplayFile {
     });
   }
 
-  /** Deletes entries; a folder takes everything beneath it along. */
   static delete(ids: readonly number[]): Promise<void> {
     return dexieService.readWrite([dexieService.replays, dexieService.replayData], async () => {
       const all = await ReplayFileDTO.getAll();

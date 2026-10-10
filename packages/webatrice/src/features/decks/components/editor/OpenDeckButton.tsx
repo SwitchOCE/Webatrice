@@ -30,12 +30,6 @@ export interface OpenDeckButtonProps {
   resumeAutosave: () => void;
 }
 
-/**
- * The editor's own "load deck": desktop's `AbstractTabDeckEditor::actLoadDeck`, with the deck
- * storage standing in for the file dialog. Where the deck opens follows `confirmOpen` (see
- * `deckOpenLocation`), including its Save / Discard / "Open in new tab" prompt for a modified
- * deck when "Open deck in new tab by default" is off.
- */
 export function OpenDeckButton({
   deckId, isModified, isBlank, saveNow, discardChanges, pauseAutosave, resumeAutosave,
 }: OpenDeckButtonProps) {

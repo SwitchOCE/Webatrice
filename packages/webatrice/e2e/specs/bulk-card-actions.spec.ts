@@ -35,9 +35,6 @@ test('bulk tap and bulk move act on every selected battlefield card', async ({ n
   await game.setReady();
   await game.waitForBoard();
 
-  // Two cards onto the battlefield: draw 2, play each from hand. The server
-  // stacks the second Forest on the first (a play sends x = -1), so the
-  // second one, on top, is the one to click.
   await game.drawCard();
   await game.drawCard();
   await game.playCardFromHand('Forest');

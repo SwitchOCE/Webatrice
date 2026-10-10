@@ -5,8 +5,6 @@ import type { SeatDropPoint } from '../../../hooks/seatDropPlan';
 import type { PlayerCardViewModel } from './playerBoard.types';
 import { useSeatDnd, type UseSeatDndArgs } from './useSeatDnd';
 
-// The game's DnD coordinator is replaced by spies: each drag source records how
-// the seat starts it, and each drop zone hands over its resolver.
 const dnd = vi.hoisted(() => ({
   starts: new Map<string, ReturnType<typeof vi.fn>>(),
   zones: new Map<string, { resolve: (drop: SeatDropPoint, source: unknown) => unknown }>(),
@@ -41,7 +39,6 @@ function element(rect: DOMRect): HTMLDivElement {
   return el;
 }
 
-/** A seat holding hand cards 30, 31, 32 at these rects. */
 function seatBox(handRects: DOMRect[]): HTMLDivElement {
   const box = element(new DOMRect(0, 0, 1000, 800));
   handRects.forEach((rect, i) => {
@@ -189,7 +186,6 @@ describe('useSeatDnd', () => {
   });
 
   it('resolves a vertical hand drop to the nearest gap between card tops, as desktop does', () => {
-    // Desktop's vertical hand: cards 50px apart, zig-zagged.
     const box = seatBox([100, 150, 200].map((top, i) => new DOMRect(i % 2 ? 31 : 5, top, 72, 102)));
     setup({ horizontalHand: false, boxRef: { current: box } });
     const hand = dnd.zones.get('seat-1-hand')!;
@@ -198,7 +194,6 @@ describe('useSeatDnd', () => {
     expect(hand.resolve(drop(120), { zone: 'battlefield', cards: [] })).toEqual({ zone: 'hand', index: 0, order });
     expect(hand.resolve(drop(130), { zone: 'battlefield', cards: [] })).toEqual({ zone: 'hand', index: 1, order });
     expect(hand.resolve(drop(400), { zone: 'battlefield', cards: [] })).toEqual({ zone: 'hand', index: 3, order });
-    // Card 30 is being dragged: the gaps are read from cards 31 and 32.
     expect(hand.resolve(drop(180), { zone: 'hand', cards: [card(30)] })).toEqual({ zone: 'hand', index: 1, order });
   });
 

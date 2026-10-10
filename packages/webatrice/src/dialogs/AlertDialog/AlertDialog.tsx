@@ -39,15 +39,12 @@ export interface AlertDialogProps {
   isOpen: boolean;
   title: string;
   message: string;
-  /** Optional server details, collapsed separately from the translated explanation. */
   details?: string;
   buttonLabel?: string;
   severity?: AlertDialogSeverity;
   onDismiss: () => void;
 }
 
-// Mount inside the MUI portal so the shared focus hook sees the paper when its effect runs.
-// It owns restoration and containment; MUI still owns Escape and the transition.
 function AlertFocus({ isOpen, children }: { isOpen: boolean; children: ReactNode }) {
   const returnFocusTo = useDialogReturnFocus();
   const { getDialogProps } = useDialogFocus({ isOpen, isolate: true, returnFocusTo });
@@ -81,7 +78,6 @@ function AlertDialog({
           </div>
         </DialogTitle>
         <DialogContent className="dialog-content alert-dialog__body">
-          {/* pre-line: multi-line messages (desktop message-box text) keep their breaks. */}
           <DialogContentText sx={{ whiteSpace: 'pre-line' }}>{message}</DialogContentText>
           {details && (
             <details key={details}>

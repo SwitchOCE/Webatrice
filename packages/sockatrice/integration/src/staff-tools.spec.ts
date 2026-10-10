@@ -1,6 +1,3 @@
-// Staff tool round trips (desktop TabAdmin / TabModeration / TabDeveloper):
-// each command is encoded, correlated by cmd_id, and its answer reaches
-// IWebClientResponse — a failure through the scope's commandFailed.
 
 import { create } from '@bufbuild/protobuf';
 import { describe, expect, it, vi } from 'vitest';

@@ -13,7 +13,6 @@ describe('layoutVerticalPile', () => {
   it('advances each card by the share of a card the overlap leaves showing, zig-zagging left and right', () => {
     const { positions, offset } = layoutVerticalPile(3, 108, 1000, 72, 100, { overlapPercent: 33 });
     expect(offset).toBe(67);
-    // Pile 2 × 67 + 100 = 234 tall, centred in 1000.
     expect(positions).toEqual([
       { x: 5, y: 383 },
       { x: 31, y: 450 },
@@ -34,9 +33,7 @@ describe('layoutVerticalPile', () => {
   });
 
   it('keeps the stack\'s minimum offset while the pile still fits', () => {
-    // 80% overlap wants 20 px steps; at least 30 must show, and 11 cards of 100 fit at 50.
     expect(layoutVerticalPile(11, 108, 600, 72, 100, { overlapPercent: 80, minOffset: 30 }).offset).toBe(30);
-    // Where even the minimum does not fit, the pile is compressed below it.
     expect(layoutVerticalPile(11, 108, 300, 72, 100, { overlapPercent: 80, minOffset: 30 }).offset).toBe(20);
     expect(layoutVerticalPile(11, 108, 200, 72, 100, { overlapPercent: 0, minOffset: 30 }).offset).toBe(10);
   });

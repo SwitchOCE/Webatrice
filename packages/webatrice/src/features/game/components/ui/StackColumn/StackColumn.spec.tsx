@@ -62,7 +62,6 @@ describe('StackColumn', () => {
     vi.mocked(lookupCard).mockImplementation(async (name: string) =>
       ({ ...found(name, 'Creature — Bear'), power: '2', toughness: '2', cipt: true }) as Awaited<ReturnType<typeof lookupCard>>);
     const { game } = renderSeatCell(SPEC);
-    // The seat's visible-card prefetch fills cardMetaByName before the double-click.
     await waitFor(() => expect(lookupCard).toHaveBeenCalledWith('Bear'));
     await act(async () => {});
     vi.mocked(lookupCard).mockClear();

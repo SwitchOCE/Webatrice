@@ -1,7 +1,3 @@
-// End-to-end round trips for the moderation feature-widget against the real
-// WebClient: right-click a user row, pick a moderator entry, assert the exact
-// commands on the wire, deliver Servatrice's responses, assert the dialog or
-// message box desktop would show.
 
 import { act, fireEvent, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
@@ -144,7 +140,6 @@ describe('moderation round trips (integration)', () => {
     respond(info.cmdId, Response_GetUserInfo_ext, create(Response_GetUserInfoSchema, { userInfo: target }));
 
     const dialog = await screen.findByRole('dialog', { name: 'Moderation.ban.title' });
-    // No client id from the server → that ban type starts unticked, as on desktop.
     expect(within(dialog).getByRole('checkbox', { name: 'Moderation.ban.byClientId' })).not.toBeChecked();
     fireEvent.click(within(dialog).getByRole('radio', { name: 'Moderation.ban.permanent' }));
     fireEvent.change(within(dialog).getByRole('textbox', { name: 'Moderation.ban.visibleReason' }), {
@@ -265,7 +260,6 @@ describe('moderation round trips (integration)', () => {
   });
 });
 
-// TabAdmin's "Server moderator functions" live on the Administration page.
 describe('administration moderator functions (integration)', () => {
   it('grant replay access: RespContextError → "Replay ID invalid"; RespOk → granted and the replay list reloads', async () => {
     loginAs('mod', MODERATOR);
@@ -280,7 +274,6 @@ describe('administration moderator functions (integration)', () => {
     respond(missing.cmdId, undefined, undefined, Response_ResponseCode.RespContextError);
     expect(await screen.findByText('Administration.result.replayIdInvalid')).toBeInTheDocument();
     fireEvent.click(screen.getByRole('button', { name: 'Administration.button.ok' }));
-    // MUI keeps the rest of the page aria-hidden until the dialog's exit transition ends.
     await waitFor(() => expect(screen.queryByText('Administration.result.replayIdInvalid')).not.toBeInTheDocument());
 
     fireEvent.change(replayId, { target: { value: '7' } });

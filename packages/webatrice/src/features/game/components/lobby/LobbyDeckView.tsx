@@ -12,11 +12,6 @@ interface LobbyDeckViewProps {
   onMoveCard: (zone: DeckZone, cardName: string) => void;
 }
 
-/**
- * The loaded deck split into Maindeck / Sideboard, as desktop's DeckView
- * draws it. While the sideboard is unlocked and the player isn't ready, each
- * row moves one copy to the other zone (desktop: double-click a card).
- */
 function LobbyDeckView({ view, editable, onMoveCard }: LobbyDeckViewProps) {
   return (
     <div className="grid grid-cols-1 sm:grid-cols-2 gap-3" data-testid="lobby-deck-view">
@@ -53,7 +48,6 @@ function DeckZoneColumn({ zone, view, editable, onMoveCard }: DeckZoneColumnProp
             ? t('GameLobby.deck.moveToSideboard', { name })
             : t('GameLobby.deck.moveToMaindeck', { name });
           const rowHintId = `${hintId}-${index}`;
-          // The row's name is its visible "4 Lightning Bolt"; the move is a description, offered only when it works.
           return (
             <li key={name}>
               {editable && <span id={rowHintId} hidden>{moveLabel}</span>}
@@ -69,7 +63,6 @@ function DeckZoneColumn({ zone, view, editable, onMoveCard }: DeckZoneColumnProp
                 ].join(' ')}
               >
                 <span className="w-6 shrink-0 text-right tabular-nums text-text-muted">{count}</span>
-                {/* Separates count and name in the accessible name; flex layout drops it visually. */}
                 {' '}
                 <span className="flex-1 min-w-0 truncate">{name}</span>
                 {editable && (

@@ -62,7 +62,6 @@ export interface BuildGameStateOptions {
   // Seed the named player's `table` zone with cards (default: empty zones, so
   // the board-rendering flows stay behavior-equivalent to the pre-split spec).
   tableCardsByPlayer?: Record<number, TableCardSeed[]>;
-  // Zones beyond the builtins (a forked server's custom zones), by player.
   extraZonesByPlayer?: Record<number, ServerInfo_Zone[]>;
 }
 

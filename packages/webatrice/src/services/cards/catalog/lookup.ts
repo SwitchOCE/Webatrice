@@ -11,31 +11,6 @@ import { scryfallToLookup } from './scryfallCardMapper';
 import type { LookupHint, LookupInput, LookupResult, PrintingSummary, RelatedCardRef } from './types';
 
 /**
- * Browser card catalog shared by the deck and game features: card
- * metadata, printings and related cards by name. Two tables back this:
- *
- *   1. Dexie `cards` — populated from the user's imported Cockatrice
- *      cards.xml. Cockatrice-XML-shaped ({value, ...attrs} leaves,
- *      nested `prop`, etc.), keyed by `name.value`. Source of truth
- *      for the fields cards.xml carries: printings (with picurl for
- *      self-hosted mirrors), Cockatrice's per-card `related` /
- *      `reverse-related` count / persistent attributes, tablerow.
- *   2. Dexie `scryfallCache` — Scryfall-shaped read-through cache
- *      keyed by `name`. Written the first time we fetch a card from
- *      Scryfall (either because cards.xml doesn't have it, or because
- *      we need Scryfall's `all_parts` for the related-tokens menu).
- *      Distinct table so the Cockatrice-XML-shaped `cards` table
- *      stays single-source — see the note on Stores.SCRYFALL_CACHE.
- *
- * `lookupCard` merges both when available: cards.xml wins for base
- * fields (typeLine/PT/manaCost — cards.xml is more consistent with
- * the user's card corpus), Scryfall wins for `related` (only Scryfall
- * has `all_parts` which lists tokens by their canonical name and
- * gives us the token image via scryfallId). Cards.xml's related count
- * / persistent modifiers overlay onto Scryfall's list by name match.
- */
-
-/**
  * Look up a single card by name. Merges Dexie cards.xml data (if we
  * have the card) with Scryfall data (from persistent cache, else
  * network fetch). Falls back to `{ found: false, source: 'unknown',
@@ -78,7 +53,6 @@ export async function lookupCard(name: string): Promise<LookupResult> {
  */
 const sessionCache = new Map<string, LookupResult>();
 
-/** Preferences the session cache was filled under; a Manage Sets save invalidates it. */
 let sessionCachePreferences: CardDataPreferences | undefined;
 
 async function readCardDataPreferences(): Promise<CardDataPreferences | undefined> {
@@ -328,8 +302,6 @@ function mergeLookup(
     // any merging logic. Powers the "Transform into …" menu item.
     layout: scryfall!.layout,
     faces: scryfall!.faces,
-    // cards.xml legalities win (desktop reads its card DB); a DB
-    // imported without them falls back to Scryfall's.
     text: xml!.text ?? scryfall!.text,
     landscape: xml!.landscape || scryfall!.landscape,
     legalities: xml!.legalities ?? scryfall!.legalities,

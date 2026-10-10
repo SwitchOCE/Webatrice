@@ -19,7 +19,6 @@ import {
 import { consumeOptimistic, moveOpKey } from './optimistic';
 import { formatCardPeeked, formatCardsDrawn, formatCardsRevealed } from './messageLog';
 
-// Zone listeners: card moves, draws and reveals.
 export function registerZonesListeners(mw: ListenerMiddlewareInstance<unknown>): void {
   mw.startListening({
     actionCreator: Actions.cardMoved,
@@ -64,20 +63,15 @@ export function registerZonesListeners(mw: ListenerMiddlewareInstance<unknown>):
       }
 
       const movedCard = buildMovedCard(move, data);
-      // Planned from the pre-move zones: the move dispatch below changes them.
       const viewSync = planZoneViewSync(move, sourceZone, targetZoneEntry, data);
       const optimisticKey = moveOpKey(startPlayerId, move.cardId);
 
       if (placement === 'same-zone') {
-        // Re-splicing at the same index no-ops, so re-applying over an optimistic
-        // pre-dispatch is safe; the marker is consumed to keep the rollback map tidy.
         consumeOptimistic(optimisticKey);
         api.dispatch(Actions.cardMovedInSameZone({
           gameId, playerId: startPlayerId, zoneName: startZone, cardId: move.cardId, toIndex: x, card: movedCard,
         }));
       } else if (placement === 'between-zones') {
-        // Cross-zone moves are not idempotent (cardCount drift, duplicate order entries),
-        // so the server's confirmation of an optimistic move only reconciles the target.
         const confirmsOptimistic = move.cardId >= 0 && consumeOptimistic(optimisticKey);
         if (!confirmsOptimistic) {
           api.dispatch(Actions.cardMovedBetweenZones({
@@ -90,7 +84,6 @@ export function registerZonesListeners(mw: ListenerMiddlewareInstance<unknown>):
             card: movedCard,
           }));
         } else {
-          // Read fresh: the optimistic insert postdates the snapshot above.
           const postDispatch = api.getState() as { games: GamesState };
           const reconcile = planOptimisticReconcile(
             postDispatch.games.games[gameId]?.players[targetPlayerId]?.zones[targetZone],
@@ -98,7 +91,6 @@ export function registerZonesListeners(mw: ListenerMiddlewareInstance<unknown>):
             movedCard,
           );
           if (reconcile?.kind === 'migrate') {
-            // Remove-then-insert net-zeroes cardCount and leaves only the server id.
             api.dispatch(Actions.cardRemovedFromZone({
               gameId, playerId: targetPlayerId, zoneName: targetZone, cardId: move.cardId,
             }));

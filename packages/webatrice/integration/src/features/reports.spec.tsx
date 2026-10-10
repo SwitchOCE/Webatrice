@@ -46,8 +46,6 @@ import { findLastModeratorCommand, findLastSessionCommand } from '../helpers/com
 import { renderFeatureScreen } from './helpers';
 import { buildEventGameJoined, buildEventGameStateChanged } from './game/helpers';
 
-// Log in to a server that reports itself as Cockatrice 3.1, so the report UI
-// (gated on ServerCapability.REPORTS) is live.
 function loginTo31(userName = 'alice') {
   connectRaw({ userName });
   deliverMessage(buildSessionEventMessage(Event_ServerIdentification_ext, create(Event_ServerIdentificationSchema, {
@@ -204,7 +202,6 @@ describe('Reports (integration)', () => {
     expect(findLastSessionCommand(Command_ReportMyList_ext).cmdId).toBeGreaterThan(list.cmdId);
   });
 });
-
 
 it('keeps a reopened report list loading while the previous view reply populates the store', () => {
   loginTo31();

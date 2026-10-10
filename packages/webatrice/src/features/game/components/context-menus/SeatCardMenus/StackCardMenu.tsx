@@ -7,16 +7,6 @@ import { usePlayerSeatContext } from '../../ui/PlayerBoard/PlayerSeatContext';
 import { buildRelatedTokenItems, buildTransformItems } from '../CardContextMenu/relatedCardActions';
 import { ContextMenuPopup, type ContextMenuItem } from '../ContextMenu/ContextMenu';
 
-/**
- * Stack-card context menu — ports Cockatrice's
- * `CardMenu::createStackMenu` (card_menu.cpp:201-227). Own-stack
- * gets the full item set (Play / Play Face Down / Clone /
- * Move to / Attach / Draw arrow / Select All); opponent-stack
- * gets the trimmed view-only branch (Draw arrow / Clone / Select
- * All). Wire cannot fire moves for opponent-owned stack cards
- * (server rejects), so those items are omitted rather than shown
- * disabled.
- */
 export default function StackCardMenu() {
   const { t } = useTranslation();
   const {
@@ -35,7 +25,6 @@ export default function StackCardMenu() {
     tokenMetaByName,
     zoneCommands,
   } = usePlayerSeatContext();
-  // Desktop's "Annotate card text on tokens".
   const annotateTokens = usePreference('annotateTokens');
 
   return (

@@ -9,9 +9,6 @@ import { connectedState, createMockWebClient, renderWithProviders } from '../../
 import { clearDeckEditorCache, getCachedDeck, getCachedDraft, setCachedDraft } from '../deckEditorCache';
 import { useDeckEditor, type UseDeckEditor } from './useDeckEditor';
 
-// An unsaved draft handed over by token (the game's "Open deck in deck
-// editor"), hydrated for real so every printing field is checked.
-
 vi.mock('../../../services/cards/catalog/lookup', async (importOriginal) => {
   const actual = await importOriginal<typeof import('../../../services/cards/catalog/lookup')>();
   const unknown = (name: string) => ({ found: false, source: 'unknown', name, printings: [] });
@@ -169,7 +166,6 @@ describe('useDeckEditor draft', () => {
       });
       expect(webClient.request.session.deckUpload).toHaveBeenCalledTimes(1);
 
-      // Edited while the upload is in flight: nothing more is sent yet.
       act(() => editor.current!.setName('Burn v3'));
       act(() => {
         vi.advanceTimersByTime(600);
@@ -177,7 +173,6 @@ describe('useDeckEditor draft', () => {
       expect(webClient.request.session.deckUpload).toHaveBeenCalledTimes(1);
       expect(webClient.request.session.deckUpdate).not.toHaveBeenCalled();
 
-      // Another root upload (say, My Decks' "New deck") is not this draft's answer.
       act(() => {
         store.dispatch(uploaded(41, 'Something else'));
       });

@@ -7,17 +7,8 @@ import { useReduxEffect } from '@app/hooks';
 import { useAppSelector } from '@app/store';
 import { RouteEnum, type ServerRouteState } from '@app/types';
 
-/** How long to resolve the startup room before the lobby stops looking for it. */
 export const STARTUP_ROOM_TIMEOUT_MS = 20_000;
 
-/**
- * Opens the "Server Room" startup tab's room by name once the lobby has the room list, desktop's
- * IntentOpenServerRoomByName. The name must match exactly. A room the server auto-joins is not
- * joined again (desktop: that would be answered with RespContextError), only waited for. The
- * request is dropped, leaving the user in the lobby, when the room is not on the server, the join
- * is refused, or the room remains unresolved after 20 seconds. A pending join (including an
- * auto-join) waits for its response or a disconnect, as desktop's `joinPending` does.
- */
 export function useStartupRoom(): void {
   const location = useLocation();
   const navigate = useNavigate();
@@ -40,7 +31,7 @@ export function useStartupRoom(): void {
     }
     const roomList = Object.values(roomsById);
     if (!roomList.length) {
-      return; // the room list has not arrived yet
+      return;
     }
     const room = roomList.find(({ info }) => info.name === roomName);
     if (!room) {

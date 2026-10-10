@@ -9,11 +9,6 @@ export interface DeckTagsEditorProps {
   onChange: (tags: string[]) => void;
 }
 
-/**
- * The deck's tags as removable chips plus an "add tag" field that suggests
- * desktop's default tags — the editing half of desktop's
- * `DeckPreviewDeckTagsDisplayWidget` + `DeckPreviewTagDialog`.
- */
 export function DeckTagsEditor({ tags, onChange }: DeckTagsEditorProps) {
   const { t } = useTranslation();
   const listId = useId();

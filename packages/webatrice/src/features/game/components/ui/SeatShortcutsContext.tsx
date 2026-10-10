@@ -2,16 +2,6 @@ import { createContext, useContext, useEffect, useRef, type ReactNode } from 're
 
 import type { ActionId } from '@app/feature-widgets/shortcuts';
 
-/**
- * Seat-scoped shortcut operations, registered once per game by
- * useGameShortcuts.
- *
- * Most of these act on the local seat's selection, prompts or zones, which the
- * seat (useSeatShortcutOperations) owns. The local seat publishes the operations here;
- * useGameShortcuts owns every key binding and calls through. Only one seat
- * publishes (the local player's), so a keystroke can never reach two seats,
- * and a spectator without a seat leaves the browser default alone.
- */
 export const SEAT_SHORTCUT_ACTIONS = [
   'game.mulligan',
   'game.setLife',
@@ -130,10 +120,7 @@ export type SeatShortcutActionId = (typeof SEAT_SHORTCUT_ACTIONS)[number];
 export type SeatShortcutOperations = Partial<Record<SeatShortcutActionId, () => void>>;
 
 export interface SeatShortcutRegistry {
-  /** Makes `getOperations` the seat that handles seat shortcuts until the
-   *  returned function is called. A later publisher replaces an earlier one. */
   publish: (getOperations: () => SeatShortcutOperations) => () => void;
-  /** Runs the published operation; false when no seat handles `actionId`. */
   run: (actionId: SeatShortcutActionId) => boolean;
 }
 
@@ -165,10 +152,6 @@ export function SeatShortcutsProvider({ registry, children }: { registry: SeatSh
   return <SeatShortcutsContext.Provider value={registry}>{children}</SeatShortcutsContext.Provider>;
 }
 
-/**
- * Publish this seat's shortcut operations while `operations` is non-null. The
- * latest render's operations run, so they always see current seat state.
- */
 export function usePublishSeatShortcuts(operations: SeatShortcutOperations | null): void {
   const registry = useContext(SeatShortcutsContext);
   const operationsRef = useRef(operations);

@@ -1,7 +1,3 @@
-// The seat's zone views, end to end through <Game />: which menu opens which
-// view, what each view shows, and the exact commands opening and closing it
-// send. Phase 6 (PB-13) moves these views from PlayerBox into ZoneViewDialog;
-// these assertions hold for both.
 
 import { act, fireEvent, screen, within } from '@testing-library/react';
 import { ZoneName } from '@cockatrice/sockatrice';
@@ -63,7 +59,6 @@ function renderSeats(mutate?: (state: ReturnType<typeof buildSeatGameState>) => 
 
 type Store = ReturnType<typeof renderSeats>['store'];
 
-/** Lands a Response_DumpZone snapshot, as the dump command's response would. */
 function dumpArrives(store: Store, zoneName: string, names: string[], isReversed = false) {
   act(() => {
     store.dispatch(games.Actions.zoneViewRevealed({
@@ -80,17 +75,14 @@ function revealedIn(store: Store, zoneName: string) {
   return store.getState().games.games[1].players[1].zones[zoneName].revealedCards;
 }
 
-/** Matches a view header: the title, then the header's own count if any. */
 function titled(title: string): RegExp {
   return new RegExp(`^${title}`);
 }
 
-/** The floating view whose header reads `title`. */
 function zoneView(title: string): HTMLElement {
   return screen.getByRole('heading', { name: titled(title) }).closest<HTMLElement>('.pointer-events-auto.resize')!;
 }
 
-// A card view's close button, or a reveal's.
 function closeView(view: HTMLElement) {
   fireEvent.click(within(view).getAllByRole('button', { name: /^(Common\.action\.close|ZoneViewPanel\.close)$/ })[0]);
 }
@@ -224,9 +216,6 @@ describe('seat zone views', () => {
     expect(revealedIn(store, ZoneName.DECK)).toBeUndefined();
   });
 
-  // Desktop closes a library view through ZoneViewWidget::closeEvent, which
-  // shuffles when "shuffle when closing" is set; a top-N view that takes the
-  // whole-library view's place must not skip that close.
   it('View top cards over an open library view closes it with its shuffle first', () => {
     const { game, store } = renderSeats();
     openContextMenu(pileEl('Library', 0));
@@ -289,8 +278,6 @@ describe('seat zone views', () => {
     expect(zoneView('Graveyard — P2').querySelectorAll('[data-card][data-card-id]')).toHaveLength(1);
   });
 
-  // Desktop closes a view when its zone is destroyed (ZoneViewZone::closed →
-  // ZoneViewWidget::zoneDeleted); the seat's views used to unmount with it.
   it('closes a player\'s views when that player leaves, and keeps the others', () => {
     const { game, store } = renderSeats((state) => {
       state.games!.pings = { 1: { 1: 0, 2: 0 } };
@@ -305,15 +292,12 @@ describe('seat zone views', () => {
       store.dispatch(games.Actions.playerLeft({ gameId: 1, playerId: 2, reason: 1, timeReceived: 0 }));
     });
 
-    // A view whose player is gone falls back to "Player 2" with no cards.
     expect(screen.queryByRole('heading', { name: /^Graveyard — (P2|Player 2)/ })).not.toBeInTheDocument();
     expect(screen.getAllByRole('heading', { name: /^Graveyard — / })).toHaveLength(1);
     expect(zoneView('Graveyard — P1')).toBeInTheDocument();
     expect(game.shuffle).not.toHaveBeenCalled();
   });
 
-  // Desktop keeps a view per zone (GameScene::toggleZoneView); the seat used to
-  // hold one pile view, so a second replaced the first.
   it('keeps the graveyard and exile views open side by side', () => {
     renderSeats();
     openContextMenu(pileEl('Graveyard', 0));
@@ -325,8 +309,6 @@ describe('seat zone views', () => {
     expect(zoneView('Exile — P1')).toBeInTheDocument();
   });
 
-  // Desktop's zone views are separate windows that never see the board's
-  // Tab binding; the floating view is a non-modal dialog for the same reason.
   it('Tab on a card in a zone view moves focus, while Tab on a board card advances the phase', () => {
     const { game } = renderSeats();
     openContextMenu(pileEl('Graveyard', 0));
@@ -366,7 +348,6 @@ describe('seat zone views', () => {
   });
 });
 
-/** A card inside an open zone view (the board pile shows only its top card). */
 function viewCard(view: HTMLElement, cardId: number): HTMLElement {
   return view.querySelector<HTMLElement>(`[data-card][data-card-id="${cardId}"]`)!;
 }
@@ -398,9 +379,6 @@ describe('zone view card menu', () => {
     });
   });
 
-  // GAME-018: Select All / Select Column select through the game selection,
-  // and Clone then applies to the selection (desktop aClone over the selected
-  // cards).
   it('Select All selects every card the view shows; Clone then clones each', () => {
     const { game } = renderSeats();
     openContextMenu(pileEl('Graveyard', 0));

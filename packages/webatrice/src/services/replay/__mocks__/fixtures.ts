@@ -13,14 +13,12 @@ import {
   type GameReplay,
 } from '@cockatrice/sockatrice/generated';
 
-/** A container holding one `Event_GameSay` (a "meaningful" event). */
 export function sayContainer(secondsElapsed: number, message = `at ${secondsElapsed}s`): GameEventContainer {
   const event = create(GameEventSchema, { playerId: 0 });
   setExtension(event, Event_GameSay_ext, create(Event_GameSaySchema, { message }));
   return create(GameEventContainerSchema, { secondsElapsed, eventList: [event] });
 }
 
-/** A container holding only a ping update, which skip-empty treats as empty. */
 export function pingContainer(secondsElapsed: number): GameEventContainer {
   const event = create(GameEventSchema, { playerId: 0 });
   setExtension(

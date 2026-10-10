@@ -31,7 +31,6 @@ describe('createTimelineHistogram', () => {
   it('bounds work and allocation for a crafted .cor with a uint32 timestamp', () => {
     const bytes = toBinary(GameReplaySchema, buildReplay([sayContainer(0), sayContainer(0xffffffff)]));
     const timeline = createReplayTimeline(parseReplay(bytes));
-    // Stop the vulnerable implementation before it can exhaust the test worker.
     const push = Array.prototype.push;
     Array.prototype.push = function boundedPush(this: number[], ...items: number[]) {
       if (this.length + items.length > 4096) {

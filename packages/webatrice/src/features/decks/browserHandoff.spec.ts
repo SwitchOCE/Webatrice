@@ -39,7 +39,6 @@ describe('openInNewTab', () => {
 describe('submitFormInNewTab', () => {
   it('posts every field as a form into a new tab, then removes the form', () => {
     let submitted: HTMLFormElement | null = null;
-    // The form is in the page while it submits.
     const submit = vi.spyOn(HTMLFormElement.prototype, 'submit').mockImplementation(() => {
       submitted = document.querySelector('form');
     });

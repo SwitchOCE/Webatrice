@@ -11,7 +11,6 @@ import {
   formatTurnReversed,
 } from './messageLog';
 
-// Turn-structure listeners: game state, active player, phase and turn order.
 export function registerPhasesListeners(mw: ListenerMiddlewareInstance<unknown>): void {
   mw.startListening({
     actionCreator: Actions.gameStateChanged,
@@ -108,10 +107,6 @@ export function registerPhasesListeners(mw: ListenerMiddlewareInstance<unknown>)
       if (!preGame) {
         return;
       }
-      // The actor is whoever sent Command_ReverseTurn, not the active player
-      // (message_log_widget.cpp logReverseTurn). Like desktop's
-      // GameEventHandler::eventReverseTurn, log nothing when the actor is
-      // absent, the -1 "no actor" sentinel, or not a seated player.
       if (playerId == null || !preGame.players[playerId]) {
         return;
       }

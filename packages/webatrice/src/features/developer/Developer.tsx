@@ -21,7 +21,6 @@ import { MAX_REFRESH_INTERVAL_SECS, MIN_REFRESH_INTERVAL_SECS, useDeveloper } fr
 
 import './Developer.css';
 
-/** Desktop TabDeveloper (tab_developer.cpp). */
 const DeveloperContent = () => {
   const { t } = useTranslation();
   const developer = useDeveloper();
@@ -114,8 +113,6 @@ const DeveloperContent = () => {
   );
 };
 
-// The guards mount the page body only when it is allowed, so its mount effects
-// never send a staff or 3.1 command the user or server cannot serve.
 const Developer = () => (
   <Layout className="developer scrollable">
     <AuthGuard />

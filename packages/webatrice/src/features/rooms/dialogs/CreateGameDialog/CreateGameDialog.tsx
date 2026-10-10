@@ -66,7 +66,6 @@ function initialFormState(isRegistered: boolean): FormState {
 
 function CreateGameDialog({ isOpen, gametypeMap, onCancel, onSubmit }: CreateGameDialogProps) {
   const { t } = useTranslation();
-  // Labels the checkbox and radio sections as groups.
   const sectionId = useId();
   const isRegistered = useAppSelector(server.Selectors.getIsUserRegistered);
   const isJudge = useAppSelector(server.Selectors.getIsUserJudge);

@@ -2,10 +2,8 @@ import type { Token } from '@app/services';
 import type { TFunction } from 'i18next';
 import { z } from 'zod';
 
-/** `MAX_NAME_LENGTH` (`string_limits.h`), used by every field of `dlg_edit_tokens`. */
 export const TOKEN_FIELD_MAX_LENGTH = 255;
 
-/** Desktop's color combo: white, blue, black, red, green, multicolor, colorless (`c`: no colors). */
 export const TOKEN_COLORS = ['w', 'u', 'b', 'r', 'g', 'm', 'c'] as const;
 export type TokenColor = (typeof TOKEN_COLORS)[number];
 
@@ -15,7 +13,6 @@ export interface TokenData {
   annotation: string;
 }
 
-/** `DlgEditTokens::actAddToken`: a token in the TK set typed "Token". */
 export function createCustomToken(name: string): Token {
   return {
     name: { value: name },
@@ -36,7 +33,6 @@ export function readTokenData(token: Token): TokenData {
   };
 }
 
-/** Applies the editor fields the way `colorChanged` / `ptChanged` / `annotationChanged` do. */
 export function applyTokenData(token: Token, data: TokenData): Token {
   const { colors: _colors, pt: _pt, ...rest } = token.prop?.value ?? {};
   return {

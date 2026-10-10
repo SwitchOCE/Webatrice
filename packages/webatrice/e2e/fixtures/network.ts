@@ -29,7 +29,6 @@ const LOCAL_HOSTNAMES = new Set(['localhost', '127.0.0.1', '[::1]']);
 
 const isExternal = (url: URL): boolean => !LOCAL_HOSTNAMES.has(url.hostname);
 
-// Card-proportioned placeholder (Scryfall's `normal` size is 488×680).
 const CARD_IMAGE_SVG =
   '<svg xmlns="http://www.w3.org/2000/svg" width="488" height="680" viewBox="0 0 488 680">' +
   '<rect width="488" height="680" rx="24" fill="#3b3b4f"/>' +
@@ -41,18 +40,11 @@ const SYMBOL_SVG =
   '<circle cx="50" cy="50" r="50" fill="#c9c5bd"/>' +
   '</svg>';
 
-// Scryfall card objects for the cards the e2e decks use, trimmed to the
-// fields Webatrice reads. They matter beyond pictures: the game board takes a
-// card's type line from Scryfall to decide where a double-clicked card lands
-// (a land goes to the battlefield, an instant to the stack), so a missing or
-// wrong record changes game behaviour, not just art.
 type ScryfallFixture = { id: string; name: string; set?: string; collector_number?: string };
 const SCRYFALL_CARDS: ScryfallFixture[] = ['forest.json', 'castle-ardenvale.json', 'human-token.json'].map((file) =>
   JSON.parse(readFileSync(resolve(__dirname, 'scryfall', file), 'utf8')),
 );
 
-// Scryfall's error shape (https://scryfall.com/docs/api/errors), which the
-// app treats as "no data" — the answer for any card without a fixture.
 const SCRYFALL_NOT_FOUND = JSON.stringify({
   object: 'error',
   code: 'not_found',
@@ -62,10 +54,6 @@ const SCRYFALL_NOT_FOUND = JSON.stringify({
 
 const SCRYFALL_CARD_BY_ID = /^\/cards\/([0-9a-f-]{36})$/;
 
-// The single-card routes the app reads: `/cards/named?exact=<name>` and
-// `/cards/<id>`, each with or without `format=image`, plus the batch
-// `/cards/collection` POST and the quick-add `/cards/autocomplete` below.
-// Search answers in another shape, so it gets no stand-in.
 const isScryfallCardRoute = (url: URL): boolean =>
   url.pathname === '/cards/named' || SCRYFALL_CARD_BY_ID.test(url.pathname);
 
@@ -78,9 +66,6 @@ function scryfallCardFor(url: URL): { id: string; name: string } | undefined {
   return id ? SCRYFALL_CARDS.find((card) => card.id === id) : undefined;
 }
 
-// Scryfall's batch lookup (`POST /cards/collection`, used by the card
-// catalog's lookupCards): each identifier is a name, an id or a set +
-// collector number, answered from the fixtures; the rest are `not_found`.
 type CollectionIdentifier = { name?: string; id?: string; set?: string; collector_number?: string };
 const SCRYFALL_CORS = {
   'Access-Control-Allow-Origin': '*',
@@ -106,26 +91,15 @@ function scryfallCollection(postData: string | null): string {
   return JSON.stringify({ object: 'list', not_found: notFound, data });
 }
 
-// Quick add's name completion (`GET /cards/autocomplete?q=`): the fixture
-// names that contain the query, in Scryfall's catalog shape.
 function scryfallAutocomplete(url: URL): string {
   const q = (url.searchParams.get('q') ?? '').toLowerCase();
   const data = SCRYFALL_CARDS.map((card) => card.name).filter((name) => name.toLowerCase().includes(q));
   return JSON.stringify({ object: 'catalog', total_values: data.length, data });
 }
 
-// Desktop's public server list, which the host picker downloads the first
-// time it opens (`PUBLIC_SERVERS_URL` in PublicServersService). It covers
-// the three kinds of entry the picker handles: reachable, desktop-only (no
-// WebSocket port) and inactive. The hosts use the reserved `.invalid` TLD
-// and none is named like the `e2e` host the specs pick; connecting to one
-// meets the unreachable external socket below.
 const PUBLIC_SERVERS_URL = 'https://cockatrice.github.io/public-servers.json';
 const PUBLIC_SERVERS = readFileSync(resolve(__dirname, 'public-servers.json'), 'utf8');
 
-// The game servers the app may open a socket to on its own: its built-in
-// `DefaultHosts` (the login screen tests the first one) and the public list
-// above. A `host` may carry a path (`server.cockatrice.us/servatrice`).
 const hostnameOf = (host: string): string => new URL(`wss://${host}`).hostname;
 const KNOWN_GAME_SERVERS = new Set([
   ...DefaultHosts.map(({ host }) => hostnameOf(host)),
@@ -149,7 +123,6 @@ function stubFor(url: URL, method: string, postData: string | null): Parameters<
     };
   }
   if (url.href === PUBLIC_SERVERS_URL) {
-    // GitHub Pages allows any origin; the browser fetches the list cross-origin.
     return {
       status: 200,
       contentType: 'application/json',
@@ -158,7 +131,6 @@ function stubFor(url: URL, method: string, postData: string | null): Parameters<
     };
   }
   if (url.hostname === 'fonts.googleapis.com') {
-    // An empty stylesheet: the app falls back to its system font stack.
     return { status: 200, contentType: 'text/css', body: '' };
   }
   if (url.hostname === 'svgs.scryfall.io') {
@@ -168,8 +140,6 @@ function stubFor(url: URL, method: string, postData: string | null): Parameters<
     return { status: 200, contentType: 'image/svg+xml', body: CARD_IMAGE_SVG };
   }
   if (url.hostname === 'api.scryfall.com' && isScryfallCardRoute(url)) {
-    // `?format=image` answers with the image itself (via a redirect on the
-    // real API); every other endpoint answers with JSON.
     if (url.searchParams.get('format') === 'image') {
       return { status: 200, contentType: 'image/svg+xml', body: CARD_IMAGE_SVG };
     }
@@ -182,7 +152,6 @@ function stubFor(url: URL, method: string, postData: string | null): Parameters<
 }
 
 export interface NetworkIsolation {
-  // Throws if the context tried to reach an external host that has no stub.
   assertNoUnexpectedRequests(): void;
 }
 
@@ -200,11 +169,6 @@ export async function isolateNetwork(context: BrowserContext): Promise<NetworkIs
     await route.abort('blockedbyclient');
   });
 
-  // Known external game servers behave as unreachable: the socket is closed
-  // before Servatrice's identification ever arrives, so the app reports a
-  // failed test-connection. A socket to any other external host is reported
-  // too. Sockets to the docker Servatrice on localhost are not routed and
-  // stay real.
   await context.routeWebSocket(isExternal, (ws) => {
     if (!KNOWN_GAME_SERVERS.has(new URL(ws.url()).hostname)) {
       unexpected.push(`WebSocket ${ws.url()}`);

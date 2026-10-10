@@ -72,7 +72,6 @@ describe('replay game lifecycle', () => {
     expect(state.pings[REPLAY_ID]).toEqual({ 3: 19 });
 
     state = withReplay(state);
-    // Desktop's resetForRewind clears the log; the notice was logged once, at open.
     expect(state.games[REPLAY_ID].messages).toEqual([]);
     expect(state.pings[REPLAY_ID]).toEqual({});
   });

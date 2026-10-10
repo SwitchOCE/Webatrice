@@ -24,21 +24,10 @@ export interface DeckCardRowProps {
   onCardClick?: () => void;
   isMtg: boolean;
   isCommander: boolean;
-  /** The row's legality in the deck's format; illegal rows are painted red
-   *  (desktop `DeckListStyleProxy`). */
   legality?: CardLegality;
-  /** Roving-focus props from the deck list's grid (`useDeckCardGrid`). */
   rowProps?: GridRowProps;
 }
 
-/**
- * One card of the deck list, a `row` of its section's grid. The row itself
- * is the tab stop and takes the list's keys (`useDeckCardGrid`); the name and
- * chevron stay clickable but out of the tab order. Its actions menu opens
- * from the chevron, a right-click, Shift+F10 or the Menu key, like desktop's
- * deck-view context menu. The chevron is always shown; hover and keyboard
- * focus preview the card.
- */
 export function DeckCardRow({
   card,
   onInc,
@@ -56,13 +45,10 @@ export function DeckCardRow({
   const { t } = useTranslation();
   const [menuAnchor, setMenuAnchor] = useState<MenuAnchor | null>(null);
   const menuTriggerRef = useRef<HTMLElement | null>(null);
-  // The quantity when the menu opened: its +/− keep the menu open, so a
-  // change is announced from the row rather than lost.
   const [quantityAtOpen, setQuantityAtOpen] = useState(card.quantity);
   const illegal = legality?.status === 'illegal' ? legality : undefined;
   const illegalText = illegal && t(`DeckLegality.reason.${illegal.reason}`, { max: illegal.max });
   const unknownText = card.lookupSource === 'unknown' ? t('DeckEditor.row.unknown') : '';
-  // The row's label replaces its content, so its warnings reach assistive technology here.
   const description = [unknownText, illegalText].filter(Boolean).join(' ');
 
   const openMenu = (trigger: HTMLElement, anchor: MenuAnchor) => {
@@ -76,12 +62,10 @@ export function DeckCardRow({
   };
 
   const onContextMenu = (event: MouseEvent<HTMLElement>) => {
-    // The menu is portalled, but its events still bubble here through React.
     if (!event.currentTarget.contains(event.target as Node)) {
       return;
     }
     event.preventDefault();
-    // A keyboard-raised contextmenu event carries no pointer position.
     if (event.clientX === 0 && event.clientY === 0) {
       openBelow(event.currentTarget);
     } else {

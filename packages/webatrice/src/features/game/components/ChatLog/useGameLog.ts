@@ -65,9 +65,6 @@ export function useGameLog({ gameId, listRef }: UseGameLogArgs): GameLog {
     }
     return games.Selectors.getGame(state, gameId)?.info.spectatorsCanChat ?? true;
   });
-  // Desktop TabGame (tab_game.cpp:1423) and Servatrice's cmdGameSay let a
-  // moderator or the game's judge talk as a spectator anyway; desktop counts
-  // the moderator only while the admin lock is off.
   const isModerator = useAppSelector(server.Selectors.getIsUserModerator);
   const adminLocked = useAdminLocked();
   const isJudge = useAppSelector((state) =>

@@ -4,12 +4,6 @@ import { server } from '@cockatrice/datatrice';
 import { useAppSelector, type RootState } from '@app/store';
 import { endSession } from '@app/services/session';
 
-/**
- * One boundary per app, inside the store and router. Put session-owned providers
- * and routes below it. The router stays mounted so navigation survives login.
- * Module cleanup runs synchronously on the epoch dispatch, before remounted
- * children read caches or start work. StrictMode effect replay is not a logout.
- */
 export function SessionScope({ children }: { children: ReactNode }) {
   const store = useStore<RootState>();
   const epoch = useAppSelector(server.Selectors.selectSessionEpoch);

@@ -58,8 +58,6 @@ export function findLastSessionCommand<V>(
   );
 }
 
-// Collects every outbound session command matching the extension, in send
-// order. Use when one gesture fans out (e.g. MyDecks downloads every deck).
 export function findAllSessionCommands<V>(
   ext: GenExtension<SessionCmd, V>
 ): Array<{ container: CommandContainer; value: V; cmdId: number }> {

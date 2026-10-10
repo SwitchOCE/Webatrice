@@ -23,9 +23,6 @@ const EMPTY_USERS_MAP: { [name: string]: ServerInfo_User } = {};
 
 const ZERO_COUNTS = { visible: 0, total: 0 };
 
-// Layered game selectors: one delta frame used to materialize + sort the same
-// games map up to 3× (sorted list, filtered list, counts). The base selector
-// sorts once; the filtered list and counts derive from it.
 const getSortedRoomGamesBase = createSelector(
   [
     (state: State, roomId: number) => state.rooms.rooms[roomId]?.games,
@@ -142,9 +139,6 @@ export const Selectors = {
       }
       return { visible: filtered.length, total: sorted.length };
     },
-    // Every game-list frame flips the sorted/filtered inputs, but the counts
-    // rarely change. Return the prior object when they match so the count-badge
-    // subscribers don't re-render on every broadcast.
     {
       memoizeOptions: {
         resultEqualityCheck: (

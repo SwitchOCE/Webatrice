@@ -1,7 +1,3 @@
-// "Put top cards on stack until…" end to end through <Game />: the dialog's
-// validation, and the loop's exact traffic as the server lands each revealed
-// card on the stack (desktop PlayerActions::moveOneCardUntil). Phase 6 (PB-17)
-// moves the dialog and the loop out of PlayerBox; these assertions hold for both.
 
 import { act, fireEvent, screen, within } from '@testing-library/react';
 import { ZoneName } from '@cockatrice/sockatrice';
@@ -45,7 +41,6 @@ function renderSeats({ deckCount = 5 } = {}) {
 
 type Store = ReturnType<typeof renderSeats>['store'];
 
-/** The server lands the library's top card on the stack, as Event_MoveCard does. */
 function lands(store: Store, id: number, name: string) {
   act(() => {
     store.dispatch(games.Actions.zoneCardCountAdjusted({ gameId: 1, playerId: 1, zoneName: ZoneName.DECK, delta: -1 }));
@@ -136,7 +131,6 @@ describe('put top cards on stack until', () => {
 
     lands(store, 101, 'Bolt');
 
-    // x = -1: the server picks the column (server_cardzone.cpp:192-235).
     expect(moves(game)).toEqual([REVEAL, [ZoneName.STACK, [101], ZoneName.TABLE, -1]]);
   });
 

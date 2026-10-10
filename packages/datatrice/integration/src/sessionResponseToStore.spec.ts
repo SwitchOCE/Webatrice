@@ -90,14 +90,10 @@ describe('integration: session connection lifecycle', () => {
     const store = createStore();
     const response = attachResponseHandlers(store);
 
-    // `updateConnectionHealth` is optional on ISessionResponse (hence the `!`);
-    // the concrete SessionResponseImpl always implements it.
     response.session.updateConnectionHealth!(2, 10000);
     expect(server.Selectors.getConnectionHealth(store.getState())).toEqual({ missedPongs: 2, silentForMs: 10000 });
     expect(server.Selectors.getIsServerUnresponsive(store.getState())).toBe(true);
 
-    // Any socket lifecycle transition is a fresh start; stale degraded health
-    // must not survive it.
     response.session.updateStatus(WebsocketTypes.StatusEnum.CONNECTED, 'reconnected');
     expect(server.Selectors.getIsServerUnresponsive(store.getState())).toBe(false);
     expect(server.Selectors.getConnectionHealth(store.getState())).toEqual({ missedPongs: 0, silentForMs: 0 });
@@ -410,8 +406,6 @@ describe('integration: session server decks', () => {
   });
 });
 
-// --- deck share links and public decks (3.1) -----------------------------
-
 describe('integration: session deck sharing', () => {
   function withStoredDecks() {
     const store = createStore();
@@ -505,7 +499,6 @@ describe('integration: session replays', () => {
     expect(server.Selectors.getDownloadedReplay(store.getState())).toEqual({ replayId: 4, replayData: bytes });
   });
 });
-
 
 describe('account auth bridge regressions', () => {
   it('preserves omitted profile fields and evicts only the cached self profile', () => {

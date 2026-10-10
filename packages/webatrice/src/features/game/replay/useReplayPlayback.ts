@@ -37,19 +37,9 @@ const NO_TIMELINE: readonly number[] = [];
 const subscribeNothing = () => () => {};
 const getIdleState = () => IDLE_STATE;
 
-/**
- * Drives an opened replay's playback, desktop's ReplayWidget wiring. The
- * replay's engine and local game belong to the opened replay (see
- * `openReplay`), not to this view: they keep running while the user is on
- * another tab and are only torn down by `closeReplay`. Rewinds reload the game
- * through `WebClient.loadReplayGame` and each recorded container runs through
- * the live game-event pipeline, so the board, log and selectors behave exactly
- * as for a live game.
- */
 export function useReplayPlayback(opened: OpenedReplay | undefined): ReplayPlayback {
   const settings = useSettings();
   const engine = opened?.engine ?? null;
-  // Coming back to a replay that was fast-forwarding keeps fast-forwarding.
   const [fastForward, setFastForward] = useState(() => (engine?.getState().timeScaleFactor ?? 1) !== 1);
 
   const state = useSyncExternalStore(engine?.subscribe ?? subscribeNothing, engine?.getState ?? getIdleState);

@@ -32,7 +32,6 @@ import {
 
 const UserLevelFlag = ServerInfo_User_UserLevelFlag;
 
-
 describe('Initialisation', () => {
   it('returns initialState when called with undefined state', () => {
     const result = serverReducer(undefined, { type: '@@INIT' });
@@ -65,7 +64,6 @@ describe('Initialisation', () => {
   });
 });
 
-
 describe('Locale', () => {
   it('SET_LOCALE → stores the BCP-47 locale tag', () => {
     const state = makeServerState({ locale: undefined });
@@ -92,11 +90,6 @@ describe('Locale', () => {
     expect(result.locale).toBe('nl');
   });
 
-  // testConnectionStatus is a login-screen probe result, independent of the
-  // live game socket. A connection reset must not wipe it: doing so both
-  // disables the login button (LoginForm gates on 'success') and — via the
-  // known-hosts recovery effect — used to re-fire a fresh probe WebSocket on
-  // every disconnect, which trips Servatrice's max_users_per_address cap.
   it('preserves testConnectionStatus across DISCONNECTED', () => {
     const state = makeServerState({ testConnectionStatus: 'success' });
     const result = serverReducer(state, Actions.disconnected());
@@ -110,7 +103,6 @@ describe('Locale', () => {
   });
 });
 
-
 describe('Account & Connection', () => {
   it('CONNECTION_ATTEMPTED → sets connectionAttemptMade to true', () => {
     const state = makeServerState({
@@ -121,7 +113,6 @@ describe('Account & Connection', () => {
   });
 
 });
-
 
 describe('Login failure code', () => {
   it('LOGIN_FAILED → records the rejecting response code', () => {
@@ -141,8 +132,6 @@ describe('Login failure code', () => {
     expect(result.loginFailureCode).toBeNull();
   });
 
-  // Same hazard as connectUnreachable: the socket close after a rejected login
-  // rebuilds the slice via DISCONNECTED, which must keep the code.
   it('preserves loginFailureCode across DISCONNECTED', () => {
     const state = makeServerState({ loginFailureCode: 38 });
     const result = serverReducer(state, Actions.disconnected());
@@ -155,7 +144,6 @@ describe('Login failure code', () => {
     expect(result.loginFailureCode).toBeNull();
   });
 });
-
 
 describe('Connect Unreachable', () => {
   it('CONNECT_UNREACHABLE → sets connectUnreachable to true', () => {
@@ -176,10 +164,6 @@ describe('Connect Unreachable', () => {
     expect(result.connectUnreachable).toBe(false);
   });
 
-  // Load-bearing: connectUnreachable is set just before the socket close that
-  // triggers the DISCONNECTED rebuild (dispatched by the updateStatus listener).
-  // The rebuild must carry the flag through or the login screen never sees it.
-  // See server.reducer.connection disconnected().
   it('preserves connectUnreachable across DISCONNECTED', () => {
     const state = makeServerState({ connectUnreachable: true });
     const result = serverReducer(state, Actions.disconnected());
@@ -204,7 +188,6 @@ describe('Connect Unreachable', () => {
     expect(result.connectUnreachable).toBe(false);
   });
 });
-
 
 describe('Registration', () => {
   it('REGISTRATION_FAILED → stores normalized error (plain reason)', () => {
@@ -232,7 +215,6 @@ describe('Registration', () => {
     expect(result.registrationError).toBeNull();
   });
 });
-
 
 describe('Server Info & Status', () => {
   it('SERVER_MESSAGE → merges message into state.info', () => {
@@ -267,7 +249,6 @@ describe('Server Info & Status', () => {
     expect(result.status.connectionAttemptMade).toBe(false);
   });
 });
-
 
 describe('User', () => {
   it('UPDATE_USER → merges action.payload.user into state.user', () => {
@@ -322,7 +303,6 @@ describe('User', () => {
   });
 });
 
-
 describe('Connection Health', () => {
   it('connectionHealthChanged → stores degraded health', () => {
     const state = makeServerState();
@@ -351,7 +331,6 @@ describe('Connection Health', () => {
   });
 });
 
-
 describe('Users List', () => {
   it('UPDATE_USERS → replaces users map keyed by name', () => {
     const state = makeServerState();
@@ -378,7 +357,6 @@ describe('Users List', () => {
     expect(result.users['Bob']).toBeDefined();
   });
 });
-
 
 describe('Buddy List', () => {
   it('UPDATE_BUDDY_LIST → replaces map keyed by name', () => {
@@ -432,7 +410,6 @@ describe('Ignore List', () => {
   });
 });
 
-
 describe('Logs', () => {
   it('VIEW_LOGS → groups LogItem[] into room/game/chat buckets', () => {
     const log = makeLogItem({ targetType: 'room' });
@@ -457,7 +434,6 @@ describe('Logs', () => {
     expect(result.logs.chat).toEqual([]);
   });
 });
-
 
 describe('Messaging', () => {
   it('USER_MESSAGE → uses receiverName as key when current user is sender', () => {
@@ -509,7 +485,6 @@ describe('Messaging', () => {
     expect(result.messages['Alice'][0].message).not.toBe('msg-0');
   });
 });
-
 
 describe('Private chat notices', () => {
   const msg = (message: string) =>
@@ -610,7 +585,6 @@ describe('Private chat notices', () => {
   });
 });
 
-
 describe('Games Of User', () => {
   it('GAMES_OF_USER_REQUESTED → marks loading and drops the previous answer', () => {
     const state = makeServerState({ gamesOfUser: { alice: { 1: makeGame({ gameId: 1 }) } } });
@@ -633,7 +607,6 @@ describe('Games Of User', () => {
   });
 
   it('GAMES_OF_USER → resolves each game type through its own room', () => {
-    // Game type ids are per room: id 1 is "Standard" in room 1 but "Draft" in room 2.
     const response = create(Response_GetGamesOfUserSchema, {
       roomList: [
         create(ServerInfo_RoomSchema, { roomId: 1, gametypeList: [{ gameTypeId: 1, description: 'Standard' }] }),
@@ -713,7 +686,6 @@ describe('Games Of User', () => {
   });
 });
 
-
 describe('User Info & Notifications', () => {
   it('GET_USER_INFO → adds userInfo keyed by name', () => {
     const userInfo = makeUser({ name: 'Eve' });
@@ -748,7 +720,6 @@ describe('User Info & Notifications', () => {
     expect(result.serverShutdown).toEqual(data);
   });
 });
-
 
 describe('Moderation', () => {
   it('BAN_FROM_SERVER → sets banUser', () => {
@@ -796,7 +767,6 @@ describe('Moderation', () => {
     expect(result.adminNotes['Ira']).toBe('new');
   });
 });
-
 
 describe('ADJUST_MOD', () => {
   const baseUserLevel = UserLevelFlag.IsUser | UserLevelFlag.IsRegistered | UserLevelFlag.IsModerator | UserLevelFlag.IsJudge;
@@ -877,7 +847,6 @@ describe('ADJUST_MOD', () => {
   });
 });
 
-
 describe('Replays', () => {
   it('REPLAY_LIST → replaces replays map keyed by gameId', () => {
     const matchList = [makeReplayMatch({ gameId: 10 })];
@@ -928,7 +897,6 @@ describe('Replays', () => {
     expect(result.replays[6]).toBeDefined();
   });
 });
-
 
 describe('Deck Storage', () => {
   it('BACKEND_DECKS → sets backendDecks', () => {
@@ -1132,7 +1100,6 @@ describe('Deck Storage', () => {
   });
 });
 
-
 describe('GAMES_OF_USER', () => {
   it('stores normalized games keyed by userName and gameId', () => {
     const response = create(Response_GetGamesOfUserSchema, {
@@ -1163,7 +1130,6 @@ describe('GAMES_OF_USER', () => {
     expect(result.gamesOfUser['bob']).toEqual(bobGames);
   });
 });
-
 
 describe('malformed input', () => {
   it('reducer with an unrecognized action type → identical state reference', () => {

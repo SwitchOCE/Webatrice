@@ -28,7 +28,6 @@ import {
   sourceKindForFile,
 } from './mergeCardSources';
 
-/** Desktop's custom-token set (`CardSet::TOKENS_SETNAME`) as oracle writes it. */
 export const CUSTOM_TOKEN_SET: Set = {
   name: { value: 'TK' },
   longname: { value: 'Dummy set containing tokens' },
@@ -44,9 +43,7 @@ export interface CardDatabaseSummary {
 
 export interface RebuildResult {
   summary: CardDatabaseSummary;
-  /** Sets the user has not decided on yet (desktop's "New sets found" prompt). */
   unknownSets: string[];
-  /** Desktop's first-run case: nothing was enabled, so every set was. */
   allNewSetsEnabled: boolean;
 }
 
@@ -55,19 +52,15 @@ export interface NewSourceInput {
   xml: string;
   origin: CardSourceOrigin;
   url?: string;
-  /** Defaults to the kind desktop infers from the file name. */
   kind?: CardSourceKind;
-  /** `xml` already parsed (the import preview did), so it is not parsed again. */
   records?: CardSourceRecords;
 }
 
-/** A parsed source not stored yet: its listing row and its contents. */
 export interface PendingSource {
   source: CardSource;
   payload: CardSourcePayload;
 }
 
-/** The files a pre-v7 import could hold; once all three are re-imported it has nothing left to add. */
 const LEGACY_FILE_KINDS: readonly CardSourceKind[] = ['main', 'tokens', 'spoiler'];
 
 export type UnknownSetsAnswer = 'enable' | 'enable-always' | 'keep-disabled';
@@ -83,18 +76,9 @@ function countsOf(records: CardSourceRecords) {
 
 export class TokenNameConflictError extends Error {}
 
-/**
- * Owns the card database the way desktop's `CardDatabaseLoader` does: a list
- * of sources (files or URLs) folded in load order into the `cards` / `sets` /
- * `tokens` / `formats` tables. Every change re-derives those tables inside a
- * single transaction, so a bad file can never leave a half-written database.
- */
 class CardDatabaseService {
-  // Parsed sources reused across rebuilds in this session, keyed by id +
-  // import time; the main cards.xml is large and rarely changes.
   private parsedCache = new Map<string, { importedAt: string; records: CardSourceRecords }>();
 
-  /** Parse (and so validate) XML into a source ready for `applySources`. */
   createSource(input: NewSourceInput, existing: readonly CardSource[]): PendingSource {
     const kind = input.kind ?? sourceKindForFile(input.fileName);
     const order = kind === 'custom' ? nextCustomOrder(existing) : 0;
@@ -120,12 +104,10 @@ class CardDatabaseService {
     };
   }
 
-  /** Every source, in load order. Their contents live in another table, so this stays small. */
   async listSources(): Promise<CardSource[]> {
     return sortSourcesByLoadOrder(await CardSourceDTO.getAll());
   }
 
-  /** Whether a source already holds exactly this file (desktop compares hashes). */
   async hasSourceXml(id: string, xml: string): Promise<boolean> {
     const payload = await CardSourceDTO.getPayload(id);
     return payload?.xml === xml;
@@ -141,9 +123,7 @@ class CardDatabaseService {
     return { cards, sets, tokens, formats };
   }
 
-  /** Parse and add files/downloads, replacing same-named sources, then rebuild. */
   async addSources(inputs: readonly NewSourceInput[]): Promise<RebuildResult> {
-    // Parse before opening the transaction; allocate custom identities from its live snapshot.
     const parsed = inputs.map(input => ({ ...input, records: cockatriceXmlParser.parseSource(input.xml, input.records) }));
     return this.applySources(parsed, []);
   }
@@ -153,18 +133,11 @@ class CardDatabaseService {
     return this.applySources([], [id]);
   }
 
-  /** Desktop's "Reload card database": re-derive every table from the sources. */
   reload(): Promise<RebuildResult> {
     this.parsedCache.clear();
     return this.applySources([], []);
   }
 
-  /**
-   * A stored source's records. A `legacy` source without a payload stands for
-   * what the card tables held at the v7 upgrade, which they still hold until
-   * this first rebuild: read them back (minus the editor tokens written there
-   * since) and return them as the payload to store.
-   */
   private async recordsOf(source: CardSource, pending?: CardSourcePayload): Promise<{
     records: CardSourceRecords;
     materialized?: CardSourcePayload;
@@ -175,7 +148,6 @@ class CardDatabaseService {
     }
     const payload = pending ?? await CardSourceDTO.getPayload(source.id);
     if (!payload && source.kind === 'legacy') {
-      // Not cached: until the payload is stored, every rebuild must store it.
       const records = await this.readLegacyTables();
       return { records, materialized: { id: source.id, records } };
     }
@@ -203,11 +175,6 @@ class CardDatabaseService {
     };
   }
 
-  /**
-   * Re-derive the card tables from the stored sources with `added` replacing
-   * same-id sources and `removedIds` dropped. Reads, merge and writes share one
-   * transaction, so two quick changes cannot overwrite each other's sources.
-   */
   private async applySources(inputs: readonly NewSourceInput[], removedIds: readonly string[]): Promise<RebuildResult> {
     const result = await dexieService.cardDataTransaction(async () => {
       const [stored, preferences, settings] = await Promise.all([
@@ -226,8 +193,6 @@ class CardDatabaseService {
         ...stored.filter((s) => !replaced.has(s.id)),
         ...added.map((pending) => pending.source),
       ]);
-      // A pre-v7 import was made of cards.xml, tokens.xml and spoiler.xml; once
-      // each has been imported again it holds nothing the new sources lack.
       if (LEGACY_FILE_KINDS.every((kind) => sources.some((s) => s.kind === kind))) {
         replaced.add(CardSourceId.LEGACY);
         this.parsedCache.delete(CardSourceId.LEGACY);
@@ -292,7 +257,6 @@ class CardDatabaseService {
     return result;
   }
 
-  /** Answer desktop's "New sets found" prompt. */
   async resolveUnknownSets(answer: UnknownSetsAnswer): Promise<void> {
     const [sets, preferences] = await Promise.all([
       dexieService.sets.toArray() as Promise<Set[]>,
@@ -317,7 +281,6 @@ class CardDatabaseService {
     return { sets, preferences };
   }
 
-  /** Manage Sets "OK": persist the whole list (`SetsModel::save`). */
   async saveSetPreferences(preferences: readonly SetPreference[]): Promise<void> {
     await SetPreferenceDTO.bulkPut([...preferences]);
     await refreshCardDataPreferences();
@@ -344,14 +307,11 @@ class CardDatabaseService {
     return (await CardDataSettingsDTO.get()).lastUpdateCheck;
   }
 
-  // ---- Custom tokens (dlg_edit_tokens) ----
-
   async getCustomTokens(): Promise<Token[]> {
     const payload = await CardSourceDTO.getPayload(CardSourceId.USER_TOKENS);
     return payload?.records?.tokens ?? [];
   }
 
-  /** True when a card or token with this name is already loaded. */
   async isNameTaken(name: string): Promise<boolean> {
     const [card, token] = await Promise.all([
       dexieService.cards.where('name.value').equalsIgnoreCase(name).first(),
@@ -360,11 +320,6 @@ class CardDatabaseService {
     return Boolean(card || token);
   }
 
-  /**
-   * Apply token deltas to the current editor-token source. Editor tokens load last and never share
-   * a name with another card (the editor refuses that), so writing them
-   * straight into `tokens` gives the same result as a full rebuild.
-   */
   async saveCustomTokens(
     changed: readonly Token[], removedNames: readonly string[] = [], mode: 'upsert' | 'add' | 'update' = 'upsert',
   ): Promise<Token[]> {
@@ -401,7 +356,6 @@ class CardDatabaseService {
       if (tokens.length && !(await dexieService.sets.get(code))) {
         await dexieService.sets.put(CUSTOM_TOKEN_SET);
       }
-      // The user made these, so TK is never a "new set" to ask about.
       if (tokens.length && !(await dexieService.setPreferences.get(code))) {
         const sortKey = await dexieService.setPreferences.count();
         await dexieService.setPreferences.put({ code, sortKey, enabled: true, isKnown: true } satisfies SetPreference);

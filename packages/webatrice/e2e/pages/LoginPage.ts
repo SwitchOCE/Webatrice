@@ -26,10 +26,6 @@ export class LoginPage {
     await expect(this.hostPicker).toBeVisible();
   }
 
-  // The KnownHosts trigger is a <button> whose accessible name is the
-  // visible "Host" caption (wired via aria-labelledby in KnownHosts.tsx),
-  // so we can locate it by role + exact name. `exact` guards against
-  // "Host Name" / "Host Address" field labels in KnownHostDialog.
   get hostPicker(): Locator {
     return this.hostPickerIn(this.page);
   }
@@ -40,11 +36,6 @@ export class LoginPage {
     return scope.getByRole('button', { name: 'Host', exact: true }).first();
   }
 
-  // A saved host's option renders the host name and address in adjacent
-  // <span>s whose text collapses to one name like "e2elocalhost:4748" (no
-  // separator). Match the option by the dedicated
-  // `<span class="font-medium">{host.name}</span>` so an anchored equality on
-  // the host name doesn't collide with the address.
   private hostOption(scope: Page | Locator, label: string): Locator {
     return scope.getByRole('option').filter({
       has: this.page.locator('span.font-medium', { hasText: new RegExp(`^${label}$`, 'i') }),

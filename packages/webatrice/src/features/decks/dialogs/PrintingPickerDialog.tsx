@@ -11,20 +11,11 @@ import { upgradeScryfallImageSize } from '../scryfallImage';
 import type { DeckCard } from '../types';
 import { DeckDialogFrame } from './DeckDialogFrame';
 
-/**
- * The row whose printing is being changed. Held as `{ index, card }` so
- * the dialog shows the card as it was when the picker opened.
- */
 export interface PrintingRequest {
   index: number;
   card: DeckCard;
 }
 
-/**
- * Lists every printing of the requested card; picking one hands its
- * `PrintingSummary` to `onPick`, which the editor applies to the row
- * (set, collector number, scryfallId, image) for the autosave to persist.
- */
 export function PrintingPickerDialog({
   request,
   deckCards = [],
@@ -32,14 +23,11 @@ export function PrintingPickerDialog({
   onPick,
 }: {
   request: PrintingRequest | null;
-  /** The deck's cards, whose printings desktop's "Bump sets" option lists first. */
   deckCards?: readonly DeckCard[];
   onClose: () => void;
   onPick: (printing: PrintingSummary) => void;
 }) {
   const { t } = useTranslation();
-  // Keyed on the card name, so a fresh `request` object for the same
-  // card doesn't refetch.
   const { printings: allPrintings, loading, error, prices } = useCardPrintings(request?.card.name);
   const bumpSetsInDeck = usePreference('bumpSetsWithCardsInDeckToTop');
   const printings = bumpSetsInDeck && request

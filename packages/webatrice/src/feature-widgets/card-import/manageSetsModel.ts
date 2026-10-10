@@ -7,12 +7,6 @@ import {
   type SetPreferenceMap,
 } from '@app/services';
 
-/**
- * Pure model behind the Manage Sets dialog — desktop's `SetsModel` and the
- * move/enable actions of `WndSets` (`dlg_manage_sets.cpp`). Rows are kept in
- * art-priority order; the dialog only writes them back on Save.
- */
-
 export interface SetRow {
   code: string;
   longName: string;
@@ -35,7 +29,6 @@ function toRow(set: Set, pref: SetPreference): SetRow {
   };
 }
 
-/** Rows in the user's priority order (`CardSetList::sortByKey`). */
 export function buildSetRows(sets: readonly Set[], prefs: SetPreferenceMap): SetRow[] {
   return sets
     .map((set, index) => ({ set, index, pref: getSetPreference(prefs, setCode(set)) }))
@@ -43,12 +36,10 @@ export function buildSetRows(sets: readonly Set[], prefs: SetPreferenceMap): Set
     .map(({ set, pref }) => toRow(set, pref));
 }
 
-/** `SetsModel::save`: sort keys become 1..n in row order. */
 export function rowsToPreferences(rows: readonly SetRow[]): SetPreference[] {
   return rows.map((row, i) => ({ code: row.code, sortKey: i + 1, enabled: row.enabled, isKnown: row.isKnown }));
 }
 
-/** `SetsModel::restoreOriginalOrder` ("Default order"). */
 export function restoreDefaultOrder(rows: readonly SetRow[], sets: readonly Set[]): SetRow[] {
   const byCode = new Map(rows.map((r) => [r.code, r]));
   return defaultSetOrder(sets)
@@ -56,7 +47,6 @@ export function restoreDefaultOrder(rows: readonly SetRow[], sets: readonly Set[
     .filter((row): row is SetRow => Boolean(row));
 }
 
-/** `SetsDisplayModel::filterAcceptsRow`: type, long name, code or date contain the text. */
 export function filterSetRows(rows: readonly SetRow[], search: string): SetRow[] {
   const needle = search.trim().toLowerCase();
   if (!needle) {
@@ -81,11 +71,6 @@ function swap(rows: SetRow[], a: number, b: number): void {
 
 export type MoveDirection = 'top' | 'up' | 'down' | 'bottom';
 
-/**
- * `WndSets::actUp/actDown/actTop/actBottom`. Moves act on the visible
- * (filtered) rows — each selected row swaps with its visible neighbour, as
- * desktop swaps through the display model — and return the new full order.
- */
 export function moveSetRows(
   rows: readonly SetRow[],
   visibleCodes: readonly string[],

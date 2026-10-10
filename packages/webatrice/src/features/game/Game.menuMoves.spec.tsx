@@ -1,9 +1,3 @@
-// The exact Command_MoveCard payloads behind every seat menu item that moves
-// cards: the battlefield and stack card menus, and the library, graveyard,
-// exile and hand zone menus (including their count prompts). Each item runs on
-// a fresh board, so an optimistic move never changes the next case. Phase 6
-// replaces the menus' hand-built Command_MoveCard params with the zone port's
-// semantic `moveCards`; the wire must not change.
 
 import { act, fireEvent, screen, within } from '@testing-library/react';
 import { makeCard } from '@cockatrice/datatrice/testing';
@@ -61,7 +55,6 @@ const GRAVEYARD: Target = () => pileEl('Graveyard', 0);
 const EXILE: Target = () => pileEl('Exile', 0);
 const HAND: Target = () => pileEl('Hand', 0);
 
-/** Submit the open count prompt with `value`. */
 function answerPrompt(value: string) {
   const dialog = screen.getAllByRole('dialog').at(-1)!;
   const input = within(dialog).queryByRole('spinbutton') ?? within(dialog).getByRole('textbox');
@@ -71,7 +64,6 @@ function answerPrompt(value: string) {
   });
 }
 
-/** Every moveCard the item sends, as `params` (plus the judge target when set). */
 function movesFor(target: Target, path: string[], promptValue?: string): string[] {
   const webClient = createMockWebClient();
   const { unmount } = renderWithProviders(<Game />, { preloadedState: buildSeatGameState(SPEC), webClient });
@@ -85,7 +77,6 @@ function movesFor(target: Target, path: string[], promptValue?: string): string[
   return calls.map(([, params, ...extra]) => formatMove(params, extra));
 }
 
-/** `P1 table [10, 11/fd] → P1 deck {"x":0,"y":0,"isReversed":true}`, then any extra call arguments. */
 function formatMove(params: MoveCardParams, extra: unknown[]): string {
   const { startPlayerId, startZone, cardsToMove, targetPlayerId, targetZone, ...position } = params;
   const cards = (cardsToMove?.card ?? []).map(({ cardId, faceDown, ...other }) =>

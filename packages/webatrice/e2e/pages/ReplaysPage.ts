@@ -1,8 +1,5 @@
 import { expect, type Download, type Locator, type Page } from '@playwright/test';
 
-// Page object for the Replays tab (/replays) and the replay view
-// (/replay/:replayKey). Labels come from Replays.i18n.json /
-// GameReplay.i18n.json.
 export class ReplaysPage {
   constructor(private readonly page: Page) {}
 
@@ -19,7 +16,6 @@ export class ReplaysPage {
     return this.page.getByRole('region', { name: 'Local replays' });
   }
 
-  /** The match row for a game, found by its description (the match name). */
   matchRow(gameName: string): Locator {
     return this.serverPane.locator('tr[data-testid^="replay-match-"]').filter({ hasText: gameName });
   }
@@ -28,7 +24,6 @@ export class ReplaysPage {
     const row = this.matchRow(gameName);
     await expect(row).toBeVisible({ timeout: 30_000 });
     await row.getByRole('button', { name: 'Show replays' }).click();
-    // The match's replays follow it in the table.
     const replay = this.serverPane.locator('tr[data-testid^="replay-"]:not([data-testid^="replay-match-"])').first();
     await expect(replay).toBeVisible();
     return replay;
@@ -45,8 +40,6 @@ export class ReplaysPage {
     ]);
     return download;
   }
-
-  // ---- Replay view ----
 
   get controls(): Locator {
     return this.page.getByTestId('replay-controls');

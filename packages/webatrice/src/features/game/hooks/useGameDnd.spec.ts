@@ -138,7 +138,6 @@ describe('useGameDnd', () => {
         ...seatZone('exile', 90, { seatPlayerId: accepting ? 2 : 3, resolve: () => ({ zone: 'exile' }) }),
         node: { current: exileNode },
       };
-      // jsdom has no paint order; model the browser's front-to-back hit list.
       const original = Object.getOwnPropertyDescriptor(document, 'elementsFromPoint');
       Object.defineProperty(document, 'elementsFromPoint', { configurable: true, value: () => [card, exileNode, graveNode] });
       try {

@@ -3,7 +3,6 @@ import { CardImage } from '@app/components';
 import { usePreference } from '@app/hooks';
 import { lookupCardsCached } from '@app/services';
 
-/** Whether the named card is a sideways-layout card (battle, split card, plane); false until known. */
 function useLandscapeCard(name: string | undefined): boolean {
   const [landscape, setLandscape] = useState<{ name: string; value: boolean } | null>(null);
   useEffect(() => {
@@ -29,15 +28,9 @@ interface PreviewCardImageProps {
   src: string;
   name?: string;
   className?: string;
-  /** Styles for the card's box; its aspect ratio is the card's (5:7, or 7:5 turned sideways). */
   style?: CSSProperties;
 }
 
-/**
- * A card preview's picture. With desktop's "Auto-Rotate cards with sideways layout" on (the
- * default), a battle, split card or plane is turned a quarter clockwise so its landscape art
- * reads upright, as CardInfoPictureWidget does (CardArtUtils::rotateSidewaysLayoutArt).
- */
 export default function PreviewCardImage({ src, name, className, style }: PreviewCardImageProps) {
   const autoRotate = usePreference('autoRotateSidewaysLayoutCards');
   const sideways = useLandscapeCard(autoRotate ? name : undefined);
@@ -47,8 +40,6 @@ export default function PreviewCardImage({ src, name, className, style }: Previe
       <CardImage src={src} name={name} draggable={false} className={className} style={{ ...style, aspectRatio: '5 / 7' }} />
     );
   }
-  // The box is landscape (7:5); the portrait picture inside it is as tall as the box is wide,
-  // centred and turned a quarter.
   return (
     <div
       className={`relative overflow-hidden ${className ?? ''}`}

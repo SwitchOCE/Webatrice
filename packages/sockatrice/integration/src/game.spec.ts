@@ -670,7 +670,6 @@ describe('game', () => {
       ext: Data.Event_ReverseTurn_ext,
       value: create(Data.Event_ReverseTurnSchema, { reversed: true }),
     }));
-    // The event's player_id is the player who reversed the order.
     expect(getMockResponse().game.turnReversed).toHaveBeenCalledWith(42, true, 1);
 
     GameCommands.setActivePhase(42, { phase: 2 });

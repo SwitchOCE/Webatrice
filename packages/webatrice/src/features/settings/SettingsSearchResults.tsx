@@ -11,10 +11,6 @@ interface SettingsSearchResultsProps {
   onOpenSection: (id: SettingsSectionId) => void;
 }
 
-/**
- * Matching settings, best match first, each still editable in place. Hits are grouped under
- * their page and group box so a result reads like its home on the page.
- */
 export default function SettingsSearchResults({ query, results, onOpenSection }: SettingsSearchResultsProps) {
   const { t } = useTranslation();
   const { hits, pages } = results;
@@ -23,7 +19,6 @@ export default function SettingsSearchResults({ query, results, onOpenSection }:
     return <p className="settings__empty">{t('Settings.noResults', { query })}</p>;
   }
 
-  // Keep the ranked order while gathering hits that share a group box.
   const boxes: { key: string; hits: typeof hits }[] = [];
   for (const hit of hits) {
     const key = `${hit.section.id}/${hit.group.id}`;

@@ -5,18 +5,13 @@ import { PILE_STEP_FRACTION, type PilePlace } from './ZoneCardCell';
 import type { CardGroup, EnrichedCard } from './zoneViewSort';
 
 export interface ZoneCardGroupsProps {
-  /** Set when the cells are listbox options (a card view): the listbox's name, the view's title. */
   label?: string;
   groups: readonly CardGroup[];
-  /** Desktop's pile view (view_zone_widget.cpp:64,197): one fanned column per group. A wrapping grid per group otherwise. */
   pile: boolean;
-  /** Draws one card, usually a `ZoneCardCell`; `pile` is set when it sits in a pile. */
   renderCell: (card: EnrichedCard, group: CardGroup, pile?: PilePlace) => ReactNode;
-  /** The groups' box, which alone has the cards' intrinsic height (a view's scroll area fills its dialog). */
   cardsRef?: Ref<HTMLDivElement>;
 }
 
-/** A zone view's cards, group by group under each group's label and count. */
 export function ZoneCardGroups({ label, groups, pile, renderCell, cardsRef }: ZoneCardGroupsProps): ReactElement {
   return (
     <div
@@ -28,7 +23,6 @@ export function ZoneCardGroups({ label, groups, pile, renderCell, cardsRef }: Zo
     >
       {groups.map((g) => (
         <div key={g.key} className={pile ? 'shrink-0' : ''} style={pile ? { width: CARD_WIDTH } : undefined}>
-          {/* An ungrouped view's single group has no label. */}
           {g.label && (
             <div className="text-xs font-semibold text-text-secondary uppercase tracking-wide mb-1.5 select-none">
               {g.label} <span className="text-text-muted normal-case">({g.cards.length})</span>

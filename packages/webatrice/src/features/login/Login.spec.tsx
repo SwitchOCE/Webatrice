@@ -357,14 +357,12 @@ describe('Login — password change required', () => {
   });
 });
 
-
 test('keeps a connection-closed ban reason visible after DISCONNECTED and CLEAR_STORE', async () => {
   const { store, getByText } = renderWithProviders(<SessionScope><Login /></SessionScope>, {
     preloadedState: disconnectedState,
   });
   await flushEffects();
   act(() => {
-    // Event_ConnectionClosed publishes this status before the socket drops.
     store.dispatch(server.Actions.updateStatus({
       status: { state: WebsocketTypes.StatusEnum.DISCONNECTED, description: 'You are banned until tomorrow' },
     }));

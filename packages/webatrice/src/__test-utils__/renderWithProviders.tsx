@@ -68,8 +68,6 @@ import deckSharingText from '../features/decks/DeckSharing.i18n.json';
 import gamePhaseText from '../features/game/components/PhaseTrack/phaseLabels.i18n.json';
 import tallyText from '../features/game/components/TallyOverlay/TallyOverlay.i18n.json';
 
-// The game's pending target pick, as Game provides it, for seats rendered
-// without Game.
 function GamePendingTarget({ children }: { children: React.ReactNode }) {
   return <PendingTargetProvider value={usePendingTarget(useGameId())}>{children}</PendingTargetProvider>;
 }
@@ -122,12 +120,6 @@ function getDefaultWebClient(): WebClient {
   return defaultWebClient;
 }
 
-// Every other key renders as itself. The zone views' and the reveal's titles, and the seats' life
-// totals and zones, name the player through interpolation, and the specs tell them apart by player, so
-// their English is loaded, formatted by ICU as in the app, with the cards' state labels, the piles'
-// names, the target pick's prompt and the keyboard move's fields; so is the move-top-until dialog's,
-// which the game specs reach through the library menu by its English title, and the hand button's,
-// which they find by its English count title, as the e2e suite does.
 export const testI18n = i18n.createInstance();
 testI18n.use(ICU).use(initReactI18next).init({
   lng: 'en-US',
@@ -204,8 +196,6 @@ interface ExtendedRenderOptions extends Omit<RenderOptions, 'wrapper'> {
   // matching the dominant store fixture); pass explicitly — including
   // `undefined` — to override (e.g. the no-active-game case).
   gameId?: number;
-  // The game's card-preview store (hover, focus, zoom), provided via
-  // CardPreviewContext. Defaults to a fresh store per render.
   previewStore?: CardPreviewStore;
   // Partial overrides for the dialogs slice (defaults to a closed/no-op slice).
   // Set the relevant menu state + handlers a dialog spec asserts against.
@@ -242,9 +232,6 @@ export function renderWithProviders(
     selectedCardKeys: cardVisualState?.selectedCardKeys ?? EMPTY_SELECTION,
     canActFor: cardVisualState?.canActFor ?? DENY_ALL,
   };
-  // Specs preload a partial games slice (DeepPartial) that omits the required
-  // `pings` sibling map; complete it here so a ping-touching reducer doesn't hit
-  // an undefined `state.pings`, mirroring the real initialState. See GamesState.pings.
   const completedState = preloadedState?.games
     ? { ...preloadedState, games: { pings: {}, ...preloadedState.games } }
     : preloadedState;

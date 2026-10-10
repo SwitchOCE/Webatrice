@@ -71,7 +71,6 @@ function serverPane() {
   return within(screen.getByRole('region', { name: 'Replays.server.title' }));
 }
 
-/** The callback argument at `index` of the last call to a mock. */
 function lastCallArg<T>(mock: unknown, index: number): T {
   return vi.mocked(mock as (...args: unknown[]) => unknown).mock.lastCall![index] as T;
 }
@@ -141,7 +140,6 @@ describe('Server replay storage', () => {
 
     fireEvent.click(serverPane().getByTestId('replay-match-7'));
     expect(deleteButton).toBeEnabled();
-    // Watching needs a replay, not a match.
     expect(serverPane().getByRole('button', { name: 'Replays.action.watch' })).toBeDisabled();
   });
 
@@ -209,7 +207,6 @@ describe('Server replay storage', () => {
     });
 
     expect(screen.getByRole('dialog')).toHaveTextContent('CommandFailure.disconnected');
-    // The open notice hides the pane from the accessibility tree, so query the DOM directly.
     expect(screen.queryByText('Replays.server.loading')).not.toBeInTheDocument();
   });
 
@@ -270,7 +267,6 @@ describe('Server replay storage', () => {
     const grid = serverPane().getByRole('treegrid');
     const first = serverPane().getByTestId('replay-match-7');
 
-    // One tab stop: the first row until something is selected.
     expect(first).toHaveAttribute('tabindex', '0');
     expect(serverPane().getByTestId('replay-match-9')).toHaveAttribute('tabindex', '-1');
     expect(within(grid).queryAllByRole('button').every((button) => button.tabIndex === -1)).toBe(true);

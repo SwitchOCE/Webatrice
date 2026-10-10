@@ -12,11 +12,6 @@ import { buildEventGameJoined, buildEventGameStateChanged, registerGameBoardHook
 
 registerGameBoardHooks();
 
-// A judge acts on any player's cards, and the server needs the command sent on
-// that player's behalf: Command_Judge with target_id = the owner, wrapping the
-// inner game command (desktop PlayerActions::sendGameCommand). Here a judge
-// drags an opponent's battlefield card onto the opponent's graveyard.
-
 const OPP_CARD = 201;
 
 afterEach(() => {
@@ -40,8 +35,6 @@ async function renderAsJudge() {
     expect(el).not.toBeNull();
     return el!;
   });
-  // jsdom has no layout: put the opponent's graveyard pile under the drop point
-  // and everything else off-screen, so the drop hit-tests onto that pile.
   const oppGrave = document.querySelector<HTMLElement>(
     '[data-arrow-anchor-owner="2"][data-arrow-anchor-zone="grave"]',
   );
@@ -80,7 +73,6 @@ describe('Judge override', () => {
       targetPlayerId: 2,
       targetZone: 'grave',
     });
-    // Nothing goes out unwrapped.
     expect(findAllGameCommands(Command_MoveCard_ext)).toHaveLength(0);
   });
 });

@@ -17,34 +17,20 @@ const QUANTITY_BUTTON_CLASS =
   + 'disabled:cursor-not-allowed disabled:hover:bg-transparent';
 
 export interface CardDetailDialogProps {
-  /** Snapshot of the card at click time; `null` closes the dialog. The
-   *  live row is re-resolved by (name, category) every render, so
-   *  re-sorts, adds and removes don't lose it. */
   snapshot: DeckCard | null;
-  /** Live deck cards, so quantity and printing changes show immediately. */
   deckCards: DeckCard[];
-  /** Commander-family deck: offer the commander toggle. */
   isCommanderDeck: boolean;
-  /** The editor's shared price lookup — no extra fetch for the price. */
   prices: PriceLookup;
   onClose: () => void;
   onInc: (index: number) => void;
   onDec: (index: number) => void;
   onSetCategory: (index: number, category: DeckCategory) => void;
-  /** Toggle the commander marker; the card stays in its zone. */
   onSetCommander: (index: number, isCommander: boolean) => void;
   onChangePrinting: (index: number, card: DeckCard) => void;
   onDelete: (index: number) => void;
-  /** Add a browsed related card (meld piece, combo piece) to the deck. */
   onAdd: (name: string) => Promise<void> | void;
 }
 
-/**
- * Click-to-open card details for MTG decks: image beside oracle and
- * flavor text (fetched from Scryfall on open), related-card links, and
- * the same actions as the row menu so the deck can be tweaked without
- * closing the dialog. The editor only mounts it for MTG decks.
- */
 export function CardDetailDialog({
   snapshot,
   deckCards,
@@ -69,8 +55,6 @@ export function CardDetailDialog({
 
   const liveIndex = resolveDetailRow(deckCards, snapshot, browsed);
   const liveCard = liveIndex >= 0 ? deckCards[liveIndex] : null;
-  // `removed`: the clicked row was deleted. `browsedNotInDeck`: the browsed
-  // related card isn't in the deck, so its actions are hidden entirely.
   const removed = !browsed && !liveCard;
   const browsedNotInDeck = !!browsed && !liveCard;
 
@@ -177,15 +161,11 @@ export function CardDetailDialog({
                 <ArrowLeft size={12} /> {t('CardDetailDialog.backTo', { name: snapshot.name })}
               </button>
             )}
-            {/* Related links only on the clicked card's own view: once
-                browsing, Back is the only navigation — no deeper drilling. */}
             {detail && !browsed && (
               <CardRelatedLinks
                 faces={detail.card_faces}
                 allParts={detail.all_parts}
                 parentName={detail.name}
-                // Face-level type wins for DFCs; it drives the token
-                // detection that collapses the noisy reverse-graph section.
                 parentTypeLine={face?.type_line ?? detail.type_line}
                 currentFaceName={face?.name ?? detail.name}
                 pendingKey={pending ? relatedCardKey(pending) : undefined}
@@ -235,8 +215,6 @@ export function CardDetailDialog({
                 <ActionButton
                   icon={<Plus size={14} />}
                   label={t('CardDetailDialog.addToDeck')}
-                  // Stays open on the browsed card: once added, the row
-                  // resolves and the full actions block takes over.
                   onClick={() => {
                     void onAdd(browsed.name);
                   }}
@@ -290,11 +268,6 @@ export function CardDetailDialog({
   );
 }
 
-/**
- * The row-menu actions for the shown deck row. Quantity changes keep the
- * dialog open for rapid adjustment; every other action closes it so the
- * deck list shows the result.
- */
 function CardDetailActions({
   card,
   removed,

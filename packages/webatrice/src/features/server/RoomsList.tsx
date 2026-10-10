@@ -16,8 +16,6 @@ const HEADER_CELL_CLASS =
   'text-left px-3 py-2 text-xs font-semibold uppercase tracking-wider text-text-muted '
   + 'border-b border-border-subtle';
 
-// Desktop TabServer::joinRoomFinished messages, keyed by response code. A join the
-// server never answered gets the transport reason instead (useCommandFailureMessage).
 const JOIN_ERROR_KEYS: Partial<Record<Response_ResponseCode, string>> = {
   [Response_ResponseCode.RespNameNotFound]: 'RoomsList.joinError.notFound',
   [Response_ResponseCode.RespContextError]: 'RoomsList.joinError.contextError',
@@ -154,7 +152,6 @@ export default function RoomsList({ rooms, joinedRooms }: RoomsListProps) {
         </table>
       </div>
 
-      {/* A rejected join keeps the user in the lobby (desktop parity) and can be retried. */}
       <AlertDialog
         isOpen={joinError !== null}
         title={t('RoomsList.joinError.title')}

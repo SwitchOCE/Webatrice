@@ -1,15 +1,6 @@
 import { dexieService } from '../../dexie';
 import type { LookupResult } from './types';
 
-/**
- * The Dexie `scryfallCache` table: a Scryfall-shaped read-through cache of
- * `LookupResult`s keyed by `name`, written the first time a card is
- * fetched from Scryfall. A distinct table so the Cockatrice-XML-shaped
- * `cards` table stays single-source — see the note on
- * Stores.SCRYFALL_CACHE. Every read and write swallows Dexie failures: a
- * cache miss only costs a network request.
- */
-
 export async function getFromScryfallCache(name: string): Promise<LookupResult | undefined> {
   try {
     const raw = (await dexieService.scryfallCache.get(name)) as

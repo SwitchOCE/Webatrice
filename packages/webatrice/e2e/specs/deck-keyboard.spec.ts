@@ -20,7 +20,6 @@ test('create, fill, save and share a deck with the keyboard only', async ({ page
   await page.getByTitle('View your decks').click();
   await expect(page.getByRole('heading', { level: 1, name: 'My Decks' })).toBeVisible();
 
-  // New deck: the dialog takes focus on its name field, Enter creates.
   await tabTo(page, page.getByRole('button', { name: /New deck/ }).first());
   await page.keyboard.press('Enter');
   const createDialog = page.getByRole('dialog', { name: 'Create a deck' });
@@ -29,7 +28,6 @@ test('create, fill, save and share a deck with the keyboard only', async ({ page
   await page.keyboard.press('Enter');
   await expect(page.getByPlaceholder('Untitled Deck')).toHaveValue('Keyboard Brew', { timeout: 15_000 });
 
-  // Quick add: a named combobox; the first suggestion is highlighted and Enter adds it.
   const quickAdd = page.getByRole('combobox', { name: 'Quick add a card' });
   await tabTo(page, quickAdd);
   await page.keyboard.type('Fore');
@@ -39,7 +37,6 @@ test('create, fill, save and share a deck with the keyboard only', async ({ page
   const forest = page.getByRole('row', { name: /× Forest$/ });
   await expect(forest).toHaveAccessibleName('1 × Forest');
 
-  // The deck list is one tab stop; + adds copies to the focused row and Shift+← removes one.
   await tabTo(page, forest);
   await page.keyboard.press('Equal');
   await page.keyboard.press('Equal');
@@ -48,7 +45,6 @@ test('create, fill, save and share a deck with the keyboard only', async ({ page
   await expect(forest).toHaveAccessibleName('2 × Forest');
   await expect(forest).toBeFocused();
 
-  // Its actions menu opens from the keyboard and returns focus to the row.
   await page.keyboard.press('Shift+F10');
   const menu = page.getByRole('menu', { name: 'Actions for Forest' });
   await expect(menu.getByRole('menuitem', { name: /Add one/ })).toBeFocused();
@@ -58,15 +54,11 @@ test('create, fill, save and share a deck with the keyboard only', async ({ page
   await expect(menu).toHaveCount(0);
   await expect(forest).toBeFocused();
 
-  // Save now (Ctrl+S) rather than waiting for the autosave.
   await page.keyboard.press('Control+s');
   await expect(page.getByText('Saved', { exact: true })).toBeVisible({ timeout: 15_000 });
 
-  // Escape closes the suggestions and drops the highlight, so the next Enter
-  // adds what was typed rather than a suggestion nobody can see.
   await tabTo(page, quickAdd);
   await page.keyboard.type('Fore');
-  // The deck's banner-card picker now lists Forest too; look in the suggestions.
   const suggestion = page.getByRole('listbox', { name: 'Card suggestions' }).getByRole('option', { name: 'Forest' });
   await expect(suggestion).toHaveAttribute('aria-selected', 'true');
   await page.keyboard.press('Escape');
@@ -80,8 +72,6 @@ test('create, fill, save and share a deck with the keyboard only', async ({ page
     return;
   }
 
-  // Share: focus moves into the dialog, Enter creates the link, and focus
-  // lands on the link itself rather than falling to the page.
   const shareButton = page.getByRole('button', { name: /^Share deck/ });
   await tabTo(page, shareButton);
   await page.keyboard.press('Enter');

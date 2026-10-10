@@ -3,57 +3,19 @@ import { useCallback, useEffect, useLayoutEffect, useRef, useState, type Keyboar
 import { listArrows, navigationTarget, type ListOrientation } from './gridNavigation';
 
 export interface GridRowsOptions {
-  /** Keys of the rows currently rendered, in display order. */
   keys: readonly string[];
-  /**
-   * The selected row; it holds the single tab stop (the first row when nothing
-   * is selected). In a virtualized list that reports its rendered range through
-   * `onRowsRendered`, the first visible row holds it instead while that row is
-   * scrolled out of the window, so Tab can always enter the grid.
-   */
   selectedKey: string | null;
-  /** Arrow keys, Home/End, PageUp/PageDown and Space select a row, like moving the current item in a Qt view. */
   onSelect: (key: string) => void;
-  /** Enter (and a double-click, wired by the caller) opens a row. */
   onActivate: (key: string) => void;
-  /** Tree grids: → expands a collapsed row. */
   onExpand?: (key: string) => void;
-  /** Tree grids: ← collapses an expanded row, or moves to the parent of a child row. */
   onCollapse?: (key: string) => void;
-  /** The arrows that walk the list: ↑/↓ for a column of rows (the default), ←/→ for a row of items. */
   orientation?: ListOrientation;
-  /**
-   * A two-dimensional layout: the keys split into lines that run along
-   * `orientation` (a battlefield's rows, a card view's columns), in display
-   * order. The arrows along the lines move within one; the other two move to
-   * the nearest position in the next line that has any rows. Home, End and the
-   * page keys stay inside the line.
-   */
   lines?: readonly (readonly string[])[];
-  /**
-   * Multi-selection lists: Shift with a navigation key moves focus like the key
-   * alone, but extends the selection to the row it lands on instead of
-   * selecting only that row.
-   */
   onExtend?: (key: string) => void;
-  /**
-   * Lists whose rows can leave while focused (a card played out of a hand):
-   * focus moves on to the row that takes the removed row's place, or the one
-   * before it at the end, instead of dropping to the page. A function also
-   * says where focus goes when the last row leaves: it gets the removed row,
-   * still in the document.
-   */
   keepFocusOnRemoval?: boolean | ((removed: HTMLElement) => HTMLElement | null | undefined);
-  /**
-   * Multi-selection lists: Ctrl (or Cmd) with a navigation key moves focus
-   * without touching the selection, the listbox pattern for picking rows
-   * with gaps between them (Space then marks the focused row). Off, a
-   * modified key is left alone.
-   */
   focusOnlyWithCtrl?: boolean;
 }
 
-/** The window a virtualized list renders, as react-window's `onRowsRendered` reports it. */
 export interface RenderedRows {
   startIndex: number;
   stopIndex: number;
@@ -65,7 +27,6 @@ export interface GridRowProps {
   onKeyDown: (event: KeyboardEvent<HTMLElement>) => void;
 }
 
-/** Where `key` sits in `lines`: its line and its position in that line. */
 function locate(lines: readonly (readonly string[])[], key: string): { line: number; at: number } | null {
   for (let line = 0; line < lines.length; line++) {
     const at = lines[line].indexOf(key);
@@ -76,10 +37,6 @@ function locate(lines: readonly (readonly string[])[], key: string): { line: num
   return null;
 }
 
-/**
- * The key a navigation key moves to in a two-dimensional layout, or null for a
- * key that doesn't navigate it.
- */
 function lineTarget(
   lines: readonly (readonly string[])[],
   key: string,
@@ -108,14 +65,6 @@ function lineTarget(
   return key;
 }
 
-/**
- * Keyboard model for selectable table rows (`role="grid"` / `"treegrid"`): one
- * roving tab stop on the selected row, ↑/↓/Home/End/PageUp/PageDown move the
- * selection and the focus with it, Space selects, Enter opens, and ←/→
- * collapse and expand tree rows. Desktop's QTreeView/QListView give the same
- * keys for free. The same model serves a row of items (`orientation`), a
- * two-dimensional layout (`lines`) and a multi-selection (`onExtend`).
- */
 export function useGridRows({
   keys,
   selectedKey,
@@ -130,12 +79,8 @@ export function useGridRows({
   focusOnlyWithCtrl = false,
 }: GridRowsOptions) {
   const elements = useRef(new Map<string, HTMLElement>());
-  // The row a keyboard move is waiting to focus. In a virtualized list the
-  // moved-to row may only mount after the caller scrolls it into view, so the
-  // request stays pending until that row's element arrives.
   const pendingFocus = useRef<string | null>(null);
   const [focusRequest, setFocusRequest] = useState(0);
-  // Only virtualized callers report a rendered range; without one every row is mounted.
   const [rendered, setRendered] = useState<{ visibleStart: number; start: number; stop: number } | null>(null);
   const onRowsRendered = useCallback((visibleRows: RenderedRows, allRows: RenderedRows) => {
     setRendered((prev) =>
@@ -148,7 +93,6 @@ export function useGridRows({
   const preferredUnrendered = rendered != null && (preferredIndex < rendered.start || preferredIndex > rendered.stop);
   const tabStop = preferredUnrendered ? keys[rendered.visibleStart] ?? preferred : preferred;
 
-  // Focus follows a keyboard move once the moved-to row is rendered.
   useEffect(() => {
     const key = pendingFocus.current;
     const element = key != null ? elements.current.get(key) : undefined;
@@ -156,8 +100,6 @@ export function useGridRows({
       pendingFocus.current = null;
       element.focus();
     }
-    // A keyed row can move outside the rendered window after a live update.
-    // Ask the caller to scroll that identity back into view before focusing it.
     if (key != null && !element) {
       if (keys.includes(key)) {
         onSelect(key);
@@ -172,10 +114,6 @@ export function useGridRows({
     setFocusRequest((n) => n + 1);
   }, []);
 
-  // A focused row whose ref detached, and the rows that would take its place.
-  // React detaches and reattaches every row's ref on a re-render too, so the
-  // row only left if its element is out of the document once the commit is done,
-  // and its key is gone (a key still listed only scrolled out of the window).
   const detachedFocus = useRef<{ key: string; element: HTMLElement; successors: readonly string[] } | null>(null);
   useLayoutEffect(() => {
     const detached = detachedFocus.current;
@@ -207,8 +145,6 @@ export function useGridRows({
       }
       const removed = elements.current.get(key);
       elements.current.delete(key);
-      // React detaches a removed row's ref before taking its element out of
-      // the document, so it still holds focus here.
       if (removed == null || removed !== document.activeElement) {
         return;
       }
@@ -222,9 +158,6 @@ export function useGridRows({
           element: removed,
           successors: [...keys.slice(index + 1), ...keys.slice(0, index).reverse()],
         };
-        // With no row left to take focus, or the whole list gone with this
-        // component, focus would drop to the page. Once the commit is done,
-        // hand it to the caller's fallback instead, unless a row took it.
         const fallback = typeof keepFocusOnRemoval === 'function' ? keepFocusOnRemoval(removed) : null;
         if (fallback) {
           queueMicrotask(() => {
@@ -263,8 +196,6 @@ export function useGridRows({
       }
       if (targetKey != null) {
         const extend = event.shiftKey && onExtend != null;
-        // Home/End always select, like Qt's current-item moves; the arrows
-        // and pages stop at either end.
         if (targetKey !== key || event.key === 'Home' || event.key === 'End') {
           if (extend) {
             onExtend(targetKey);

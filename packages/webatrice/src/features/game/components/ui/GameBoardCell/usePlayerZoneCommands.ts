@@ -13,16 +13,8 @@ import type {
 } from '../PlayerBoard/playerBoard.types';
 import { useMoveCard } from './useMoveCard';
 
-// Desktop's random-card sentinel for Command_RevealCards.card_id (player_actions.h:42).
 const RANDOM_CARD_FROM_ZONE = -2;
 
-/**
- * Zone commands for one seat: moves, library management and reveals.
- * Undefined until the game id is known.
- *
- * `move` sends through useMoveCard, the one optimistic command path shared
- * with the game's drag coordinator.
- */
 export function usePlayerZoneCommands(playerId: number): PlayerZoneCommands | undefined {
   const gameId = useGameId();
   const webClient = useWebClient();
@@ -34,12 +26,6 @@ export function usePlayerZoneCommands(playerId: number): PlayerZoneCommands | un
     }
     const game = webClient.request.game;
 
-    // Command_RevealCards. "All players" OMITS player_id: Servatrice checks
-    // has_player_id() (server_abstract_player.cpp:1476) and treats an explicit
-    // -1 as an unknown player. Random uses the single -2 card id
-    // (server_abstract_player.cpp:1498-1508); top-N sends top_cards plus the
-    // `card_id: [0]` desktop keeps for old servers (player_actions.cpp:1745).
-    // Chosen cards send their ids in one command (player_actions.cpp:1668-1685).
     const reveal = (zoneName: string, to: RevealRecipient, cards: RevealSelection = 'zone') => {
       const params: { zoneName: string; topCards?: number; cardId?: number[]; playerId?: number } = { zoneName };
       if (cards === 'random') {
@@ -94,20 +80,13 @@ export function usePlayerZoneCommands(playerId: number): PlayerZoneCommands | un
       move: moveCard,
       moveCards,
       draw: (count) => game.drawCards(gameId, { number: count }),
-      // Command_UndoDraw has no payload (player_actions.cpp:371-374).
       undoDraw: () => game.undoDraw(gameId),
       mulligan: (handSize) => game.mulligan(gameId, { number: handSize }),
-      // Inclusive positions; negative counts from the bottom
-      // (player_actions.cpp:267-268, 298-299).
       shuffleLibrary: (range = { start: 0, end: -1 }) =>
         game.shuffle(gameId, { zoneName: ZoneName.DECK, start: range.start, end: range.end }),
       reveal,
-      // grant_write_access adds the target to the zone's write set
-      // (server_abstract_player.cpp:1566) until the next shuffle; desktop
-      // actLendLibrary (player_actions.cpp:1723-1733).
       lendLibrary: (to) =>
         game.revealCards(gameId, { zoneName: ZoneName.DECK, playerId: to, grantWriteAccess: true }),
-      // Desktop actAlwaysReveal / actAlwaysLookAt (player_actions.cpp:199-215).
       setAlwaysRevealTopCard: (value) =>
         game.changeZoneProperties(gameId, { zoneName: ZoneName.DECK, alwaysRevealTopCard: value }),
       setAlwaysLookAtTopCard: (value) =>

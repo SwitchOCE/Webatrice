@@ -1,7 +1,6 @@
 import type { ScryfallCard } from '../../scryfall/types';
 import type { LookupCardFace, LookupResult, RelatedCardRef } from './types';
 
-/** A Scryfall card record as a `LookupResult`. */
 export function scryfallToLookup(card: ScryfallCard): LookupResult {
   // Extract related-card refs from Scryfall's `all_parts`. Filter to
   // `token` + `meld_part` + `meld_result` — these three components
@@ -97,15 +96,6 @@ export function scryfallToLookup(card: ScryfallCard): LookupResult {
   };
 }
 
-/**
- * Scryfall `legalities` in cards.xml terms: Cockatrice's oracle writes a
- * `format-<name>` prop only for legal / restricted / banned cards, so
- * Scryfall's `not_legal` becomes an absent entry.
- */
-/**
- * Oracle's rule for sideways-layout cards (oracleimporter.cpp): battles, split cards and planes
- * print their art landscape inside a portrait frame.
- */
 function isLandscapeLayout(layout: string | undefined, typeLine: string | undefined): boolean {
   return layout === 'split' || layout === 'planar' || /\bBattle\b/.test(typeLine ?? '');
 }

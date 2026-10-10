@@ -39,8 +39,6 @@ function categoryOf(format: string | undefined): string {
   return CATEGORY_OTHER;
 }
 
-
-/** Room format first, then canonical formats, Other and Unknown; names sort within each group. */
 export function groupLobbyDecks(myDecks: BackendDeck[], summaryByDeckId: ReadonlyMap<number, DeckSummary>, roomFormatSlug: string) {
   const groups = new Map<string, BackendDeck[]>();
   for (const deck of myDecks) {

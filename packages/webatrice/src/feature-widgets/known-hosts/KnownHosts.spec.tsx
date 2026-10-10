@@ -301,7 +301,6 @@ describe('KnownHosts keyboard and screen-reader access', () => {
 
   it('announces the connection test result in a status region', () => {
     const { store } = setup();
-    // Selecting a host on mount starts a connection test.
     expect(screen.getByText('KnownHosts.status.testing')).toHaveAttribute('role', 'status');
 
     act(() => {

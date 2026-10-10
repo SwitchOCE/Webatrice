@@ -11,19 +11,13 @@ import { DeckVisibilityBadge } from './DeckVisibilityBadge';
 
 export interface DeckRowProps {
   deck: FlatDeck;
-  /** `undefined` while the deck's XML hasn't landed — the row still
-   *  renders, just without price, bracket or art. */
   summary: DeckSummary | undefined;
   mode: DeckListViewMode;
   onOpen: () => void;
   onDelete: () => void;
-  /** Move to another folder; absent when there is nowhere else to go. */
   onMove?: () => void;
-  /** Save the deck as a `.cod` file. */
   onDownload?: () => void;
-  /** Create a share link (Servatrice 3.1 only). */
   onShare?: () => void;
-  /** Publish or unpublish the deck (Servatrice 3.1 only). */
   onTogglePublic?: () => void;
 }
 
@@ -31,7 +25,6 @@ export function DeckRow(props: DeckRowProps) {
   return props.mode === 'compact' ? <DeckRowCompact {...props} /> : <DeckRowCard {...props} />;
 }
 
-/** Format · created · price line shared by both row layouts (the folder is the list's breadcrumb). */
 function DeckRowMeta({ deck, summary, className }: {
   deck: FlatDeck;
   summary: DeckSummary | undefined;
@@ -61,13 +54,6 @@ function DeckRowMeta({ deck, summary, className }: {
   );
 }
 
-/**
- * "Card" layout: a tall row with the banner/commander art bleeding in
- * from the right, gradient-blended into the row surface. The whole card
- * opens the deck; delete floats top-right so it stays reachable over the
- * art.
- */
-/** Share / publish / move / download buttons, shown on hover like delete. */
 function DeckRowStorageActions({ deck, onMove, onDownload, onShare, onTogglePublic, className }: Pick<
   DeckRowProps,
   'deck' | 'onMove' | 'onDownload' | 'onShare' | 'onTogglePublic'
@@ -150,9 +136,6 @@ function DeckRowCard({ deck, summary, onOpen, onDelete, onMove, onDownload, onSh
         'border-border-subtle hover:border-border-strong overflow-hidden transition-all',
       ].join(' ')}
     >
-      {/* Right-half art: the image, then a gradient fading it into the
-          row surface so the text on the left stays legible. Without art
-          a placeholder underlay takes its place. */}
       {artUrl ? (
         <>
           <div
@@ -240,10 +223,6 @@ function DeckRowCard({ deck, summary, onOpen, onDelete, onMove, onDownload, onSh
   );
 }
 
-/**
- * "Compact" layout: one line with a small art thumbnail on the left,
- * name + bracket + meta, delete on the right.
- */
 function DeckRowCompact({ deck, summary, onOpen, onDelete, onMove, onDownload, onShare, onTogglePublic }: DeckRowProps) {
   const { t } = useTranslation();
   const artUrl = deckArtUrl(summary);

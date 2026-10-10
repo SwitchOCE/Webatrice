@@ -20,9 +20,6 @@ const BUTTON_CLASS =
 
 const COLUMNS = ['room', 'description', 'creator', 'type', 'restrictions', 'players', 'spectators'] as const;
 
-// Desktop UserContextMenu::gamesOfUserReceived messages, keyed by response code;
-// any other rejection gets its generic "Could not get %1's games." message, and a
-// request the server never answered gets the transport reason.
 const FAILURE_KEYS: Partial<Record<Response_ResponseCode, string>> = {
   [Response_ResponseCode.RespNameNotFound]: 'UserGamesDialog.error.userNotFound',
   [Response_ResponseCode.RespInIgnoreList]: 'UserGamesDialog.error.ignored',
@@ -33,13 +30,6 @@ interface UserGamesDialogProps {
   onClose: () => void;
 }
 
-/**
- * Desktop "Show this user's games" (UserContextMenu::execShowGames): asks the
- * server for the games a user is in and lists them in a game selector without
- * filters or a create button, offering GameSelector's join and spectate
- * actions through the shared join flow (password prompt, server errors).
- * As on desktop, joining needs the game's room to be joined first.
- */
 export default function UserGamesDialog({ userName, onClose }: UserGamesDialogProps) {
   const { t } = useTranslation();
   const describeFailure = useCommandFailureMessage();
@@ -61,7 +51,6 @@ export default function UserGamesDialog({ userName, onClose }: UserGamesDialogPr
     webClient.request.session.getGamesOfUser(userName);
   }, [userName, webClient]);
 
-  // A join from this list was confirmed and the app is routing to the game: the selector's job is done.
   const closeOnJoin = useCallback(
     (gameId: number) => {
       if (gameList.some((game) => game.info.gameId === gameId)) {
@@ -88,7 +77,6 @@ export default function UserGamesDialog({ userName, onClose }: UserGamesDialogPr
     [activeGameIds, beginJoin, joinedRoomIds],
   );
 
-  // The rows form a grid with one roving tab stop; Enter joins like a double-click.
   const { getRowProps } = useGridRows({
     keys: gameList.map(({ info }) => String(info.gameId)),
     selectedKey: selectedGameId == null ? null : String(selectedGameId),
@@ -102,7 +90,6 @@ export default function UserGamesDialog({ userName, onClose }: UserGamesDialogPr
     },
   });
 
-  // Desktop GameSelector::enableButtonsForIndex, plus no second join while one is in flight.
   const canJoin = Boolean(selected && (selected.playerCount < selected.maxPlayers || overrideRestrictions)) && !joinPending;
   const canSpectate = Boolean(selected && (selected.spectatorsAllowed || overrideRestrictions)) && !joinPending;
 
@@ -168,7 +155,6 @@ export default function UserGamesDialog({ userName, onClose }: UserGamesDialogPr
         maxWidth="max-w-4xl"
       >
         <div className="min-h-24 overflow-x-auto">
-          {/* Mounted for the dialog's lifetime so a failure is announced when it arrives. */}
           <p role="alert" className={failure ? 'text-sm text-text-secondary' : 'sr-only'}>{failure}</p>
           {body}
         </div>

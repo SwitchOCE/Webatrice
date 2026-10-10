@@ -57,7 +57,6 @@ export class WebClient {
     try {
       client.socket.dispose();
       client.retireTestSocket();
-      // Keep the originating singleton available until every callback settles.
       client.protobuf.resetCommands();
       client.status = StatusEnum.DISCONNECTED;
       client.response.session.updateStatus(StatusEnum.DISCONNECTED, 'Connection Closed');
@@ -69,11 +68,6 @@ export class WebClient {
   protobuf: ProtobufService;
   socket: WebSocketService;
   status: StatusEnum;
-  /**
-   * Whether the connected server advertised `SupportsPasswordHash` at identification. Mirrors desktop
-   * `RemoteClient::getServerSupportsPasswordHash()`: post-login account commands (password change)
-   * consult it to send a client-hashed credential instead of plaintext.
-   */
   serverSupportsPasswordHash = false;
   private testSocket: WebSocket | null = null;
   private clearTestTimer: (() => void) | undefined;
@@ -151,10 +145,6 @@ export class WebClient {
     if (this.disposed || this.resetting) {
       return;
     }
-    // connect() over an open socket retires it without an onclose, so no
-    // DISCONNECTED/RECONNECTING status resets the old session's commands. Fail
-    // them here, as desktop's doConnectToServer calls doDisconnectFromServer
-    // first; otherwise their deadlines fire into the new session.
     this.resetting = true;
     try {
       this.protobuf.resetCommands();
@@ -203,13 +193,9 @@ export class WebClient {
         }
         this.testSocket = null;
       }
-      // Safe terminate: the keepalive-timeout path can resolve while the probe is
-      // still CONNECTING, and an abrupt close there strands a half-open upstream.
       terminateSocket(socket);
     };
 
-    // Transport failed before any ServerIdentification — the probe never reached
-    // the server (distinct from a protocol/decode failure, which did).
     const resolveUnreachable = (): void => resolve(false, false, true);
 
     const timeout = setTimeout(resolveUnreachable, this.clientOptions.keepalive);
@@ -258,40 +244,22 @@ export class WebClient {
   public updateStatus(status: StatusEnum): void {
     this.status = status;
 
-    // A command in flight on a socket that has closed can never be answered:
-    // a reconnect opens a fresh server session. Fail them now (desktop's
-    // doDisconnectFromServer) instead of leaving their callers waiting.
     if (status === StatusEnum.DISCONNECTED || status === StatusEnum.RECONNECTING) {
       this.protobuf.resetCommands();
     }
   }
 
-  /**
-   * Feeds one recorded GameReplay event container into the local game `gameId`
-   * through the live game-event pipeline, so a replay rebuilds state with exactly
-   * the handlers, reducers and message-log formatting a live game uses. Works
-   * while disconnected: nothing is sent to the server.
-   */
   public replayGameEventContainer(container: GameEventContainer, gameId: number, options?: ReplayEventOptions): void {
-    // A recorded container carries the game time it was played at (Servatrice sets
-    // seconds_elapsed only on the copy it stores); live containers never do. The field
-    // is proto2 optional, which protobuf-es reads as 0 when unset, so test presence.
     if (isFieldSet(container, GameEventContainerSchema.field.secondsElapsed)) {
       this.response.game.replayGameTimeSynced?.(gameId, container.secondsElapsed);
     }
     this.protobuf.replayGameEventContainer(container, gameId, options);
   }
 
-  /**
-   * Starts (or, for a rewind, resets) the local game `gameId` a replay is played
-   * into, from the replay's `game_info`. Like replayed events, it reaches the
-   * store through the game response handlers rather than from the UI.
-   */
   public loadReplayGame(gameId: number, gameInfo: ServerInfo_Game): void {
     this.response.game.replayGameLoaded?.(gameId, gameInfo);
   }
 
-  /** Removes the local game a closed replay was played into. */
   public unloadReplayGame(gameId: number): void {
     this.response.game.replayGameUnloaded?.(gameId);
   }

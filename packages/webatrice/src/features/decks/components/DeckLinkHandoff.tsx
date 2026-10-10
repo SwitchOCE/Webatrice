@@ -11,13 +11,6 @@ const PROVIDER_NAMES: Record<DeckProvider, string> = {
   tappedout: 'TappedOut',
 };
 
-/**
- * "Load deck from online service" for a browser (desktop
- * `DlgLoadDeckFromWebsite`): the link is recognized with desktop's own
- * patterns, but none of these sites let another web page read a deck, so
- * instead of fetching it the user opens the site's export in a new tab and
- * pastes the list into the importer.
- */
 export function DeckLinkHandoff() {
   const { t } = useTranslation();
   const [url, setUrl] = useState('');

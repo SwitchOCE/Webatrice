@@ -26,13 +26,11 @@ interface ShutdownDialogProps {
 
 const DEFAULT_VALUES: ShutdownFormValues = { reason: '', minutes: String(DEFAULT_SHUTDOWN_MINUTES) };
 
-/** Desktop ShutdownDialog (tab_admin.cpp): a reason and the minutes until shutdown. */
 const ShutdownDialog = ({ isOpen, onSubmit, onCancel }: ShutdownDialogProps) => {
   const { t } = useTranslation();
   const resolver = useMemo(() => zodResolver(buildShutdownSchema(t)), [t]);
   const { control, handleSubmit, reset } = useForm<ShutdownFormValues>({ defaultValues: DEFAULT_VALUES, resolver });
 
-  // Each opening starts from desktop's defaults, as a fresh QDialog does.
   useEffect(() => {
     if (isOpen) {
       reset(DEFAULT_VALUES);

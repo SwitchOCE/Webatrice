@@ -8,18 +8,11 @@ export const MAX_SUGGESTIONS = 8;
 export interface QuickAddSuggestions {
   suggestions: SearchResult[];
   loading: boolean;
-  /** Keyboard-highlighted suggestion; the first one when results land, -1 for none. */
   highlight: number;
   setHighlight: Dispatch<SetStateAction<number>>;
-  /** Drop the current suggestions (after one was added). */
   clear: () => void;
 }
 
-/**
- * Debounced card-name autocomplete for quick add. Queries shorter than
- * two characters clear the list; a response that arrives after a newer
- * query was sent is discarded.
- */
 export function useQuickAddSuggestions(query: string): QuickAddSuggestions {
   const [suggestions, setSuggestions] = useState<SearchResult[]>([]);
   const [loading, setLoading] = useState(false);

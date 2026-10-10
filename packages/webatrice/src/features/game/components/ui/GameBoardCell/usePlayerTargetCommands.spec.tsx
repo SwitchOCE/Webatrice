@@ -13,7 +13,6 @@ import { usePlayerTargetCommands, useTargetCommandsFor } from './usePlayerTarget
 
 vi.mock('../../../../../hooks/useSettings');
 
-// The play reads the database row; tableRow 1 maps to the middle grid row.
 vi.mock('../../../../../services/dexie/DexieDTOs/CardDTO', () => ({
   CardDTO: { get: vi.fn(async () => ({ tablerow: { value: '1' } })) },
 }));
@@ -22,7 +21,6 @@ const preferring = (overrides: Partial<typeof PREFERENCE_DEFAULTS>) => vi.mocked
   ((key: keyof typeof PREFERENCE_DEFAULTS) => ({ ...PREFERENCE_DEFAULTS, ...overrides })[key]) as typeof usePreference,
 );
 
-// clearAllMocks keeps implementations; restore the preference defaults per test.
 afterEach(() => {
   preferring({});
 });
@@ -112,7 +110,6 @@ describe('target commands', () => {
     return game;
   };
 
-  // Desktop ArrowDragItem::mouseReleaseEvent → playCard(false), which honours playToStack.
   it('plays a hand creature onto the stack with playToStack on, then draws the arrow from there', async () => {
     const game = await playThenArrow(true);
     expect(vi.mocked(game.moveCard).mock.calls).toEqual([[1, expect.objectContaining({

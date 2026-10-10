@@ -54,7 +54,6 @@ export default function TopBar() {
   const [phaseTrackPinned, setPhaseTrackPinned] = usePhaseTrackPinnedSetting();
   const [openDialog, setOpenDialog] = useState<UserMenuDialog | null>(null);
 
-  // Each visit to a sticky page (see `isStickyTabType`) pins its tab.
   const [stickyTabs, setStickyTabs] = useStickyTabs();
   useEffect(() => {
     const transient = detectTransientTab(location.pathname);
@@ -70,10 +69,6 @@ export default function TopBar() {
   usePersistLastRoute();
   const deckIdToName = useBackendDeckNames();
 
-  // Server/user identity change: deck ids are per user on Servatrice, so
-  // purge the deck tabs. SessionScope drops the server-scoped caches at the
-  // session boundary. If the user is on a now-stale deck route, bounce them
-  // to the lobby so the editor doesn't try to load an id that doesn't exist here.
   useIdentityChange(() => {
     setStickyTabs((prev) => prev.filter((t) => t.type !== 'deck' && t.type !== 'decks'));
     if (
@@ -134,7 +129,6 @@ export default function TopBar() {
       });
     }
 
-    // Replay tabs live until "Close replay", like desktop's replay TabGames.
     for (const replay of openedReplays) {
       list.push({
         key: `replay:${replay.key}`,
@@ -169,8 +163,6 @@ export default function TopBar() {
     const match = tabs.find((t) => routeMatches(location.pathname, t.route));
     return match?.key ?? 'server';
   }, [tabs, location.pathname]);
-  // The browser tab follows the active app tab, as a desktop window title does,
-  // in the current language: keyed titles are translated here, like the tab list.
   const activeTab = tabs.find((tab) => tab.key === activeKey);
   useDocumentTitle(activeTab ? tabTitle(activeTab, t) : null);
 
@@ -208,8 +200,6 @@ export default function TopBar() {
                     : 'text-success fill-success',
               ].join(' ')}
             />
-            {/* Mounted for the whole session so each change of state is announced. The seconds
-             *  count stays out of the spoken text, which would otherwise change every second. */}
             <span role="status" className="sr-only">{t(`TopBar.connection.${connectionState}`)}</span>
           </div>
           <span className="font-modern text-lg font-bold tracking-wide text-text-primary">

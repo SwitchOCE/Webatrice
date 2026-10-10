@@ -7,10 +7,6 @@ import { useAppSelector } from '@app/store';
 
 import { useUserGames } from './useUserGames';
 
-/**
- * "Show this user's games" in `UserActionsMenu`'s slot. Desktop enables it only
- * while the user is online (UserContextMenu: `aShowGames->setEnabled(online)`).
- */
 const UserGamesMenuItem = ({ userName, onClose }: UserMenuSlotProps) => {
   const { t } = useTranslation();
   const userGames = useUserGames();

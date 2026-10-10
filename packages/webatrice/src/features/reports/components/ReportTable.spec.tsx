@@ -46,7 +46,6 @@ describe('ReportTable', () => {
       <ReportTable reports={rows} columns={QUEUE_COLUMNS} selectedId={null} onSelect={onSelect} label="Reports" />,
     );
     expect(screen.getByRole('grid')).toBeTruthy();
-    // Nothing selected: the first row holds the tab stop.
     expect(screen.getByTestId('report-row-2').tabIndex).toBe(0);
     expect(screen.getByTestId('report-row-5').tabIndex).toBe(-1);
 

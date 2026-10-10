@@ -3,7 +3,6 @@ import { WebClient } from '../../WebClient';
 import type { RequestId } from '../../types/RequestId';
 import { Command_ReportMyList_ext, Command_ReportMyListSchema, Response_ReportMyList_ext } from '../../generated';
 
-// Desktop DlgMyReports shows "Failed to load reports." on any error code.
 export function reportMyList(...correlation: [requestId?: RequestId]): void {
   WebClient.instance.protobuf.sendSessionCommand(Command_ReportMyList_ext, create(Command_ReportMyListSchema), {
     responseExt: Response_ReportMyList_ext,

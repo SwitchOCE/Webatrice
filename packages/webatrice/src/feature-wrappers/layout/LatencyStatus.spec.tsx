@@ -24,7 +24,6 @@ describe('LatencyStatus', () => {
   it('shows the last ping with a bar per sample and the stats as its tooltip', () => {
     renderWithProviders(<LatencyStatus />, { preloadedState: stateWithLatency(3, [30, 90, 40]) });
 
-    // The accessible name is the visible "Ping: N ms"; the stats describe it.
     const button = screen.getByRole('button', { name: 'LatencyStatus.ping' });
     expect(button).toHaveAccessibleDescription(/LatencyStatus\.median/);
     expect(button.getAttribute('title')?.split('\n')).toEqual([

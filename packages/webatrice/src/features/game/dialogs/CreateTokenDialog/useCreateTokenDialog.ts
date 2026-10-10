@@ -48,7 +48,6 @@ export const MAX_ANNOTATION_LEN = 255;
 export interface UseCreateTokenDialogArgs {
   isOpen: boolean;
   onSubmit: (args: CreateTokenSubmit) => void;
-  /** Values to open with (a seat's last token); blank when absent. */
   initial?: CreateTokenSubmit | null;
   predefinedTokenNames?: string[];
 }
@@ -95,10 +94,7 @@ export function useCreateTokenDialog({
   const [search, setSearch] = useState('');
   const [availableTokens, setAvailableTokens] = useState<TokenDTO[]>([]);
   const [selectedTokenName, setSelectedTokenName] = useState<string | null>(null);
-  // The printing chosen for a token, and the name it belongs to: renaming the
-  // token drops it, so a hand-typed name never carries another token's art.
   const [provider, setProvider] = useState<{ id: string; name: string } | undefined>(undefined);
-  // Desktop's "Annotate card text on tokens": picking a token fills in its rules text.
   const annotateTokens = usePreference('annotateTokens');
 
   useEffect(() => {

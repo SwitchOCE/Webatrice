@@ -14,17 +14,8 @@ import { registerServerListeners } from './server/server.listeners';
 import { registerGameListeners } from './games/game.listeners';
 import { registerRoomsListeners } from './rooms/rooms.listeners';
 
-// App bundlers replace this expression, as with freezeMessagesMiddleware.
 declare const process: { env: { NODE_ENV?: string } };
 
-// Shared with the renderWithProviders-style test harness so test stores behave
-// like the production store. Both dev-only invariant checks are OFF because
-// state holds raw protobuf messages at server scale and the O(state)-per-dispatch
-// walks froze dev on busy servers — see
-// .github/instructions/datatrice.instructions.md#initialization-order.
-// The hazard those checks couldn't see anyway — in-place mutation of a stored
-// protobuf-es message, which Immer can't draft — is guarded instead by
-// freezeMessagesMiddleware (dev-only, O(changed path) via identity-skip).
 export const storeMiddlewareOptions = {
   immutableCheck: false as const,
   serializableCheck: false as const,

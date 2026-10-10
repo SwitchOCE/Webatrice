@@ -2,22 +2,8 @@ import { onSessionEnd } from '@app/services/session';
 
 import type { HydratedDeck } from './types';
 
-/**
- * Session cache of hydrated decks by deck id. Survives unmounts so
- * switching tabs (MyDecks ↔ an open deck) doesn't re-download and
- * re-hydrate every time — otherwise every tab return flashes "Loading…"
- * while the `.cod` round-trips to Servatrice and hydration's Dexie /
- * Scryfall lookups run again.
- *
- * Entries mirror the in-editor deck (including unsaved edits) plus the
- * signature of the last save the server acknowledged (`deckSaveSignature`),
- * so the autosave dirty check keeps working after a remount. Dropped by
- * MyDecks' Refresh (`clearDeckEditorCache`), by a delete
- * (`deleteCachedDeck`), and at a session boundary (`onSessionEnd`).
- */
 export interface CachedDeck {
   deck: HydratedDeck;
-  /** `null` when the stored file still needs rewriting (format/zone migration). */
   savedSignature: string | null;
 }
 
@@ -40,12 +26,6 @@ export function deleteCachedDeck(deckId: number): void {
   deckCache.delete(deckId);
 }
 
-/**
- * Unsaved drafts by handoff token (services/decks deckHandoff): the staged
- * deck document, kept once taken so a remount (a tab switch, StrictMode)
- * hydrates it again, and the draft's latest in-editor state. Both are
- * discarded at session end, independently of the stored-deck refresh cache.
- */
 const draftDocuments: Map<string, string> = new Map();
 const draftCache: Map<string, HydratedDeck> = new Map();
 onSessionEnd(() => {
@@ -57,8 +37,6 @@ export function getDraftDocument(token: string): string | undefined {
   return draftDocuments.get(token);
 }
 
-/** Drafts share the one deck-editor tab, so only the latest few can still be
- *  reached; older ones are dropped rather than kept for the whole session. */
 const MAX_DRAFTS = 4;
 
 export function setDraftDocument(token: string, cod: string): void {
@@ -80,12 +58,10 @@ export function setCachedDraft(token: string, deck: HydratedDeck): void {
   draftCache.set(token, deck);
 }
 
-/** Discard edits while retaining the source document for a later draft reopen. */
 export function deleteCachedDraft(token: string): void {
   draftCache.delete(token);
 }
 
-/** Forget a draft once it is stored as a deck. */
 export function deleteDraft(token: string): void {
   draftDocuments.delete(token);
   draftCache.delete(token);

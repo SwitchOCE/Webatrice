@@ -1,28 +1,9 @@
-/**
- * Scaled pixel layout for the seat (PlayerBoard): battlefield cell widths, slot
- * origins, content size and pointer → slot snapping, plus the spell-stack
- * pile layout.
- *
- * Ports `table_zone.cpp` at desktop's logical card size (72 × 102). The
- * seat multiplies every length here by its card scale and passes the
- * result in `BattlefieldLayoutOpts`, so the helpers only add and look up.
- *
- * Wire packing (`x = column * MAX_SUBPOS + subPosition`), occupancy and
- * y-inversion belong to `gridMath.ts`; this module reuses its constants and
- * never encodes a wire coordinate itself.
- *
- * All functions here are pure.
- */
 
 import { MAX_SUBPOS, ROW_COUNT } from './gridMath';
 
-/** Base card size at scale 1 — desktop's `CardDimensions::WIDTH / HEIGHT`
- *  (card_dimensions.h). Keep in sync with the CSS fallbacks in the seat's
- *  `cardSize.ts`. */
 export const SEAT_CARD_WIDTH_PX = 72;
 export const SEAT_CARD_HEIGHT_PX = 102;
 
-/** Number of rows on every battlefield (desktop `TABLEROWS`). */
 export const BATTLEFIELD_ROWS = ROW_COUNT;
 
 /** Constant spacing between adjacent slots (px). Ported from Cockatrice

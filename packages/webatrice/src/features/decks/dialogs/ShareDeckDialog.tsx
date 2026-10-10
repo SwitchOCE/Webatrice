@@ -9,7 +9,6 @@ import { formatShareExpiry } from '../deckSharing';
 import { copyShareLink, type DeckShareCreateState } from '../hooks/useDeckSharing';
 import { DeckDialogFrame } from './DeckDialogFrame';
 
-/** Servatrice keeps a share's name in a 64-character column (`cockatrice_deck_share.name`). */
 const MAX_SHARE_NAME_LENGTH = 64;
 
 const shareDeckSchema = z.object({ name: z.string().max(MAX_SHARE_NAME_LENGTH) });
@@ -18,20 +17,12 @@ type ShareDeckValues = z.infer<typeof shareDeckSchema>;
 
 export interface ShareDeckDialogProps {
   open: boolean;
-  /** Desktop's default: "Shared deck" from the editor, "Shared decks" from storage. */
   defaultName: string;
   state: DeckShareCreateState;
   onClose: () => void;
-  /** The trimmed name, or `defaultName` when left empty (desktop does the same). */
   onCreate: (name: string) => void;
 }
 
-/**
- * Desktop `DlgShareDeck` (and the storage tab's share bar): name the share,
- * create the link, then show it with its expiry. Desktop copies the link to
- * the clipboard on its own; a browser may refuse that once the server has
- * answered, so the link is also shown with a Copy button.
- */
 export function ShareDeckDialog({ open, defaultName, state, onClose, onCreate }: ShareDeckDialogProps) {
   const { t } = useTranslation();
   const titleId = useId();
@@ -39,8 +30,6 @@ export function ShareDeckDialog({ open, defaultName, state, onClose, onCreate }:
     defaultValues: { name: defaultName },
     resolver: zodResolver(shareDeckSchema),
   });
-  // The Copy button's last outcome. `copying` empties the status region, so a
-  // second "Copied" is announced again rather than being the same text.
   const [copy, setCopy] = useState<'idle' | 'copying' | 'copied' | 'failed'>('idle');
   const linkRef = useRef<HTMLInputElement>(null);
 
@@ -57,8 +46,6 @@ export function ShareDeckDialog({ open, defaultName, state, onClose, onCreate }:
 
   const submit = handleSubmit(({ name }) => onCreate(name.trim() || defaultName));
   const created = state.status === 'created' ? state : null;
-  // One region, mounted with the dialog, announces each step: screen readers
-  // read a live region reliably only when it was there before its text.
   const createdText = created ? t(created.copied ? 'DeckSharing.createdCopied' : 'DeckSharing.created') : '';
   const copyText = { idle: createdText, copying: '', copied: t('DeckSharing.copied'), failed: t('DeckSharing.copyFailed') }[copy];
   const announcement = state.status === 'pending' ? t('DeckSharing.creating') : created ? copyText : '';
@@ -68,7 +55,6 @@ export function ShareDeckDialog({ open, defaultName, state, onClose, onCreate }:
     const copied = await copyShareLink(link);
     setCopy(copied ? 'copied' : 'failed');
     if (!copied) {
-      // Focusing the link selects it, ready for the user to copy by hand.
       linkRef.current?.focus();
       linkRef.current?.select();
     }
@@ -88,8 +74,6 @@ export function ShareDeckDialog({ open, defaultName, state, onClose, onCreate }:
             <>
               <p>{t(created.copied ? 'DeckSharing.createdCopied' : 'DeckSharing.created')}</p>
               <div className="flex items-center gap-2">
-                {/* The name field unmounts with the form step, so the link takes focus
-                    (selected, ready to copy) instead of focus falling to the page. */}
                 <input
                   ref={linkRef}
                   type="text"

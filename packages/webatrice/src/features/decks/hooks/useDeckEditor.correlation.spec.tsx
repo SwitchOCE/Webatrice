@@ -22,7 +22,6 @@ function setup() {
   const { Wrapper, store } = makeReduxWebClientHookWrapper<RootState>({
     reducer: combineReducers(rootReducerMap), preloadedState: connectedState as RootState, webClient,
   });
-  // The editor navigates once a draft is stored, so it needs a router.
   const RoutedWrapper = ({ children }: { children: ReactNode }) => (
     <MemoryRouter><Wrapper>{children}</Wrapper></MemoryRouter>
   );
@@ -83,7 +82,6 @@ it('ignores hydration errors from a superseded request', async () => {
   expect(ctx.result.current.notFound).toBe(false);
   expect(ctx.result.current.deck?.name).toBe('New');
 });
-
 
 it('drops in-flight hydration and module cache on session end', async () => {
   const ctx = setup();

@@ -13,18 +13,11 @@ const asDecimal = (value: number) => value.toFixed(2);
 
 interface PlaymatCropEditorProps {
   playmat: games.Playmat;
-  /** Called once per edit, when a slider is released, not on every tick of a drag. */
   onChange: (params: games.PlaymatParams) => void;
 }
 
-/**
- * Crop controls for one collection entry: sliders for the values desktop's
- * PlaymatSettingsDialog edits in spin boxes (margins as percentages, vertical
- * offset and zoom), over a preview cropped with the in-game math.
- */
 export default function PlaymatCropEditor({ playmat, onChange }: PlaymatCropEditorProps) {
   const { t } = useTranslation();
-  // The values being dragged; the preview follows them, the collection is saved on release.
   const [draft, setDraft] = useState<games.PlaymatParams | null>(null);
   const params = draft ?? playmat.params;
 

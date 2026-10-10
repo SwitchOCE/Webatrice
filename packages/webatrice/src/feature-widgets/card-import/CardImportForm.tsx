@@ -16,7 +16,6 @@ import './CardImportForm.css';
 
 interface CardImportFormProps {
   onSubmit: () => void;
-  /** "View sets" in the new-sets prompt; the host opens Manage Sets. */
   onViewSets?: () => void;
 }
 
@@ -146,8 +145,6 @@ const DropZone = ({ onFiles, disabled }: DropZoneProps) => {
       onDragOver={onDragOver}
       onDragLeave={onDragLeave}
       onDrop={onDrop}
-      // Clicking anywhere in the zone browses too; the Browse button is the
-      // keyboard and screen-reader path, so the zone itself is not a button.
       onClick={onBrowseClick}
     >
       <div>{t('CardImportForm.message.dropzone')}</div>

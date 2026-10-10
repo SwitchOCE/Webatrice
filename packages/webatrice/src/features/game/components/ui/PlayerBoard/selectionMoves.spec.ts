@@ -7,27 +7,20 @@ const META = new Map([
   ['Ogre', { typeLine: 'Creature — Ogre', pt: '3/3' }],
   ['Shock', { typeLine: 'Instant' }],
   ['Sol Ring', { typeLine: 'Artifact' }],
-  // cards.xml puts this creature in the lands' row; its type line alone
-  // would put it with the creatures.
   ['Dryad Arbor', { typeLine: 'Land Creature — Forest Dryad', pt: '1/1', tableRow: 0 }],
 ]);
 const meta = (name: string) => META.get(name);
 const card = (id: string, name: string) => ({ id, name });
 
 describe('tableMove', () => {
-  // Desktop cmMoveToTable (player_actions.cpp:1925-1950): x -1, face up,
-  // y = tableRowToGridY(row), the printed P/T and tapped = cipt.
   it('puts the card in its row, with its P/T and cipt', () => {
     expect(tableMove(1, meta('Ogre'))).toEqual({ card: { id: 1, pt: '3/3' }, to: { zone: ZoneName.TABLE, index: 'end', row: 0 } });
     expect(tableMove(2, meta('Forest'))).toEqual({ card: { id: 2, tapped: true }, to: { zone: ZoneName.TABLE, index: 'end', row: 2 } });
     expect(tableMove(3, meta('Sol Ring'))).toEqual({ card: 3, to: { zone: ZoneName.TABLE, index: 'end', row: 1 } });
-    // Row 3 folds into the middle row (table_zone.cpp:409-415), not the stack.
     expect(tableMove(4, meta('Shock'))).toEqual({ card: 4, to: { zone: ZoneName.TABLE, index: 'end', row: 1 } });
     expect(tableMove(5, undefined)).toEqual({ card: 5, to: { zone: ZoneName.TABLE, index: 'end', row: 1 } });
   });
 
-  // Desktop reads the row from the card database (player_actions.cpp:1942-1951);
-  // the type line is the fallback for a card cards.xml does not have.
   it('takes the row from cards.xml tablerow over the type line', () => {
     expect(tableMove(6, meta('Dryad Arbor'))).toEqual({ card: { id: 6, pt: '1/1' }, to: { zone: ZoneName.TABLE, index: 'end', row: 2 } });
   });
@@ -43,7 +36,6 @@ describe('moveSelectedCards', () => {
     ]);
   });
 
-  // player_actions.cpp:1853-1888.
   it('marks a block of more than one card into the library for the shuffle', () => {
     const moveCards = vi.fn();
     const two = [card('7', 'Ogre'), card('8', 'Forest')];

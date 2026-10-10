@@ -8,7 +8,6 @@ function deck(name: string): HydratedDeck {
   return { name, meta: { v: 1, updatedAt: 'x' }, cards: [], format: 'modern' };
 }
 
-/** Three edits, the last one undone: two undo rows, one redo row. */
 function history(): DeckHistory {
   let h = recordDeckEdit(EMPTY_DECK_HISTORY, deck('A'), { kind: 'format', format: 'legacy' }, { now: 0 });
   h = recordDeckEdit(h, deck('B'), { kind: 'removeCard', name: 'Shock' }, { now: 1 });

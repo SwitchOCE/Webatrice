@@ -1,7 +1,3 @@
-// The seat's numeric and text prompts, end to end through <Game />: what each
-// opens with, what it refuses, that cancelling sends nothing, and the exact
-// commands a valid answer sends. Phase 6 (PB-12) moves these from PlayerBox's
-// own modals to the game's PromptDialog; these assertions hold for both.
 
 import { act, fireEvent, screen, waitFor, within } from '@testing-library/react';
 import { makeCard } from '@cockatrice/datatrice/testing';
@@ -47,14 +43,12 @@ const SPEC: SeatGameSpec = {
 
 type GameCalls = ReturnType<typeof createMockWebClient>['request']['game'];
 
-
 function renderSeats() {
   const webClient = createMockWebClient();
   const { unmount } = renderWithProviders(<Game />, { preloadedState: buildSeatGameState(SPEC), webClient });
   return Object.assign(webClient.request.game, { unmount });
 }
 
-/** Every request.game call, in call order, as `name args`. */
 function wire(game: GameCalls): string[] {
   return Object.entries(game)
     .filter(([, fn]) => vi.isMockFunction(fn))
@@ -62,7 +56,6 @@ function wire(game: GameCalls): string[] {
       const mock = vi.mocked(fn as (...args: unknown[]) => unknown).mock;
       return mock.calls.map((args, i) => ({
         name,
-        // Drop the game id and callback-only option bags.
         args: args.slice(1).filter((a) => a !== undefined && JSON.stringify(a) !== '{}'),
         order: mock.invocationCallOrder[i],
       }));
@@ -71,7 +64,6 @@ function wire(game: GameCalls): string[] {
     .map(({ name, args }) => `${name} ${args.map(compact).join(' ')}`);
 }
 
-/** JSON without quotes around plain words, one top-level field per line when long. */
 function compact(value: unknown): string {
   const flat = JSON.stringify(value).replace(/"([\w/+ ]*)"/g, '$1');
   if (flat.length <= 100 || typeof value !== 'object' || value === null || Array.isArray(value)) {

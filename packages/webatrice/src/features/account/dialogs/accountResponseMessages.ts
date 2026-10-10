@@ -1,9 +1,6 @@
 import type { TFunction } from 'i18next';
 import { Response_ResponseCode } from '@cockatrice/sockatrice/generated';
 
-// Response-code → message tables mirror desktop UserInfoBox::process{Edit,Password,Avatar}Response.
-// Codes a table doesn't name fall through to that dialog's generic error, as on desktop.
-
 export function editUserErrorMessage(t: TFunction, responseCode: number): string {
   switch (responseCode) {
     case Response_ResponseCode.RespFunctionNotAllowed:

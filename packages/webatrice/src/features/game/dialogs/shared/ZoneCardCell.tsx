@@ -9,10 +9,8 @@ import { SELECTED_RING } from '../../components/ui/seatColors/seatColors';
 
 type HandCard = { id: string; name: string; scryfallId: string };
 
-/** How much of each card but the last a pile shows: enough for its title. */
 export const PILE_STEP_FRACTION = 0.25;
 
-/** Where a card sits in a pile: every card but the last shows only a strip. */
 export interface PilePlace {
   index: number;
   isLast: boolean;
@@ -20,32 +18,18 @@ export interface PilePlace {
 
 export interface ZoneCardCellProps {
   card: HandCard;
-  /** Set for a card in a pile; a grid cell otherwise. */
   pile?: PilePlace;
-  /** Marks the cell as one of the view's cards (`data-card`), which its marquee and drop slots find. */
   marked?: boolean;
-  /** Whose zone the card is in, marked for arrow hit-testing: an arrow pick or a right-button
-   *  drag can then land on, or start from, the card. */
   cardOwner?: { playerId: number; zone: string };
   selected?: boolean;
-  /** A card being dragged out of the view: only the drag ghost shows it. */
   hidden?: boolean;
-  /** A left press on the card; the card is grabbable while set. */
   onPointerDown?: (e: PointerEvent<HTMLElement>) => void;
   onContextMenu?: (e: MouseEvent<HTMLElement>) => void;
-  /** Extra props for a card the view lets the user act on in place (its role, keys, menu, ref). */
   interaction?: HTMLAttributes<HTMLDivElement> & { ref?: (element: HTMLElement | null) => void };
   className?: string;
   style?: CSSProperties;
 }
 
-/**
- * One card in a zone view. In a pile the cell's box is only the visible strip
- * (the last card shows fully), with the card drawn over it at full size and
- * deaf to the pointer, so hovering down a pile hands off from strip to strip
- * instead of sticking on an enlarged card. The cell then does the card's own
- * hover preview and middle-click zoom, which the deaf card cannot.
- */
 export function ZoneCardCell({
   card,
   pile,
@@ -65,7 +49,6 @@ export function ZoneCardCell({
   const pileProps = pile && {
     onMouseEnter: () => setHoveredCard(preview),
     onMouseDown: (e: MouseEvent<HTMLElement>) => {
-      // Held middle button: the big preview, as on a seat card.
       if (e.button !== 1) {
         return;
       }
@@ -90,7 +73,6 @@ export function ZoneCardCell({
     <div
       {...(marked ? { 'data-card': '', 'data-card-id': card.id } : null)}
       {...(cardOwner ? { 'data-card-owner': cardOwner.playerId, 'data-card-zone': cardOwner.zone } : null)}
-      // A card the view lets the keyboard reach draws the game's focus ring.
       className={[pile ? 'absolute left-0 hover:z-10 group' : className, interaction && `focus-visible:z-10 ${GAME_FOCUS_RING}`]
         .filter(Boolean).join(' ') || undefined}
       onPointerDown={onPointerDown && ((e) => {

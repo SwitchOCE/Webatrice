@@ -45,7 +45,6 @@ describe('arrow hit-testing', () => {
 
   it('falls back to a player\'s life total, and to nothing', () => {
     const life = addElement({ 'data-arrow-target-kind': 'player', 'data-arrow-target-player-id': '3' });
-    // A card carrying only its id (the reveal panel's deck positions) is no arrow target.
     const revealedCard = addElement({ 'data-card-id': '30' }, life);
     expect(arrowTargetAt(revealedCard)).toEqual({ kind: 'player', playerId: 3 });
     expect(arrowTargetAt(document.body)).toBeNull();
@@ -60,7 +59,6 @@ const mouseDown = (button: number, target: Element) =>
 describe('useArrowDrag', () => {
   function setup() {
     const onDrop = vi.fn();
-    // The board the preview is drawn relative to.
     const containerRef = { current: addElement({}) as HTMLDivElement };
     const { result } = renderHook(() => useArrowDrag({ containerRef, cardRegistry: createCardRegistry(), onDrop }));
     return { result, onDrop };
@@ -83,7 +81,6 @@ describe('useArrowDrag', () => {
     fireEvent.mouseMove(window, { clientX: 40, clientY: 40, altKey: true });
     expect(result.current.targetKey).not.toBeNull();
     expect(result.current.preview?.color).toBe(rgbaToCss(ArrowColor.BLUE));
-    // Desktop fixes the colour when the drag starts: a later modifier changes nothing.
     fireEvent.mouseMove(window, { clientX: 45, clientY: 45, ctrlKey: true });
     expect(result.current.preview?.color).toBe(rgbaToCss(ArrowColor.BLUE));
     fireEvent.mouseUp(window, { button: 2, clientX: 45, clientY: 45, ctrlKey: true });
@@ -94,7 +91,6 @@ describe('useArrowDrag', () => {
       ArrowColor.BLUE,
     );
     expect(result.current.sourceKey).toBeNull();
-    // The release's own context menu is swallowed.
     const menu = new MouseEvent('contextmenu', { bubbles: true, cancelable: true });
     window.dispatchEvent(menu);
     expect(menu.defaultPrevented).toBe(true);

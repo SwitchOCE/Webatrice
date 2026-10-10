@@ -21,8 +21,6 @@ const card = makeCard({ id: 7, name: 'Placement fixture' });
 const view = { id: '7', name: card.name, scryfallId: '' };
 const click = { shiftKey: false, altKey: false, ctrlKey: false, metaKey: false };
 
-// Expected wire rows come from oracleimporter.cpp:150-176,254-262 and
-// TableZone::tableRowToGridY, not from the placement helpers under test.
 const cases = [
   { typeLine: 'Creature — Bear', tableRow: 1, y: 1 },
   { typeLine: 'Artifact', tableRow: 2, y: 0 },
@@ -58,7 +56,6 @@ afterEach(() => act(() => settingsStore.reset()));
 describe.each(cases)('placement: $typeLine, database row $tableRow', (fixture) => {
   function setup(singleClick = false) {
     const tableRow = 'tableRow' in fixture ? fixture.tableRow : undefined;
-    // A missing XML card still has a catalog type line (Scryfall fallback).
     vi.spyOn(CardDTO, 'get').mockResolvedValue(tableRow === undefined ? undefined : {
       tablerow: { value: String(tableRow) },
       prop: { value: { type: { value: fixture.typeLine } } },

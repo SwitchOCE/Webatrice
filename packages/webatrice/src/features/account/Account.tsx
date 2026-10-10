@@ -98,7 +98,6 @@ const Account = () => {
           <EditUserDialog isOpen={openDialog === 'edit'} handleClose={closeDialog} />
           <ChangePasswordDialog isOpen={openDialog === 'password'} handleClose={closeDialog} />
           <ChangeAvatarDialog isOpen={openDialog === 'avatar'} handleClose={closeDialog} />
-          {/* Desktop TabAccount "My Reports" button (Cockatrice #7091). */}
           {reportsSupported && (
             <Button size="small" color="primary" variant="outlined" onClick={() => navigate(RouteEnum.MY_REPORTS)}>
               {t('Reports.mine.title')}

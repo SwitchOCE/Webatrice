@@ -1,15 +1,11 @@
 import { z } from 'zod';
 import type { TFunction } from 'i18next';
 
-// Desktop limits (string_limits.h MAX_TEXT_LENGTH; ShutdownDialog's spin box 0..999,
-// default 5; TabAdmin's QIntValidator(0, INT_MAX) on the replay id).
 export const MAX_SHUTDOWN_REASON_LENGTH = 0xfff;
 export const MAX_SHUTDOWN_MINUTES = 999;
 export const DEFAULT_SHUTDOWN_MINUTES = 5;
 const MAX_REPLAY_ID = 2147483647;
 
-// Minutes stay a string in the form (an <input type="number"> value) and are
-// parsed on submit; the pattern admits exactly the spin box's 0..999.
 export const buildShutdownSchema = (t: TFunction) =>
   z.object({
     reason: z.string().max(MAX_SHUTDOWN_REASON_LENGTH),

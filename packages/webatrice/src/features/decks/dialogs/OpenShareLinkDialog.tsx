@@ -28,11 +28,6 @@ export interface OpenShareLinkDialogProps {
   onOpen: (link: DeckShareLink) => void;
 }
 
-/**
- * Paste a share link, Webatrice's or desktop's `cockatrice://opendeck?…`,
- * and open it. The checks and their messages are desktop's
- * `IntentUrlParser::createOpenDeckIntent`.
- */
 export function OpenShareLinkDialog({ open, onClose, onOpen }: OpenShareLinkDialogProps) {
   const { t } = useTranslation();
   const titleId = useId();
@@ -42,8 +37,6 @@ export function OpenShareLinkDialog({ open, onClose, onOpen }: OpenShareLinkDial
     resolver: zodResolver(schema),
   });
 
-  // Cleared on close, not on open: an effect after opening could wipe what
-  // the user already typed into the autofocused field.
   useEffect(() => {
     if (!open) {
       reset({ link: '' });

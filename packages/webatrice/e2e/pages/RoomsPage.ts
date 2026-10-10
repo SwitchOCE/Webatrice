@@ -102,8 +102,6 @@ export class RoomsPage {
   }
 
   gameRow(description: string): Locator {
-    // GamesList rows are role=row inside a role=grid; select via role=row
-    // filtered by description text.
     return this.page.getByRole('row').filter({ hasText: new RegExp(description, 'i') });
   }
 

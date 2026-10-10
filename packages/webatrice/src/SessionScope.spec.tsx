@@ -29,13 +29,13 @@ it('cleans modules before remount, cancels requests synchronously and preserves 
     preloadedState: disconnectedState, route: '/server',
   });
   try {
-    expect(cleanup).not.toHaveBeenCalled(); // StrictMode replay is not a session end.
+    expect(cleanup).not.toHaveBeenCalled();
     const old = tracker;
     const id = old.begin();
     old.track('parallel');
     act(() => {
       view.store.dispatch(server.Actions.updateStatus({ status: { state: WebsocketTypes.StatusEnum.LOGGED_IN, description: null } }));
-      expect(old.isCurrent(id)).toBe(false); // Before React commits the remount.
+      expect(old.isCurrent(id)).toBe(false);
       expect(old.settle('parallel')).toBe(false);
     });
     expect(cleanup).toHaveBeenCalledTimes(1);
@@ -58,12 +58,11 @@ it('cleans modules before remount, cancels requests synchronously and preserves 
     expect(screen.getByRole('textbox')).toHaveValue('');
     view.unmount();
     act(() => view.store.dispatch(server.Actions.clearStore()));
-    expect(cleanup).toHaveBeenCalledTimes(3); // Subscription was removed.
+    expect(cleanup).toHaveBeenCalledTimes(3);
   } finally {
     unsubscribe();
   }
 });
-
 
 it('remounts the real moderation provider with no dialog after a session reset', () => {
   function Trigger() {
@@ -78,7 +77,6 @@ it('remounts the real moderation provider with no dialog after a session reset',
   act(() => store.dispatch(server.Actions.clearStore()));
   expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
 });
-
 
 it('removes an open private admin-notes dialog and its text on DISCONNECTED', () => {
   function Trigger() {

@@ -22,9 +22,7 @@ type SeatPrompts = ReturnType<typeof useSeatPrompts>;
 
 export interface UseBattlefieldMenuItemsArgs {
   seatId: number;
-  /** Zones beyond the seven builtins (desktop custom zones), listed for viewing after Sideboard. */
   customZones: readonly { name: string }[];
-  /** Sends a message macro to the game chat; set for the local seat only. */
   onSay: ((message: string) => void) | undefined;
   handMenuItems: ContextMenuItem[];
   libraryMenuItems: ContextMenuItem[];
@@ -36,7 +34,6 @@ export interface UseBattlefieldMenuItemsArgs {
   openLifePrompt: () => void;
   openCounterPrompt: SeatPrompts['openCounterPrompt'];
   manaCounters: PlayerCounterViewModel['mana'];
-  /** "Increment all card counters": the seat's card op (useBattlefieldCardOps). */
   incrementAllCardCounters: () => void;
   battlefieldDisplayList: readonly BattlefieldCardViewModel[];
   lastToken: SeatPrompts['lastToken'];
@@ -46,14 +43,6 @@ export interface UseBattlefieldMenuItemsArgs {
   counterCommands: PlayerCounterCommands;
 }
 
-/**
- * The battlefield's right-click menus. The owner gets desktop's PlayerMenu
- * (player_menu.cpp:60-62): the hand, library, graveyard, exile and sideboard
- * menus as submenus, the player counters, card-counter and untap utilities,
- * dice, tokens, game info and Tally. Every other viewer gets only the
- * graveyard and exile views and Tally, as desktop gates the rest behind the
- * local player.
- */
 export function useBattlefieldMenuItems({
   seatId,
   customZones,
@@ -79,11 +68,8 @@ export function useBattlefieldMenuItems({
   const { t } = useTranslation();
   const { onRequestRollDie, onRequestGameInfo, onRequestViewSideboard } = useGameDialogActions();
   const { openZoneView } = useGameDialogsContext();
-  // Every player's menu ends with Tally (player_menu.cpp:48), a local choice
-  // the game overlays on the selection.
   const [tallyType, setTallyType] = useTallyType();
   const tallyMenu = buildTallyMenu(t, tallyType, setTallyType);
-  // The own menu ends with Say (player_menu.cpp:54), the message macros.
   const messageMacros = useMessageMacros();
 
   // Counters submenu — Cockatrice's AbstractCounter builds a menu per
@@ -111,8 +97,6 @@ export function useBattlefieldMenuItems({
     }
     return items;
   };
-  // Each counter's [add, remove, set] shortcuts: desktop's aInc / aDec / aSet
-  // for life, aIncCounter_* / aDecCounter_* / aSetCounter_* for the pool.
   const counterHints = (inc: ActionId, dec: ActionId, set: ActionId) => ({
     inc: menuShortcut(inc),
     dec: menuShortcut(dec),
@@ -238,9 +222,6 @@ export function useBattlefieldMenuItems({
       submenu: countersMenuItems,
     },
     {
-      // "Increment all card counters" — desktop actIncrementAllCardCounters
-      // (player_actions.cpp:1588-1621), on the selection or the whole
-      // battlefield. Disabled while the battlefield is empty.
       label: t('ShortcutsTab.action.game.incrementAllCardCounters'),
       ...menuShortcut('game.incrementAllCardCounters'),
       onClick: incrementAllCardCounters,

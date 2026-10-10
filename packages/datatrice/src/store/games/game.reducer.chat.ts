@@ -26,7 +26,6 @@ export const chatReducers = {
     if (game.messages.length >= MAX_GAME_MESSAGES) {
       game.messages = game.messages.slice(game.messages.length - MAX_GAME_MESSAGES + 1);
     }
-    // Resolved now: a player who leaves is deleted from `players`.
     const senderName = game.players[playerId]?.properties.userInfo?.name;
     game.messages.push({
       playerId,
@@ -75,8 +74,6 @@ export const chatReducers = {
     pushEventMessage(game, playerId, formatDieRolled(game, playerId, data), action.payload.timeReceived);
   }) as CaseReducer<GamesState, PayloadAction<{ gameId: number; playerId: number; data: Event_RollDie } & EventTime>>),
 
-  // Event_GameLogNotice: log-only, and by protocol contract a notice type this
-  // client doesn't know is dropped (desktop PlayerEventHandler::eventGameLogNotice).
   gameLogNotice: withEventTime(((state, action) => {
     const { gameId, playerId, noticeType } = action.payload;
     const game = state.games[gameId];

@@ -6,7 +6,6 @@ import { soundEngine } from '@app/services';
 
 import type { CustomControlProps } from '../registry';
 
-/** Desktop's "Test system sound engine": plays the player-join sound at the current settings. */
 export default function SoundTestButton({ id, labelId, disabled }: CustomControlProps) {
   const { t } = useTranslation();
   const { soundEnabled, soundTheme, masterVolume } = usePreferences();

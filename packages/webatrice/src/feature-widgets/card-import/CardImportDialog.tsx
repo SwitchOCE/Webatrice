@@ -16,17 +16,12 @@ import ManageSets from './ManageSets';
 
 import './CardImportDialog.css';
 
-/**
- * Desktop's "Card Database" menu, one tab per action. Picture URL templates live in Settings ›
- * Card Sources, as on desktop.
- */
 export const CARD_DATABASE_TABS = ['import', 'database', 'sets', 'tokens'] as const;
 export type CardDatabaseTab = (typeof CARD_DATABASE_TABS)[number];
 
 export interface CardImportDialogProps {
   isOpen: boolean;
   handleClose: () => void;
-  /** Tab shown when the dialog opens; defaults to the Oracle import. */
   initialTab?: CardDatabaseTab;
 }
 

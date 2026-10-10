@@ -12,11 +12,6 @@ import { ColorPie } from './ColorPie';
 import { ManaCurve } from './ManaCurve';
 import { TypeBreakdown } from './TypeBreakdown';
 
-/**
- * Deck statistics under the editor's card list (MTG decks only): totals,
- * the commander bracket estimate (commander-family formats), mana curve,
- * colour distribution and card types.
- */
 export function DeckBreakdown({
   cards,
   format,
@@ -24,8 +19,6 @@ export function DeckBreakdown({
   onAssessmentComputed,
 }: {
   cards: DeckCard[];
-  /** Deck format. The bracket section renders only for the formats
-   *  `isCommanderFormat` accepts (Commander and Pauper Commander). */
   format: string;
   /** Previously-persisted bracket assessment from the .cod. When its
    *  fingerprint matches the current deck we skip the Scryfall +

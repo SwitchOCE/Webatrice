@@ -15,7 +15,6 @@ import type { ReplayPlayback } from './useReplayPlayback';
 
 import './ReplayControls.css';
 
-// Desktop's ReplayQuickSettingsWidget spin box bounds.
 const MIN_FAST_FORWARD_SPEED = 1;
 const MAX_FAST_FORWARD_SPEED = 99.9;
 
@@ -23,20 +22,12 @@ export interface ReplayControlsProps {
   playback: ReplayPlayback;
 }
 
-/**
- * The replay dock: timeline, play/pause, the desktop skip actions (±1 s, ±10 s),
- * the fast-forward toggle and the quick settings (fast-forward speed, skip empty
- * sections). Port of ReplayWidget + ReplayQuickSettingsWidget.
- */
 function ReplayControls({ playback }: ReplayControlsProps) {
   const { t } = useTranslation();
   const [settingsAnchor, setSettingsAnchor] = useState<HTMLElement | null>(null);
   const { state, timeline, fastForward, fastForwardSpeed } = playback;
   const [speedDraft, setSpeedDraft] = useState<string | null>(null);
 
-  // Desktop's spin box applies every in-range value as it changes (valueChanged),
-  // so a running fast-forward picks it up at once; out-of-range input is clamped
-  // on Enter, blur or close.
   const editSpeed = (draft: string) => {
     setSpeedDraft(draft);
     const value = Number(draft);

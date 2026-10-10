@@ -216,8 +216,6 @@ export class SessionResponseImpl implements WebsocketTypes.ISessionResponse {
 
   notifyUser(notification: Event_NotifyUser): void {
     this.store.dispatch(ServerActions.notifyUser({ notification }));
-    // Desktop TabSupervisor::processNotifyUserEvent pops these up; the report
-    // views also refresh on them, so they get their own signal.
     if (
       notification.type === Event_NotifyUser_NotificationType.REPORT_RESOLVED
       || notification.type === Event_NotifyUser_NotificationType.REPORT_COMMENT

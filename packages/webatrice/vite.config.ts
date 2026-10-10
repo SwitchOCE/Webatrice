@@ -8,10 +8,6 @@ import { defineConfig } from 'vitest/config';
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const srcPath = (...segments: string[]) => path.resolve(__dirname, 'src', ...segments);
 
-// Build identity sent to Servatrice as Command_Login.clientver (see src/clientConfig.ts).
-// Mirrors desktop's VERSION_STRING inputs: the package version and the last
-// commit date (cmake/getversion.cmake `git log -1 --date=short`), which falls
-// back to empty outside a git checkout exactly like desktop's does.
 const packageVersion: string = JSON.parse(readFileSync(path.resolve(__dirname, 'package.json'), 'utf8')).version;
 function lastCommitDate(): string {
   try {
@@ -103,9 +99,6 @@ export default defineConfig({
   publicDir: 'public',
   build: {
     outDir: 'build',
-    // The supported browsers, pinned rather than Vite's floating
-    // 'baseline-widely-available' alias. Keep in step with package.json
-    // `browserslist` (autoprefixer) and the syntax probe in public/preflight.js.
     target: ['chrome111', 'edge111', 'firefox114', 'safari16.4'],
     rollupOptions: {
       output: {
@@ -114,10 +107,6 @@ export default defineConfig({
         // deploys. Order matters: more specific matches come first (e.g.
         // react-i18next is matched by i18n before the generic react bucket).
         manualChunks(id) {
-          // The entry (src/index.tsx) imports only this helper for its dynamic
-          // import of ./boot. Left to the bundler it lands in a vendor chunk,
-          // and the entry would then fetch vendor code before the preflight
-          // result is even read.
           if (id.includes('vite/preload-helper')) {
             return 'preload-helper';
           }
@@ -146,8 +135,6 @@ export default defineConfig({
   },
   server: {
     open: true,
-    // The debug log wraps console.*; ignore-listing the wrapper lets dev tools attribute each
-    // message to the code that logged it rather than to services/debugLog/DebugLog.ts.
     sourcemapIgnoreList: (sourcePath) =>
       sourcePath.includes('node_modules') || sourcePath.endsWith('services/debugLog/DebugLog.ts'),
     watch: {
@@ -162,21 +149,11 @@ export default defineConfig({
     // node-side resolver handles them directly — no `deps.inline`
     // workaround needed.
     setupFiles: ['./src/setupTests.ts'],
-    // e2e/global-setup.spec.ts unit-tests the Playwright global setup; the other e2e specs are Playwright's.
     include: ['src/**/*.spec.{ts,tsx}', 'e2e/global-setup.spec.ts', 'scripts/**/*.spec.mjs'],
     exclude: ['node_modules', 'build', 'integration', 'coverage'],
     isolate: true,
-    // A VM pool gives every spec file a fresh module graph but loads
-    // node_modules once per worker, so the suite runs in about a third of
-    // the time `threads` or `forks` take. Forks rather than threads, because
-    // only a child process accepts a V8 heap flag. The 1 GB cap makes V8
-    // collect: a worker's live heap stays near 200 MB, but without a cap
-    // V8 sizes the heap from total RAM and lets garbage reach several GB
-    // per worker. A spec that really holds more than 1 GB now fails with
-    // an out-of-memory error instead of growing until CI kills the run.
     pool: 'vmForks',
     execArgv: ['--max-old-space-size=1024'],
-    // Recycle between files before coverage accumulation reaches the heap cap.
     vmMemoryLimit: '600MB',
     maxWorkers: '75%',
     testTimeout: 15000,

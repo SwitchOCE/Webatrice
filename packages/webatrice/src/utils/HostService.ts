@@ -1,5 +1,4 @@
 import { Host } from '@app/types';
-// Desktop TCP ports are deliberately unset; configure them in each host's settings.
 export const DefaultHosts: Host[] = [
   {
     name: 'Chickatrice',
@@ -41,10 +40,6 @@ export const getHostPort = (host: Host): { host: string, port: string } => {
   };
 };
 
-/**
- * One string naming a server by address, as desktop's startup server is saved (host and port):
- * a host's id does not survive deleting and re-adding it, its address does.
- */
 export const getHostKey = (host: Host): string => {
   const { host: address, port } = getHostPort(host);
   return `${address}:${port}`;

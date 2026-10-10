@@ -18,9 +18,7 @@ export interface ChangeAvatar {
   pending: boolean;
   decoding: boolean;
   error: string | null;
-  /** False for an unreadable image; undefined for a superseded selection. */
   pick: (file: File | null) => Promise<boolean | undefined>;
-  /** Uploads the previewed image, or an empty image (removing the avatar) when none is chosen. */
   submit: () => Promise<void>;
 }
 
@@ -29,7 +27,6 @@ export function useChangeAvatar(onDone: () => void): ChangeAvatar {
   const webClient = useWebClient();
   const pushToast = usePushToast();
   const failureMessage = useCommandFailureMessage();
-  // Per-call closures own the outcome; SessionScope resets local state on session end.
   const request = useRequestTracker();
   const [preview, setPreview] = useState<AvatarPreview | null>(null);
   const [pending, setPending] = useState(false);

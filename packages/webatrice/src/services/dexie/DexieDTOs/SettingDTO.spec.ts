@@ -13,8 +13,6 @@ vi.mock('../DexieService', () => ({
 import { PREFERENCE_DEFAULTS, SETTINGS_VERSION } from '@app/types';
 import { SettingDTO } from './SettingDTO';
 
-// Read once at load: the global afterEach clears mock calls, so the import-time
-// registration is gone by the time any test but the first runs.
 const mapToClassCalls = [...settingsTable.mapToClass.mock.calls];
 
 describe('SettingDTO', () => {

@@ -8,9 +8,6 @@ import browserFeatureI18n from '../features/shell/BrowserFeature.i18n.json';
 import unsupportedI18n from '../features/shell/Unsupported.i18n.json';
 import { getBrowserSupport, type BrowserFeature } from './browserSupport';
 
-// public/preflight.js runs as a classic script before the bundle, so it is
-// tested as one: evaluated against a stand-in `window` whose globals each test
-// controls, rendering into jsdom's document.
 const PREFLIGHT = readFileSync(resolve(__dirname, '../../public/preflight.js'), 'utf8');
 const PREFLIGHT_CSS = readFileSync(resolve(__dirname, '../../public/preflight.css'), 'utf8');
 const TOKENS_CSS = readFileSync(resolve(__dirname, '../styles/tokens.css'), 'utf8');
@@ -20,7 +17,6 @@ const stubFn = () => undefined;
 
 type FakeWindow = Record<string, unknown> & { Cockatrice?: { browserSupport?: unknown } };
 
-// A fully supported browser; each test blanks what it is about.
 function supportedBrowser(overrides: Record<string, unknown> = {}): FakeWindow {
   return {
     document: { ...documentWithModules(), getElementById: (id: string) => document.getElementById(id) },
@@ -43,7 +39,6 @@ function supportedBrowser(overrides: Record<string, unknown> = {}): FakeWindow {
   };
 }
 
-// jsdom's script elements lack `noModule`; a module-capable browser has it.
 function documentWithModules(hasModules = true) {
   return {
     head: document.head,
@@ -106,7 +101,6 @@ describe('public/preflight.js', () => {
   });
 
   it('requires the syntax the bundle is built for', () => {
-    // An engine that cannot parse ES2022 throws a SyntaxError from the probe.
     const OldFunction = function OldFunction() {
       throw new SyntaxError('Unexpected token');
     };
@@ -125,7 +119,6 @@ describe('public/preflight.js', () => {
   });
 
   it.each<[BrowserFeature, Record<string, unknown>]>([
-    // Plain http:// on a LAN: no crypto.subtle, but the client still works.
     ['webCrypto', { crypto: { getRandomValues: stubFn } }],
     ['worker', { Worker: undefined }],
     ['broadcastChannel', { BroadcastChannel: undefined }],
@@ -249,14 +242,12 @@ describe('public/preflight.js', () => {
 
       requests[0].respond(200, JSON.stringify({ Unsupported: { title: 'Navegador não suportado' } }));
       expect(document.querySelector('h1')!.textContent).toBe('Navegador não suportado');
-      // Keys the translation lacks stay English.
       expect(document.querySelector('li')!.textContent).toBe(browserFeatureI18n.BrowserFeature.webSocket);
       expect(document.documentElement.lang).toBe('pt-BR');
       document.documentElement.lang = 'en';
     });
   });
 
-  // The script cannot import the *.i18n.json sources, so it carries a copy.
   it('carries exactly the English strings of the i18n sources', () => {
     const block = (name: string) => new RegExp(`${name}: \\{([\\s\\S]*?)\\n    \\}`).exec(PREFLIGHT)![1];
     const embedded = (name: string) => new Function(`return {${block(name)}};`)();

@@ -3,24 +3,10 @@ import { isMtgFormat } from '@app/types';
 
 import type { DeckCard } from './types';
 
-/**
- * Card legality for the deck's format — desktop `DeckListModel`
- * `refreshCardFormatLegalities` / `isCardQuantityLegalForFormat`, with the
- * rule matching of `format_legality_rules.cpp`.
- *
- * Desktop paints a card it can't find in its database as illegal. The web
- * client often has no local card database, so a card with no legality data
- * is reported as `unknown` ("couldn't be checked") rather than illegal, and
- * a format nobody publishes legality for is "validation unavailable" rather
- * than an all-red deck.
- */
-
-/** What legality needs to know about a card (desktop `CardInfo`). */
 export interface LegalityFacts {
   name: string;
   text?: string;
   properties?: Record<string, string>;
-  /** Format → label; `undefined` when the source has no legality data. */
   legalities?: Record<string, string>;
 }
 
@@ -31,7 +17,6 @@ export function legalityFacts(lookup: LookupResult | undefined): LegalityFacts |
   return { name: lookup.name, text: lookup.text, properties: lookup.properties, legalities: lookup.legalities };
 }
 
-/** `-1` is "unlimited", as in desktop's `AllowedCount` / `ExceptionRule`. */
 const UNLIMITED = -1;
 
 export interface FormatRules {
@@ -47,7 +32,6 @@ function parseMax(raw: string | undefined): number {
   return Number.isNaN(n) ? 0 : n;
 }
 
-/** The imported `<format>` element as rules (desktop `FormatRules`). */
 export function toFormatRules(format: Format | undefined): FormatRules | undefined {
   if (!format) {
     return undefined;
@@ -58,7 +42,6 @@ export function toFormatRules(format: Format | undefined): FormatRules | undefin
   };
 }
 
-/** `cardMatchesCondition`: `name`, `text`, else the named card property. */
 export function cardMatchesCondition(card: LegalityFacts, cond: CardCondition): boolean {
   const field = cond.field === 'name'
     ? card.name
@@ -109,7 +92,6 @@ function notLegal(label: string): CardLegality {
   return { status: 'illegal', reason: label === 'banned' ? 'banned' : 'notLegal' };
 }
 
-/** `isCardQuantityLegalForFormat`, with unknown data kept apart from illegal. */
 export function cardLegality(
   format: string,
   card: LegalityFacts | undefined,
@@ -123,13 +105,11 @@ export function cardLegality(
     return UNKNOWN;
   }
 
-  // No rules for the format: the card's own label decides; counts aren't checked.
   if (!rules) {
     const label = legalityLabel(card, format);
     return label === 'legal' || label === 'restricted' ? LEGAL : notLegal(label);
   }
 
-  // Exceptions always win.
   if (rules.exceptions.some((ex) => ex.conditions.every((cond) => cardMatchesCondition(card, cond)))) {
     return LEGAL;
   }
@@ -139,13 +119,6 @@ export function cardLegality(
     return notLegal(label);
   }
   const allowed = rules.allowedCounts.find((c) => c.label === label);
-  // Desktop's `maxAllowedForLegality` returns -1 both for "label not listed"
-  // and for an `unlimited` count, so `isCardQuantityLegalForFormat` paints
-  // both red. That is a sentinel collision, not intent: the same change
-  // (Cockatrice #6166) parses `unlimited` as -1, documents -1 as unlimited
-  // in `AllowedCount`, and adds a `maxAllowed < 0 // unlimited` → legal
-  // branch that the `== -1` check before it makes unreachable. Only the
-  // missing label is illegal here.
   if (!allowed) {
     return notLegal(label);
   }
@@ -158,18 +131,12 @@ export function cardLegality(
 export type DeckLegalityStatus = 'legal' | 'illegal' | 'unavailable' | 'none';
 
 export interface DeckLegality {
-  /** By card index; the deck's cards in order. */
   rows: CardLegality[];
-  /** `none`: no format or no cards to check. `unavailable`: nothing could be checked. */
   status: DeckLegalityStatus;
   illegalCount: number;
   unknownCount: number;
 }
 
-/**
- * Legality of every row for the deck's format. Like desktop, each row (a
- * card in one zone) is checked against its own quantity.
- */
 export function deckLegality(
   cards: readonly DeckCard[],
   format: string,
@@ -182,8 +149,6 @@ export function deckLegality(
   const rows = cards.map((card) => cardLegality(format, factsByName.get(card.name), card.quantity, rules));
   const illegalCount = rows.filter((r) => r.status === 'illegal').length;
   const unknownCount = rows.filter((r) => r.status === 'unknown').length;
-  // A format with no imported rules that no card has a label for, and that
-  // isn't a known MTG format, is a custom one: nothing to check against.
   const formatKnown = rules !== undefined || isMtgFormat(format) || cards.some((card) => {
     const facts = factsByName.get(card.name);
     return facts?.legalities !== undefined && legalityLabel(facts, format) !== '';

@@ -5,13 +5,6 @@ import { makeCardKey } from '../../../utils/CardRegistry/CardRegistryContext';
 import { usePlayerSeatContext } from '../../ui/PlayerBoard/PlayerSeatContext';
 import { ContextMenuPopup, type ContextMenuItem } from '../ContextMenu/ContextMenu';
 
-/**
- * Pile-view card context menu — right-click a card inside a
- * graveyard / exile zone view. View-only shape: Draw arrow /
- * Clone / Select All / Select Column, matching Cockatrice's
- * card-in-ZoneView menu. Uses the same ContextMenuPopup renderer
- * as the battlefield menu — only the item set differs.
- */
 export default function PileCardMenu() {
   const { t } = useTranslation();
   const {
@@ -34,13 +27,6 @@ export default function PileCardMenu() {
         const cardIdNum = Number(pileCardMenu.cardId);
         const numeric = Number.isFinite(cardIdNum);
         const close = closeSeatCardMenu;
-        // The view's selection is the game selection, keyed by this
-        // pile. Select All / Select Column replace it with the view's
-        // cards or the clicked card's column (desktop actSelectAll /
-        // actSelectColumn over the ZoneView); Clone then applies to the
-        // selection when the clicked card is part of it, like desktop's
-        // aClone over the selected cards. Draw arrow stays single-card
-        // (desktop actDrawArrow uses the active card).
         const pileKey = (id: string) => makeCardKey(menuOwnerId, pileCardMenu.zone, Number(id));
         const selectPileCards = (ids: readonly string[]) => {
           gameSelection?.setSelectedCardKeys(new Set(ids.map(pileKey)));

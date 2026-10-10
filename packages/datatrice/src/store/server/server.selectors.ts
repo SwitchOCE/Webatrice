@@ -26,7 +26,6 @@ const EMPTY_GAMES: { [gameId: number]: Enriched.Game } = {};
 const getPrivateChatNotices = ({ server }: State, userName: string): PrivateChatNotice[] =>
   server.privateChatNotices[userName] ?? EMPTY_NOTICES;
 
-/** Legacy/preloaded states without an epoch belong to generation zero. */
 export const selectSessionEpoch = ({ server }: State): number => server.sessionEpoch ?? 0;
 
 export const Selectors = {
@@ -40,15 +39,11 @@ export const Selectors = {
   getState: ({ server }: State) => server.status.state,
   getConnectionAttemptMade: ({ server }: State) => server.status.connectionAttemptMade,
   getTestConnectionStatus: ({ server }: State) => server.testConnectionStatus,
-  // Stable fallback: preloaded/partial states (host-supplied or test
-  // fixtures) may predate the connectionHealth field.
   getConnectionHealth: ({ server }: State) => server.connectionHealth ?? HEALTHY_CONNECTION_HEALTH,
   getIsServerUnresponsive: ({ server }: State) => (server.connectionHealth?.missedPongs ?? 0) > 0,
   getLatency: ({ server }: State) => server.latency ?? EMPTY_LATENCY,
   getConnectUnreachable: ({ server }: State) => server.connectUnreachable ?? false,
   getLoginFailureCode: ({ server }: State) => server.loginFailureCode ?? null,
-  // Capability gate for 3.1-only actions; see server.capabilities.ts and
-  // .github/instructions/datatrice.instructions.md#server-capabilities.
   supports: ({ server }: State, capability: ServerCapability): boolean =>
     serverSupports(server.info.version, capability),
   getUser: ({ server }: State) => server.user,
@@ -80,8 +75,6 @@ export const Selectors = {
     }
   ),
 
-  // Developer staff role (Cockatrice #7211). Desktop routes log lookups through the
-  // developer command family only for developers who are not also moderators.
   getIsUserDeveloper: createSelector(
     [({ server }: State) => server.user],
     (user): boolean => {
@@ -133,12 +126,9 @@ export const Selectors = {
     server.warnHistory[userName],
   getAdminNotesByUser: ({ server }: State, userName: string) =>
     server.adminNotes[userName],
-  // Official warning reasons the server offered for a warn dialog, keyed by the
-  // user the moderator asked about (Response_WarnList echoes user_name back).
   getWarnListForUser: ({ server }: State, userName: string): Response_WarnList | undefined =>
     server.warnListOptions.find((list) => list.userName === userName),
   getLogs: ({ server }: State) => server.logs,
-  // Staff tooling (see server.reducer.staff.ts). Lists are null until loaded.
   getUserInvestigation: ({ server }: State, userName: string): UserInvestigation | undefined => {
     const active = server.staff.investigation;
     return active?.userName === userName ? active.results : undefined;
@@ -152,9 +142,7 @@ export const Selectors = {
   getPublicDecks: ({ server }: State, userName: string): Response_DeckList | undefined => server.publicDecks[userName],
   getDownloadedReplay: ({ server }: State) => server.downloadedReplay,
   getRegistrationError: ({ server }: State) => server.registrationError,
-  // Event_NotifyUser messages in arrival order (capped at MAX_NOTIFICATIONS).
   getNotifications: ({ server }: State) => server.notifications,
-  // The latest Event_ServerShutdown announcement, or null when none is pending.
   getServerShutdown: ({ server }: State) => server.serverShutdown,
   getSortUsersBy: ({ server }: State) => server.sortUsersBy,
 
@@ -167,8 +155,6 @@ export const Selectors = {
   getPrivateMessagesForUser: ({ server }: State, userName: string): Event_UserMessage[] =>
     server.messages[userName] ?? EMPTY_MESSAGES,
 
-  // The conversation with a user in display order: messages with the client's
-  // notices (delivery failures, presence changes) slotted in where they occurred.
   getPrivateConversation: createSelector(
     [
       ({ server }: State, userName: string) => server.messages[userName] ?? EMPTY_MESSAGES,
@@ -190,10 +176,8 @@ export const Selectors = {
     },
   ),
 
-  // Known presence: whether the user is in the server's online user list.
   getIsUserOnline: ({ server }: State, userName: string): boolean => Boolean(server.users[userName]),
 
-  // A user's games from the latest "Show games" answer, in the server's order.
   getGamesOfUser: createSelector(
     [({ server }: State, userName: string) => server.gamesOfUser[userName] ?? EMPTY_GAMES],
     (games): Enriched.Game[] => Object.values(games),

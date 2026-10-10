@@ -7,17 +7,8 @@ import { useAppSelector } from '@app/store';
 
 import ReportUserDialog, { type OpenReportUserParams } from './ReportUserDialog';
 
-/**
- * Where a report is opened from. Desktop's report action takes the game and the
- * chat log from the `UserContextMenu` it was raised in: the game when the menu
- * belongs to a game tab, and `ChatView::getRecentChatLog(50)` when the name was
- * right-clicked inside a chat view. A chat or game surface wraps itself in a
- * scope so any report opened inside it (including from the shared user menu)
- * attaches the same context, without threading props through the menu.
- */
 export interface ReportChatScopeValue {
   gameId?: number;
-  /** Read when the report opens, so the log is as fresh as the click. */
   getChatContext?: () => string;
 }
 
@@ -30,14 +21,8 @@ export function ReportChatScope({ children, gameId, getChatContext }: ReportChat
 
 const OpenReportUserContext = createContext<(params: OpenReportUserParams) => void>(() => {});
 
-/**
- * Mounts the report dialog once for the app; `useReportUser().openReportUser`
- * opens it from anywhere below. Opened from a user list or chat name whose row
- * has gone by the time it closes, it returns focus to that list.
- */
 export function ReportUserProvider({ children }: { children: ReactNode }) {
   const [request, setRequest] = useState<OpenReportUserParams | null>(null);
-  // A new key per request resets the form, like desktop's fresh DlgReportUser.
   const [requestKey, setRequestKey] = useState(0);
 
   const open = useCallback((params: OpenReportUserParams) => {
@@ -57,15 +42,8 @@ export function ReportUserProvider({ children }: { children: ReactNode }) {
 }
 
 export interface ReportUserActions {
-  /** The server takes reports and the local user is registered; desktop then lists "Report user" in user menus. */
   reportingAvailable: boolean;
-  /**
-   * Desktop shows "Report user" when the server takes reports and the local
-   * user is registered (guests can't report), and enables it for anyone but
-   * yourself.
-   */
   canReportUser: (userName: string) => boolean;
-  /** Opens the report dialog; a missing game or chat context comes from the nearest `ReportChatScope`. */
   openReportUser: (params: OpenReportUserParams) => void;
 }
 

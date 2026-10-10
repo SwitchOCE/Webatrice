@@ -19,7 +19,6 @@ describe('DeckRow', () => {
     expect(screen.getByText('Superfriends')).toBeInTheDocument();
     expect(screen.getByText('Commander')).toBeInTheDocument();
     expect(screen.getByText('Decks.list.created')).toBeInTheDocument();
-    // The folder is the list's breadcrumb, not repeated per row.
     expect(screen.queryByText('Cube/Old')).toBeNull();
     expect(screen.getByText('Decks.badge.bracketShort')).toHaveAttribute('title', 'Decks.badge.bracket');
     expect(screen.getByText('$12.50+')).toHaveAttribute('title', 'Decks.badge.priceTotalMissing');

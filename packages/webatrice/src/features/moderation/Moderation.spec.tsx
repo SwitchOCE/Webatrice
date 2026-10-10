@@ -59,7 +59,6 @@ async function investigate(name: string) {
 }
 
 describe('Moderation gating', () => {
-  // The page body must not mount, or its effects would send staff commands the server refuses.
   const expectNothingSent = (webClient: ReturnType<typeof createMockWebClient>) => {
     const mod = moderator(webClient);
     expect(mod.getModeratorLastLogins).not.toHaveBeenCalled();
@@ -270,7 +269,6 @@ describe.each(['resetPassword', 'removeAvatar'])('cancel-default %s', (action) =
   it('Enter on open cancels without sending a command', () => {
     const { webClient } = setup(ADMIN, '/moderation?user=alice');
     fireEvent.click(screen.getByRole('button', { name: `ModerationPage.action.${action}` }));
-    // Supply the native Enter activation omitted by jsdom, using actual focus.
     const focused = document.activeElement!;
     if (fireEvent.keyDown(focused, { key: 'Enter', code: 'Enter' })) {
       fireEvent.click(focused);

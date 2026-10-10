@@ -74,7 +74,6 @@ describe('cardPlacement', () => {
     }
     expect(applyInvertY(placement.visualY, false)).toBe(2);
     expect(applyInvertY(placement.visualY, true)).toBe(0);
-    // A second inversion would undo the first.
     expect(applyInvertY(applyInvertY(placement.visualY, true), true)).toBe(placement.visualY);
   });
 

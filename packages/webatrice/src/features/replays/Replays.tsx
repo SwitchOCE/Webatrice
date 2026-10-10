@@ -12,11 +12,6 @@ import { useServerReplays } from './useServerReplays';
 
 import './Replays.css';
 
-/**
- * The replays tab (desktop TabReplays): the local replay library on the left,
- * the account's server replay storage on the right. Works offline for local
- * replays; the server pane needs a registered login.
- */
 function Replays() {
   const { t } = useTranslation();
   const serverReplays = useServerReplays();

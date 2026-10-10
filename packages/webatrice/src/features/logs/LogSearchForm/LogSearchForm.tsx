@@ -24,16 +24,11 @@ export type { LogSearchFormValues };
 
 interface LogSearchFormProps {
   onSubmit: (values: LogSearchFormValues) => void;
-  /**
-   * Searching through the developer command family: like desktop TabLog, hide the IP filter (ignored
-   * server-side) and Private Chat (developers cannot read private conversations).
-   */
   developer?: boolean;
 }
 
 type TextFilter = 'userName' | 'ipAddress' | 'gameName' | 'gameId' | 'message';
 const TEXT_FILTERS: TextFilter[] = ['userName', 'ipAddress', 'gameName', 'gameId', 'message'];
-// MAX_NAME_LENGTH / MAX_TEXT_LENGTH (libcockatrice string_limits.h), as TabLog caps its line edits.
 const MAX_NAME_LENGTH = 0xff;
 const MAX_TEXT_LENGTH = 0xfff;
 
@@ -55,7 +50,6 @@ const NumberField = ({ control, name, label, max, disabled }: {
         max={max}
         step={1}
         disabled={disabled}
-        // A cleared desktop spin box reads 0 but shows nothing.
         value={field.value === 0 ? '' : String(field.value)}
         onBlur={field.onBlur}
         onChange={(e) => {
@@ -68,13 +62,6 @@ const NumberField = ({ control, name, label, max, disabled }: {
   />
 );
 
-/**
- * The search dock of desktop's TabLog (tab_logs.cpp): five text filters, the
- * three log locations, a date range (past X days / today / last hour), a
- * maximum result count, "Get User Logs" and "Clear Filters". An
- * under-specified search is completed the way desktop completes it, and the
- * completed values are written back into the form.
- */
 const LogSearchForm = ({ onSubmit, developer = false }: LogSearchFormProps) => {
   const { t } = useTranslation();
   const resolver = useMemo(() => zodResolver(buildLogSearchSchema(t)), [t]);
@@ -83,7 +70,6 @@ const LogSearchForm = ({ onSubmit, developer = false }: LogSearchFormProps) => {
     resolver,
   });
 
-  // Desktop raises these as message boxes; here they show above the buttons.
   const searchError = formState.errors.userName?.message ?? formState.errors.pastDays?.message;
 
   const submit = handleSubmit((values) => {

@@ -4,12 +4,6 @@ import { WebClient } from '../../WebClient';
 import { Command_GetGamesOfUser_ext, Command_GetGamesOfUserSchema, Response_GetGamesOfUser_ext } from '../../generated';
 import { outlivedSession } from '../outlivedSession';
 
-/**
- * Desktop "Show this user's games" (UserContextMenu::execShowGames). Every failure is
- * reported with its response code, plus the transport reason when the server never
- * answered; the UI maps RespNameNotFound and RespInIgnoreList to desktop's specific
- * messages and anything else to its generic one (gamesOfUserReceived).
- */
 export function getGamesOfUser(userName: string): void {
   WebClient.instance.response.session.getGamesOfUserPending?.(userName);
 

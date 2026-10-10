@@ -11,15 +11,10 @@ import type { FilterableCard } from '../../../utils/cardFilter';
 import { deckCardImageUrl } from './deckCardImageUrl';
 import type { BattlefieldCardViewModel, SeatDeckCard } from './playerBoard.types';
 
-/** What the seat knows about a card by name, beyond what the server sends:
- *  the card catalog's type line, printed P/T, costs and relations. */
 export interface SeatCardMeta {
   typeLine: string;
   pt?: string;
-  /** cards.xml `<cipt>`: played face up, the card comes in tapped. */
   cipt?: boolean;
-  /** cards.xml `<tablerow>`: the card's battlefield row, when the card
-   *  database has the card. */
   tableRow?: number;
   manaCost?: string;
   cmc?: number;
@@ -51,7 +46,6 @@ export interface SeatCardMeta {
   scryfallId?: string;
 }
 
-/** The catalog record for a card, in the seat's cache shape. */
 export function seatCardMetaFromLookup(r: LookupResult): SeatCardMeta {
   const pt =
     r.power != null && r.toughness != null
@@ -78,20 +72,11 @@ const NO_OTHER_CARDS: readonly (readonly { name: string }[])[] = [];
 
 export interface UseSeatCardMetadataArgs {
   isSelf: boolean;
-  /** The seat's loaded deck list (own seat only). */
   deckCards: readonly SeatDeckCard[];
   battlefieldCards: readonly BattlefieldCardViewModel[];
-  /** The other zones whose cards are visible (stack, graveyard, exile and the
-   *  open library / sideboard views); their card menus need the metadata too. */
   otherVisibleCards?: readonly (readonly { name: string }[])[];
 }
 
-/**
- * The seat's card metadata cache, keyed by card name and filled from the card
- * catalog: the own deck list up front, then whatever lands on the battlefield
- * (either seat), then the tokens and transform faces those cards relate to.
- * Also preloads the own deck's card images.
- */
 export function useSeatCardMetadata({
   isSelf,
   deckCards,
@@ -312,7 +297,6 @@ export function useSeatCardMetadata({
     // eslint-disable-next-line react-hooks/exhaustive-deps -- see above
   }, [cardMetaByName]);
 
-  // The catalog fields the zone views and move-top-until filter on.
   const describeCard = useCallback((cardName: string): FilterableCard => {
     const meta = cardMetaByName.get(cardName);
     return {

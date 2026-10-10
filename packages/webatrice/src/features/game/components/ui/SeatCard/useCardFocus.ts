@@ -7,35 +7,21 @@ import { makeCardKey, useCardRegistry } from '../../../utils/CardRegistry/CardRe
 import { useCardPreviewActions, type PreviewCard } from '../CardPreviewContext';
 
 export interface CardFocusOptions<C extends { id: string }> {
-  /** The wire zone the cards are in, for the card registry the arrows read. */
   zone: string;
-  /** The zone's cards, in the order the arrows walk them (along each line). */
   cards: readonly C[];
-  /** ←/→ for a row of cards (a hand row), ↑/↓ for a pile (the stack, a hand column). */
   orientation: ListOrientation;
-  /** A two-dimensional zone (the battlefield): card ids by visual line, top to bottom. */
   lines?: readonly (readonly string[])[];
-  /** The player whose zone the card is in (a cross-player attachment's owner). */
   ownerOf: (card: C) => number;
-  /** The card's accessible name: its name and what the board shows of its state. */
   labelOf: (card: C) => string;
-  /** What the preview pane shows while the card has keyboard focus; null shows nothing (face down). */
   previewOf: (card: C) => PreviewCard | null;
-  /** The zone's selected cards, and the selection's replacement (never empty). */
   selectedIds: ReadonlySet<string>;
   onSelectIds: (ids: Set<string>) => void;
-  /** Enter: desktop's click-to-play (tap, untap, play), or a pending target pick, on the card's
-   *  element. Nothing when unset. */
   onActivate?: (card: C, element: HTMLElement) => void;
-  /** M: the keyboard move of the card (and the selection it is in). Nothing when unset. */
   onMove?: (card: C) => void;
-  /** Shift+F10 or the Menu key: the card's context menu, under the card. */
   onOpenMenu: (card: C, rect: DOMRect) => void;
-  /** Keyboard focus came to a card of the zone (true) or left it (false): the hand expands, as on hover. */
   onKeyboardFocus?: (focused: boolean) => void;
 }
 
-/** The props a focusable card spreads onto its element. */
 export interface CardFocusProps {
   ref: (element: HTMLElement | null) => void;
   tabIndex: number;
@@ -49,14 +35,8 @@ export interface CardFocusProps {
   onPointerDownCapture: () => void;
 }
 
-/** The key that zooms the focused card while held: the keyboard's middle-button hold. */
 export const ZOOM_KEY = 'z';
 
-/**
- * F6 and Shift+F6 leave a card zone: focus moves to the next (previous) tab
- * stop on the page, as Tab does anywhere else. On a card Tab stays desktop's
- * Next Phase.
- */
 export function focusPastZone(from: HTMLElement, backwards: boolean): void {
   tabStopPast(from, backwards)?.focus();
 }
@@ -67,12 +47,6 @@ function tabStopPast(from: HTMLElement, backwards: boolean): HTMLElement | undef
   return backwards ? stops[index - 1] ?? stops[stops.length - 1] : stops[index + 1] ?? stops[0];
 }
 
-/**
- * Where focus goes when a dialog opened from a card closes and the card has
- * left (it moved): the nearest card of its zone that was not moved with it
- * (not selected), else the next tab stop, never the page, where Tab is Next
- * Phase. Worked out when the dialog opens, from the card as it was.
- */
 export function cardFocusFallback(opener: HTMLElement): HTMLElement | null {
   const zone = opener.closest('[role="listbox"]');
   if (zone) {
@@ -87,15 +61,6 @@ export function cardFocusFallback(opener: HTMLElement): HTMLElement | null {
   return tabStopPast(opener, false) ?? null;
 }
 
-/**
- * The keyboard model of one zone's cards, on the board or in a zone view
- * (desktop has none: there every card is pointer-only). The zone is a listbox with one roving tab stop
- * (useGridRows): the arrows move focus and select the card they land on,
- * Shift with an arrow extends the selection, Space selects, Enter plays or taps
- * it as a click does, Shift+F10 or the Menu key open its menu, holding Z zooms
- * it, and F6 leaves the zone. Keyboard focus shows the card in the preview pane.
- * Tab is left to the shortcut layer, where it is Next Phase as on desktop.
- */
 export function useCardFocus<C extends { id: string }>({
   zone,
   cards,
@@ -116,15 +81,11 @@ export function useCardFocus<C extends { id: string }>({
   const moveSequences = useResolvedBinding('game.moveCardDialog');
   const keys = lines ? lines.flat() : cards.map((card) => card.id);
   const byId = new Map(cards.map((card) => [card.id, card] as const));
-  // The card focus was last on holds the zone's tab stop; before that, the
-  // first selected card.
   const [current, setCurrent] = useState<string | null>(null);
   const tabStop = current != null && byId.has(current)
     ? current
     : keys.find((key) => selectedIds.has(key)) ?? null;
-  // Where a Shift+arrow range starts: the last card selected on its own.
   const anchor = useRef<string | null>(null);
-  // A press focuses the card too; only keyboard focus drives the preview.
   const pointerFocus = useRef(false);
   const zooming = useRef(false);
   const elements = useRef(new Map<string, HTMLElement>());
@@ -134,9 +95,6 @@ export function useCardFocus<C extends { id: string }>({
     onSelectIds(new Set([key]));
   }, [onSelectIds]);
 
-  // Space marks or unmarks the focused card and keeps the rest of the
-  // selection, as Ctrl+click does; with Ctrl+arrows moving focus alone, that
-  // builds a selection with gaps.
   const toggle = useCallback((key: string) => {
     anchor.current = key;
     const next = new Set(selectedIds);
@@ -170,9 +128,6 @@ export function useCardFocus<C extends { id: string }>({
     lines,
     onExtend: extend,
     focusOnlyWithCtrl: true,
-    // The zone's last card leaving (the hand played out) moves focus on to
-    // the next tab stop, as F6 would, rather than dropping it to the page,
-    // where Tab is Next Phase.
     keepFocusOnRemoval: (removed) => tabStopPast(removed, false),
   });
 
@@ -225,7 +180,6 @@ export function useCardFocus<C extends { id: string }>({
           event.preventDefault();
           return;
         }
-        // Shift+Enter is the chat's focus shortcut.
         if (event.key === 'Enter' && event.shiftKey) {
           return;
         }
@@ -234,7 +188,6 @@ export function useCardFocus<C extends { id: string }>({
           onMove(card);
           return;
         }
-        // Ctrl+Space is Next Phase; plain Space toggles the card.
         if (event.key === ' ' && !event.ctrlKey && !event.altKey && !event.metaKey && !event.shiftKey) {
           event.preventDefault();
           toggle(card.id);
@@ -269,7 +222,6 @@ export function useCardFocus<C extends { id: string }>({
       },
       onPointerDownCapture: () => {
         pointerFocus.current = true;
-        // A press that never focuses the card (a drag) must not swallow the next keyboard focus.
         window.setTimeout(() => {
           pointerFocus.current = false;
         }, 0);

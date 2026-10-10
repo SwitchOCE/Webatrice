@@ -6,11 +6,6 @@ import reactHooks from 'eslint-plugin-react-hooks';
 import i18next from 'eslint-plugin-i18next';
 import { boundariesConfig } from './eslint.boundaries.mjs';
 
-// Block direct forwarding barrels anywhere in the package, including aliases
-// and namespace exports. Built-in rules do not follow local bindings: importing
-// a hook outside the seam and then exporting that binding (or a wrapper around
-// it) still needs review. Computed module names and aliased require calls are
-// likewise not resolved. These rules do not inspect passed-in client instances.
 const webClientReexports = [
   {
     selector: 'ExportNamedDeclaration[source.value="@cockatrice/datatrice/react"][exportKind!="type"] > ExportSpecifier[exportKind!="type"][local.name=/^(useWebClient|WebClientContext)$/]',
@@ -56,8 +51,6 @@ export default tseslint.config(
   // TypeScript recommended (sets up parser + plugin)
   ...tseslint.configs.recommended,
 
-  // Hooks correctness. Only the two classic rules: the React Compiler rule set in
-  // `recommended` targets compiler adoption, which this codebase has not opted into.
   {
     plugins: { 'react-hooks': reactHooks },
     rules: {
@@ -99,17 +92,6 @@ export default tseslint.config(
   { files: ['integration/**'], rules: { '@typescript-eslint/no-restricted-imports': 'off' } },
   { rules: { 'no-restricted-syntax': ['error', ...webClientReexports] } },
 
-  // Game layering: the game's components and hooks reach the server through
-  // its command ports (components/ui/GameBoardCell: the seat's
-  // usePlayer*Commands, useTargetCommandsFor, useCardPlayCommands, useMoveCard,
-  // useGameSay), never through useWebClient. The ports are listed by name;
-  // the files after them predate the rule and still call the WebClient
-  // directly; each is to move behind a port (the stack-A card menus with its
-  // deletion), so the list only shrinks. The rules check module access only:
-  // hooks/dialogs/* and hooks/playCard.ts still drive request.game.* on an
-  // instance handed in by the allowlisted useGameDialogs, debt that leaves
-  // with it. This block replaces the WebClient value-import rule above for
-  // these files, so it repeats it.
   {
     files: ['src/features/game/components/**', 'src/features/game/hooks/**'],
     ignores: [
@@ -163,10 +145,6 @@ export default tseslint.config(
     },
   },
 
-  // E2E specs run against real browsers, so their network must be isolated:
-  // `e2e/fixtures/test.ts` routes every context it hands out. Importing
-  // Playwright's own `test`, or opening a context straight off `browser`,
-  // would skip that and let a spec reach the internet.
   {
     files: ['e2e/specs/**'],
     rules: {
@@ -184,11 +162,8 @@ export default tseslint.config(
       }],
     },
   },
-  // Playwright fixtures receive a `use` callback, which is not React's `use`.
   { files: ['e2e/**'], rules: { 'react-hooks/rules-of-hooks': 'off' } },
 
-  // UI text goes through i18next (`t()` / `<Trans>`): no English literals in JSX
-  // text or in the attributes users read. `scripts/check-i18n.mjs` checks the keys.
   {
     files: ['src/**/*.tsx'],
     ignores: ['src/**/*.spec.tsx', 'src/__test-utils__/**', 'src/**/__mocks__/**'],
@@ -196,7 +171,6 @@ export default tseslint.config(
     rules: {
       'i18next/no-literal-string': ['error', {
         mode: 'jsx-only',
-        // The plugin full-matches these, so `.*[lL]abel` covers `label`, `aria-label` and props like `submitLabel`.
         'jsx-attributes': {
           include: [
             'title',
@@ -208,9 +182,7 @@ export default tseslint.config(
             'message',
           ],
         },
-        // File paths and other technical text shown in <code>.
         'jsx-components': { exclude: ['Trans', 'code'] },
-        // Technical helpers whose string arguments are action IDs or internal zone names.
         callees: {
           exclude: [
             'i18n(ext)?',
@@ -231,9 +203,7 @@ export default tseslint.config(
             'tags\\.push',
           ],
         },
-        // These properties carry discriminators, layout values or wire destinations, not text.
         'object-properties': { exclude: ['[A-Z_-]+', 'kind', 'type', 'zone', 'index', 'placement', 'align'] },
-        // No letters (separators, arrows, dashes), and brand names.
         words: { exclude: ['[^a-zA-Z]+', 'COCKATRICE', 'Webatrice', 'TCGplayer'] },
         'should-validate-template': true,
       }],
@@ -303,15 +273,11 @@ export default tseslint.config(
     },
   },
 
-  // Build and CI scripts run under Node.
   {
     files: ['scripts/**'],
     languageOptions: { globals: { ...globals.node } },
   },
 
-  // The capability preflight runs as a classic script before the bundle, in
-  // browsers too old to parse it, so it must stay ES5: espree at ecmaVersion 5
-  // rejects any newer syntax as a parse error.
   {
     files: ['public/preflight.js'],
     languageOptions: {

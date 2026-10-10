@@ -16,7 +16,6 @@ import type { CustomControlProps } from '../registry';
 
 import '../playmats/PlaymatSettingsPanel.css';
 
-/** The zones in desktop's theme order (ThemeManager: hand, stack, table, player). */
 const ZONES: readonly ZoneBackgroundZone[] = ['hand', 'stack', 'table', 'playerInfo'];
 
 const buildSchema = (t: TFunction) =>
@@ -113,11 +112,6 @@ function ZoneRow({ zone, background, disabled, onChange }: ZoneRowProps) {
   );
 }
 
-/**
- * Backgrounds for the board's hand, stack, table and player area. Desktop takes them from the
- * theme's images; here each is a card's art, cropped with the playmat crop editor. Every change
- * is saved at once.
- */
 export default function ZoneBackgroundsEditor({ labelId, disabled }: CustomControlProps) {
   const settings = useSettings();
   const backgrounds = usePreference('zoneBackgrounds') ?? {};

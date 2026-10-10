@@ -23,10 +23,8 @@ export type {
   LogDescriptor, LogEntry, LogKind, LogParamsByKind, LogPlayer, LogSegment, LogSegmentKind, LogTone,
 } from '../../types/gameLog';
 
-// @critical proto2 wire default for GameEvent.player_id; 0 is a valid player id.
 export const EVENT_PLAYER_ID_SYSTEM = -1;
 
-/** Capture names before the player graph changes; the host owns fallback labels. */
 export function logPlayer(game: Enriched.GameEntry, id: number): LogPlayer {
   return { id, name: id < 0 ? undefined : game.players[id]?.properties.userInfo?.name };
 }
@@ -254,9 +252,7 @@ export function formatPlayerJoined(game: Enriched.GameEntry, playerId: number): 
   return entry('playerJoined', { actor: logPlayer(game, playerId) });
 }
 
-/** Also accepts the name-only input used by existing consumers. */
 export function formatLeaveMessage(player: string | LogPlayer, reason: number): LogEntry {
-  // Desktop logLeave uses the stored name verbatim, even when empty (message_log_widget.cpp:444).
   const actor = typeof player === 'string' ? { name: player } : { ...player, name: player.name ?? '' };
   return entry('playerLeft', { actor, reason });
 }
@@ -346,7 +342,6 @@ export function formatPropertyDiff(game: Enriched.GameEntry, playerId: number, d
   return messages;
 }
 
-/** Event semantics, independent of player names, card names and host language. */
 export function logTone(kind: LogKind): LogTone {
   switch (kind) {
     case 'activePhaseSet': return 'phase';
@@ -359,7 +354,6 @@ export function logTone(kind: LogKind): LogTone {
   }
 }
 
-/** @deprecated Use logTone(entry.kind). Kept for legacy text-only consumers for one release. */
 export function classifyLogTone(input: string | LogEntry): LogTone {
   if (typeof input !== 'string' && input.kind) {
     return logTone(input.kind);

@@ -32,25 +32,6 @@ const SIDEBAR_ACTION_BUTTON_CLASS =
   + 'font-medium text-text-primary bg-bg-elevated hover:bg-border-subtle border '
   + 'border-border-subtle board-motion transition-colors';
 
-/**
- * Right-rail companion for the battlefield. Four stacked sections,
- * top-down:
- *   1. Card preview  — the last card the viewer hovered over
- *   2. Player list   — every seat, active/host/ping badges, plus a
- *                      Leave button in the section header
- *   3. Chat & log    — the shared ChatLog component (same one the
- *                      pre-game lobby renders)
- *
- * Card preview reads the game's preview store (CardPreviewContext), which
- * every card writes to on mouse-enter or focus, so hovering any card
- * anywhere in the play area updates the preview here. Ported inline
- * from fancy webatrice's BattlefieldSidebar — same 5 : 7 aspect image
- * and dashed placeholder.
- *
- * Spectator affordance stays: when the viewer joined as a spectator,
- * a small pill above the card preview flags the mode explicitly.
- */
-
 /** Cockatrice-parity: three ways to view the hovered card in the
  *  preview slot. `both` stacks image on top of text (image slightly
  *  smaller so text fits without overflow). Persisted globally so the
@@ -145,8 +126,6 @@ export default function BattlefieldSidebar() {
     setOverrideStack((stack) => stack.slice(0, -1));
   }, []);
 
-  // A card menu's "View related cards" (desktop's cardInfoRequested) steps
-  // into the stack like a related-link click, so the next hover resets it.
   useCardInfoRequest(useCallback(
     (card: PreviewCard) => handleNavigate({ name: card.name, scryfallId: card.scryfallId }),
     [handleNavigate],
@@ -307,14 +286,6 @@ export default function BattlefieldSidebar() {
         </div>
       )}
 
-      {/* Card preview — 5 : 7 aspect image when a card is hovered,
-           otherwise a dashed placeholder frame. Reads the hover state
-           from the game's preview store so any card on the
-           board (hand / battlefield / library / graveyard / etc.)
-           lights up the preview when its mouse-enter fires. Header
-           row hosts the image/text toggle — persisted globally in
-           localStorage so it survives reloads and applies across all
-           games the user joins. */}
       <div className="shrink-0 p-3 border-b border-border-subtle">
         <div className="flex items-center justify-between pb-2 gap-2">
           <span className="text-[10px] font-semibold uppercase tracking-widest text-text-muted">
@@ -545,10 +516,6 @@ export default function BattlefieldSidebar() {
         )}
       </div>
 
-      {/* Player list — og's PlayerList inside a section header row
-           that carries the game menu and the Leave button (fancy's
-           pattern). The game menu sits here, not in the action row,
-           because spectators can use some of its items. */}
       <div className="shrink-0 border-b border-border-subtle">
         <div className="px-3 py-2 flex items-center justify-between">
           <h2 className="text-[10px] font-semibold uppercase tracking-widest text-text-muted">

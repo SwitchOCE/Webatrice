@@ -8,7 +8,6 @@ export interface GameSelection {
   clearSelection: () => void;
 }
 
-/** The game's card selection, as card keys across every seat and zone. */
 export function useGameSelection(): GameSelection {
   const [selectedCardKeys, setSelectedCardKeys] = useState<ReadonlySet<string>>(EMPTY_SELECTION);
 
@@ -16,7 +15,6 @@ export function useGameSelection(): GameSelection {
     setSelectedCardKeys(EMPTY_SELECTION);
   }, []);
 
-  // Escape clears the selection, unless a MUI dialog owns the key.
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
       if (e.key === 'Escape' && !document.querySelector('.MuiDialog-root[role="dialog"]')) {

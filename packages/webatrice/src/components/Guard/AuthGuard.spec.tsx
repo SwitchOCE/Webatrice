@@ -62,8 +62,6 @@ describe('AuthGuard', () => {
   });
 
   it('redirects exactly once from a guarded route, as the app routes it', () => {
-    // Every guard in the app sits in a route element, so the redirect unmounts it. Counting the
-    // login route's location keys proves the redirect lands once and does not re-fire.
     const keys: string[] = [];
     function CountingLoginPage() {
       const { key, state } = useLocation();
@@ -83,12 +81,9 @@ describe('AuthGuard', () => {
   });
 
   it('stops once the login route is reached, rather than navigating forever', () => {
-    // A page that renders the guard without its own Routes keeps it mounted on /login; a fresh
-    // `state` object each render would otherwise count as a new location every time.
     const keys: string[] = [];
     function LocationKeys() {
       keys.push(useLocation().key);
-      // A loop would otherwise hang the test instead of failing it.
       if (keys.length > 20) {
         throw new Error('AuthGuard keeps navigating');
       }

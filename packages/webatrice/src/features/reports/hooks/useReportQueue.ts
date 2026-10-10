@@ -12,10 +12,8 @@ import { useJoinReportGame } from './useJoinReportGame';
 import { useReportListLoad, type ReportListLoadState } from './useReportListLoad';
 import { useReportThread, type ReportThread } from './useReportThread';
 
-/** Desktop TabReport REFRESH_INTERVAL_MS: refresh every 5 minutes while the tab is visible. */
 export const REPORT_QUEUE_REFRESH_MS = 300_000;
 
-/** The status line message key under the queue (desktop TabReport statusLabel). */
 export type QueueActionMessage =
   | 'assigning' | 'assignedDone' | 'assignFailed'
   | 'resolving' | 'dismissing' | 'done' | 'actionFailed'
@@ -69,7 +67,6 @@ const QUEUE_LIST_FAILURE = {
   type: server.Types.MODERATOR_COMMAND_FAILED, command: 'reportList', successType: server.Actions.reportList.type,
 };
 
-/** The assign or resolve waiting for its answer, matched by report id. */
 interface PendingMutation {
   command: 'reportAssign' | 'reportResolve';
   reportId: number;
@@ -77,12 +74,6 @@ interface PendingMutation {
 
 const NO_ACTIONS: ReportQueueActions = { canAssign: false, canResolve: false, canViewReplay: false, canJoinGame: false };
 
-/**
- * The moderator report queue (desktop TabReport): server list with the
- * "unresolved only" switch, local search and status filters, details and
- * comments, assignment, resolve / dismiss with an optional note, the reported
- * user's history, queue statistics, and jumps to the game or its replay.
- */
 export function useReportQueue(): ReportQueue {
   const webClient = useWebClient();
   const dispatch = useAppDispatch();
@@ -95,7 +86,6 @@ export function useReportQueue(): ReportQueue {
   const [actionMessage, setActionMessage] = useState<QueueActionMessage | null>(null);
   const [actionBusy, setActionBusy] = useState(false);
   const [resolvePrompt, setResolvePrompt] = useState<ResolvePrompt | null>(null);
-  // Target metadata complements request identity for the shared action signals.
   const pendingReplayGameId = useRef<number | null>(null);
   const [userInfoFailedFor, setUserInfoFailedFor] = useState<string | null>(null);
   const [statsOpen, setStatsOpen] = useState(true);
@@ -123,7 +113,6 @@ export function useReportQueue(): ReportQueue {
     () => server.filterReports(queue, search, statusFilter),
     [queue, search, statusFilter],
   );
-  // Desktop acts on the selected row of the filtered table only.
   const selected = useMemo(() => reports.find((r) => r.reportId === selectedId), [reports, selectedId]);
 
   const send = useCallback(
@@ -169,7 +158,6 @@ export function useReportQueue(): ReportQueue {
     }
   }, [refreshList, reloadDetails, requestStats, cancelAction, userInfoRequest]);
 
-  // Initial load, and again when "unresolved only" flips (a new server query).
   useEffect(() => {
     cancelAction();
     userInfoRequest.cancel();
@@ -206,7 +194,6 @@ export function useReportQueue(): ReportQueue {
     }
   }, [lastNotice, refresh]);
 
-  // Reported user's history for the selected report (desktop requestUserInfo).
   const reportedUser = selected?.reportedUserName ?? '';
   useEffect(() => {
     userInfoRequest.cancel();
@@ -214,9 +201,6 @@ export function useReportQueue(): ReportQueue {
     if (!reportedUser) {
       return;
     }
-    // TabReport::requestUserInfo/userInfoResponse (tab_report.cpp:780-818)
-    // clears context for the selected user and rejects another user's reply.
-    // Start before sending so Datatrice's single-investigation guard accepts it.
     dispatch(server.Actions.userInvestigationStarted({ userName: reportedUser }));
     webClient.request.moderator.reportUserInfo(reportedUser, userInfoRequest.begin());
     return userInfoRequest.cancel;
@@ -228,10 +212,6 @@ export function useReportQueue(): ReportQueue {
     }
   }, server.Types.USER_INFO_REPORT, [userInfoRequest]);
 
-  // Desktop TabReport::viewReplayResponse: once the replay answering this
-  // request arrives, parse it and open it in a replay tab. Keyed on the
-  // arrival, not the stored replay, so an earlier download of the same game
-  // can't stand in for it.
   useReduxEffect((action: ReduxEffectAction<{ gameId: number; replayData: Uint8Array; requestId?: RequestId }>) => {
     const { gameId, replayData } = action.payload;
     if (!actionRequest.isCurrent(action.payload.requestId) || gameId !== pendingReplayGameId.current) {
@@ -271,8 +251,6 @@ export function useReportQueue(): ReportQueue {
     setActionMessage(message);
   }, [refresh, actionRequest]);
 
-  // Desktop refreshes the queue once an assign or resolve succeeds; the answer
-  // reaches the view as the store's reportAssigned / reportResolved signal.
   useReduxEffect((action: ReduxEffectAction<{ reportId: number; requestId?: RequestId }>) => {
     const pending = pendingMutation.current;
     const command = action.type === server.Types.REPORT_ASSIGNED ? 'reportAssign' : 'reportResolve';
@@ -283,9 +261,6 @@ export function useReportQueue(): ReportQueue {
     }
   }, [server.Types.REPORT_ASSIGNED, server.Types.REPORT_RESOLVED], [finish, actionRequest]);
 
-  // Every queue command reports failure through the moderator scope's
-  // commandFailed signal (Command_ReportUserInfo's is shared with the
-  // Moderation page); the list's is handled by useReportListLoad.
   useReduxEffect((action: ReduxEffectAction<{
     command: WebsocketTypes.ModeratorCommandName; target: string; requestId?: RequestId;
   }>) => {

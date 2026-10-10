@@ -1,4 +1,3 @@
-// Tailwind class sets shared by the moderation dialogs, matching DialogShell's look.
 
 export const FIELD_CLASS =
   'w-full px-3 py-2 rounded-md text-sm text-text-primary bg-bg-elevated border border-border-control '

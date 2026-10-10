@@ -202,7 +202,6 @@ describe('integration: game lifecycle', () => {
   it('playerPropertiesChanged from a SetPlaymat sets the player\'s playmat without a log line', () => {
     const { store, response } = seedGame();
     const before = games.Selectors.getMessages(store.getState(), GAME_ID).length;
-    // Server_Player::cmdSetPlaymat broadcasts the playmat with the unchanged lock and deck hash.
     response.game.playerPropertiesChanged(GAME_ID, 2, create(ServerInfo_PlayerPropertiesSchema, {
       sideboardLocked: games.Selectors.getPlayer(store.getState(), GAME_ID, 2)!.properties.sideboardLocked,
       deckHash: games.Selectors.getPlayer(store.getState(), GAME_ID, 2)!.properties.deckHash,
@@ -388,8 +387,6 @@ describe('integration: game chat and table events', () => {
   });
 });
 
-// --- pre-game deck -------------------------------------------------------
-
 describe('integration: pre-game deck', () => {
   it('deckSelected stores the server deck on the local player; a resync keeps the server copy', () => {
     const store = createStore();
@@ -403,7 +400,6 @@ describe('integration: pre-game deck', () => {
     response.game.deckSelected?.(GAME_ID, deck);
     expect(games.Selectors.getLocalPlayer(store.getState(), GAME_ID)?.deckList).toBe(deck);
 
-    // Between games Servatrice resends the deck (with its sideboard plan) in deck_list.
     const resynced = playerWithZones(1, 'Alice');
     resynced.deckList = deck.replace('Forest', 'Island');
     response.game.gameStateChanged(GAME_ID, create(Event_GameStateChangedSchema, {
@@ -710,7 +706,6 @@ describe('integration: counters, arrows, turn state', () => {
     const state = store.getState();
     expect(games.Selectors.isReversed(state, GAME_ID)).toBe(true);
     const messages = games.Selectors.getMessages(state, GAME_ID);
-    // Intent: reversing the turn order emits a log line naming the actor.
     expect(messages.some(m => m.message === 'Bob reversed turn order, now it\'s reversed.')).toBe(true);
   });
 

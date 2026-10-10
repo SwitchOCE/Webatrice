@@ -12,12 +12,6 @@ export interface ReplayTimelineProps {
   onSeek: (time: number) => void;
 }
 
-/**
- * Port of desktop's ReplayTimelineWidget: an event-density silhouette (events
- * per 5 s bin) under a progress fill; clicking jumps to that point. As a
- * slider it also seeks from the keyboard: ←/→ by the small skip, PageDown/PageUp
- * by the big skip, Home/End to either end.
- */
 function ReplayTimeline({ timeline, currentTime, maxTime, onSeek }: ReplayTimelineProps) {
   const { t } = useTranslation();
 
@@ -53,7 +47,6 @@ function ReplayTimeline({ timeline, currentTime, maxTime, onSeek }: ReplayTimeli
     if (target === undefined || event.altKey || event.ctrlKey || event.metaKey) {
       return;
     }
-    // Handled here, so the replay's own ←/→ skip shortcuts must not fire as well.
     event.preventDefault();
     event.stopPropagation();
     onSeek(Math.min(maxTime, Math.max(0, target)));

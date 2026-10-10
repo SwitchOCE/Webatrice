@@ -23,7 +23,6 @@ interface LobbyDeckState {
 const LobbyDeckContext = createContext<LobbyDeckState | null>(null);
 const seatKey = (gameId: number, playerId: number) => `${gameId}:${playerId}`;
 
-/** Owns the desktop DeckViewContainer lifetime: a game/seat, independent of the visible route. */
 export function LobbyDeckStateProvider({ children }: { children: ReactNode }) {
   const store = useStore<RootState>();
   const activeGames = useAppSelector((state) => state.games.games);
@@ -39,7 +38,6 @@ export function LobbyDeckStateProvider({ children }: { children: ReactNode }) {
     }));
   }, []);
 
-  // Keep these listeners above the routes: lock and deck-select replies can arrive while away.
   useReduxEffect<{ gameId: number }>(({ payload }) => {
     const player = games.Selectors.getLocalPlayer(store.getState(), payload.gameId);
     if (player) {
@@ -50,8 +48,6 @@ export function LobbyDeckStateProvider({ children }: { children: ReactNode }) {
   useReduxEffect<{ gameId: number; playerId: number; properties: { sideboardLocked?: boolean } }>(({ payload }) => {
     const player = games.Selectors.getLocalPlayer(store.getState(), payload.gameId);
     if (player?.properties.playerId === payload.playerId && payload.properties.sideboardLocked) {
-      // DeckViewContainer::setSideboardLocked resets the plan on a lock echo.
-      // A following deck-select response restores the plan embedded in the selected deck.
       update(payload.gameId, payload.playerId, player.deckList ?? '', { plan: [] });
     }
   }, games.Types.PLAYER_PROPERTIES_CHANGED, [store, update]);
@@ -60,7 +56,6 @@ export function LobbyDeckStateProvider({ children }: { children: ReactNode }) {
     setEntries(previous => Object.fromEntries(Object.entries(previous).filter(([, entry]) => entry.gameId !== payload.gameId)));
   }, games.Types.GAME_LEFT);
 
-  // Removed games/seats no longer own a view (including games removed by disconnect).
   useEffect(() => {
     setEntries(previous => {
       const retained = Object.entries(previous).filter(([, entry]) => {

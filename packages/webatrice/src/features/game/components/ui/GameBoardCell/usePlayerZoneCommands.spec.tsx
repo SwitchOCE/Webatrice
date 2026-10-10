@@ -54,9 +54,6 @@ describe('resolveBattlefieldDropX', () => {
     expect(resolveBattlefieldDropX(move({ targetZone: ZoneName.TABLE, x }) as never, table(cards))).toBe(expected);
   });
 
-  // Negative x values are Servatrice placement sentinels, not columns: -1
-  // stacks on a same-name pile, else takes the row's first free column
-  // (server_cardzone.cpp:192-235).
   it('passes a negative x through for the server to place', () => {
     const full = table([[1, 0, 0], [2, 1, 0], [3, 2, 0]]);
     expect(resolveBattlefieldDropX(move({ targetZone: ZoneName.TABLE, x: -1 }) as never, full)).toBe(-1);
@@ -129,8 +126,6 @@ describe('usePlayerZoneCommands — moveCards', () => {
         x: 0,
         y: 0,
       },
-      // 'end' is x = -1, which the battlefield sub-slot resolution leaves for
-      // the server.
       expect.objectContaining({ targetZone: ZoneName.TABLE, x: -1, y: 2 }),
       expect.objectContaining({ startZone: ZoneName.TABLE, targetZone: ZoneName.DECK, x: 0, y: 0, isReversed: true }),
     ]);
@@ -147,15 +142,11 @@ describe('usePlayerZoneCommands — moveCards', () => {
     });
   });
 
-  // Desktop cmMoveToTopLibrary / cmMoveToBottomLibrary
-  // (player_actions.cpp:1853-1888) shuffle the moved block in the same
-  // container: [0, N-1] on top, [-N, -1] at the bottom.
   it('shuffles a block of cards moved to the top or bottom of the library with the move', () => {
     const { commands, game } = renderZone();
     act(() => {
       commands().moveCards(ZoneName.HAND, [30, 31], { zone: ZoneName.DECK, reversed: false, shuffleMoved: true });
       commands().moveCards(ZoneName.TABLE, [61, 62, 63], { zone: ZoneName.DECK, reversed: true, shuffleMoved: true });
-      // One card has no order to hide.
       commands().moveCards(ZoneName.HAND, [32], { zone: ZoneName.DECK, reversed: false, shuffleMoved: true });
     });
 
@@ -193,7 +184,6 @@ describe('usePlayerZoneCommands — gifts', () => {
       targetPlayerId: 2,
       targetZone: ZoneName.TABLE,
     })));
-    // Bear holds P2's column 0 sub-slot 0.
     expect(vi.mocked(utils.game.moveCard).mock.calls[0][1]).toMatchObject({ targetPlayerId: 2, x: 1, y: 0 });
   });
 });

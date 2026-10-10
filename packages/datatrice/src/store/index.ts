@@ -35,9 +35,6 @@ export type { CommandFailedPayload, SessionCommandFailedPayload } from './server
 export type { JoinRoomFailedPayload, RoomCommandFailedPayload } from './rooms/rooms.interfaces';
 export type { GameCommandFailedPayload } from './games/game.interfaces';
 export type { ReportStatusCounts } from './server/server.reports';
-// Const-and-type pairs are emitted type-only inside tsup's namespace bundles, so
-// their runtime values are re-exported flat as well (`server.ServerCapability`
-// still names the type).
 export { ServerCapability } from './server/server.capabilities';
 export { ReportStatus } from './server/server.reports';
 

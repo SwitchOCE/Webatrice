@@ -1,10 +1,5 @@
 const REDACTED = '[REDACTED]';
 
-/**
- * Copies actions/state for diagnostic output only. Never dispatch this result
- * or use it as application state: share tokens and deck text are bearer/private
- * data even in development. Also used by DevTools for its diagnostic exports.
- */
 export function sanitizeDiagnostics<T>(value: T): T {
   if (value === null || typeof value !== 'object' || value instanceof Uint8Array) {
     return value;

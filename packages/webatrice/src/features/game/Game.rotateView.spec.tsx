@@ -1,6 +1,3 @@
-// "Rotate View Clockwise / Counterclockwise" (desktop TabGame::actRotateViewCW /
-// CCW) from the game menu: the seats move around the table locally, and no
-// request reaches the server.
 
 import { fireEvent, screen, within } from '@testing-library/react';
 import { createMockWebClient, renderWithProviders } from '../../__test-utils__';
@@ -36,7 +33,6 @@ function renderGame() {
     }),
     webClient,
   });
-  // Each cell holds one seat's battlefield and places itself by grid row.
   const seatsTopToBottom = () =>
     [...container.querySelectorAll<HTMLElement>('.game__board-cell')]
       .sort((a, b) => Number(a.style.gridRow) - Number(b.style.gridRow))
@@ -52,7 +48,6 @@ function renderGame() {
 describe('Game view rotation', () => {
   it('moves the seats around the table and back, sending nothing', () => {
     const { webClient, seatsTopToBottom, rotate } = renderGame();
-    // Ring [1,2,3] up the single column: the local seat at the bottom.
     expect(seatsTopToBottom()).toEqual([3, 2, 1]);
 
     rotate('rotateViewCW');

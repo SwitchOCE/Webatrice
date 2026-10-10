@@ -126,19 +126,6 @@ function BattlefieldSlotOverlay({
   );
 }
 
-/**
- * Battlefield — sits in the play row (opposite the hand). The inner
- * scroll container measures the fit area (how many columns fit
- * on-screen). The battlefield content div has an explicit pixel
- * size that expands past the fit as cards are placed on the right
- * buffer column, triggering horizontal scroll. Padding equals the
- * card gap so the visual "frame" around the battlefield matches
- * the spacing between cards.
- * Own battlefield gets Cockatrice's PlayerMenu on right-click
- * (player_menu.cpp:60-62). Opponent boards get the narrower
- * view-only menu (Graveyard / Exile submenus only) since
- * Cockatrice hides every utility item behind the isLocal gate.
- */
 export default function Battlefield() {
   const { t } = useTranslation();
   const {
@@ -166,11 +153,8 @@ export default function Battlefield() {
   } = usePlayerSeatContext();
   const keysHintId = useId();
   const playmat = usePlayerPlaymat(playerId, isSelf);
-  // A replay's backward skip taps and untaps without the animation (SKIP_TAP_ANIMATION).
   const justRewound = useJustRewound();
   const tapAnimation = useAnimationPreference('tapAnimation') && !justRewound;
-  // Desktop's "Battlefield flash on damage": a crimson wash, under the cards,
-  // when this player's life drops.
   const damageFlash = useValueFlash(lifeControl?.value, useAnimationPreference('battlefieldFlash'), { only: 'loss' });
 
   const {
@@ -187,23 +171,16 @@ export default function Battlefield() {
     gridCols,
     battlefieldPositions,
   } = useBattlefieldLayout({ cards: battlefieldDisplayList, playerId, mirrored: handOnTop });
-  // The grid a drop on this board resolves against, by wire row (a mirrored
-  // board draws its rows upside down), for the keyboard move.
   usePublishBattlefieldGeometry(seatId, {
     rows: gridRows,
     cols: gridCols,
     colsByWireRow,
   });
 
-  // The board is a seat drop zone of its own: it resolves a drop against its
-  // own columns and scale, so a gift onto another seat snaps to that board.
   const battlefieldDropRef = useSeatDropZone(`seat-${seatId}-battlefield`, {
     seatPlayerId: seatId,
     acceptsOtherSeats: true,
     priority: SEAT_DROP_PRIORITY.battlefield,
-    // Snap the dragged card's top-left against this board's own columns, in
-    // its visual orientation, then flip the row back to wire orientation on
-    // a mirrored board.
     resolve: ({ cardOrigin }) => {
       const content = battlefieldRef.current;
       if (!content) {
@@ -221,11 +198,8 @@ export default function Battlefield() {
   });
   const battlefieldScrollRef = useForkRef(scrollContainerRef, battlefieldDropRef);
 
-  // The P/T a card shows: the server's, else the printed one (not on a face-down card).
   const shownPT = (c: BattlefieldCardViewModel) => c.pt || (c.faceDown ? undefined : cardMetaByName.get(c.name)?.pt);
   const isAttached = (c: BattlefieldCardViewModel) => c.attachTargetCardId != null && c.attachTargetCardId >= 0;
-  // The arrows walk the board as it is drawn: by row, top to bottom, and left
-  // to right in a row. An attached card sits on its parent's row.
   const lines = (() => {
     const byRow: BattlefieldCardViewModel[][] = Array.from({ length: BATTLEFIELD_ROWS }, () => []);
     for (const c of battlefieldDisplayList) {
@@ -273,8 +247,6 @@ export default function Battlefield() {
       wrapperClassName="min-h-0 relative isolate"
       wrapperStyle={seatGrid.battlefield}
     >
-      {/* Desktop paints the table's background only without a playmat
-        (PlayerGraphicsItem::paint). */}
       {playmat ? <PlaymatArt art={playmat} testId="player-playmat" /> : <ZoneBackground zone="table" />}
       <ValueFlashOverlay flash={damageFlash} kind="damage" />
       {/* Lands divider — spans the full width of the play area,
@@ -358,8 +330,6 @@ export default function Battlefield() {
                 colsByRow={colsByRow}
                 layout={battlefieldLayout}
                 mirrored={handOnTop}
-                // The drop target's row is in wire orientation; the
-                // overlay paints in display orientation.
                 highlightedSlot={
                   target?.zone === 'battlefield'
                     ? {
@@ -461,8 +431,6 @@ export default function Battlefield() {
                       }
                       : undefined
                   }
-                  // Click to play taps or untaps the card, or the whole
-                  // selection when the card is in it.
                   onDoubleClick={(e) => onCardDoubleClick('battlefield', c, e)}
                   style={{
                     width: CARD_WIDTH,

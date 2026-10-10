@@ -169,7 +169,6 @@ describe('useStartupDestination', () => {
   it('opens the startup tab on a cold start, whatever page the last session was on', () => {
     hoisted.preferences = { startupTab: StartupTab.Replays };
 
-    // AppShell boots on the persisted last route; AuthGuard sends it as `from`.
     renderLogin(true, '/decks');
 
     expect(screen.getByText('at /replays null')).toBeInTheDocument();
@@ -252,8 +251,6 @@ describe('useStartupDestination', () => {
     rerender({ connected: true });
     expect(result.current).toEqual(expected);
 
-    // The first post-login events (user info, rooms) re-render the login page after the gate
-    // has latched; the destination must not change under `Navigate`.
     expect(pageLoadLoginGate.done).toBe(true);
     rerender({ connected: true });
     expect(result.current).toEqual(expected);

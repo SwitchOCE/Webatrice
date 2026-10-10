@@ -3,8 +3,6 @@ import { useTranslation } from 'react-i18next';
 
 export default function BracketBadge({ level }: { level: number }) {
   const { t } = useTranslation();
-  // The deck editor's traffic-light palette, so a B3 chip in the lobby
-  // matches the B3 verdict in the editor.
   const tone = bracketToneClass(level);
   return (
     <span

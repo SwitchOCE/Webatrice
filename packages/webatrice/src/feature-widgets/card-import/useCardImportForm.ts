@@ -5,7 +5,6 @@ import { cardDatabaseService, type RebuildResult, type UnknownSetsAnswer } from 
 import { localOracleImportService, IngestResult } from './LocalOracleImportService';
 import { Card, Set } from '@app/services';
 export interface CardImportForm {
-  /** Answer the new-sets question raised by the last save. */
   answerUnknownSets: (answer: UnknownSetsAnswer) => Promise<void>;
   loading: boolean;
   activeStep: number;
@@ -13,7 +12,6 @@ export interface CardImportForm {
   importedCards: Card[];
   importedSets: Set[];
   ingest: IngestResult | null;
-  /** Outcome of the last save, including sets that still need a decision. */
   rebuild: RebuildResult | null;
   error: string | null;
   handleBack: () => void;

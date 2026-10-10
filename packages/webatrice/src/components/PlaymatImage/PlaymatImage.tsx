@@ -6,7 +6,6 @@ import { playmatImageBox, type Size } from '@app/utils';
 
 interface Props { playmat: games.Playmat; area: Size | null }
 
-/** Shared by the battlefield and crop editor, including source fallback and desktop rotation. */
 export default function PlaymatImage({ playmat, area }: Props) {
   const { cardName, cardProviderId } = playmat;
   const [lookup, setLookup] = useState<{ name: string; card: CardDTO | undefined }>();
@@ -37,8 +36,6 @@ export default function PlaymatImage({ playmat, area }: Props) {
     if (!card) {
       return { name: { value: cardName } };
     }
-    // A set can contain several printings of the same card. Preserve the exact
-    // provider id within that set before the resolver applies set priorities.
     const printings = printingsOf(card);
     return { ...card, set: [
       ...printings.filter((printing) => printing.uuid === cardProviderId),
@@ -51,13 +48,11 @@ export default function PlaymatImage({ playmat, area }: Props) {
     if (!candidates.length || !cardProviderId || preferred) {
       return candidates;
     }
-    // Unknown printing: try the announced provider id before the final by-name fallback.
     const providerUrl = getScryfallUrl({ providerId: cardProviderId, name: cardName }, ScryfallImageSize.Large);
     return [...candidates.slice(0, -1), providerUrl, ...candidates.slice(-1)].filter((url): url is string => !!url);
   }, [candidates, cardProviderId, cardName, preferred]);
   const { src, onError } = useImageCandidates(urls);
   const size = loaded?.src === src ? loaded?.size : undefined;
-  // card_art_utils.cpp:10-16 rotates by card metadata, not by the bitmap's aspect ratio.
   const sideways = card?.landscapeOrientation?.value === '1';
   const upright = size && (sideways ? { width: size.height, height: size.width } : size);
   const box = upright && area ? playmatImageBox(upright, playmat.params, area) : null;

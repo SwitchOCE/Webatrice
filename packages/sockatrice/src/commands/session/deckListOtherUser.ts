@@ -2,7 +2,6 @@ import { create } from '@bufbuild/protobuf';
 import { WebClient } from '../../WebClient';
 import { Command_DeckListOtherUser_ext, Command_DeckListOtherUserSchema, Response_DeckList_ext } from '../../generated';
 
-// Servatrice answers with the target's public decks as a Response_DeckList tree.
 export function deckListOtherUser(userName: string): void {
   WebClient.instance.protobuf.sendSessionCommand(
     Command_DeckListOtherUser_ext,

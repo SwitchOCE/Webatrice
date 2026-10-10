@@ -12,7 +12,6 @@ import {
 } from './cardContextMenu.model';
 import type { ContextMenuItem as CardMenuItem } from '../ContextMenu/ContextMenu';
 
-// Every hint renders as its action id, so the tree pins which binding each row shows.
 const menuShortcut = (id: ActionId) => ({ shortcut: `<${id}>`, keyShortcuts: '' });
 const t = catalogT(menuText, zoneText);
 
@@ -59,7 +58,6 @@ function makeArgs(overrides: Partial<BuildCardContextMenuArgs> = {}): BuildCardC
   };
 }
 
-/** One line per row: label, [shortcut], ✓ when checked, (swatch); submenus indented. */
 function tree(items: CardMenuItem[], depth = 0): string[] {
   return items.flatMap((item) => {
     const pad = '  '.repeat(depth);

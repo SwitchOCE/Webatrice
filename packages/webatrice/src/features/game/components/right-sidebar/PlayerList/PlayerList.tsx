@@ -23,21 +23,6 @@ import PlayerListContextMenu, {
 } from './PlayerListContextMenu';
 import { UserDetailsModal } from './PlayerListDialogs';
 
-/**
- * Right-rail player list — one row per seat.
- *
- * Ports fancy webatrice's PlayerRow visual: avatar circle (accent
- * gradient fallback since og's protocol carries no avatar URLs) plus
- * name + host crown icon on the top line and a small role tag
- * underneath. The row highlights when it's this player's turn.
- *
- * Right-click on a row opens `PlayerListContextMenu` (ports Cockatrice's
- * user_context_menu.cpp:348 role-gated menu). Its moderator/admin
- * section and their dialogs come from the moderation feature-widget,
- * shared with every other user context menu in the app. The same menu
- * opens from the keyboard through each row's "More actions for {name}"
- * button (Enter, Space, Shift+F10 or the Menu key), below the button.
- */
 function PlayerList() {
   const { t } = useTranslation();
   const gameId = useGameId();
@@ -63,20 +48,12 @@ function PlayerList() {
   // only exists while it's open).
   const isRegistered = useAppSelector((state) => server.Selectors.getIsUserRegistered(state));
   const isModerator = useAppSelector((state) => server.Selectors.getIsUserModerator(state));
-  // Desktop grants in-game moderator powers only while the Administration
-  // tab is unlocked (TabSupervisor::getAdminLocked).
   const adminLocked = useAdminLocked();
   const buddyList = useAppSelector((state) => server.Selectors.getBuddyList(state));
   const ignoreList = useAppSelector((state) => server.Selectors.getIgnoreList(state));
-  // Server-side user directory: the User details modal renders the
-  // full ServerInfo_User, and seats fall back to it for role flags.
   const userInfoMap = useAppSelector((state) => state.server.userInfo);
   const { reportingAvailable, openReportUser } = useReportUser();
 
-  // Menu state: {anchor, target} or null. A single menu handles every
-  // row; a right-click on a row or its "More actions" button opens it
-  // with the row's target snapshot. The button is the trigger focus
-  // returns to.
   const [menuAnchor, setMenuAnchor] = useState<MenuAnchor | null>(null);
   const [menuTarget, setMenuTarget] = useState<PlayerListMenuTarget | null>(null);
   const menuTriggerRef = useRef<HTMLElement | null>(null);
@@ -120,14 +97,11 @@ function PlayerList() {
       }
       webClient.request.game.kickFromGame(gameId, { playerId: match.properties.playerId });
     },
-    // Desktop passes the game but no chat view from the player list.
     onReportUser: (userName) => openReportUser({ userName, gameId: gameId ?? undefined }),
   };
 
   const entries = players ? Object.values(players) : [];
 
-  // Target level for the moderator section's Promote/Demote entries: the
-  // seat's embedded user info, else the server's user directory.
   const menuTargetLevel = menuTarget
     ? (entries.find((p) => p.properties.userInfo?.name === menuTarget.userName)?.properties.userInfo
       ?? userInfoMap[menuTarget.userName])?.userLevel
@@ -203,7 +177,6 @@ function PlayerList() {
               key={pid}
               data-testid={`player-list-item-${pid}`}
               onContextMenu={(e: MouseEvent<HTMLLIElement>) => {
-                // Desktop tab_game.cpp:1323 gives replay user lists no live client.
                 if (readOnly || !userName) {
                   return;
                 }
@@ -257,7 +230,6 @@ function PlayerList() {
                 </div>
               </div>
 
-              {/* The keyboard's way to the row's right-click menu. */}
               {userName && (
                 <button
                   type="button"

@@ -1,8 +1,3 @@
-// Composition contract between <Game /> and its seats. Game.tsx used to pass
-// three callbacks to every GameBoardCell — the game-level player menu, hand menu
-// and arrow-to-player click — that GameBoardCell ignored, because the seat
-// (PlayerBox) owns all three gestures. These tests pin the routes that are
-// actually live, so dropping the ignored props is provably a no-op.
 
 import { act, fireEvent, screen } from '@testing-library/react';
 import { ZoneName } from '@cockatrice/sockatrice';
@@ -59,8 +54,6 @@ describe('Game seat composition', () => {
   it('a right-click on the battlefield opens the seat player menu, never the game-level one', () => {
     renderGame();
     const labels = menuLabels(openContextMenu(battlefieldEl(1)));
-    // The game-level PlayerContextMenu offered "Create token…" and "View
-    // sideboard…"; the seat menu carries both.
     expect(labels).toEqual(expect.arrayContaining(['Create token...', 'Sideboard']));
     expect(screen.queryByTestId('player-context-menu')).not.toBeInTheDocument();
   });
@@ -87,7 +80,6 @@ describe('Game seat composition', () => {
       startCardId: BOLT.id,
       targetPlayerId: 2,
       arrowColor: ArrowColor.RED,
-      // Drawn in the beginning phase: kept until the first main phase.
       deleteInPhase: Phase.FirstMain,
     });
   });

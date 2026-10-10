@@ -17,9 +17,7 @@ interface CardImageProps {
   className?: string;
   style?: CSSProperties;
   draggable?: boolean;
-  /** Called when the image fails to load and the placeholder takes its place. */
   onError?: () => void;
-  /** Called once the image has loaded. */
   onLoad?: () => void;
 }
 

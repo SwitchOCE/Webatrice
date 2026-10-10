@@ -59,9 +59,6 @@ export default defineConfig({
     // `npm run build` has been run (the test:e2e orchestrator script does so).
     command: `npm run preview -- --port ${PORT} --strictPort`,
     url: BASE_URL,
-    // Always serve this checkout's build. Reusing whatever already listens on
-    // the port (another worktree's preview, a stale build) would test the
-    // wrong bundle without saying so; a busy port fails loudly instead.
     reuseExistingServer: false,
     timeout: 60_000,
   },

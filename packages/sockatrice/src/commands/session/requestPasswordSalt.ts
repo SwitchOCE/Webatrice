@@ -35,8 +35,6 @@ export function requestPasswordSalt(
       },
     },
     onError: (_responseCode, _raw, failure) => {
-      // A dropped connection has already reported its own status (desktop's
-      // passwordSaltResponse ignores RespNotConnected); only settle the caller.
       if (failure !== CommandFailure.Disconnected) {
         updateStatus(StatusEnum.DISCONNECTED, failure === CommandFailure.Timeout
           ? 'Login failed: the server did not respond'

@@ -11,10 +11,6 @@ import {
   ServerInfo_UserSessionSchema,
 } from '@cockatrice/sockatrice/generated';
 
-// Integration: the Cockatrice 3.1 staff-tool responses (desktop TabModeration,
-// TabCardArtRules, TabDeveloper) through attachResponseHandlers into the real
-// store, with the dev freeze guard active, read back through server.Selectors.
-
 describe('integration: staff tools', () => {
   it('builds a user investigation from the three moderation lookups', () => {
     const store = createStore();

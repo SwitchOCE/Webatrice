@@ -121,15 +121,12 @@ it.each([disconnect, server.Actions.clearStore])('clears idle warnings but retai
   expect(screen.getByText(/Banned: repeated abuse/)).toBeVisible();
 });
 
-
 it('retains the connection-closed reason when a later socket status replaces it', () => {
   const store = setup();
   act(() => {
-    // Event_ConnectionClosed publishes its reason through UPDATE_STATUS.
     store.dispatch(server.Actions.updateStatus({ status: {
       state: WebsocketTypes.StatusEnum.DISCONNECTED, description: 'You are banned until tomorrow',
     } }));
-    // The physical socket then closes and publishes the generic transport text.
     store.dispatch(server.Actions.updateStatus({ status: {
       state: WebsocketTypes.StatusEnum.DISCONNECTED, description: 'Connection Closed',
     } }));
@@ -139,7 +136,6 @@ it('retains the connection-closed reason when a later socket status replaces it'
   fireEvent.click(screen.getByRole('button'));
   expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
 });
-
 
 it.each(['Connection Closed', 'Connection Failed', null])('does not add a dialog for generic transport status %s', (description) => {
   const store = setup();

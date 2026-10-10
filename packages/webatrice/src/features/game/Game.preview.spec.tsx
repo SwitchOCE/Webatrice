@@ -1,6 +1,3 @@
-// The game's one card-preview owner (PB-19): every seat leaf publishes to the
-// store Game provides, and the right-rail preview and the middle-click zoom read
-// it. Rendered through <Game /> so the provider wiring itself is under test.
 
 import { act, fireEvent, screen } from '@testing-library/react';
 import { makeCard } from '@cockatrice/datatrice/testing';
@@ -44,7 +41,6 @@ function previewImages(): HTMLImageElement[] {
 
 describe('Game card preview', () => {
   beforeEach(() => {
-    // Scryfall detail fetches stay pending; the image URLs are what we assert on.
     vi.spyOn(globalThis, 'fetch').mockImplementation(() => new Promise(() => {}));
   });
 

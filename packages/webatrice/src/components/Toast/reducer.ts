@@ -18,13 +18,8 @@ export interface ToastEntry {
   // Optional icon override — passed straight through to Toast. Null
   // means "use severity default" (which today is a green checkmark).
   icon?: LucideIcon;
-  // Passed straight through to Toast; undefined means 'success'.
   severity?: ToastSeverity;
-  // Stays up until dismissed instead of auto-hiding: the toast leads
-  // somewhere (WCAG 2.2.1 — no time limit on content you act on).
   persistent?: boolean;
-  // A fire-and-forget `pushToast` entry: nobody holds its key, so closing
-  // it removes it.
   pushed?: boolean;
 }
 
@@ -71,9 +66,6 @@ export function reducer(state: ToastState, action: ToastAction): ToastState {
     case ACTIONS.OPEN_TOAST: {
       const { key, children, icon } = action.payload;
       const existing = state.toasts[key];
-      // Upsert so open never silently no-ops: if the entry was lost (e.g. a
-      // language-change Suspense teardown removed it) or the caller passes
-      // fresh content, (re)create/update it here, then open.
       const next: ToastEntry = existing
         ? {
           ...existing,
@@ -87,9 +79,6 @@ export function reducer(state: ToastState, action: ToastAction): ToastState {
     case ACTIONS.UPDATE_TOAST: {
       const { key, children, icon } = action.payload;
       const existing = state.toasts[key];
-      // Registration (ADD_TOAST) owns creation; a stray update for an
-      // unregistered key is a no-op. Skip unchanged content so a stable t()
-      // string never churns provider state.
       if (!existing || (Object.is(existing.children, children) && existing.icon === (icon ?? existing.icon))) {
         return state;
       }

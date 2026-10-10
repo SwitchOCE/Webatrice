@@ -11,11 +11,6 @@ export interface DeckFolderBarProps {
   onNewFolder: () => void;
 }
 
-/**
- * Where in deck storage the list is: a breadcrumb from the root to the
- * shown folder, and "New folder" (desktop's server-side "New folder",
- * created inside the shown folder).
- */
 export function DeckFolderBar({ path, isConnected, onNavigate, onNewFolder }: DeckFolderBarProps) {
   const { t } = useTranslation();
   const crumbs = deckPathCrumbs(path);

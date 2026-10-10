@@ -1,4 +1,3 @@
-// Life-total input for the set-life prompt (refactor plan PB-11).
 
 /**
  * Safely evaluate a basic arithmetic expression the user typed into

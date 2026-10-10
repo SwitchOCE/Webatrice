@@ -35,10 +35,6 @@ const FORMATS: FormatDef[] = [
   },
 ];
 
-/**
- * Deck exporter: a format picker (see `deckExport` for the formats), a
- * live preview of the exported text, and Copy / Download actions.
- */
 export function ExportDeckDialog({
   open,
   onClose,
@@ -46,7 +42,6 @@ export function ExportDeckDialog({
 }: {
   open: boolean;
   onClose: () => void;
-  /** The live editor deck; the preview re-renders as it changes. */
   deck: HydratedDeck;
 }) {
   const { t } = useTranslation();

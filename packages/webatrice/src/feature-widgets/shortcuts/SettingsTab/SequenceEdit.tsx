@@ -45,8 +45,6 @@ const SequenceEdit = ({ actionId, onClose }: SequenceEditProps) => {
     onClose();
   };
 
-  // While recording, the shortcut provider captures every key but Escape, so the dialog's own
-  // Tab and Enter handling only matters once a pointer has been used.
   return (
     <DialogShell
       isOpen

@@ -1,6 +1,3 @@
-// Cockatrice 3.1 protocol round trips: the new developer command family, a
-// moderation-queue query, a caller-callback submission, a 3.1 login code, the
-// new game event and deck sharing — encoded, correlated and dispatched end to end.
 
 import { create } from '@bufbuild/protobuf';
 import { describe, expect, it, vi } from 'vitest';

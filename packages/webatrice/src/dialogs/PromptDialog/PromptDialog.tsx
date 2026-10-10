@@ -33,16 +33,11 @@ export interface PromptDialogProps {
   initialValue?: string;
   submitLabel?: string;
   helperText?: string;
-  /** A line under the title: what is being edited, or the input's range. */
   description?: string;
   placeholder?: string;
-  /** `number` for whole-number answers (arrow keys step the value); `password` masks the answer. */
   type?: 'text' | 'number' | 'password';
-  /** `numeric` brings up a number keypad without restricting what can be typed. */
   inputMode?: 'text' | 'numeric';
-  /** Select the seeded value on focus, so typing replaces it. */
   selectOnFocus?: boolean;
-  /** Live feedback under the field while there is no error (e.g. an evaluated sum). */
   preview?: (value: string) => string | null;
   validate?: (value: string) => string | null;
   onSubmit: (value: string) => void;

@@ -10,12 +10,9 @@ vi.mock('../../dexie', () => ({
   },
 }));
 
-// Dexie's Table typings return PromiseExtended; the mocks only need plain promises.
 const cards = dexieService.cards as unknown as { get: Mock; bulkGet: Mock };
 const cache = dexieService.scryfallCache as unknown as { get: Mock; bulkGet: Mock; put: Mock; bulkPut: Mock };
 
-// A cards.xml record as the Cockatrice XML parser stores it: `{ value }` leaves,
-// and a single repeated tag collapsed to an object.
 const XML_SWAN_SONG = {
   name: { value: 'Swan Song' },
   prop: {
@@ -83,8 +80,6 @@ describe('lookupCard', () => {
     expect(await lookupCard('Swan Song')).not.toHaveProperty('cipt');
   });
 
-  // Desktop's battlefield row (CardInfo::UiAttributes::tableRow,
-  // cockatrice_xml_4.cpp:342-343), kept through the Scryfall merge.
   it('reads cards.xml tablerow as a number', async () => {
     cards.get.mockResolvedValue({ ...XML_SWAN_SONG, tablerow: { value: '3' } });
     await expect(lookupCard('Swan Song')).resolves.toMatchObject({ tableRow: 3 });
@@ -97,8 +92,6 @@ describe('lookupCard', () => {
     expect(await lookupCard('Swan Song')).not.toHaveProperty('tableRow');
   });
 
-  // Desktop reads `exclude` as present / absent (cockatrice_xml_4.cpp:408-410);
-  // "Create all related tokens" skips such a relation.
   it('carries cards.xml exclude on related and reverse-related cards, and through the Scryfall overlay', async () => {
     const xml = {
       ...XML_SWAN_SONG,
@@ -145,8 +138,6 @@ describe('lookupCard', () => {
       printings: [{ set: 'THS', collectorNumber: '65', scryfallId: 'xml-uuid', imageUri: 'https://mirror/swan.jpg' }],
       layout: 'normal',
     });
-    // Scryfall's token entry wins (it carries the image id); cards.xml's count is overlaid.
-    // combo_piece parts are never surfaced.
     expect(result.related).toEqual([
       { name: 'Bird', component: 'token', origin: 'scryfall', scryfallId: 'bird-id', count: '1', persistent: undefined, attach: undefined },
     ]);
@@ -264,7 +255,6 @@ describe('lookupCards', () => {
     });
     expect([...result.keys()]).toEqual(['Opt', 'Fire']);
     expect(result.get('Opt')).toMatchObject({ found: true, source: 'scryfall', printings: [{ scryfallId: 'a' }] });
-    // Split cards match on their front face.
     expect(result.get('Fire')).toMatchObject({ found: true, name: 'Fire // Ice' });
     expect(cache.bulkPut).toHaveBeenCalledWith([
       expect.objectContaining({ name: 'Opt' }),
@@ -421,7 +411,6 @@ describe('lookupCardsCached', () => {
 
     expect(again.get('Ponder')).toMatchObject({ found: true });
     expect(again.get('Unknowable')).toMatchObject({ source: 'unknown' });
-    // Only the unknown name is looked up again.
     const repeatBody = JSON.parse(fetchMock.mock.calls[firstFetches][1].body);
     expect(repeatBody).toEqual({ identifiers: [{ name: 'Unknowable' }] });
   });

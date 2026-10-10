@@ -9,7 +9,6 @@ import {
 } from '@app/services';
 
 export interface StorageStatus {
-  /** False until the first read finishes. */
   loaded: boolean;
   usage: StorageUsage | null;
   counts: Partial<Record<Stores, number>>;
@@ -19,7 +18,6 @@ export interface StorageStatus {
 const INITIAL: StorageStatus = { loaded: false, usage: null, counts: {}, persisted: null };
 
 let status: StorageStatus = INITIAL;
-/** Bumped by every read, so a slower earlier read (the mount-time one) cannot land last. */
 let generation = 0;
 const listeners = new Set<() => void>();
 
@@ -34,11 +32,6 @@ const subscribe = (listener: () => void) => {
   };
 };
 
-/**
- * Re-reads usage, table counts and persistence. The Storage page's controls share one status,
- * so a clear made by one control updates the figures shown by the others. Each call starts a
- * fresh read, since one already in flight may predate the change the caller just made.
- */
 export function refreshStorageStatus(): Promise<void> {
   const read = ++generation;
   const apply = (next: StorageStatus) => {
@@ -57,12 +50,10 @@ export function refreshStorageStatus(): Promise<void> {
   );
 }
 
-/** The shared storage status; refreshed when the first control mounts on each visit. */
 export function useStorageStatus(): StorageStatus {
   return useSyncExternalStore(subscribe, () => status);
 }
 
-/** Test hook: forget the cached status. */
 export function resetStorageStatus(): void {
   status = INITIAL;
   generation = 0;

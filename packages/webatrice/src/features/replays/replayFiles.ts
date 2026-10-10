@@ -3,27 +3,20 @@ import { downloadBlob } from '@app/utils';
 
 export { MAX_REPLAY_FILE_BYTES } from '@app/services';
 
-/** Hands replay bytes to the browser as a `.cor` download. */
 export function saveReplayFile(data: Uint8Array, fileName: string): void {
   const name = fileName.toLowerCase().endsWith(REPLAY_FILE_EXTENSION) ? fileName : `${fileName}${REPLAY_FILE_EXTENSION}`;
   downloadBlob(data as BlobPart, name, 'application/octet-stream');
 }
 
-/** Desktop's REPLAY_FILE_NAME_FILTERS: only `*.cor` files are replays. */
 export function hasReplayExtension(file: File): boolean {
   return file.name.toLowerCase().endsWith(REPLAY_FILE_EXTENSION);
 }
 
-/**
- * Splits a library entry name for renaming: desktop's rename dialog edits only
- * the base name and re-appends the suffix (TabReplays::actRenameLocal).
- */
 export function splitReplayName(name: string): { base: string; extension: string } {
   const extension = name.toLowerCase().endsWith(REPLAY_FILE_EXTENSION) ? name.slice(-REPLAY_FILE_EXTENSION.length) : '';
   return { base: extension ? name.slice(0, -extension.length) : name, extension };
 }
 
-/** Reads a user-picked file into bytes. */
 export async function readReplayFile(file: File): Promise<Uint8Array> {
   return new Uint8Array(await file.arrayBuffer());
 }

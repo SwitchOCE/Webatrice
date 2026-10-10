@@ -15,9 +15,7 @@ type MarqueeStartZone =
   | { zone: 'stack' };
 
 export interface UseSeatMarqueeArgs {
-  /** The seat's player: its battlefield is the "own" one. */
   playerId: number;
-  /** The seat root: a press on its background starts a marquee. */
   boxRef: RefObject<HTMLElement | null>;
   handRef: RefObject<HTMLElement | null>;
   stackRef: RefObject<HTMLElement | null>;
@@ -25,15 +23,7 @@ export interface UseSeatMarqueeArgs {
   clearAllSelection: SeatSelectionApi['clearAllSelection'];
 }
 
-/**
- * The seat's marquee (rubber-band) selection. A press on the seat's
- * background starts it; while it is dragged out, the cards it touches in one
- * zone (this seat's hand or stack, or any player's battlefield) become this
- * seat's selection, live. Selecting anywhere else clears it, since the
- * selection is the game's.
- */
 export function useSeatMarquee({ playerId, boxRef, handRef, stackRef, setSelection, clearAllSelection }: UseSeatMarqueeArgs) {
-  // A band that starts outside any zone selects nothing.
   const { marquee, begin } = useMarquee<MarqueeStartZone | null>((rect, startZone) => {
     if (!startZone) {
       return 0;

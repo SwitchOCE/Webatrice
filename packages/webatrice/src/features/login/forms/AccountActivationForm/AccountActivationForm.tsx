@@ -28,7 +28,6 @@ const AccountActivationForm = ({ onSubmit }: AccountActivationFormProps) => {
   const { t } = useTranslation();
   const failureMessage = useCommandFailureMessage();
 
-  // A timeout or lost connection explains itself; a server rejection keeps desktop's message.
   useReduxEffect<{ failure: WebsocketTypes.CommandFailure } | undefined>(({ payload }) => {
     setErrorMessage(failureMessage(payload?.failure, t('AccountActivationForm.error.failed')));
   }, server.Types.ACCOUNT_ACTIVATION_FAILED, [failureMessage, t]);

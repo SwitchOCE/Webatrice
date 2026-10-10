@@ -5,9 +5,6 @@ const elements = [
   { type: 'dialogs', pattern: ['src/dialogs/**'] },
   { type: 'feature-widgets', pattern: ['src/feature-widgets/**'] },
   { type: 'feature-wrappers', pattern: ['src/feature-wrappers/**'] },
-  // One element per feature folder. Capturing the folder name lets the rules
-  // tell `features/game` from `features/decks`; without it every feature is the
-  // same element and feature-to-feature imports go unchecked.
   { type: 'features', pattern: ['src/features/*'], capture: ['feature'] },
   { type: 'hooks', pattern: ['src/hooks/**'] },
   { type: 'images', pattern: ['src/images/**'] },
@@ -84,9 +81,6 @@ export const boundariesConfig = [
       }],
     },
   },
-  // Test code is not a layer. Integration helpers sit beside the specs that use
-  // them under `integration/src/<layer>/`, which the element patterns above
-  // would otherwise classify as that layer.
   {
     files: ['**/*.spec.*', 'integration/**'],
     rules: { 'boundaries/dependencies': 'off' },

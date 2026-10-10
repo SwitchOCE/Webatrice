@@ -61,10 +61,6 @@ const COLOR_OPTIONS = [
   { value: '', key: 'c' },
 ] as const;
 
-// Self-sources its open state, seed values and the submit / cancel handlers
-// from GameDialogsContext, so Game renders it propless. The seat opens it with
-// its last token (see CreateTokenRequest).
-// Desktop DlgCreateToken: predefined-token chooser beside the free-form fields.
 function CreateTokenDialog() {
   const { t } = useTranslation();
   const {

@@ -25,23 +25,9 @@ import {
  * off `min(width / REF_WIDTH, height / REF_HEIGHT)`.
  */
 
-/** Base card dimensions at scale=1 — pixel values from Cockatrice
- *  desktop's `CardDimensions::WIDTH / HEIGHT` (card_dimensions.h). Kept
- *  in sync with `SEAT_CARD_WIDTH_PX / SEAT_CARD_HEIGHT_PX` in battlefieldLayout.ts and
- *  the CSS var fallbacks in cardSize.ts. */
 const BASE_CARD_WIDTH_PX = 72;
 const BASE_CARD_HEIGHT_PX = 102;
 
-/** Reference PER-CELL height where the scale reads as 1.0 — one grid
- *  cell (a single seat) at this height renders cards at the base
- *  72 × 102 size. Matches Cockatrice's implicit per-player scene height:
- *  3 battlefield rows (306) + 1 hand row (102) + ~50 padding ≈ 460. In
- *  Cockatrice, mana pips / phase controls / life pill sit in side
- *  columns so they add nothing vertical, and the seat layout
- *  packs the same way (info column is `row-span-full`, not stacked
- *  above/below the play area). Width is intentionally ignored — matches
- *  Cockatrice, where resizing the window horizontally doesn't change
- *  card size, only vertical resizes do. */
 const REFERENCE_CELL_HEIGHT_PX = 460;
 
 /** Clamp keeps cards readable on tiny windows and prevents runaway sizes
@@ -85,11 +71,6 @@ export interface CardScaleProviderProps {
    *  back to the default 1.0 scale — safe for isolated component
    *  previews and tests. */
   containerRef?: RefObject<HTMLElement | null>;
-  /** Number of seat rows in the current board layout — per-cell
-   *  height is `boardHeight / rows`, and card size scales off THAT so a
-   *  3-player game (rows=3) shrinks cards relative to a 2-player game
-   *  (rows=2) at the same viewport height. Sourced from
-   *  useGameBoardLayout. */
   rows?: number;
   children: ReactNode;
 }

@@ -5,20 +5,7 @@ import type { CommandFailure } from '../../types/CommandFailure';
 import { Command_AccountPassword_ext, Command_AccountPasswordSchema, type AccountPasswordParams } from '../../generated';
 import { generateSalt, hashPassword, passwordHashAvailable } from '../../utils';
 
-/**
- * @deprecated Pass `onChanged`/`onFailure` instead and let Sockatrice hash the new password. This
- * form sends the non-empty credentials exactly as given.
- */
 export function accountPassword(oldPassword: string, newPassword: string, hashedNewPassword: string): void;
-/**
- * Changes the logged-in user's password. Mirrors desktop `UserInfoBox::changePassword`: on servers that
- * support password hashing the new password is hashed client-side under a fresh salt and only
- * `hashedNewPassword` is sent; otherwise only the plaintext `newPassword` is. Servatrice reads
- * `new_password` whenever it is present, so the two are never sent together. A client that cannot hash
- * (no Web Crypto outside a secure context) sends the plaintext, as `serverIdentification` does at login.
- *
- * The returned promise rejects only when hashing itself fails; the command is not sent in that case.
- */
 export function accountPassword(
   oldPassword: string,
   newPassword: string,

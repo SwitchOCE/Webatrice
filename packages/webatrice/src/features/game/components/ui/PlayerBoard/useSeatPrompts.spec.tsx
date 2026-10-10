@@ -57,7 +57,6 @@ function setup(args: Partial<UseSeatPromptsArgs> = {}) {
     counterCommands,
     ...args,
   }), { wrapper });
-  // Answers the prompt the last call opened.
   const answer = (value: string) => {
     const prompt = vi.mocked(dialogs.openPrompt).mock.calls.at(-1)![0] as PromptState;
     act(() => prompt.onSubmit(value));

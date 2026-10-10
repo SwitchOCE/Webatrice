@@ -96,9 +96,6 @@ function removeByPath(folder: ServerInfo_DeckStorage_Folder, pathSegments: strin
   });
 }
 
-// Set the node's own public bit, the one Command_DeckSetVisibility persists: a
-// deck by id, or a folder by path. Decks under a folder keep their own bit and
-// inherit the folder's visibility (desktop's "Public (inherited)").
 function setVisibility(
   folder: ServerInfo_DeckStorage_Folder,
   target: { deckId?: number; folderPath?: string[] },
@@ -145,8 +142,6 @@ export const deckReducers = {
     });
   }) as CaseReducer<ServerState, PayloadAction<{ path: string; treeItem: ServerInfo_DeckStorage_TreeItem; requestId?: string }>>,
 
-  // An update keeps the deck's id and folder; Servatrice answers with the
-  // re-derived name and upload time; omitted metadata keeps its prior value.
   deckUpdated: ((state, action) => {
     const { deckId, treeItem } = action.payload;
     if (!state.backendDecks?.root || !treeItem) {

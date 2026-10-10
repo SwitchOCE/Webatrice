@@ -31,7 +31,6 @@ function reply(cmdId: number, gameId: number) {
 }
 
 describe('server replay refresh round trips', () => {
-  // One connection answers in order, so a left view's reply arrives before the new view's.
   it.each(['success', 'failure'])('does not settle or alert a new view with an old view %s', (outcome) => {
     connectAndLogin();
     const oldView = renderFeatureScreen(<Probe />);

@@ -7,13 +7,11 @@ import { DeckDialogFrame } from './DeckDialogFrame';
 
 export interface MoveDeckDialogProps {
   deck: FlatDeck;
-  /** Every folder path, root (`""`) first. */
   folderPaths: readonly string[];
   onCancel: () => void;
   onMove: (targetPath: string) => void;
 }
 
-/** Pick the folder a deck moves to (any folder but its own). */
 export function MoveDeckDialog({ deck, folderPaths, onCancel, onMove }: MoveDeckDialogProps) {
   const { t } = useTranslation();
   const targets = folderPaths.filter((p) => p !== deck.path);

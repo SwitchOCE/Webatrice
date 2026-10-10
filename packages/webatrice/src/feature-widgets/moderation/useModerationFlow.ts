@@ -14,25 +14,10 @@ import { useRoleChanges } from './useRoleChanges';
 import type { ModerationAction } from './moderationMenu';
 import { banMinutes, type BanUserFormValues, type WarnUserFormValues } from './moderationFormSchemas';
 
-/**
- * Command_WarnUser / Command_BanFromServer `remove_messages` value for "redact
- * every message". Desktop sets -1 on the uint32 field, which goes on the wire as
- * 0xFFFFFFFF and which Servatrice reads back into an int as -1 ("all").
- */
 export const REDACT_ALL_MESSAGES = 0xffffffff;
 
 type Stage = 'loading' | 'ready';
 
-/**
- * The dialog flow in progress. Each one mirrors a desktop round trip:
- *  - warnUser: GetUserInfo → GetWarnList(name, clientid) → WarningDialog
- *  - banUser: GetUserInfo → BanDialog (pre-filled with address / clientid)
- *
- * Desktop does not check GetUserInfo's response code: when it fails, warn still
- * asks for the warning list with an empty client id, and ban opens with only the
- * name filled in (`noUserInfo`).
- *  - warnHistory / banHistory / adminNotes: one moderator command → table or editor
- */
 export type ModerationFlow =
   | { kind: 'warnUser'; userName: string; stage: Stage; clientId: string | null }
   | { kind: 'banUser'; userName: string; stage: Stage; noUserInfo: boolean }
@@ -56,11 +41,6 @@ export interface ModerationFlowState {
 
 type DialogData = Partial<Pick<ModerationFlowState, 'userInfo' | 'warnList' | 'banHistory' | 'warnHistory' | 'adminNotes'>>;
 
-/**
- * Drives desktop's UserContextMenu moderator round trips (user_context_menu.cpp)
- * for every user surface: sends the commands, waits for the matching Datatrice
- * signal, then opens the dialog — or the message box desktop shows instead.
- */
 export function useModerationFlow(): ModerationFlowState {
   const { t } = useTranslation();
   const describeFailure = useCommandFailureMessage();
@@ -69,15 +49,11 @@ export function useModerationFlow(): ModerationFlowState {
   const ownName = useAppSelector((state) => server.Selectors.getUser(state)?.name ?? '');
   const requests = useRequestTracker();
   const [flow, setFlowState] = useState<ModerationFlow | null>(null);
-  // Update the ref before sending: immediate replies and same-batch cancellation
-  // must see the current stage before React commits another render.
   const currentFlow = useRef<ModerationFlow | null>(null);
   const setFlow = useCallback((next: ModerationFlow | null) => {
     currentFlow.current = next;
     setFlowState(next);
   }, []);
-  // Accepted response snapshots belong to this flow. A stale same-user action
-  // may still refresh the shared cache, but cannot replace an open dialog's data.
   const [data, setData] = useState<DialogData>({});
   const [notices, setNotices] = useState<AlertDialogNotice[]>([]);
   const notify = useCallback((notice: AlertDialogNotice) => setNotices((queue) => [...queue, notice]), []);
@@ -225,7 +201,6 @@ export function useModerationFlow(): ModerationFlowState {
     const command = payload.command;
     if (command === 'warnList' && current.kind === 'warnUser' && current.clientId !== null) {
       requests.cancel();
-      // The accepted flow has no warning reasons on failure; never reuse cached reasons.
       setFlow({ ...current, stage: 'ready' });
       return;
     }
@@ -261,7 +236,6 @@ export function useModerationFlow(): ModerationFlowState {
   }, [close, flow, ownName, webClient]);
 
   const submitBan = useCallback((values: BanUserFormValues) => {
-    // Unticked identifiers go out as empty strings, as BanDialog's getters return them.
     webClient.request.moderator.banFromServer(
       banMinutes(values),
       values.byName ? values.userName : '',

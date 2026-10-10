@@ -1,6 +1,3 @@
-// Custom zones end to end: a gameStateChanged with a non-builtin zone lists it
-// in the own battlefield menu, which opens a view of it; a resync without the
-// zone drops it again (desktop PlayerLogic::processPlayerInfo).
 import { act, screen, waitFor } from '@testing-library/react';
 import { create } from '@bufbuild/protobuf';
 import { describe, expect, it } from 'vitest';

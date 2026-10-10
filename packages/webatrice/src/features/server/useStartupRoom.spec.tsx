@@ -20,7 +20,6 @@ import { STARTUP_ROOM_TIMEOUT_MS, useStartupRoom } from './useStartupRoom';
 const sideRoom = create(ServerInfo_RoomSchema, { roomId: 2, name: 'Side Room', autoJoin: false });
 const autoRoom = create(ServerInfo_RoomSchema, { roomId: 3, name: 'Auto Room', autoJoin: true });
 
-// Main Room (1, auto-join) is already joined in the fixture; Side Room and Auto Room are not.
 const lobbyState = {
   ...connectedWithRoomsState,
   rooms: {

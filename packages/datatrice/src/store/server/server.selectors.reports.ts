@@ -9,8 +9,6 @@ type State = { server: ServerState };
 
 const EMPTY_REPORTS: ServerInfo_Report[] = [];
 
-// Preloaded or partial states (host-supplied, test fixtures) may predate the
-// reports field, so every read falls back to the empty shape.
 const selectReports = ({ server }: State): ServerStateReports => server.reports ?? initialReportsState;
 const selectById = (state: State) => selectReports(state).byId;
 
@@ -18,7 +16,6 @@ function rowsFor(ids: number[] | null, byId: ServerStateReports['byId']): Server
   if (!ids) {
     return EMPTY_REPORTS;
   }
-  // A loaded empty response needs its own identity so list loads can settle.
   const rows: ServerInfo_Report[] = [];
   for (const id of ids) {
     const row = byId[id];
@@ -35,11 +32,9 @@ const getReportQueue = createSelector(
 );
 
 export const reportSelectors = {
-  /** The caller's own reports, newest first; empty until loaded. */
   getMyReports: createSelector([(state: State) => selectReports(state).mine, selectById], rowsFor),
   getMyReportsLoaded: (state: State): boolean => selectReports(state).mine !== null,
 
-  /** The loaded moderator queue page, newest first; empty until loaded. */
   getReportQueue,
   getReportQueueLoaded: (state: State): boolean => selectReports(state).queue !== null,
   getReportQueueTotalCount: (state: State): number => selectReports(state).queueTotalCount,

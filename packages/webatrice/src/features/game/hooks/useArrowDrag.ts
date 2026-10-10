@@ -6,14 +6,11 @@ import type { ArrowTarget } from '../components/ui/PlayerBoard/playerBoard.types
 import { makeCardKey, makePlayerKey, parseCardKey, type CardRegistry } from '../utils/CardRegistry/CardRegistryContext';
 import { arrowColorForModifiers, type ArrowSource } from './arrowResolution';
 
-/** Right-button motion (|dx| + |dy|, px) before a press becomes an arrow drag
- *  instead of opening the context menu. */
 const ARROW_DRAG_THRESHOLD_PX = 4;
 
 const CARD_SELECTOR = '[data-card-id][data-card-owner][data-card-zone]';
 const PLAYER_SELECTOR = '[data-arrow-target-kind="player"]';
 
-/** The card element under `el`, by the data attributes every arrow-capable card carries. */
 export function arrowCardAt(el: Element | null | undefined): ArrowSource | null {
   const cardEl = el?.closest(CARD_SELECTOR);
   if (!cardEl) {
@@ -25,15 +22,9 @@ export function arrowCardAt(el: Element | null | undefined): ArrowSource | null 
   return Number.isFinite(playerId) && zone && Number.isFinite(cardId) ? { playerId, zone, cardId } : null;
 }
 
-/** What an arrow released over `el` points at: a card, else a player's life
- *  total, else nothing. */
 export function arrowTargetAt(el: Element | null | undefined): ArrowTarget | null {
   const card = arrowCardAt(el);
   if (card) {
-    // Servatrice cmdCreateArrow requires a public target zone. Hand cards
-    // remain sources (played before drawing), but never destinations; opening
-    // a library/sideboard view does not make its hidden zone public either.
-    // Reject here, before either drag or pending-pick plans can play a card.
     if (card.zone !== ZoneName.TABLE && card.zone !== ZoneName.STACK
       && card.zone !== ZoneName.GRAVE && card.zone !== ZoneName.EXILE) {
       return null;
@@ -79,15 +70,11 @@ export interface ArrowDragPreview {
 export interface UseArrowDragArgs {
   containerRef: RefObject<HTMLDivElement>;
   cardRegistry: CardRegistry;
-  /** A drag released over a target, in the colour of the modifier held when
-   *  the drag started. */
   onDrop: (source: ArrowSource, target: ArrowTarget, color: ColorRGBA) => void;
 }
 
 export interface ArrowDrag {
-  /** The dragged card's key while a drag is in progress. */
   sourceKey: string | null;
-  /** The card or player under the pointer, once the press became a drag. */
   targetKey: string | null;
   preview: ArrowDragPreview | null;
   handleBoardMouseDown: (e: React.MouseEvent<HTMLDivElement>) => void;
@@ -102,7 +89,6 @@ function elementFor(cardRegistry: CardRegistry, key: string): HTMLElement | null
   if (registered) {
     return registered;
   }
-  // The seat tags its cards with data attributes but does not register them.
   const card = parseCardKey(key);
   if (card) {
     return document.querySelector<HTMLElement>(
@@ -119,19 +105,10 @@ function elementFor(cardRegistry: CardRegistry, key: string): HTMLElement | null
   return null;
 }
 
-/**
- * The right-button arrow drag (desktop CardItem::mouseMoveEvent →
- * ArrowDragItem): a right press on a card that moves past the threshold draws
- * a live arrow to the pointer, snapped to the card or player under it, and
- * hands the release to `onDrop`. A press that never moves leaves the context
- * menu to open. Pointer and hit-testing only: what the drop sends is the
- * caller's.
- */
 export function useArrowDrag({ containerRef, cardRegistry, onDrop }: UseArrowDragArgs): ArrowDrag {
   const [drag, setDrag] = useState<ArrowDragState | null>(null);
   const [targetKey, setTargetKey] = useState<string | null>(null);
 
-  // Escape cancels the drag, unless a MUI dialog has it first.
   useEffect(() => {
     if (!drag) {
       return undefined;
@@ -164,9 +141,6 @@ export function useArrowDrag({ containerRef, cardRegistry, onDrop }: UseArrowDra
           const sourceKey = makeCardKey(prev.source.playerId, prev.source.zone, prev.source.cardId);
           setTargetKey(key === sourceKey ? null : key);
         }
-        // Desktop CardItem::mouseMoveEvent (card_item.cpp:332-347) picks the
-        // colour from the modifiers held on the move that starts the drag;
-        // the arrow keeps it until release.
         const modifiers = prev.moved ? {} : { ctrlKey: e.ctrlKey, altKey: e.altKey, shiftKey: e.shiftKey };
         return { ...prev, currentX: e.clientX, currentY: e.clientY, moved, ...modifiers };
       });
@@ -179,7 +153,6 @@ export function useArrowDrag({ containerRef, cardRegistry, onDrop }: UseArrowDra
       setDrag(null);
       setTargetKey(null);
       if (!exceedsThreshold(drag, e)) {
-        // A right click without a drag: the contextmenu handler opens the card menu.
         return;
       }
       // Any real drag suppresses the contextmenu event that follows mouseup.
@@ -228,7 +201,6 @@ export function useArrowDrag({ containerRef, cardRegistry, onDrop }: UseArrowDra
     });
   }, []);
 
-  // Viewport → board-relative coordinates for the SVG preview line.
   const preview = useMemo<ArrowDragPreview | null>(() => {
     if (!drag || !drag.moved) {
       return null;
@@ -240,9 +212,6 @@ export function useArrowDrag({ containerRef, cardRegistry, onDrop }: UseArrowDra
     }
     const sourceRect = sourceEl.getBoundingClientRect();
 
-    // Endpoint snapping, as desktop's ArrowDragItem::updatePath(): over a
-    // target the shaft locks to its centre (a card, or a player's life
-    // total); otherwise it follows the pointer.
     let x2 = drag.currentX - containerRect.left;
     let y2 = drag.currentY - containerRect.top;
     const targetEl = targetKey ? elementFor(cardRegistry, targetKey) : null;
@@ -257,7 +226,6 @@ export function useArrowDrag({ containerRef, cardRegistry, onDrop }: UseArrowDra
       y1: sourceRect.top + sourceRect.height / 2 - containerRect.top,
       x2,
       y2,
-      // The colour the arrow would have if released now.
       color: rgbaToCss(arrowColorForModifiers(drag)),
       fullColor: targetKey != null,
     };

@@ -1,7 +1,6 @@
 import { z } from 'zod';
 import type { TFunction } from 'i18next';
 
-// Spin-box ranges from desktop's TabLog::createDock (tab_logs.cpp).
 export const LOG_MAX_DAYS = 20;
 export const LOG_MAX_RESULTS = 1000;
 
@@ -13,13 +12,10 @@ export const buildLogSearchSchema = (t: TFunction) =>
     gameId: z.string(),
     message: z.string(),
     logLocation: z.object({ room: z.boolean(), game: z.boolean(), chat: z.boolean() }),
-    // '' = no radio picked yet (desktop's Clear Filters unchecks all three).
     dateRange: z.enum(['', 'pastDays', 'today', 'lastHour']),
     pastDays: z.number().int().min(0).max(LOG_MAX_DAYS),
     maximumResults: z.number().int().min(0).max(LOG_MAX_RESULTS),
   }).superRefine((values, ctx) => {
-    // TabLog::getClicked checks these two, in this order, with these messages.
-    // (Not on `root`: react-hook-form clears root errors before deciding to submit.)
     const filters = [values.userName, values.ipAddress, values.gameName, values.gameId, values.message];
     if (filters.every((value) => value.trim() === '')) {
       ctx.addIssue({ code: 'custom', path: ['userName'], message: t('LogSearchForm.error.noFilter') });
@@ -44,11 +40,6 @@ export const LOG_SEARCH_DEFAULTS: LogSearchFormValues = {
   maximumResults: 0,
 };
 
-/**
- * The defaults TabLog::getClicked writes back into an under-specified search:
- * no date range → the past 20 days, no location → all three (rooms and games only for the developer
- * family, which cannot read private chats), no maximum → 1000.
- */
 export function applyLogSearchDefaults(values: LogSearchFormValues, developer = false): LogSearchFormValues {
   const next = { ...values, logLocation: { ...values.logLocation } };
   if (next.dateRange === '') {
@@ -64,7 +55,6 @@ export function applyLogSearchDefaults(values: LogSearchFormValues, developer = 
   return next;
 }
 
-/** Command_ViewLogHistory.date_range as desktop computes it: a look-back in hours. */
 export function logDateRangeHours({ dateRange, pastDays }: LogSearchFormValues): number {
   switch (dateRange) {
     case 'lastHour':

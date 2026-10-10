@@ -1,11 +1,5 @@
 import type { ManaColor } from './manaSymbols';
 
-/**
- * Advanced card search: filter state and the Scryfall query it composes
- * to. Ports fancy webatrice's `buildScryfallQuery` verbatim so both apps
- * understand the same query scheme.
- */
-
 export type FilterColorMode = 'includes' | 'exactly' | 'atMost';
 export type FilterCardType =
   | 'Creature'
@@ -45,13 +39,8 @@ export const FILTER_TYPES: FilterCardType[] = [
   'Creature', 'Instant', 'Sorcery', 'Enchantment', 'Artifact', 'Planeswalker', 'Land',
 ];
 
-/** Rarity filter buttons in display order; the UI labels them `CardSearch.rarity.<id>`. */
 export const FILTER_RARITIES: FilterRarity[] = ['common', 'uncommon', 'rare', 'mythic'];
 
-/**
- * Combine the typed query with the filter state into one Scryfall query.
- * Filters AND-combine with the typed text (Scryfall AND is implicit).
- */
 export function buildScryfallQuery(typed: string, f: SearchFiltersState): string {
   const parts: string[] = [];
   const text = typed.trim();
@@ -108,7 +97,6 @@ export function buildScryfallQuery(typed: string, f: SearchFiltersState): string
   return parts.join(' ');
 }
 
-/** True when any filter (not the advanced-panel toggle) narrows the search. */
 export function hasActiveFilters(f: SearchFiltersState): boolean {
   return (
     f.colors.length > 0 ||
@@ -121,7 +109,6 @@ export function hasActiveFilters(f: SearchFiltersState): boolean {
   );
 }
 
-/** Add `item` when absent, remove it when present. */
 export function toggleFilter<T>(arr: T[], item: T): T[] {
   return arr.includes(item) ? arr.filter((x) => x !== item) : [...arr, item];
 }

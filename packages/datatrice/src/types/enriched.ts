@@ -31,21 +31,12 @@ export interface Game {
   gameType: string;
 }
 
-// A line the client itself appends to a chat, as desktop does with
-// ChatView::appendMessage (e.g. TabRoom::sayFinished's flood warning). The UI
-// renders the text for the kind; the line carries no sender and no wire text.
-// `notSent`: the server never answered the message (see Message.failure).
 export type ChatNotice = 'chatFlood' | 'notSent';
 
 export type Message = Event_RoomSay & {
   timeReceived: number;
-  // Stable, monotonic client id assigned at store ingestion; absent on the
-  // wire-derived message before it's stored. See rooms.reducer.inline.ts for the
-  // rationale (chat rows key on it, not the array index).
   id?: number;
-  // Set only on client-generated lines; see ChatNotice.
   notice?: ChatNotice;
-  // Why a `notSent` line's message got no answer.
   failure?: WebsocketTypes.CommandFailure;
 };
 
@@ -63,12 +54,7 @@ export interface GameEntry {
   started: boolean;
   activePlayerId: number;
   activePhase: number;
-  /** The game time, in seconds since the game started, as the server last said. */
   secondsElapsed: number;
-  /**
-   * Wall-clock ms when `secondsElapsed` arrived; the game time runs on from there (desktop
-   * ticks its own game clock between the server's updates). Unset until the first update.
-   */
   secondsElapsedAt?: number;
   reversed: boolean;
 
@@ -78,12 +64,7 @@ export interface GameEntry {
   // order the server sent (full-state syncs) and append-on-join, for board seating
   // and reveal-target lists. See seatedPlayersOf / Selectors.getSeatedPlayers.
   seatOrder: number[];
-  // No ping field here by design: the live ping clock lives out of the game
-  // graph in GamesState.pings — read it via Selectors.getPings / getPlayerPing.
   messages: GameMessage[];
-  // Local replay playback (desktop TabGame in replay mode), never a server game:
-  // rebuilt from a GameReplay's event containers under a client-chosen id, kept
-  // across disconnects, and excluded from the active-game selectors.
   replay?: boolean;
 }
 
@@ -105,8 +86,6 @@ export interface PlayerEntry {
 }
 
 export interface ZoneEntry {
-  /** One of the builtin zones, or a custom zone a forked server adds
-   *  (see `isBuiltinZone`). */
   name: ZoneNameValue | (string & {});
   type: number;
   withCoords: boolean;
@@ -147,19 +126,10 @@ export interface GameMessage {
    *  player / number tokens independently. Chat lines and pre-segment
    *  legacy events leave this undefined. */
   segments?: LogMessageSegment[];
-  /** Structured event data for host-owned translations; absent on legacy and chat lines. */
   descriptor?: LogDescriptor;
-  /** Wall-clock ms captured in the action payload. Rendered
-   *  as `[HH:MM:SS]` local time before the message body, matching
-   *  Cockatrice desktop's `QDateTime::currentDateTime()` stamp. */
   timeReceived: number;
-  /** The game time, in seconds, when the line was logged: what desktop's "Use game time
-   *  instead of local time in game logs" stamps instead (see gameSecondsNow). */
   gameSeconds?: number;
   kind?: 'chat' | 'event';
-  /** Chat lines only: the sender's name when the line arrived, so the line
-   *  keeps its author after that player leaves (desktop ChatView stores the
-   *  sender with each message). Undefined when the seat was unknown. */
   senderName?: string;
 }
 

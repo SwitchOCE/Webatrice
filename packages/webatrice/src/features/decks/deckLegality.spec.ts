@@ -94,7 +94,6 @@ describe('cardLegality', () => {
       expect(cardLegality('modern', bolt, 60, rules)).toEqual({ status: 'legal' });
     });
 
-    // Desktop returns -1 for both and paints both red; only the unlisted label is illegal here.
     it('keeps an unlimited count apart from a label the format does not list', () => {
       const rules = toFormatRules({ formatName: 'x', allowedCounts: [{ max: 'unlimited', label: 'legal' }] })!;
       expect(cardLegality('vintage', bolt, 60, rules)).toEqual({ status: 'legal' });

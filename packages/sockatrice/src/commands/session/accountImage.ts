@@ -4,7 +4,6 @@ import type { CommandFailure } from '../../types/CommandFailure';
 
 import { Command_AccountImage_ext, Command_AccountImageSchema } from '../../generated';
 
-/** Replaces the logged-in user's avatar; an empty `image` removes it (desktop `DlgEditAvatar`). */
 export function accountImage(
   image: Uint8Array,
   onChanged?: () => void,

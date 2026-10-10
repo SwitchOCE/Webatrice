@@ -20,17 +20,12 @@ import type {
   SeatDeckCard,
 } from '../PlayerBoard/playerBoard.types';
 
-// Projects one seat's Datatrice state into the PlayerBoardModel. Reads only;
-// every command lives in the usePlayer*Commands hooks.
-
 // Life is just a counter named "life" (case-insensitive) in Cockatrice's
 // protocol — no special-cased life field on players.
 function isLifeCounter(c: { name: string }): boolean {
   return c.name.trim().toLowerCase() === 'life';
 }
 
-// Servatrice pre-creates counters 1-7 with wire names "w"/"u"/"b"/"r"/"g"/"x"/
-// "storm" (server_player.cpp:96-102). Desktop labels "storm" "Other".
 const MANA_SYMBOL_BY_WIRE_NAME: Record<string, ManaSymbol> = {
   w: 'W',
   u: 'U',
@@ -41,16 +36,12 @@ const MANA_SYMBOL_BY_WIRE_NAME: Record<string, ManaSymbol> = {
   storm: 'O',
 };
 
-// Stable empty references for the pre-hydration transient, so downstream memos
-// don't invalidate on every render while a player has no zone data yet.
 const EMPTY_CARDS: PlayerCardViewModel[] = [];
 const EMPTY_BATTLEFIELD_CARDS: BattlefieldCardViewModel[] = [];
 const EMPTY_DECK: SeatDeckCard[] = [];
 
 type ZoneCards = { order: number[]; byId: Record<number, ServerInfo_Card> };
 
-/** Project a public zone (byId + order) into seat cards. `order` runs bottom →
- *  top, so the last entry is the top of the pile. */
 export function zoneToSeatCards(zone: ZoneCards | undefined): PlayerCardViewModel[] {
   if (!zone) {
     return EMPTY_CARDS;
@@ -66,13 +57,10 @@ export function zoneToSeatCards(zone: ZoneCards | undefined): PlayerCardViewMode
   });
 }
 
-/** The name a seat shows: the player's, or a placeholder until it arrives. */
 export function seatDisplayName(t: TFunction, realName: string | undefined, isLocal: boolean, playerId: number): string {
   return realName ?? (isLocal ? t('PlayerBoard.you') : t('GameLog.player.number', { id: playerId }));
 }
 
-/** Project a Response_DumpZone snapshot. Falls back to the array index when the
- *  server didn't set an id (Cockatrice reveal-list quirk). */
 export function revealedCardsToSeatCards(
   cards: readonly { id: number; name: string; providerId: string }[] | undefined,
 ): PlayerCardViewModel[] {
@@ -86,8 +74,6 @@ export function revealedCardsToSeatCards(
   }));
 }
 
-/** Decode one TABLE card. Wire `x / 3` is the stack column and `x % 3` the
- *  sub-slot; `attachCardId === -1` is the unattached sentinel. */
 export function projectBattlefieldCard(
   id: number,
   card: ServerInfo_Card | undefined,
@@ -114,18 +100,10 @@ export function projectBattlefieldCard(
     annotation: card?.annotation || undefined,
     attachTargetCardId: attachCardId >= 0 ? attachCardId : undefined,
     attachTargetPlayerId: attachCardId >= 0 ? attachPlayerId : undefined,
-    // Servatrice strips zero-valued counters, so the list holds active ones only.
     counters: card?.counterList,
   };
 }
 
-/**
- * The seat's battlefield. A card attached to another player's card still lives
- * in its owner's TABLE zone (Servatrice never moves it), but desktop re-parents
- * it in the scene graph. So: drop own cards attached to another player, then
- * append other players' cards attached to this player's cards, each keeping its
- * true `ownerPlayerId` so commands still address the right zone.
- */
 export function projectBattlefield(
   playerId: number,
   tableZone: ZoneCards | undefined,
@@ -181,13 +159,11 @@ function projectCounters(
     }
   }
   return {
-    // ServerInfo_Counter stores the current amount in `count`.
     life: life ? { id: life.id, value: life.count } : undefined,
     mana,
   };
 }
 
-/** The cards of a `.cod` deck list; empty when there is none or it doesn't parse. */
 export function deckListToSeatDeck(deckList: string | undefined): readonly SeatDeckCard[] {
   if (!deckList) {
     return EMPTY_DECK;
@@ -203,12 +179,6 @@ export function deckListToSeatDeck(deckList: string | undefined): readonly SeatD
   }
 }
 
-/**
- * The PlayerBoardModel for one board cell. Hidden-zone counts come from the
- * authoritative `cardCount`, never from the (partial) local order; the hand's
- * cards are only ever present for the owner because Datatrice only holds them
- * there.
- */
 export function usePlayerSeatViewModel(cell: BoardCell, totalPlayers: number): PlayerBoardModel {
   const { t } = useTranslation();
   const gameId = useGameId();
@@ -230,7 +200,6 @@ export function usePlayerSeatViewModel(cell: BoardCell, totalPlayers: number): P
     gameId != null ? games.Selectors.getPlayers(state, gameId) : undefined,
   );
 
-  // Desktop's reveal submenus exclude the current player (library_menu.cpp:271-273).
   const revealTargets = useMemo(
     () =>
       (seatedPlayers ?? [])
@@ -303,13 +272,11 @@ export function usePlayerSeatViewModel(cell: BoardCell, totalPlayers: number): P
     return {
       cardCount: deckZone?.cardCount,
       revealedCards: revealedCardsToSeatCards(deckZone?.revealedCards),
-      // Populated by Servatrice's revealTopCardIfNeeded (server_abstract_player.cpp:553-580).
       topCard: top ? { name: top.name, scryfallId: top.providerId } : null,
       alwaysRevealTopCard: deckZone?.alwaysRevealTopCard ?? false,
       alwaysLookAtTopCard: deckZone?.alwaysLookAtTopCard ?? false,
     };
   }, [deckZone]);
-  // A HiddenZone: Servatrice sends only the count until a Command_DumpZone.
   const sideboardCount = sideboardZone?.cardCount;
   const sideboardRevealed = sideboardZone?.revealedCards;
   const sideboard = useMemo(
@@ -324,7 +291,6 @@ export function usePlayerSeatViewModel(cell: BoardCell, totalPlayers: number): P
     [playerId, tableZone, allPlayers],
   );
 
-  // Desktop makes every other ServerInfo_Zone a custom zone (player_logic.cpp:98-170).
   const allZones = player?.zones;
   const customZones = useMemo(
     () => Object.values(allZones ?? {})

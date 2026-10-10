@@ -6,8 +6,6 @@ import { ShortcutScope, type ActionId } from './types';
 
 type Bindings = Readonly<Record<string, { scope: ShortcutScope; sequences: readonly string[] }>>;
 
-/** Sequences bound to more than one action of a scope, keyed by the chord the
- *  matcher compares, so Shift+Ctrl+KeyK and Ctrl+Shift+KeyK count as one. */
 function duplicateBindings(table: Bindings): [string, string[]][] {
   const owners = new Map<string, string[]>();
   for (const [id, { scope, sequences }] of Object.entries(table)) {
@@ -19,7 +17,6 @@ function duplicateBindings(table: Bindings): [string, string[]][] {
   return [...owners].filter(([, ids]) => ids.length > 1);
 }
 
-/** The actions of any scope bound to `sequence`, compared normalised. */
 function reservedOwners(table: Bindings, sequence: string): string[] {
   const reserved = normalizeSequence(sequence);
   return Object.keys(table).filter((id) => table[id].sequences.some((s) => normalizeSequence(s) === reserved));
@@ -40,8 +37,6 @@ describe('the default checks themselves', () => {
     expect(reservedOwners(table, 'F5')).toEqual([]);
   });
 
-  // Chromium keeps these for itself (browserReserved.ts); the list is the
-  // input of the per-chord check below, so dropping one would hide it.
   it('reserve every tab, window, reload, fullscreen and devtools chord', () => {
     const digits = Array.from({ length: 10 }, (_, d) => `Ctrl+Digit${d}`);
     expect([...BROWSER_RESERVED_SEQUENCES].sort()).toEqual([
@@ -57,8 +52,6 @@ describe('shortcut defaults', () => {
   const boundTo = (sequence: string) =>
     (Object.keys(defaults) as ActionId[]).filter((id) => defaults[id].sequences.includes(sequence));
 
-  // Desktop binds Shift+Tab to aNextPhaseAction and leaves previous phase
-  // unbound (shortcuts_settings.h); Webatrice moved the key off game.prevPhase.
   it('binds Shift+Tab to next phase with action only', () => {
     expect(boundTo('Shift+Tab')).toEqual(['game.nextPhaseAction']);
   });
@@ -78,8 +71,6 @@ describe('shortcut defaults', () => {
     expect([...new Set(allActionIds.map((id) => defaults[id].group))].filter((g) => !groups[g])).toEqual([]);
   });
 
-  // A default on a browser-reserved chord never reaches the page, so it
-  // would look bound in the Shortcuts tab and do nothing. Every scope.
   it.each(BROWSER_RESERVED_SEQUENCES)('binds no action to the browser-reserved %s', (sequence) => {
     expect(reservedOwners(defaults, sequence)).toEqual([]);
   });

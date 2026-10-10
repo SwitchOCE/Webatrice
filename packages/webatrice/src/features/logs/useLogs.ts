@@ -17,7 +17,6 @@ export interface LogsNotice {
 }
 
 export interface Logs {
-  /** True for a developer without moderator rights: searches go through the developer family. */
   developer: boolean;
   logs: ServerStateLogs;
   notice: LogsNotice | null;
@@ -27,11 +26,6 @@ export interface Logs {
 
 const LOG_LOCATIONS = ['room', 'game', 'chat'] as const;
 
-/**
- * Builds Command_ViewLogHistory from a completed search the way
- * TabLog::getClicked does: blank text filters are left out, the selected
- * locations become `log_location`, the range becomes `date_range` in hours.
- */
 export function toViewLogHistoryParams(values: LogSearchFormValues): ViewLogHistoryParams {
   const text = (value: string) => value.trim() || undefined;
   return {
@@ -52,13 +46,10 @@ export function useLogs(): Logs {
   const describeFailure = useCommandFailureMessage();
   const dispatch = useAppDispatch();
   const storedLogs = useAppSelector(server.Selectors.getLogs);
-  // Only owned replies replace this page's rows; unrelated actions may still update the shared cache.
   const [logs, setLogs] = useState(() => storedLogs);
   const webClient = useWebClient();
   const [notices, setNotices] = useState<LogsNotice[]>([]);
   const requests = useRequestTracker();
-  // Desktop TabSupervisor::openTabLog: a developer who is not also a moderator searches the
-  // narrowed developer family.
   const { developerOnlyLogs: developer } = useUserCapabilities();
 
   useEffect(() => {
@@ -67,8 +58,6 @@ export function useLogs(): Logs {
     };
   }, [dispatch]);
 
-  // TabLog::viewLogHistory_processResponse: an empty result is a message box,
-  // not an empty table.
   useReduxEffect<{ logs: ServerInfo_ChatMessage[]; requestId?: string }>(({ payload }) => {
     if (!requests.settle(payload.requestId)) {
       return;
@@ -79,8 +68,6 @@ export function useLogs(): Logs {
     }
   }, server.Types.VIEW_LOGS, [requests, t]);
 
-  // A transport failure (timeout, lost connection) explains itself; a server
-  // rejection gets desktop's message.
   useReduxEffect<{ command: string; failure?: WebsocketTypes.CommandFailure; requestId?: string }>(({ payload }) => {
     if (payload.command !== 'viewLogHistory' || !requests.settle(payload.requestId)) {
       return;

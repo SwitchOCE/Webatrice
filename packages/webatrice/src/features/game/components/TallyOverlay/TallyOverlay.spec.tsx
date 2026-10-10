@@ -1,5 +1,3 @@
-// The tally overlay end to end through <Game />: the player menu's Tally
-// submenu picks the tally, and the overlay shows it over the selection.
 import { act, fireEvent, renderHook, screen, within } from '@testing-library/react';
 import { makeCard } from '@cockatrice/datatrice/testing';
 
@@ -60,7 +58,6 @@ function selectCard(cardId: number, ctrlKey = false) {
 
 beforeEach(() => {
   testI18n.addResourceBundle('en-US', 'translation', tallyText, true, true);
-  // The choice is a per-user preference; start every test at None.
   const { result } = renderHook(() => useTallyType());
   act(() => result.current[1]('none'));
 });

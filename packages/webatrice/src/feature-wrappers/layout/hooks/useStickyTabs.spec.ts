@@ -7,8 +7,6 @@ const STORAGE_KEY = 'webatrice.stickyTabs';
 const decks: Tab = { key: 'decks', type: 'decks', titleKey: 'TopBar.tab.myDecks', route: '/decks', closeable: true };
 const bob: Tab = { key: 'player:bob', type: 'player', title: 'bob', route: '/player/bob', closeable: true };
 
-// The tabs are a module-level store read from localStorage at import time,
-// so each test loads a fresh copy of the module.
 async function loadModule() {
   vi.resetModules();
   return import('./useStickyTabs');

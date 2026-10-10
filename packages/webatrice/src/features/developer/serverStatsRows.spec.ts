@@ -5,7 +5,6 @@ import { CommandStatsSchema, Response_GetServerStatsSchema } from '@cockatrice/s
 
 import { buildCommandRows, buildStatRows, formatBytes, formatDurationMs } from './serverStatsRows';
 
-// Echo the key and its interpolation values so assertions see what was chosen.
 const t = ((key: string, values?: Record<string, unknown>) =>
   (values ? `${key}:${JSON.stringify(values)}` : key)) as unknown as TFunction;
 

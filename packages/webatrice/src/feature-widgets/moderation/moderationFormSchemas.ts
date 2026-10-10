@@ -1,9 +1,6 @@
 import { z } from 'zod';
 import type { TFunction } from 'i18next';
 
-// Validation mirrors desktop's okClicked() handlers in user_list_dialog.cpp:
-// the same rules, the same messages, checked in the same order.
-
 export const buildWarnUserSchema = (t: TFunction) =>
   z.object({
     userName: z.string().trim().min(1, t('Moderation.warn.errorBlankName')),
@@ -13,7 +10,6 @@ export const buildWarnUserSchema = (t: TFunction) =>
 
 export type WarnUserFormValues = z.infer<ReturnType<typeof buildWarnUserSchema>>;
 
-// Spin-box ranges from BanDialog's constructor.
 export const BAN_MAX_DAYS = 10000;
 export const BAN_MAX_HOURS = 24;
 export const BAN_MAX_MINUTES = 60;
@@ -51,7 +47,6 @@ export const buildBanUserSchema = (t: TFunction) =>
 
 export type BanUserFormValues = z.infer<ReturnType<typeof buildBanUserSchema>>;
 
-/** BanDialog::getMinutes — a permanent ban is 0 minutes. */
 export function banMinutes({ duration, days, hours, minutes }: BanUserFormValues): number {
   return duration === 'permanent' ? 0 : days * 24 * 60 + hours * 60 + minutes;
 }

@@ -7,11 +7,6 @@ import { useWebClient } from '@cockatrice/datatrice/react';
 import { useCommandFailureMessage, useReduxEffect } from '@app/hooks';
 import { useAppSelector } from '@app/store';
 
-/**
- * The caller's own share links (`Command_DeckShareListMine`) and revoking one
- * (`Command_DeckShareRemove`). Servatrice offers both for reviewing links
- * before they expire; desktop has no view of them yet.
- */
 export function useDeckShareLinks(active: boolean) {
   const webClient = useWebClient();
   const { t } = useTranslation();

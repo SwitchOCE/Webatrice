@@ -13,14 +13,10 @@ const BOX_CLASS =
   + 'whitespace-pre-wrap break-words overflow-y-auto';
 
 export interface ReportThreadProps {
-  /** The selected list row: description, status and resolution note. */
   report: ServerInfo_Report;
-  /** The full report (chat log + comments); undefined while it loads. */
   details: ServerInfo_Report | undefined;
   detailsFailed: boolean;
-  /** Label for comments written by the non-moderator side: "[You]" for the reporter, "[Reporter]" for staff. */
   reporterPrefix: string;
-  /** Group title for the thread: "Comments:" in My Reports, "Comments / Thread" in the queue. */
   commentsTitle: string;
   openPlaceholder: string;
   commentDraft: string;
@@ -29,12 +25,6 @@ export interface ReportThreadProps {
   commentBusy: boolean;
 }
 
-/**
- * Description, chat log and comment thread of one report, with the reply box.
- * Mirrors desktop report_utils::renderReportDetails ("[time] [Moderator]
- * author:" headers, plain-text bodies) and the comment gating of DlgMyReports
- * / TabReport: only open or assigned reports take comments.
- */
 export default function ReportThread({
   report,
   details,

@@ -6,7 +6,6 @@ import { DebugLogDialog } from '@app/dialogs';
 
 import type { CustomControlProps } from '../registry';
 
-/** Opens desktop's "View debug log" dialog from Settings › General. */
 export default function DebugLogButton({ id, labelId, describedBy, disabled }: CustomControlProps) {
   const { t } = useTranslation();
   const [open, setOpen] = useState(false);

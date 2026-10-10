@@ -18,7 +18,6 @@ function renderOpenOn(card: { name: string; scryfallId?: string }) {
 
 describe('BigCardPreview image', () => {
   beforeEach(() => {
-    // The card-detail fetch never settles: only the image is under test.
     vi.stubGlobal('fetch', vi.fn(() => new Promise(() => {})));
   });
 

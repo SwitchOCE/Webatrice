@@ -95,15 +95,12 @@ describe('rooms', () => {
       value: joined,
     })));
 
-    // An auto-join is not user-initiated, so the client opens the room without switching to it.
     expect(getMockResponse().room.joinRoom).toHaveBeenCalledWith(
       expect.objectContaining({ roomId: 1, name: 'Lobby' }),
       false,
     );
   });
 
-  // Desktop's processListRoomsEvent joins with setCurrent = false, and
-  // joinRoomFinished shows no message box for such a join.
   it('reports a failed auto-join as not user-initiated', () => {
     connectAndHandshake();
     deliverMessage(buildSessionEventMessage(

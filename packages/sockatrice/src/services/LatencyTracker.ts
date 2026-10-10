@@ -4,12 +4,6 @@ export const LATENCY_WINDOW_SIZE = 64;
 
 const EMPTY_STATS: LatencyStats = { lastMs: 0, medianMs: 0, p95Ms: 0, maxMs: 0, sampleCount: 0 };
 
-/**
- * Fixed-capacity rolling window of command round-trip samples. Port of desktop
- * `LatencyTracker` (Cockatrice #7153): `addSample` is a single array store so
- * timing every response stays off the hot path; the aggregates are computed on
- * demand in `stats()`, which callers throttle.
- */
 export class LatencyTracker {
   private samples = new Array<number>(LATENCY_WINDOW_SIZE).fill(0);
   private head = 0;
@@ -23,7 +17,6 @@ export class LatencyTracker {
     }
   }
 
-  /** The current window in chronological order (oldest first). */
   recentSamples(): number[] {
     const result: number[] = [];
     for (let i = this.count; i > 0; i--) {
@@ -41,8 +34,6 @@ export class LatencyTracker {
     const medianMs = n % 2 === 1
       ? sorted[(n - 1) / 2]
       : Math.trunc((sorted[n / 2 - 1] + sorted[n / 2]) / 2);
-    // Nearest-rank percentile: the smallest sample with at least 95% of the
-    // window at or below it.
     const p95Ms = sorted[Math.max(0, Math.ceil(0.95 * n) - 1)];
     return {
       lastMs: this.samples[(this.head + LATENCY_WINDOW_SIZE - 1) % LATENCY_WINDOW_SIZE],

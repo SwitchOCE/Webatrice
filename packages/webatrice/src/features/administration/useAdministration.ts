@@ -11,9 +11,7 @@ import type { WebsocketTypes } from '@cockatrice/sockatrice/types';
 import { useModeratorFunctions } from './useModeratorFunctions';
 
 export interface Administration {
-  /** Server administration group: needs IsAdmin (desktop `fullAdmin`) and the lock off. */
   adminFunctionsEnabled: boolean;
-  /** Server moderator group: needs the lock off. */
   moderatorFunctionsEnabled: boolean;
   locked: boolean;
   lock: () => void;
@@ -38,11 +36,6 @@ const ADMIN_FAILURE_KEYS: Partial<Record<WebsocketTypes.AdminCommandName, string
   reloadConfig: 'Administration.result.configReloadFailed',
 };
 
-/**
- * Desktop TabAdmin. The tab is offered to moderators; its server administration
- * functions are enabled only for admins (`TabAdmin::fullAdmin`), and both groups
- * follow the Lock / Unlock safety toggle.
- */
 export function useAdministration(): Administration {
   const { t } = useTranslation();
   const webClient = useWebClient();
@@ -55,7 +48,6 @@ export function useAdministration(): Administration {
 
   const { grantReplayAccess, forceActivateUser } = useModeratorFunctions(setNotice);
 
-  // Desktop shows nothing for these three; the toast is the server's acknowledgement.
   useReduxEffect(() => {
     pushToast(t('Administration.result.serverMessageUpdated'));
   }, server.Types.UPDATE_SERVER_MESSAGE, [t, pushToast]);

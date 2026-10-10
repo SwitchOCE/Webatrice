@@ -8,7 +8,6 @@ import { formatShareExpiry } from '../deckSharing';
 import { DeckDialogFrame } from './DeckDialogFrame';
 
 export interface DeckShareLinksDialogProps {
-  /** null while the list is loading. */
   shares: ServerInfo_DeckShareSummary[] | null;
   error: string | null;
   pending?: boolean;
@@ -16,11 +15,6 @@ export interface DeckShareLinksDialogProps {
   onClose: () => void;
 }
 
-/**
- * The caller's live share links, each revocable after a confirmation. Share
- * tokens are not listed back by the server, so a link can only be copied when
- * it is created.
- */
 export function DeckShareLinksDialog({ shares, error, pending = false, onRevoke, onClose }: DeckShareLinksDialogProps) {
   const { t } = useTranslation();
   const titleId = useId();
@@ -32,8 +26,6 @@ export function DeckShareLinksDialog({ shares, error, pending = false, onRevoke,
   };
   const confirmRef = useRef<HTMLButtonElement>(null);
 
-  // The confirmation sits below a scrolling list: bring it into view and
-  // focus its Revoke button, so it isn't asked off-screen.
   useEffect(() => {
     const button = confirmRef.current;
     button?.scrollIntoView?.({ block: 'nearest' });

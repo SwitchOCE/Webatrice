@@ -4,10 +4,6 @@ import { WebClient } from '../../WebClient';
 import { Command_Message_ext, Command_MessageSchema, Response_ResponseCode } from '../../generated';
 import { outlivedSession } from '../outlivedSession';
 
-// Rejections reported back with the unsent text: the two desktop TabMessage::messageSent
-// handles (recipient ignores you, recipient offline) plus the flood rejection that
-// Servatrice's cmdMessage also returns. A message the server never answered is reported
-// too, with the transport reason (`failure`); any other rejection stays silent.
 const REPORTED_FAILURES = [
   Response_ResponseCode.RespInIgnoreList,
   Response_ResponseCode.RespNameNotFound,

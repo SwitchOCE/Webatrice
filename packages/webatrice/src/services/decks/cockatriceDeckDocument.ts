@@ -9,8 +9,6 @@ import type {
 
 import { defaultMeta, parseMeta, serializeMeta, touchMeta } from './cockatriceDeckMetadata';
 
-/** Check the .cod envelope without interpreting its cards or metadata.
- * A parsed document can be reused by callers that also inspect sideboard plans. */
 export function validateCod(xml: string | Document): boolean {
   if (typeof xml === 'string' && !xml) {
     return false;
@@ -69,15 +67,12 @@ export function parseCod(xml: string): ParsedDeck {
   const format = (firstChildText(root, 'format') ?? '').trim();
   const bannerEl = directChildren(root, 'bannerCard')[0];
   const bannerCard = bannerEl?.textContent?.trim() || undefined;
-  // Desktop's `CardRef`: the printing is the `providerId` attribute.
   const bannerCardProviderId = (bannerCard && bannerEl?.getAttribute('providerId')?.trim()) || undefined;
   const lastLoadedTimestamp = firstChildText(root, 'lastLoadedTimestamp')?.trim() || undefined;
   // Preserve the entire <tags> element as an XML string. Cockatrice
   // desktop writes it and may put arbitrary children inside; we don't
   // read the contents but round-trip them verbatim.
   const tagsXml = rawChildXml(root, 'tags');
-  // Desktop writes <playmatCard> after <bannerCard> (DeckList::Metadata::write);
-  // the web editor doesn't edit it, so it round-trips verbatim too.
   const playmatXml = rawChildXml(root, 'playmatCard');
 
   const bracketAssessment = readBracketAssessment(root);
@@ -141,14 +136,12 @@ export function parseCod(xml: string): ParsedDeck {
 export function serializeCod(deck: {
   name: string;
   meta: DeckMeta;
-  /** Hydrated editor cards are accepted as-is; only the `.cod` fields are written. */
   cards: readonly ParsedCard[];
   format?: string;
   bannerCard?: string;
   bannerCardProviderId?: string;
   lastLoadedTimestamp?: string;
   playmatXml?: string;
-  /** Opaque desktop named/current sideboard plans, in document order. */
   sideboardPlansXml?: string[];
   tagsXml?: string;
   bracketAssessment?: BracketAssessment;
@@ -370,18 +363,11 @@ function appendTextElement(doc: XMLDocument, parent: Element, tagName: string, t
   parent.appendChild(el);
 }
 
-/** The first `tagName` child as raw XML, for elements kept verbatim. */
 function rawChildXml(parent: Element, tagName: string): string | undefined {
   const el = directChildren(parent, tagName)[0];
   return el ? new XMLSerializer().serializeToString(el) : undefined;
 }
 
-/**
- * Re-adopt an element kept as raw XML: parse it in its own document and
- * import it into ours, so whatever children and attributes desktop wrote
- * pass through unchanged. Anything that isn't a well-formed `tagName`
- * element is dropped.
- */
 function appendRawElement(doc: XMLDocument, parent: Element, tagName: string, xml: string | undefined): void {
   if (!xml?.trim()) {
     return;

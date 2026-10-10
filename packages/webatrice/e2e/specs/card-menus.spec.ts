@@ -7,12 +7,6 @@ import { joinFirstRoom, registerAndJoinFirstRoom, registerAndReachRooms } from '
 import { t } from '../fixtures/i18n';
 import { randomSuffix } from '../fixtures/users';
 
-// Card-menu actions against real Servatrice:
-//   1. "Reveal to..." on a hand card sends one Command_RevealCards for that
-//      card to the chosen player, whose client pops the reveal window.
-//   2. "View related cards" shows the related card in the card-info pane
-//      and sends nothing (desktop cardInfoRequested).
-
 const FOREST_DECK = resolve(__dirname, '..', 'fixtures', 'decks', 'forest-60.cod');
 const CASTLE_DECK = resolve(__dirname, '..', 'fixtures', 'decks', 'castle-60.cod');
 
@@ -48,7 +42,6 @@ test('a hand card revealed to one player opens their reveal window with that car
   const popup = revealWindow.locator('xpath=ancestor::div[contains(@class, "pointer-events-auto")][1]');
   await expect(popup.locator('[title="Forest"]')).toHaveCount(1);
 
-  // The revealer's own client never opens the window.
   await expect(hostPage.getByRole('heading', { name: /reveals their/ })).toHaveCount(0);
 
   await hostGame.leaveGame();
@@ -72,7 +65,6 @@ test('"View related cards" shows the related card in the card-info pane', async 
 
   await game.chooseCardMenuPath(game.cardsOnBoard().first(), t('CardMenu.viewRelated'), 'Human');
 
-  // The pane shows the token by its Scryfall id (from the parent's all_parts).
   await expect(game.rightPanel.locator('img[src*="00000000-0000-4000-8000-0000000e2e03"]').first())
     .toBeVisible({ timeout: 15_000 });
 
@@ -85,7 +77,6 @@ test('Alt+1 sends the first message macro to the game chat', async ({ newContext
   const page = await ctx.newPage();
   const session = await registerAndReachRooms(page);
 
-  // The macro is set up where a player would: Settings > Chat.
   await page.getByRole('button', { name: session.user.username }).click();
   await page.getByRole('menuitem', { name: t('UserMenu.settings'), exact: true }).click();
   await page.getByRole('tab', { name: t('Settings.section.chat'), exact: true }).click();

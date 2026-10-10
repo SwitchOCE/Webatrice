@@ -13,7 +13,6 @@ interface HistoryTableProps {
   onClose: () => void;
 }
 
-// Desktop shows the raw server strings in a QTableWidget, one column per field.
 const HistoryTable = ({ title, userName, headers, rows, onClose }: HistoryTableProps) => {
   const { t } = useTranslation();
   return (
@@ -50,7 +49,6 @@ export interface BanHistoryDialogProps {
   onClose: () => void;
 }
 
-/** UserContextMenu::banUserHistory_processResponse — "Ban Time;Moderator;Ban Length;Ban Reason;Visible Reason". */
 export const BanHistoryDialog = ({ userName, bans, onClose }: BanHistoryDialogProps) => {
   const { t } = useTranslation();
   return (
@@ -76,7 +74,6 @@ export interface WarnHistoryDialogProps {
   onClose: () => void;
 }
 
-/** UserContextMenu::warnUserHistory_processResponse — "Warning Time;Moderator;User Name;Reason". */
 export const WarnHistoryDialog = ({ userName, warnings, onClose }: WarnHistoryDialogProps) => {
   const { t } = useTranslation();
   return (

@@ -7,16 +7,13 @@ import { NewDeckButton } from './DeckListStates';
 export interface DeckListHeaderProps {
   loading: boolean;
   deckCount: number;
-  /** Disables the server actions while disconnected. */
   isConnected: boolean;
   viewMode: DeckListViewMode;
   onViewModeChange: (mode: DeckListViewMode) => void;
   onRefresh: () => void;
   onImport: () => void;
   onCreate: () => void;
-  /** Paste a share link to open (Servatrice 3.1 only). */
   onOpenShareLink?: () => void;
-  /** Review and revoke the user's share links (Servatrice 3.1 only). */
   onShareLinks?: () => void;
 }
 
@@ -31,7 +28,6 @@ const VIEW_MODES: Array<{ mode: DeckListViewMode; Icon: typeof LayoutGrid }> = [
   { mode: 'compact', Icon: Rows3 },
 ];
 
-/** MyDecks title, deck count, view-mode toggle and the list actions. */
 export function DeckListHeader({
   loading,
   deckCount,
@@ -56,7 +52,6 @@ export function DeckListHeader({
         </p>
       </div>
       <div className="flex items-center gap-2">
-        {/* Segmented control: the active option carries the accent tint. */}
         <div
           role="group"
           aria-label={t('Decks.list.viewMode')}

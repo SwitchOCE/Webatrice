@@ -16,11 +16,6 @@ export interface AdminNotesDialogProps {
 
 const resolver = zodResolver(adminNotesSchema);
 
-/**
- * Port of desktop's AdminNotesDialog (user_list_dialog.cpp): the stored notes
- * in an editor whose "Update Notes" button stays disabled until the text is
- * edited. An empty text is a valid update — it clears the notes.
- */
 const AdminNotesDialog = ({ userName, notes, onSubmit, onCancel }: AdminNotesDialogProps) => {
   const { t } = useTranslation();
   const title = t('Moderation.adminNotes.title', { userName });

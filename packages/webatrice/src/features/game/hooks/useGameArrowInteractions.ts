@@ -15,9 +15,7 @@ export interface GameArrowInteractions {
   arrowSourceKey: string | null;
   arrowTargetKey: string | null;
   dragPreview: ArrowDragPreview | null;
-  /** The game's pending target pick, which Game provides to the seats. */
   pendingTarget: PendingTargetPicker;
-  // True while an arrow/attach is pending.
   pending: boolean;
   handleBoardMouseDown: (e: React.MouseEvent<HTMLDivElement>) => void;
   cancelPendingOnDragStart: () => void;
@@ -29,11 +27,6 @@ export interface UseGameArrowInteractionsArgs {
   cardRegistry: CardRegistry;
 }
 
-/**
- * The game-level card pointer interactions: the right-button arrow drag
- * (useArrowDrag) and the game's pending target pick (usePendingTarget).
- * Everything they send goes through the target port.
- */
 export function useGameArrowInteractions({
   gameId,
   containerRef,

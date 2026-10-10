@@ -10,7 +10,6 @@ const XML_FILENAME = /\.xml$/i;
 export interface IngestedFile {
   name: string;
   xml: string;
-  /** The file as parsed for the preview, so storing it does not parse it again. */
   records?: CardSourceRecords;
 }
 
@@ -22,15 +21,10 @@ export interface IngestResult {
   info?: Info;
   acceptedFiles: string[];
   skippedFiles: string[];
-  /** The accepted files' contents, kept so they can be stored as sources. */
   files: IngestedFile[];
 }
 
 export interface IngestOptions {
-  /**
-   * Accept any `.xml` as a custom set file (desktop's "Add custom sets/cards")
-   * rather than only Oracle's cards.xml / tokens.xml / spoiler.xml.
-   */
   allowCustomSets?: boolean;
 }
 
@@ -92,12 +86,6 @@ class LocalOracleImportService {
     return result;
   }
 
-  /**
-   * Store each accepted file as a card-database source and rebuild the card
-   * tables from all sources in one transaction. Re-importing a file replaces
-   * the source of the same kind (cards.xml replaces cards.xml); custom set
-   * files are added alongside the ones already loaded.
-   */
   persist(ingest: Pick<IngestResult, 'files'>): Promise<RebuildResult> {
     return cardDatabaseService.addSources(
       ingest.files.map((file) => ({ fileName: file.name, xml: file.xml, records: file.records, origin: 'file' as const })),

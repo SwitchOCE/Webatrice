@@ -51,7 +51,6 @@ describe('analyzeBracket', () => {
       { source: 'gameChangers', failure: { kind: 'timeout' } },
       { source: 'combos', failure: { kind: 'http', status: 500 } },
     ]);
-    // The extra-turn signal still sets a floor.
     expect(analysis.report.level).toBe(2);
   });
 

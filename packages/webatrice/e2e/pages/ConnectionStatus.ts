@@ -1,11 +1,5 @@
 import { expect, type Locator, type Page } from '@playwright/test';
 
-// Page object for the global connection-status indicator. TopBar.tsx
-// renders a small lucide `<Circle>` next to the Webatrice logo plus a
-// visually hidden `role="status"` whose text flips between "Connected"
-// (green), "Server not responding" (amber) and "Disconnected" (red) off
-// `selectIsConnected` (Datatrice: `server.status.state === LOGGED_IN`).
-// Match by role+text so we don't depend on Tailwind class hashes.
 export class ConnectionStatus {
   constructor(private readonly page: Page) {}
 
@@ -13,8 +7,6 @@ export class ConnectionStatus {
     return this.page.getByRole('status').filter({ hasText: /^connected$/i });
   }
 
-  // LatencyStatus: "Ping: N ms" plus a sparkline, hidden until the first
-  // command round trip has been timed.
   get latency(): Locator {
     return this.page.getByRole('button', { name: /^ping: \d+ ms$/i });
   }

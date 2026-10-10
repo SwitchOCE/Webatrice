@@ -5,8 +5,6 @@
 
 import { type Mock, vi } from 'vitest';
 
-// Spelled out because the declaration build cannot name the type vitest infers
-// for a bare `vi.fn()`.
 type AnyMock = Mock<(...args: any[]) => any>;
 
 export interface UnitMockWebSocket {

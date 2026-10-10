@@ -31,12 +31,10 @@ const MOVES: Array<{ direction: MoveDirection; icon: ReactNode }> = [
 ];
 
 export interface ManageSetsProps {
-  /** Called after a successful Save (desktop's OK closes the window). */
   onSaved?: () => void;
   onCancel?: () => void;
 }
 
-/** Desktop's "Manage sets" window (`dlg_manage_sets.cpp`). */
 const ManageSets = ({ onSaved, onCancel }: ManageSetsProps) => {
   const { t } = useTranslation();
   const manage = useManageSets();
@@ -45,8 +43,6 @@ const ManageSets = ({ onSaved, onCancel }: ManageSetsProps) => {
   const noSelection = selected.size === 0;
   const rowIdPrefix = useId();
   const listRef = useListRef(null);
-  // The keyboard's current row. The grid keeps focus and points at it with
-  // aria-activedescendant: rows are virtualized, so a focused row could unmount.
   const [active, setActive] = useState<string | null>(null);
   const rows = manage.visibleRows;
   const activeIndex = active === null ? -1 : rows.findIndex((r) => r.code === active);
@@ -90,8 +86,6 @@ const ManageSets = ({ onSaved, onCancel }: ManageSetsProps) => {
     );
   }, [select, toggleEnabled, selected, active, rowIdPrefix]);
 
-  // Desktop's set list keys: arrows move and select (Shift extends, Ctrl moves
-  // without selecting), Space/Enter select (Ctrl toggles), Ctrl+A selects all.
   const onGridKeyDown = (e: KeyboardEvent<HTMLDivElement>) => {
     if (e.target !== e.currentTarget) {
       return;

@@ -42,7 +42,6 @@ const SHOCK = makeCard({ id: 30, name: 'Shock', providerId: 'shock-pid' });
 const SPELL = makeCard({ id: 50, name: 'Counterspell', annotation: 'targets Bolt' });
 const DURESS = makeCard({ id: 40, name: 'Duress' });
 const BEAR = makeCard({ id: 20, name: 'Bear', x: 0, y: 0 });
-// Opponent-owned aura attached to Bolt: lives in P2's TABLE, renders under P1.
 const AURA = makeCard({ id: 21, name: 'Pacifism', x: 3, y: 0, attachPlayerId: 1, attachZone: ZoneName.TABLE, attachCardId: 10 });
 
 const DECK_XML = `<?xml version="1.0"?>
@@ -91,7 +90,6 @@ function renderCell(cell: BoardCell = OWN_CELL, { spec = SPEC, totalPlayers = 2,
   };
 }
 
-/** The seat's zone counts, keyed as the desktop zone names. */
 const counts = (model: Record<string, any>) => ({
   deck: model.zones.library.cardCount,
   grave: model.zones.graveyard.cardCount,
@@ -282,7 +280,6 @@ describe('GameBoardCell — move command adapter', () => {
       spec: { ...SPEC, seats: [{ ...SPEC.seats[0], table: [...fullColumn, makeCard({ id: 64, name: 'R', x: 6, y: 0 })] }, SPEC.seats[1]] },
     });
     act(() => commands().zone.moveCards(ZoneName.DECK, [0], { zone: ZoneName.TABLE, index: 3 }));
-    // Column 1 is full; column 2 has sub-slot 0 taken → x = 2 * 3 + 1.
     expect(vi.mocked(game.moveCard).mock.calls[0][1]).toMatchObject({ x: 7, y: 0 });
   });
 });
@@ -354,7 +351,6 @@ describe('GameBoardCell — card commands', () => {
       { zone: ZoneName.TABLE, cardId: 10, attribute: CardAttribute.AttrTapped, attrValue: '1' },
       { zone: ZoneName.TABLE, cardId: 11, attribute: CardAttribute.AttrTapped, attrValue: '1' },
     ]);
-    // Only the card whose state changed carries a rollback.
     expect(calls[0][3]).toEqual({ onError: expect.any(Function) });
     expect(calls[1]).toHaveLength(2);
 
@@ -424,7 +420,6 @@ describe('GameBoardCell — card commands', () => {
         startCardId: 10,
         targetPlayerId: 2,
         arrowColor: ArrowColor.RED,
-        // Drawn in the beginning phase: kept until the first main phase.
         deleteInPhase: Phase.FirstMain,
         targetZone: ZoneName.TABLE,
         targetCardId: 20,

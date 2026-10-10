@@ -27,7 +27,6 @@ const BOARD = [
   bf('12', { slot: { row: 2, col: 10 }, doesntUntap: true }),
 ];
 
-/** A command port whose every method is a spy. */
 function ports<T extends object>(): T {
   const spies = new Map<PropertyKey, ReturnType<typeof vi.fn>>();
   return new Proxy({} as T, {
@@ -83,13 +82,11 @@ describe('useBattlefieldCardOps', () => {
     expect(ops.forCard('99')).toBeNull();
   });
 
-  // Desktop cmTap sends 1 - tapped for each card (player_actions.cpp:1768-1776).
   it('flips each target\'s tapped state, whichever card the action starts from', () => {
     const { ops, props } = setup();
     ops.forCard('11')!.toggleTapped();
     ops.forSelection()!.toggleTapped();
     ops.forCard('12')!.toggleTapped();
-    // Card 10 is tapped and 11 is not.
     expect(vi.mocked(props.cardCommands.setTapped).mock.calls).toEqual([
       [[11], true], [[10], false],
       [[11], true], [[10], false],
@@ -221,12 +218,9 @@ describe('useBattlefieldCardOps', () => {
     ops.forSelection()!.createRelatedTokens();
     expect(vi.mocked(props.cardCommands.createToken).mock.calls.map(([r]) => r.name)).toEqual(['Soldier', 'Soldier']);
     expect(props.prompts.openTokenCountPrompt).not.toHaveBeenCalled();
-    // player_actions.cpp:1053-1061: Ctrl+G then repeats the first one created.
     expect(props.setLastToken).toHaveBeenCalledWith(expect.objectContaining({ name: 'Soldier' }));
   });
 
-  // player_actions.cpp:1007-1014: the one relation left after the excluded
-  // ones goes through the related-card dialog, which asks for an "x" count.
   it('asks for the count of the one related token create-all runs when it is "x"', () => {
     const { ops, props } = setup({
       cardMetaByName: new Map([['Card 10', {

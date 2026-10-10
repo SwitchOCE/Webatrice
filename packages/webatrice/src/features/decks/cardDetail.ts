@@ -3,23 +3,10 @@ import type { DetailTarget, ScryfallDetail, ScryfallDetailFace } from '@app/serv
 
 import type { DeckCard } from './types';
 
-/**
- * Card-detail dialog rules on top of the shared Scryfall detail record
- * (`services/scryfall/cardDetail.ts`): which deck row the dialog's
- * actions apply to and what it shows.
- */
-
-/** A related card the user browsed to from the original row. */
 export interface BrowsedCard extends DetailTarget {
   kind: RelatedCardKind;
 }
 
-/**
- * The deck row the dialog's actions apply to, or -1. Not browsing: the
- * clicked row, found by (name, category) — unique because adding a card
- * increments its existing row. Browsing a related card: its main row,
- * else any row with that name (commanders live in main).
- */
 export function resolveDetailRow(
   deckCards: DeckCard[],
   snapshot: DeckCard,
@@ -47,12 +34,6 @@ export interface CardDetailView {
   collectorNumber?: string;
 }
 
-/**
- * What the dialog shows. Face fields win over the top-level record (a
- * DFC back face shows its own text, art and cost); Scryfall data wins
- * over the deck row; the clicked row's own fields are only a fallback
- * when not browsing, so a browsed token never inherits them.
- */
 export function describeCardDetail({
   detail,
   face,
@@ -66,8 +47,6 @@ export function describeCardDetail({
   liveCard: DeckCard | null;
   fallback: Partial<DeckCard>;
 }): CardDetailView {
-  // A picked face with no mana cost (a transform back face) has no CMC
-  // of its own — don't inherit the front's. Face CMC (MDFCs) wins.
   const cmc = (() => {
     if (face) {
       if (!(face.mana_cost ?? '')) {
@@ -96,11 +75,6 @@ export function describeCardDetail({
   };
 }
 
-/**
- * Only real, deckable cards can be added from a browsed related card:
- * the other half of a meld or a combo piece. A face is the same physical
- * card, a meld result is not shuffled in, and tokens are made in game.
- */
 export function canAddBrowsedCard(kind: RelatedCardKind): boolean {
   return kind === 'meld_part' || kind === 'combo_piece';
 }

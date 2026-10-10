@@ -33,8 +33,6 @@ it('merges sparse deck acknowledgements by field presence without mutating the p
   expect(cleared.backendDecks!.root!.items[0].file).toMatchObject({ colorIdentity: '', bannerCardName: '', bannerCardProvider: '' });
 });
 
-// Deck share links and public decks (#7241).
-
 function storage() {
   const deck = makeDeckTreeItem({ id: 1, name: 'Burn', file: create(ServerInfo_DeckStorage_FileSchema, { creationTime: 5 }) });
   const nested = makeDeckTreeItem({ id: 2, name: 'Elves', file: create(ServerInfo_DeckStorage_FileSchema, {}) });

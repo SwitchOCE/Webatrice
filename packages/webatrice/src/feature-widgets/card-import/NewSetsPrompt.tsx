@@ -12,7 +12,6 @@ export interface NewSetsPromptProps {
   onAnswer: (choice: NewSetsChoice) => void;
 }
 
-/** Desktop's "New sets found" question (`MainWindow::cardDatabaseNewSetsFound`). */
 const NewSetsPrompt = ({ codes, onAnswer }: NewSetsPromptProps) => {
   const { t } = useTranslation();
   if (codes.length === 0) {

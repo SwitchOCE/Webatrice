@@ -8,14 +8,6 @@ export type RequestKeyboardMove = (request: MoveCardsRequest) => void;
 
 const KeyboardMoveContext = createContext<RequestKeyboardMove | null>(null);
 
-/**
- * The game's keyboard move (M on a card, MoveCardsDialog). Game provides it
- * with the drop path's mover (useGameDnd), so a keyboard move sends what a
- * drop on the chosen place would. It also holds each battlefield's drop
- * grid (BattlefieldGeometryContext), which the boards inside publish, so the
- * dialog sends the slot and grid a drop resolves. Outside a game (a seat
- * rendered alone) there is none and M does nothing.
- */
 export function KeyboardMoveProvider({
   moveSeatCards,
   children,
@@ -45,7 +37,6 @@ export function KeyboardMoveProvider({
   );
 }
 
-/** Opens the keyboard move for some cards; null outside a game. */
 export function useKeyboardMove(): RequestKeyboardMove | null {
   return useContext(KeyboardMoveContext);
 }

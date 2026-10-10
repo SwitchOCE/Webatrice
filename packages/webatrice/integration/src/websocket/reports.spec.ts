@@ -1,6 +1,3 @@
-// Report and moderation-queue round trips (Cockatrice #7091): real protobuf
-// bytes in and out, through ProtobufService, the Datatrice response layer and
-// the reducers, as shipped.
 
 import { create } from '@bufbuild/protobuf';
 import { describe, expect, it, vi } from 'vitest';
@@ -41,7 +38,6 @@ import {
 } from '../helpers/protobuf-builders';
 import { findLastModeratorCommand, findLastSessionCommand } from '../helpers/command-capture';
 
-// The last dispatched action, which the views' useReduxEffect signals read.
 function lastAction() {
   return (store.getState() as unknown as { action: { type: string; payload: unknown } }).action;
 }

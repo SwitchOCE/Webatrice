@@ -5,19 +5,11 @@ import { PlaymatImage } from '@app/components';
 import type { Size } from '@app/utils';
 
 interface PlaymatArtProps {
-  /** The card whose art fills the area, and how it is cropped. */
   art: games.Playmat;
   testId?: string;
-  /** Extra styles for the area (e.g. a z-index to sit under a zone's content). */
   style?: CSSProperties;
 }
 
-/**
- * A card's art cropped by playmat params and cover-fitted to its positioned parent, the DOM
- * stand-in for desktop's PlaymatUtils crop (computeArtSourceRect / coverFitRect). Fills the
- * parent and ignores the pointer, so it can sit under a board area without affecting its layout.
- * The image itself (source fallback, rotation, crop) is the shared PlaymatImage.
- */
 export default function PlaymatArt({ art, testId, style }: PlaymatArtProps) {
   const areaRef = useRef<HTMLDivElement>(null);
   const [area, setArea] = useState<Size | null>(null);

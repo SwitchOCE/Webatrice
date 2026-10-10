@@ -2,7 +2,6 @@ import { deckOpenLocation, resolveDeckOpenChoice } from './deckOpenLocation';
 
 describe('deckOpenLocation', () => {
   it.each([
-    // openDeckInNewTab, isModified, isBlank → location (abstract_tab_deck_editor.cpp confirmOpen)
     [true, false, false, 'new-tab'],
     [true, true, false, 'new-tab'],
     [true, false, true, 'same-tab'],

@@ -20,7 +20,6 @@ function parsePlaymat(value: unknown): games.Playmat | null {
   };
 }
 
-/** Reads stored settings defensively: unknown enum values and malformed entries fall back to the defaults. */
 export function parsePlaymatSettings(raw: string | null): PlaymatSettings {
   let stored: Partial<PlaymatSettings> = {};
   try {

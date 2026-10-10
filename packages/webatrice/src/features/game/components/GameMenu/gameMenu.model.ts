@@ -12,7 +12,6 @@ export type GameMenuEntry =
   | {
       kind: 'item';
       id: GameMenuItemId;
-      /** The shortcut whose binding the item shows as a hint. */
       shortcut: ActionId;
       disabled: boolean;
       onClick: () => void;
@@ -22,7 +21,6 @@ export type GameMenuEntry =
 export interface GameMenuModelArgs {
   canAdvancePhase: boolean;
   canPassTurn: boolean;
-  /** Wider than canPassTurn: a judge who has conceded may still reverse the turn order. */
   canReverseTurn: boolean;
   canRunNextPhaseAction: boolean;
   onNextPhase: () => void;
@@ -33,14 +31,6 @@ export interface GameMenuModelArgs {
   onRotateViewCCW: () => void;
 }
 
-/**
- * The game menu, in desktop's TabGame::createMenuItems order: the phase
- * actions, the turn actions, then the view rotation. Desktop enables every
- * item and lets the server refuse; here each server item is disabled when the
- * server would refuse it (see webatrice-game.instructions.md "Phase model" for
- * the two gates). Rotation is local, so it is always available, spectators
- * included.
- */
 export function buildGameMenuItems(args: GameMenuModelArgs): GameMenuEntry[] {
   return [
     { kind: 'item', id: 'nextPhase', shortcut: 'game.nextPhase', disabled: !args.canAdvancePhase, onClick: args.onNextPhase },

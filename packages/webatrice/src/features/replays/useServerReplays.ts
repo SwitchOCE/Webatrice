@@ -11,7 +11,6 @@ import { useAppSelector } from '@app/store';
 
 import { saveReplayFile } from './replayFiles';
 
-/** A row of the server catalogue: a match folder or one of its replays. */
 export type ServerReplaySelection =
   | { kind: 'match'; gameId: number }
   | { kind: 'replay'; gameId: number; replayId: number };
@@ -48,11 +47,9 @@ export interface ServerReplays {
   submitShareCode: (code: string) => void;
   notice: ReplayNotice | null;
   dismissNotice: () => void;
-  /** Bumped after a server replay is saved into the local library. */
   librarySaves: number;
 }
 
-/** The folder `name` in `parentId`, created unless a folder of that name is already there. */
 async function matchFolder(parentId: number, name: string): Promise<number> {
   try {
     return await ReplayFileDTO.addFolder(parentId, name);
@@ -76,12 +73,6 @@ function replaysOf(match: ServerInfo_ReplayMatch | undefined, selection: ServerR
     : match.replayList;
 }
 
-/**
- * The server replay storage pane: desktop's RemoteReplayList_TreeWidget plus the
- * TabReplays remote actions. Store state only changes on a successful server
- * response (Datatrice's replay reducers); failures surface as a notice dialog
- * with desktop's wording.
- */
 export function useServerReplays(): ServerReplays {
   const { t } = useTranslation();
   const describeFailure = useCommandFailureMessage();
@@ -90,9 +81,6 @@ export function useServerReplays(): ServerReplays {
   const isConnected = useAppSelector(server.Selectors.getIsConnected);
   const isRegistered = useAppSelector(server.Selectors.getIsUserRegistered);
   const matches = useAppSelector(server.Selectors.getReplaysList);
-  // The list itself lives in the store (Datatrice's replay reducers); the tracker only
-  // decides which reply settles this pane's refresh, so a superseded one can't end the
-  // loading state or raise a notice.
   const requests = useRequestTracker();
 
   const [loading, setLoading] = useState(false);
@@ -103,8 +91,6 @@ export function useServerReplays(): ServerReplays {
   const [notice, setNotice] = useState<ReplayNotice | null>(null);
   const [librarySaves, setLibrarySaves] = useState(0);
 
-  // Desktop enables the remote pane only for registered users
-  // (TabReplays::handleConnected) and clears it on disconnect.
   const availability: ServerReplaysAvailability = !isConnected
     ? 'disconnected'
     : !isRegistered ? 'unregistered' : 'available';
@@ -137,7 +123,6 @@ export function useServerReplays(): ServerReplays {
     [matches, selection],
   );
 
-  // A match vanishing (deleted here or elsewhere) drops the selection.
   useEffect(() => {
     if (selection && !selectedMatch) {
       setSelection(null);
@@ -194,8 +179,6 @@ export function useServerReplays(): ServerReplays {
     }
   }, [selectedMatch, selection, webClient, failed, t]);
 
-  // Desktop's downloadNodeAtIndex: a match lands in a new `<gameId>_<gameName>`
-  // folder of the current local folder, a single replay straight in it.
   const saveToLibrary = useCallback((folderId: number) => {
     const replays = replaysOf(selectedMatch, selection);
     if (!replays.length) {

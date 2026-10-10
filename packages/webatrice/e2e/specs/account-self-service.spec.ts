@@ -4,16 +4,9 @@ import { expect, test } from '../fixtures/test';
 import { E2E_HOST_LABEL, registerAndReachRooms } from '../fixtures/flows';
 import { topBarTab } from '../pages';
 
-// Account self-service against the real Servatrice (which supports password
-// hashing): the user menu reaches the Account page, a profile edit that
-// changes the email carries the password check Servatrice requires, and a
-// password change sent as a client-side hash still lets the user log back in
-// with the new password.
-
 async function openAccount(page: Page, userName: string): Promise<void> {
   await page.getByRole('button', { name: userName }).click();
   await page.getByRole('menuitem', { name: /^account$/i }).click();
-  // MemoryRouter: the address bar never changes, so assert on the Account tab instead.
   await expect(topBarTab(page, /^account/i)).toHaveAttribute('aria-current', 'page');
 }
 
@@ -22,7 +15,6 @@ test('edit profile and change password, then log in with the new password', asyn
   const { login, rooms, user } = await registerAndReachRooms(page);
   await openAccount(page, user.username);
 
-  // Profile: new real name and email. The email change needs the current password.
   await page.getByRole('button', { name: /^edit$/i }).click();
   const edit = page.getByRole('dialog', { name: /edit user profile/i });
   await edit.getByLabel(/real name/i).fill('E2E Tester');
@@ -33,7 +25,6 @@ test('edit profile and change password, then log in with the new password', asyn
   await expect(edit).toBeHidden();
   await expect(page.getByText('Real Name: E2E Tester')).toBeVisible();
 
-  // A wrong old password is refused with desktop's message and keeps the dialog open.
   const newPassword = 'password456';
   await page.getByRole('button', { name: /change password/i }).click();
   const change = page.getByRole('dialog', { name: /change password/i });
@@ -48,7 +39,6 @@ test('edit profile and change password, then log in with the new password', asyn
   await expect(page.getByText('Password changed.')).toBeVisible();
   await expect(change).toBeHidden();
 
-  // The new password is the one that works now.
   await page.getByRole('button', { name: user.username }).click();
   await page.getByRole('menuitem', { name: /sign out/i }).click();
   await expect(login.hostPicker).toBeVisible();

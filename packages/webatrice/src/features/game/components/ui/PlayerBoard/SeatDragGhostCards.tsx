@@ -7,16 +7,10 @@ import { usePlayerSeatContext } from './PlayerSeatContext';
 export interface SeatDragGhostCardsProps {
   cards: readonly PlayerCardViewModel[];
   zone: SeatZone;
-  /** A lent library card: shown face up, unlike the own library. */
   lent: boolean;
   origin: { x: number; y: number };
 }
 
-/**
- * The drag ghost: the dragged cards under the pointer, anchored where the
- * first was grabbed. Library drags show a card back: the server's position
- * is authoritative, so the local top card's face could be the wrong card.
- */
 export default function SeatDragGhostCards({ cards, zone, lent, origin }: SeatDragGhostCardsProps) {
   const { cardMetaByName, resolveFaceImageUri } = usePlayerSeatContext();
   return (

@@ -10,24 +10,6 @@ import { ZoneCardCell } from '../shared/ZoneCardCell';
 
 type HandCard = { id: string; name: string; scryfallId: string };
 
-/**
- * ZoneViewDialog's ordered body: the top / bottom N cards of a library.
- * Ports Cockatrice's ZoneViewWidget behavior for the bounded-reveal path:
- *   • Cards render in the zone's server order — NO sort or group
- *     controls (Cockatrice deliberately keeps this a flat, ordered
- *     window so tutors / scries / rearranges preserve intent).
- *   • Cards can be dragged out to any play-area zone (parent wires
- *     `onCardPointerDown` into its normal beginDrag flow), and drops
- *     landing back on the dialog resolve to the source zone via
- *     `dropRef`. Both patterns match ZoneViewPanel.
- *   • The dialog itself is draggable via the header, resizable via
- *     the browser's native `resize` handle, and non-modal (no blurred
- *     backdrop) so the play area behind stays visible and interactive.
- *   • Position + size persist to localStorage across sessions
- *     (useFloatingPanelGeometry).
- *
- * Zone-specific bits (title, labels, drag wiring) live in the caller.
- */
 export interface ZoneRevealPanelProps {
   /** Human-readable title for the modal header. Caller composes
    *  something like "Top 5 cards — SonicBliss" or "Graveyard — SonicBliss". */
@@ -47,24 +29,14 @@ export interface ZoneRevealPanelProps {
     e: ReactPointerEvent<HTMLElement>,
     card: HandCard,
   ) => void;
-  /** Ref filled with the dialog's outer container while open. Parent's
-   *  drop-detection can hit-test this rect to decide whether a drop
-   *  resolves to the dialog's source zone. Same pattern ZoneViewPanel
-   *  uses via its `dropRef`. */
   dropRef?: Ref<HTMLDivElement>;
   /** IDs of cards currently mid-drag from the dialog. Rendered at
    *  opacity 0 so the drag ghost is the only visible copy. */
   draggingCardIds?: Set<string>;
-  /** Each card's keyboard props (useCardFocus): the row becomes a listbox
-   *  of focusable cards. */
   cardInteraction?: (card: HandCard) => HTMLAttributes<HTMLDivElement> & { ref?: (element: HTMLElement | null) => void };
-  /** Called when the dialog closes (X button or footer Close; the game's
-   *  Esc closes the most recent view). */
   onClose: () => void;
 }
 
-/** Where the view keeps its geometry: one place for every top / bottom N view,
- *  whichever zone it shows. */
 const STORAGE_KEY = 'webatrice.zoneReveal';
 const MIN_SIZE = { w: 400, h: 240 };
 const DEFAULT_SIZE = { w: 900, h: 480 };
@@ -96,9 +68,6 @@ export default function ZoneRevealPanel({
       onPointerDown={(e) => e.stopPropagation()}
     >
       <div
-        // A non-modal dialog (no aria-modal): Tab moves focus inside it
-        // instead of advancing the phase, and Escape still closes the
-        // most recent view.
         role="dialog"
         aria-label={title}
         ref={(el) => {

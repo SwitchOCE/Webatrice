@@ -2,7 +2,6 @@ import { execFileSync } from 'node:child_process';
 import { posix, resolve } from 'node:path';
 import { pathToFileURL } from 'node:url';
 
-// Git paths always use forward slashes, including on Windows.
 export function findPathCaseClashes(paths) {
   const entries = new Map();
   const stems = new Map();
@@ -27,7 +26,6 @@ export function findPathCaseClashes(paths) {
     const key = `${dir}/${name.toLowerCase()}`;
     const variants = stems.get(key) ?? new Map();
     for (const [previousName, previousPath] of variants) {
-      // Full-path clashes were already reported above.
       if (previousName !== name && previousPath.toLowerCase() !== path.toLowerCase()) {
         clashes.add(`Stem case clash: ${JSON.stringify(previousPath)} / ${JSON.stringify(path)}`);
       }

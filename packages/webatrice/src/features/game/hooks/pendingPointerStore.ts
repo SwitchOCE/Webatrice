@@ -3,11 +3,6 @@ export interface PendingPointer {
   y: number;
 }
 
-/**
- * The pointer while a target pick is pending, outside React state so a mouse
- * move re-renders only what draws the live arrow (`usePendingPointer`), not
- * every consumer of the game's pending pick.
- */
 export interface PendingPointerStore {
   get(): PendingPointer | null;
   set(pointer: PendingPointer | null): void;

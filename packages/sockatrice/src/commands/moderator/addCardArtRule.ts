@@ -3,7 +3,6 @@ import { WebClient } from '../../WebClient';
 
 import { Command_AddCardArtRule_ext, Command_AddCardArtRuleSchema } from '../../generated';
 
-/** Wire values Servatrice accepts for Command_AddCardArtRule.mode. */
 export type CardArtRuleMode = 'ALLOW' | 'DENY';
 
 export function addCardArtRule(cardName: string, cardProviderId: string, mode: CardArtRuleMode, reason = ''): void {

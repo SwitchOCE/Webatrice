@@ -1,8 +1,3 @@
-/**
- * Hands `data` to the browser as a file download named `fileName`: the
- * blob → object URL → anchor click → revoke sequence a web page uses in place
- * of desktop's save-file dialog.
- */
 export function downloadBlob(data: BlobPart, fileName: string, mimeType: string): void {
   const url = URL.createObjectURL(new Blob([data], { type: mimeType }));
   const anchor = document.createElement('a');

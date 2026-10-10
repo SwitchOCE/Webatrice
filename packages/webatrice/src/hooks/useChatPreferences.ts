@@ -12,13 +12,11 @@ import {
 
 import { usePreferences } from './useSettings';
 
-/** Which room chat lines to show, from the Chat preferences. */
 export function useRoomChatFilter(): RoomChatFilter {
   const { roomHistory, ignoreUnregisteredUsers } = usePreferences();
   return useMemo(() => ({ roomHistory, ignoreUnregisteredUsers }), [roomHistory, ignoreUnregisteredUsers]);
 }
 
-/** Which private messages to show, from the Chat preferences. */
 export function usePrivateMessageFilter(): PrivateMessageFilter {
   const { ignoreAllPrivateMessages, ignoreUnregisteredUserMessages, ignoreNonBuddyUserMessages } = usePreferences();
   return useMemo(
@@ -28,13 +26,10 @@ export function usePrivateMessageFilter(): PrivateMessageFilter {
 }
 
 export interface ChatHighlights {
-  /** For lines from ordinary users. */
   user: ChatHighlight;
-  /** For lines from moderators and administrators, whose `@/all` is honoured. */
   moderator: ChatHighlight;
 }
 
-/** The reader's mention and alert-word styling, stable until a Chat preference changes. */
 export function useChatHighlight(): ChatHighlights {
   const {
     chatMention,

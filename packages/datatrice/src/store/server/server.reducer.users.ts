@@ -17,11 +17,8 @@ export const MAX_USER_MESSAGES = 1000;
 export const MAX_NOTIFICATIONS = 200;
 export const MAX_PRIVATE_CHAT_NOTICES = 200;
 
-// Monotonic, session-scoped id for private-chat notices (rows key on it).
 let nextNoticeId = 0;
 
-// Command_Message rejections desktop TabMessage::messageSent reports, plus the
-// flood rejection Servatrice's cmdMessage also returns.
 const PRIVATE_MESSAGE_FAILURE_NOTICES: Partial<Record<Response_ResponseCode, PrivateChatNoticeKind>> = {
   [Response_ResponseCode.RespInIgnoreList]: 'ignoredByRecipient',
   [Response_ResponseCode.RespNameNotFound]: 'recipientOffline',
@@ -63,8 +60,6 @@ export const userReducers = {
     state.users = users;
   }) as CaseReducer<ServerState, PayloadAction<{ users: ServerInfo_User[] }>>,
 
-  // An open conversation records the partner coming online or going offline, as
-  // desktop TabMessage::processUserJoined / processUserLeft append to the chat.
   userJoined: ((state, action) => {
     const { user } = action.payload;
     state.users[user.name] = user;
@@ -99,8 +94,6 @@ export const userReducers = {
     if (msgs.length >= MAX_USER_MESSAGES) {
       const trimmed = msgs.length - MAX_USER_MESSAGES + 1;
       state.messages[userName] = msgs.slice(trimmed);
-      // Keep each notice beside the messages it followed; drop those that
-      // preceded only trimmed messages.
       const notices = state.privateChatNotices[userName];
       if (notices) {
         state.privateChatNotices[userName] = notices
@@ -111,9 +104,6 @@ export const userReducers = {
     state.messages[userName].push(action.payload.messageData);
   }) as CaseReducer<ServerState, PayloadAction<{ messageData: Event_UserMessage }>>,
 
-  // A Command_Message that failed: rejected by the server, or never answered
-  // (`failure` set: a "not sent" notice with the reason). `message` is the unsent
-  // text: the reducer records only the notice; the UI may use it to restore the draft.
   privateMessageFailed: ((state, action) => {
     const { userName, responseCode, failure } = action.payload;
     if (failure) {
@@ -138,7 +128,6 @@ export const userReducers = {
     state.notifications.push(action.payload.notification);
   }) as CaseReducer<ServerState, PayloadAction<{ notification: Event_NotifyUser }>>,
 
-  // A fresh request drops the previous answer so a stale list never shows as current.
   gamesOfUserRequested: ((state, action) => {
     const { userName } = action.payload;
     delete state.gamesOfUser[userName];
@@ -147,8 +136,6 @@ export const userReducers = {
 
   gamesOfUser: ((state, action) => {
     const { userName, response } = action.payload;
-    // Game type ids are scoped to their room, so each game resolves its type
-    // through its own room's list (desktop keys gameTypeMap by room id).
     const gametypeMaps: { [roomId: number]: Enriched.GametypeMap } = {};
     for (const room of response.roomList ?? []) {
       gametypeMaps[room.roomId] = normalizeGametypeMap(room.gametypeList ?? []);

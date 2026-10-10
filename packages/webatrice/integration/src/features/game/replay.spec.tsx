@@ -13,12 +13,6 @@ import { RouteEnum } from '@app/types';
 import { buildReplay, sayContainer } from '../../../../src/services/replay/__mocks__/fixtures';
 import { renderFeatureScreen, store } from '../helpers';
 
-// A real replay: a two-player game played against the e2e Servatrice by
-// e2e/specs/replays.spec.ts and saved from the replays tab
-// (REPLAY_FIXTURE_OUT). Playing it here runs every recorded container through
-// the shipped pipeline: WebClient.replayGameEventContainer → Sockatrice's
-// game-event registry → Datatrice's GameResponseImpl, reducers and log
-// listeners → the read-only board.
 const FIXTURE = resolve(__dirname, '../../../../src/services/replay/__mocks__/two-player-game.cor');
 
 function gameOf(gameId: number) {
@@ -59,8 +53,6 @@ describe('replay playback of a recorded game', () => {
 
     act(() => seekToFraction(0.99));
 
-    // Both recorded players joined (the host may already have left again by
-    // the end of the recording), and the game started.
     const game = gameOf(gameId);
     const joined = game.messages
       .map((m) => /^(e2e_\w+) has joined the game\.$/.exec(m.message)?.[1])
@@ -83,7 +75,6 @@ describe('replay playback of a recorded game', () => {
     act(() => seekToFraction(0));
 
     expect(gameOf(gameId).players).toEqual({});
-    // Like desktop's resetForRewind: the log is cleared and the start notice not repeated.
     expect(gameOf(gameId).messages).toEqual([]);
     expect(fullLog).toBeGreaterThan(1);
   });
@@ -112,7 +103,6 @@ describe('replay playback of a recorded game', () => {
       WebClient.instance.replayGameEventContainer(container, gameId);
     }
 
-    // All three play in no wall time at all; each line keeps its container's game time.
     const said = gameOf(gameId).messages.filter((m) => m.kind === 'chat');
     expect(said.map((m) => [m.message, m.gameSeconds])).toEqual([
       ['hello', 0],

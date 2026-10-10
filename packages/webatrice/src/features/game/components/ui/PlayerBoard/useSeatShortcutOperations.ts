@@ -30,19 +30,16 @@ import type { LifeControl, useSeatPrompts } from './useSeatPrompts';
 
 type SeatPrompts = ReturnType<typeof useSeatPrompts>;
 
-/** The part of the seat (usePlayerSeat) the shortcuts act on. */
 export interface SeatShortcutSeat {
   seatId: number;
   isSelf: boolean;
   selection: SeatSelection | null;
-  /** The game selection, which holds a library / sideboard view's selected cards. */
   selectedCardKeys: ReadonlySet<string>;
   deckCount: number;
   handCount: number;
   alwaysRevealTopCard: boolean;
   alwaysLookAtTopCard: boolean;
   manaCounters: PlayerCounterViewModel['mana'];
-  /** The life counter; undefined until the seat has it. */
   lifeControl: LifeControl | undefined;
   lastToken: SeatPrompts['lastToken'];
   openLifePrompt: SeatPrompts['openLifePrompt'];
@@ -59,13 +56,10 @@ export interface SeatShortcutSeat {
   targetCommands: PlayerTargetCommands;
 }
 
-/** The game dialogs a seat shortcut opens, beside the seat's own prompts. */
 type SeatShortcutDialogs = Pick<GameDialogsActions, 'handleRequestChooseMulligan' | 'handleRequestSortHandBy' | 'openZoneView'>;
 
 type SeatShortcut = (seat: SeatShortcutSeat & SeatShortcutDialogs) => void;
 
-/** A battlefield action on the selection (desktop runs these on the scene's
- *  selected cards); nothing without a battlefield selection. */
 const onSelection = (op: (ops: BattlefieldCardOps) => void): SeatShortcut => ({ cardOps }) => {
   const ops = cardOps.forSelection();
   if (ops) {
@@ -73,7 +67,6 @@ const onSelection = (op: (ops: BattlefieldCardOps) => void): SeatShortcut => ({ 
   }
 };
 
-/** A mana-pool player counter (desktop's w/u/b/r/g/x and storm), once the seat has it. */
 const onPlayerCounter = (
   symbol: ManaSymbol,
   op: (seat: SeatShortcutSeat, counter: { id: number; count: number }) => void,
@@ -84,11 +77,9 @@ const onPlayerCounter = (
   }
 };
 
-/** Add or remove one on a player counter (desktop aIncCounter_* / aDecCounter_*). */
 const stepPlayerCounter = (symbol: ManaSymbol, step: 1 | -1) =>
   onPlayerCounter(symbol, (seat, counter) => seat.counterCommands.increment(counter.id, step));
 
-/** Open a player counter's set prompt, titled with its name (desktop aSetCounter_*). */
 const COUNTER_LABEL_KEY: Record<ManaSymbol, string> = {
   W: 'white', U: 'blue', B: 'black', R: 'red', G: 'green', C: 'colorless', O: 'other',
 };
@@ -100,37 +91,25 @@ const promptPlayerCounter = (t: TFunction, symbol: ManaSymbol) =>
     currentValue: counter.count,
   }));
 
-/** A move of the selected cards: desktop moves the scene's selection from any
- *  zone, here the battlefield or the hand selection. */
 const moveSelection = (to: SeatMoveDestination): SeatShortcut => ({ cardOps, handOps }) => {
   (cardOps.forSelection() ?? handOps.forSelection())?.move(to);
 };
 
-/** A hand action, while the hand has cards. */
 const onHand = (op: SeatShortcut): SeatShortcut => (seat) => {
   if (seat.handCount > 0) {
     op(seat);
   }
 };
 
-/** A library action, while the library has cards. */
 const onLibrary = (op: SeatShortcut): SeatShortcut => (seat) => {
   if (seat.deckCount > 0) {
     op(seat);
   }
 };
 
-/**
- * Desktop's player shortcuts, by action id. Each one calls an existing seat
- * op, prompt or port; the selection-scoped ones go through the same
- * battlefield card ops as the card menu. No entry checks isSelf: only the
- * local seat publishes its shortcuts (usePublishSeatShortcuts below).
- */
 const seatShortcuts = (t: TFunction): Record<SeatShortcutActionId, SeatShortcut> => ({
-  // aMulligan (Ctrl+M) asks for the hand size rather than assuming seven.
   'game.mulligan': (seat) => seat.handleRequestChooseMulligan(),
   'game.setLife': (seat) => seat.openLifePrompt(),
-  // aRemoveLocalArrows (Ctrl+R): only the arrows this player drew.
   'game.removeLocalArrows': (seat) => seat.targetCommands.clearOwnArrows(),
   'game.doesntUntap': onSelection((ops) => ops.toggleDoesntUntap()),
   'game.moveTopUntil': onLibrary((seat) => seat.openMoveTopUntilDialog()),
@@ -139,7 +118,6 @@ const seatShortcuts = (t: TFunction): Record<SeatShortcutActionId, SeatShortcut>
   'game.viewTopCards': onLibrary((seat) => seat.openViewLibraryCountPrompt({ isReversed: false, deckSize: seat.deckCount })),
   'game.viewBottomCards': onLibrary((seat) => seat.openViewLibraryCountPrompt({ isReversed: true, deckSize: seat.deckCount })),
   'game.createToken': (seat) => seat.openCreateTokenDialog(),
-  // Re-creates the last token submitted from the dialog.
   'game.createAnotherToken': (seat) => {
     if (seat.lastToken) {
       seat.cardCommands.createToken(seat.lastToken);
@@ -163,11 +141,9 @@ const seatShortcuts = (t: TFunction): Record<SeatShortcutActionId, SeatShortcut>
   'game.decT': onSelection((ops) => ops.changePT(0, -1)),
   'game.incPT': onSelection((ops) => ops.changePT(1, 1)),
   'game.decPT': onSelection((ops) => ops.changePT(-1, -1)),
-  // Desktop selects under the pointer's zone; the seat selects its own battlefield.
   'game.selectAllBattlefield': (seat) => seat.cardOps.selectAll(),
   'game.selectRowBattlefield': onSelection((ops) => ops.selectRow()),
   'game.selectColumnBattlefield': onSelection((ops) => ops.selectColumn()),
-  // Desktop's default card counters: A (red, 0), B (yellow, 1), C (green, 2).
   'game.addCounterA': onSelection((ops) => ops.stepCounter(0, 1)),
   'game.removeCounterA': onSelection((ops) => ops.stepCounter(0, -1)),
   'game.setCounterA': onSelection((ops) => ops.promptCounter(0)),
@@ -181,9 +157,6 @@ const seatShortcuts = (t: TFunction): Record<SeatShortcutActionId, SeatShortcut>
   'game.setAnnotation': onSelection((ops) => ops.promptAnnotation()),
   'game.moveSelectedToLibraryBottom': moveSelection({ zone: ZoneName.DECK, reversed: true }),
   'game.cloneCard': onSelection((ops) => ops.clone()),
-  // aRevealToAll: one Command_RevealCards without player_id for the selected
-  // cards of one hidden zone of this seat (the hand, or an open library /
-  // sideboard view).
   'game.revealSelectedToAll': (seat) => {
     const picked = selectedHiddenZoneCards(seat.seatId, seat.selection, seat.selectedCardKeys);
     if (picked) {
@@ -204,8 +177,6 @@ const seatShortcuts = (t: TFunction): Record<SeatShortcutActionId, SeatShortcut>
   'game.sortHandByManaValue': onHand((seat) => seat.handleRequestSortHandBy('manacost')),
   'game.revealHandToAll': onHand((seat) => seat.zoneCommands.reveal(ZoneName.HAND, 'all')),
   'game.revealRandomHandCardToAll': onHand((seat) => seat.zoneCommands.reveal(ZoneName.HAND, 'all', 'random')),
-  // The library menu's Top of library / Bottom of library items; each does
-  // nothing on an empty library.
   'game.moveTopToPlayFaceDown': ({ libraryOps }) => libraryOps.moveTopCard(ZoneName.TABLE, 'end', true),
   'game.moveTopNToGraveFaceDown': ({ libraryOps }) => libraryOps.promptMoveTopCards(ZoneName.GRAVE, true),
   'game.moveTopToExile': ({ libraryOps }) => libraryOps.moveTopCard(ZoneName.EXILE, 0),
@@ -225,7 +196,6 @@ const seatShortcuts = (t: TFunction): Record<SeatShortcutActionId, SeatShortcut>
   'game.drawBottomCards': ({ libraryOps }) => libraryOps.promptMoveBottomCards(ZoneName.HAND),
   'game.shuffleTopCards': ({ libraryOps }) => libraryOps.promptShuffleTopCards(),
   'game.shuffleBottomCards': ({ libraryOps }) => libraryOps.promptShuffleBottomCards(),
-  // Desktop's D / E / F card counters: cyan (3), purple (4), magenta (5).
   'game.addCounterD': onSelection((ops) => ops.stepCounter(3, 1)),
   'game.removeCounterD': onSelection((ops) => ops.stepCounter(3, -1)),
   'game.setCounterD': onSelection((ops) => ops.promptCounter(3)),
@@ -237,7 +207,6 @@ const seatShortcuts = (t: TFunction): Record<SeatShortcutActionId, SeatShortcut>
   'game.setCounterF': onSelection((ops) => ops.promptCounter(5)),
   'game.incLife': (seat) => seat.lifeControl?.onDelta(1),
   'game.decLife': (seat) => seat.lifeControl?.onDelta(-1),
-  // The mana pool; desktop's x counter is the colorless (C) pip.
   'game.incManaCounterW': stepPlayerCounter('W', 1),
   'game.decManaCounterW': stepPlayerCounter('W', -1),
   'game.setManaCounterW': promptPlayerCounter(t, 'W'),
@@ -260,11 +229,6 @@ const seatShortcuts = (t: TFunction): Record<SeatShortcutActionId, SeatShortcut>
   'game.flowT': onSelection((ops) => ops.changePT(-1, 1)),
 });
 
-/**
- * Publishes the seat's keyboard actions (desktop's player shortcuts) through
- * SeatShortcutsContext. useGameShortcuts owns the key bindings and runs them
- * for the local seat only, so only the local seat publishes.
- */
 export function useSeatShortcutOperations(seat: SeatShortcutSeat): void {
   const { t } = useTranslation();
   const shortcuts = seatShortcuts(t);

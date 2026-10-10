@@ -36,9 +36,7 @@ export interface DeckCardGroupProps {
   onCardClick?: (card: DeckCard) => void;
   isMtg: boolean;
   isCommander: boolean;
-  /** Legality by card index into `deck`. */
   legality?: readonly CardLegality[];
-  /** The deck list's keyboard grid, shared by every section so ↑/↓ cross between them. */
   grid?: DeckCardGrid;
 }
 
@@ -85,7 +83,6 @@ export function DeckCardGroup({
         </span>
         <span className="text-sm tabular-nums text-text-muted">{totalQty}</span>
       </h3>
-      {/* One grid per section, named by its heading; the rows of all sections share one tab stop. */}
       <div role="grid" aria-labelledby={headingId}>
         {indices.map((i) => (
           <DeckCardRow

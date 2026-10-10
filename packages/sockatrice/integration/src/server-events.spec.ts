@@ -146,7 +146,6 @@ describe('server events', () => {
         Data.Event_ConnectionClosed_ext,
         create(Data.Event_ConnectionClosedSchema, {
           reason: Data.Event_ConnectionClosed_CloseReason.BANNED,
-          // A fixed positive epoch-seconds value.
           endTime: 1893456000,
         })
       ));

@@ -4,23 +4,14 @@ export type SignalTone = 'muted' | 'warn' | 'hot';
 
 export type BracketSignalId = 'gameChangers' | 'denial' | 'turns' | 'earlyCombos' | 'lateCombos';
 
-/** One of the bracket section's signal badges: its count and contributing cards. */
 export interface SignalBadgeSpec {
-  /** Stable id; the UI translates it (`DeckBracket.signal.<id>`). */
   id: BracketSignalId;
   count: number;
   tone: SignalTone;
   items: string[];
-  /** Extra-turn cards that can chain; listed after `items` under their own heading. */
   chainable?: string[];
 }
 
-/**
- * The five bracket-signal badges in display order, with edhpowerlevel's
- * warning thresholds: more than three Game Changers or extra turns (or
- * any chain-able extra turn) is hot; any mass land denial or early combo
- * is hot; late combos only warn.
- */
 export function bracketSignalBadges(signals: BracketSignals): SignalBadgeSpec[] {
   const gcHot = signals.gameChangers.matches.length > 3;
   const gcWarn = !gcHot && signals.gameChangers.matches.length > 0;

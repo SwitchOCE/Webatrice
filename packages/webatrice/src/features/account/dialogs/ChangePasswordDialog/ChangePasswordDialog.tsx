@@ -63,7 +63,6 @@ const ChangePasswordForm = ({ handleClose }: { handleClose: () => void }) => {
   );
 };
 
-/** Desktop `DlgEditPassword`: old password, new password, confirmation. */
 const ChangePasswordDialog = ({ isOpen, handleClose }: ChangePasswordDialogProps) => {
   const { t } = useTranslation();
 

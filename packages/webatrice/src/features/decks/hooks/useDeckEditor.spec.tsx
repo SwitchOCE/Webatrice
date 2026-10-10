@@ -44,7 +44,6 @@ function Probe({ deckId }: { deckId: number | null }) {
 function setup(deckId: number | null = 5) {
   const webClient = createMockWebClient();
   const view = renderWithProviders(<Probe deckId={deckId} />, { preloadedState: connectedState, webClient });
-  // The download's request id; outcomes for any other request are ignored.
   const requestId = () => vi.mocked(webClient.request.session.deckDownload).mock.lastCall?.[1];
   return { ...view, webClient, requestId };
 }
@@ -259,7 +258,6 @@ describe('useDeckEditor', () => {
     act(() => latest.setFormat('legacy'));
     expect(latest.canUndo).toBe(true);
 
-    // A reconnect after the session cache is dropped downloads the deck again.
     clearDeckEditorCache();
     const status = (state: WebsocketTypes.StatusEnum) => server.Actions.updateStatus({ status: { state, description: null } });
     act(() => store.dispatch(status(WebsocketTypes.StatusEnum.DISCONNECTED)));

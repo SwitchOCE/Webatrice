@@ -21,11 +21,6 @@ const ITEM_CLASS = [
   'hover:bg-bg-elevated hover:text-text-primary disabled:opacity-40 disabled:pointer-events-none',
 ].join(' ');
 
-/**
- * Desktop `DeckEditorMenu`'s "Print deck..." and "Send deck to online
- * service" entries. Each opens a new tab (or the print dialog) from the
- * click itself, so popup blockers let it through.
- */
 export function DeckOnlineServices({ deck }: DeckOnlineServicesProps) {
   const { t } = useTranslation();
   const [open, setOpen] = useState(false);

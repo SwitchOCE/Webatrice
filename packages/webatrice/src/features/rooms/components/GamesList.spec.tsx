@@ -15,9 +15,6 @@ import { connectedWithRoomsState, createMockWebClient, makeUser, renderWithProvi
 import type { RootState } from '../../../store';
 import GamesList from './GamesList';
 
-// react-window sizes its viewport via ResizeObserver, which the jsdom harness
-// stubs to a no-op (zero height → zero rows). Install an emitting observer, as
-// VirtualList.spec does, so rows actually mount.
 type RoCallback = (entries: { contentRect: { height: number; width: number }; target: Element }[]) => void;
 interface RoHandle { callback: RoCallback; targets: Set<Element> }
 let observers: RoHandle[] = [];
@@ -109,7 +106,6 @@ describe('GamesList', () => {
 
   it('moves the selection and focus with the arrow keys', () => {
     setup();
-    // The default sort puts the newest game first.
     const [first, second] = screen.getAllByRole('row').slice(1);
     expect(first).toHaveAccessibleName(/Charlie/);
 
@@ -164,13 +160,9 @@ describe('GamesList', () => {
 
     const header = screen.getByRole('columnheader', { name: 'GamesList.column.description' });
     expect(header).toHaveAttribute('aria-sort');
-    // Restrictions has no sort field, so it gets no button.
     expect(screen.queryByRole('button', { name: 'GamesList.column.restrictions' })).not.toBeInTheDocument();
   });
 
-  // Ported from the deleted GameSelector / GameSelectorToolbar specs: the
-  // toolbar gating and dialogs they covered now live in GamesList. Password,
-  // full-game spectate, already-open routing and join errors are useJoinGame's.
   describe('toolbar', () => {
     const join = () => screen.getByRole('button', { name: 'Common.action.join' });
     const spectate = () => screen.getByRole('button', { name: 'GamesList.action.spectate' });

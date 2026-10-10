@@ -1,13 +1,3 @@
-/**
- * The in-memory client log behind "View debug log", mirroring desktop's `Logger`
- * (cockatrice/src/interface/logger.cpp): a few header lines describing the client and system,
- * then the most recent messages in a bounded ring buffer. Nothing is written to storage or sent
- * anywhere; it lives and dies with the tab, and leaves only when the user copies it.
- *
- * The app and its packages log through `console.*`, so `installConsoleCapture` wraps those
- * methods once at startup. Each wrapper calls the original first, with the original arguments,
- * so the browser's dev tools see exactly what they saw before.
- */
 
 export type DebugLogLevel = 'debug' | 'log' | 'info' | 'warn' | 'error';
 
@@ -17,25 +7,13 @@ export interface DebugLogEntry {
   message: string;
 }
 
-/**
- * Desktop keeps 128 lines; a browser session logs more per event (React, the socket layer), so
- * the web log keeps more to still cover the last few minutes when a user reports a problem.
- */
 export const DEBUG_LOG_MAX_ENTRIES = 500;
 
-/** One huge payload (a full game state dump) must not evict everything else. */
 export const DEBUG_LOG_MAX_MESSAGE_LENGTH = 4000;
 
 const LEVELS: readonly DebugLogLevel[] = ['debug', 'log', 'info', 'warn', 'error'];
 
-/**
- * Object keys whose values never reach the log, however deeply nested: passwords in every
- * spelling the protocol uses (`password`, `hashedPassword`, `newPassword`), salts, secrets,
- * `*Token`s and other credentials (`auth*`, `apiKey`), and the account PII protocol messages
- * carry (`email`, `realName`, addresses and IPs).
- */
 const SECRET_KEY = /password|passwd|secret|salt|^hash|token$|^auth(?!ors?$)|api_?key|e_?mail|real_?name|address|^ip(?:v[46])?$|(?:^|_)ip$/i;
-// Keep the camelCase boundary case-sensitive so ordinary words such as ship and tip survive.
 const CAMEL_CASE_IP_KEY = /[a-z]Ip$/;
 const REDACTED = '[redacted]';
 
@@ -71,7 +49,6 @@ function describeValue(value: unknown): string {
   }
 }
 
-/** Renders console arguments the way the console would print them, minus secrets. */
 export function formatLogArguments(args: readonly unknown[]): string {
   const message = args.map(describeValue).join(' ');
   return message.length > DEBUG_LOG_MAX_MESSAGE_LENGTH
@@ -92,13 +69,11 @@ export class DebugLog {
   private header: readonly string[] = [];
   private entries: DebugLogEntry[] = [];
   private readonly listeners = new Set<() => void>();
-  /** Built on first read after a change, so appends nobody is watching cost no copy. */
   private snapshot: readonly DebugLogEntry[] | null = [];
   private notifyQueued = false;
 
   constructor(private readonly capacity = DEBUG_LOG_MAX_ENTRIES) {}
 
-  /** Lines that open every copy of the log and survive `clear`, as desktop's header does. */
   setHeader(lines: readonly string[]): void {
     this.header = [...lines];
     this.notify();
@@ -116,7 +91,6 @@ export class DebugLog {
     this.notify();
   }
 
-  /** Stable between changes, for `useSyncExternalStore`. */
   getEntries = (): readonly DebugLogEntry[] => (this.snapshot ??= [...this.entries]);
 
   clear(): void {
@@ -124,7 +98,6 @@ export class DebugLog {
     this.notify();
   }
 
-  /** The whole log as plain text: what "Copy to clipboard" copies. */
   toText(): string {
     return [...this.header, ...this.entries.map(formatLogEntry)].join('\n');
   }
@@ -136,11 +109,6 @@ export class DebugLog {
     };
   };
 
-  /**
-   * Listeners hear about changes in a microtask, once per burst. `append` runs inside every
-   * `console.*` call, including React's own warnings made while it renders another component;
-   * notifying synchronously there would update the log view mid-render.
-   */
   private notify(): void {
     this.snapshot = null;
     if (this.notifyQueued || this.listeners.size === 0) {
@@ -154,15 +122,10 @@ export class DebugLog {
   }
 }
 
-/** The app's one log. */
 export const debugLog = new DebugLog();
 
 let uninstallCapture: (() => void) | null = null;
 
-/**
- * Routes every `console.*` call, uncaught error and unhandled rejection into `log`, keeping the
- * console's own behaviour. Idempotent; returns the function that restores the console.
- */
 export function installConsoleCapture(log: DebugLog = debugLog, target: Console = console): () => void {
   if (uninstallCapture) {
     return uninstallCapture;

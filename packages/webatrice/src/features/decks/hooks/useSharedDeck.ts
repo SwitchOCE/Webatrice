@@ -10,9 +10,7 @@ import { parseCod } from '@app/services';
 import { useAppSelector } from '@app/store';
 import type { ParsedDeck } from '@app/types';
 
-/** A deck opened read-only from a share link or a user's public decks. */
 export interface OpenedDeck {
-  /** The share item or public deck id it came from. */
   id: number;
   xml: string;
   deck: ParsedDeck;
@@ -24,7 +22,6 @@ export type OpenDeckState =
   | { status: 'open'; opened: OpenedDeck }
   | { status: 'failed'; id: number; message: string };
 
-/** Parse a downloaded deck; `null` when it isn't a readable `.cod`. */
 function readDeck(xml: string): ParsedDeck | null {
   try {
     return parseCod(xml);
@@ -38,12 +35,6 @@ export type SharedDeckListing =
   | { status: 'loaded'; name: string; expiresAt: bigint; items: ServerInfo_DeckShareItem[] }
   | { status: 'failed'; message: string };
 
-/**
- * Desktop `IntentOpenSharedDeck`: resolve a share token to its decks
- * (`Command_DeckShareList`), then download the ones the user opens
- * (`Command_DeckShareDownload`), with desktop's messages for a missing,
- * expired, empty or unreadable share.
- */
 export function useSharedDeck(token: string | null) {
   const webClient = useWebClient();
   const { t } = useTranslation();
@@ -51,9 +42,7 @@ export function useSharedDeck(token: string | null) {
   const isConnected = useAppSelector(server.Selectors.getIsConnected);
   const [listing, setListing] = useState<SharedDeckListing>({ status: 'loading' });
   const [open, setOpen] = useState<OpenDeckState>({ status: 'idle' });
-  // A download failure names the share token only, so the item comes from here.
   const requestedItemRef = useRef<number | null>(null);
-  // Keep the wire request serialized even if its view is closed before settlement.
   const inFlightRef = useRef<{ token: string; itemId: number } | null>(null);
   const [downloadPending, setDownloadPending] = useState(false);
 
@@ -135,10 +124,6 @@ export function useSharedDeck(token: string | null) {
   };
 }
 
-/**
- * Desktop `TabPublicDecks`: another user's public decks
- * (`Command_DeckListOtherUser`), each opened with `Command_DeckDownloadPublic`.
- */
 export function usePublicDecks(userName: string) {
   const webClient = useWebClient();
   const { t } = useTranslation();

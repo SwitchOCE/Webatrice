@@ -1,7 +1,3 @@
-// Command terminal outcomes over the real transport stack: a command that the
-// server never answers fails with a typed reason (timeout, or disconnect when
-// the socket drops), reaches the response contract exactly once, and a late
-// answer is ignored. Only the browser WebSocket is mocked.
 
 import { create } from '@bufbuild/protobuf';
 import { describe, expect, it, vi } from 'vitest';
@@ -64,13 +60,10 @@ describe('command outcomes', () => {
       WebsocketTypes.CommandFailure.Disconnected,
     );
 
-    // The deadline was cancelled with the command: no second outcome later.
     vi.advanceTimersByTime(DEFAULT_COMMAND_TIMEOUT_MS);
     expect(getMockResponse().room.setJoinGameError).toHaveBeenCalledTimes(1);
   });
 
-  // connect() over an open socket retires it without an onclose. The old
-  // session's commands must settle there and then, not time out into the new one.
   it('settles commands in flight when connect() replaces an open socket', () => {
     connectAndHandshake();
     expect(() => findLastSessionCommand(Data.Command_Login_ext)).not.toThrow();

@@ -55,7 +55,6 @@ describe('production board motion wiring', () => {
       });
     });
     const hand = screen.getByTestId('hand-zone-1');
-    // Inspect the real Motion instance attached to HandZone, under Game's BoardMotionConfig.
     expect(visualElementStore.get(hand)?.shouldReduceMotion).toBe(true);
     const card = screen.getByTitle('Opt');
     expect(getComputedStyle(card).transition).toBe('none');
@@ -63,8 +62,6 @@ describe('production board motion wiring', () => {
     fireEvent.mouseEnter(track);
     expect(track.style.width).toBe('112px');
     expect(getComputedStyle(track).transition).toBe('none');
-    // Includes the sidebar/resizer, player controls, hand badge and seat shadow. These owners
-    // are rendered by the real Game tree, and must opt in even though some only change colour.
     const transitioning = screen.getByTestId('game-container').querySelectorAll('[class*="transition-"]');
     expect(transitioning.length).toBeGreaterThan(10);
     for (const element of transitioning) {

@@ -14,21 +14,6 @@ import RoomsList from './RoomsList';
 import ServerUsers from './ServerUsers';
 import { useStartupRoom } from './useStartupRoom';
 
-/**
- * Server (lobby) page — reached when a user hasn't been auto-joined
- * into a room. Grid layout mirrors the Room page: rooms table top-
- * left, server MOTD bottom-left, connected users on the right
- * spanning both rows. All MUI (Paper, Table, ListItemButton,
- * VirtualList) removed; every panel is a Tailwind card.
- *
- * JOIN_ROOM effect: when a join the user asked for succeeds, redirect into
- * the corresponding /room/:roomId route. A server auto-join opens the room
- * without switching to it, as desktop does (setCurrent = false,
- * tab_server.cpp), so it never pulls the user out of the Lobby.
- *
- * A login whose startup tab is "Server Room" arrives here with the room's name; `useStartupRoom`
- * opens it.
- */
 const Server = () => {
   const message = useAppSelector((state) => server.Selectors.getMessage(state));
   const roomsList = useAppSelector((state) => rooms.Selectors.getRooms(state));

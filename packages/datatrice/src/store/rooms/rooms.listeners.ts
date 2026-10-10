@@ -11,10 +11,6 @@ import { Actions } from './rooms.actions';
 import { RoomsState } from './rooms.interfaces';
 
 export function registerRoomsListeners(mw: ListenerMiddlewareInstance<unknown>): void {
-  // Desktop TabRoom::processRoomSayEvent drops a message from an ignored sender as
-  // it arrives (chat history included). Filtering on arrival, not in a selector,
-  // matches desktop both ways: ignoring someone leaves their earlier lines in
-  // place, and un-ignoring them does not bring back what was dropped.
   mw.startListening({
     actionCreator: Actions.roomSayReceived,
     effect: (action, api) => {
@@ -46,13 +42,6 @@ export function registerRoomsListeners(mw: ListenerMiddlewareInstance<unknown>):
           const nextGametypeMap = rawGametypeList.length > 0
             ? normalizeGametypeMap(rawGametypeList)
             : existing.gametypeMap;
-          // Servatrice re-broadcasts Event_ListRooms every few seconds whether
-          // or not anything changed. When the merge is a no-op, skip the
-          // dispatch entirely — otherwise the steady-state broadcast flips the
-          // room ref and re-renders every rooms subscriber for nothing.
-          // gametypeMap is compared by value (dequal): normalizeGametypeMap
-          // allocates a fresh object whenever the broadcast carries a
-          // gametypeList, so a reference check would never fire the skip.
           if (
             dequal(nextGametypeMap, existing.gametypeMap)
             && existing.order === order
@@ -96,9 +85,6 @@ export function registerRoomsListeners(mw: ListenerMiddlewareInstance<unknown>):
 
       const gametypeMap = room.gametypeMap ?? {};
 
-      // One dispatch per frame, not per game: a busy server's join snapshot
-      // carries thousands of games, and per-game dispatches invalidated the
-      // room selectors N times per frame (dev invariant walks went O(games²)).
       const changes: { gameId: number; game: Enriched.Game | null }[] = [];
       for (const rawGame of games) {
         if (rawGame.closed) {

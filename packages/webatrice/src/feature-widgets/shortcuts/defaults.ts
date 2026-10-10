@@ -31,8 +31,6 @@ export const defaults: Record<ActionId, ShortcutDef> = {
   'game.addCounterC': { scope: ShortcutScope.GAME, group: 'gameCardCounters', sequences: ['Ctrl+Shift+Period'] },
   'game.removeCounterC': { scope: ShortcutScope.GAME, group: 'gameCardCounters', sequences: ['Ctrl+Shift+Comma'] },
   'game.setCounterC': { scope: ShortcutScope.GAME, group: 'gameCardCounters', sequences: ['Ctrl+Shift+Slash'] },
-  // Desktop's D / E / F card counters (aCCCyan / aCCPurple / aCCMagenta and their
-  // remove / set actions, counter ids 3-5) have no default.
   'game.addCounterD': { scope: ShortcutScope.GAME, group: 'gameCardCounters', sequences: [] },
   'game.removeCounterD': { scope: ShortcutScope.GAME, group: 'gameCardCounters', sequences: [] },
   'game.setCounterD': { scope: ShortcutScope.GAME, group: 'gameCardCounters', sequences: [] },
@@ -43,15 +41,9 @@ export const defaults: Record<ActionId, ShortcutDef> = {
   'game.removeCounterF': { scope: ShortcutScope.GAME, group: 'gameCardCounters', sequences: [] },
   'game.setCounterF': { scope: ShortcutScope.GAME, group: 'gameCardCounters', sequences: [] },
 
-  // Player Counters (desktop ShortcutGroup::Player_Counters).
-  // Desktop's `aInc` / `aDec` (life) are F12 / F11, which open the devtools and
-  // toggle fullscreen in browsers. Shift keeps the desktop key in reach; Alt+= /
-  // Alt+- would collide with Add / Remove toughness.
   'game.incLife': { scope: ShortcutScope.GAME, group: 'gamePlayerCounters', sequences: ['Shift+F12'] },
   'game.decLife': { scope: ShortcutScope.GAME, group: 'gamePlayerCounters', sequences: ['Shift+F11'] },
-  // Cockatrice's `aSet` (Ctrl+L) opens the set-life prompt.
   'game.setLife': { scope: ShortcutScope.GAME, group: 'gamePlayerCounters', sequences: ['Ctrl+KeyL'] },
-  // Desktop's mana-pool counters (aIncCounter_w … aSetCounter_x) have no default.
   'game.incManaCounterW': { scope: ShortcutScope.GAME, group: 'gamePlayerCounters', sequences: [] },
   'game.decManaCounterW': { scope: ShortcutScope.GAME, group: 'gamePlayerCounters', sequences: [] },
   'game.setManaCounterW': { scope: ShortcutScope.GAME, group: 'gamePlayerCounters', sequences: [] },
@@ -96,7 +88,6 @@ export const defaults: Record<ActionId, ShortcutDef> = {
   // alongside, rebinding in the shortcuts settings is the workaround.
   'game.incP': { scope: ShortcutScope.GAME, group: 'gamePowerToughness', sequences: ['Ctrl+Equal', 'Ctrl+Shift+Equal', 'Ctrl+NumpadAdd'] },
   'game.decP': { scope: ShortcutScope.GAME, group: 'gamePowerToughness', sequences: ['Ctrl+Minus', 'Ctrl+NumpadSubtract'] },
-  // Desktop's `aFlowP` / `aFlowT` have no default.
   'game.flowP': { scope: ShortcutScope.GAME, group: 'gamePowerToughness', sequences: [] },
   'game.incT': { scope: ShortcutScope.GAME, group: 'gamePowerToughness', sequences: ['Alt+Equal', 'Alt+Shift+Equal', 'Alt+NumpadAdd'] },
   'game.decT': { scope: ShortcutScope.GAME, group: 'gamePowerToughness', sequences: ['Alt+Minus', 'Alt+NumpadSubtract'] },
@@ -115,11 +106,6 @@ export const defaults: Record<ActionId, ShortcutDef> = {
   // Cockatrice's `aResetPT` (Ctrl+Alt+0) — resets selection PT to base.
   'game.resetPT': { scope: ShortcutScope.GAME, group: 'gamePowerToughness', sequences: ['Ctrl+Alt+Digit0'] },
 
-  // Game Phases (desktop ShortcutGroup::Game_Phases).
-  // Desktop's direct phase actions (Player/phase0 … phase10). Desktop binds
-  // Untap, Draw, First Main, Start Combat, Second Main and End to F5-F10;
-  // the browser keeps F5 (reload), F6 (address bar), F7 (caret browsing) and
-  // F10 (menu bar), so the web client leaves all eleven unbound.
   'game.setPhase0': { scope: ShortcutScope.GAME, group: 'gamePhases', sequences: [] },
   'game.setPhase1': { scope: ShortcutScope.GAME, group: 'gamePhases', sequences: [] },
   'game.setPhase2': { scope: ShortcutScope.GAME, group: 'gamePhases', sequences: [] },
@@ -136,11 +122,8 @@ export const defaults: Record<ActionId, ShortcutDef> = {
   'game.endTurn': { scope: ShortcutScope.GAME, group: 'gamePhases', sequences: ['Ctrl+Enter', 'Ctrl+NumpadEnter'] },
   // Cockatrice's `aNextPhase` accepts Ctrl+Space OR Tab; keep both.
   'game.nextPhase': { scope: ShortcutScope.GAME, group: 'gamePhases', sequences: ['Tab', 'Ctrl+Space'] },
-  // Webatrice-only, so it yields Shift+Tab to desktop's `aNextPhaseAction`; still rebindable.
   'game.prevPhase': { scope: ShortcutScope.GAME, group: 'gamePhases', sequences: [] },
   'game.nextPhaseAction': { scope: ShortcutScope.GAME, group: 'gamePhases', sequences: ['Shift+Tab'] },
-  // Desktop reads `Player/aReverseTurn` but never registers a default, so it has no key there.
-  // Listed here (unbound) so it can be bound.
   'game.reverseTurn': { scope: ShortcutScope.GAME, group: 'gamePhases', sequences: [] },
 
   // Playing Area (desktop ShortcutGroup::Playing_Area).
@@ -149,12 +132,7 @@ export const defaults: Record<ActionId, ShortcutDef> = {
   // bumps every EXISTING counter by +1 (skips MAX_COUNTER_VALUE).
   // Same logic as the utility-menu "Increment all card counters" item.
   'game.incrementAllCardCounters': { scope: ShortcutScope.GAME, group: 'gamePlayingArea', sequences: ['Ctrl+Shift+KeyA'] },
-  // Cockatrice's `aHide` (Alt+H) — hides the selected cards from a
-  // read-only reveal window. Purely local; registered by the open
-  // IncomingRevealDialog only.
   'game.hideRevealedCard': { scope: ShortcutScope.GAME, group: 'gamePlayingArea', sequences: ['Alt+KeyH'] },
-  // Desktop's `aTap`, `aPlay` and `aPlayFacedown` have no default. Tap toggles the
-  // battlefield selection; Play / Play face down play the selected hand cards.
   'game.tapCard': { scope: ShortcutScope.GAME, group: 'gamePlayingArea', sequences: [] },
   // `game.untapAll` uses Ctrl+U (Cockatrice default) instead of F5
   // because F5 is a browser-reserved reload key that
@@ -195,8 +173,6 @@ export const defaults: Record<ActionId, ShortcutDef> = {
   // hardcoded); rebound to Ctrl+K per the plan.
   'game.createToken': { scope: ShortcutScope.GAME, group: 'gamePlayingArea', sequences: ['Ctrl+KeyK'] },
   'game.createAnotherToken': { scope: ShortcutScope.GAME, group: 'gamePlayingArea', sequences: ['Ctrl+KeyG'] },
-  // Desktop's `aCreateRelatedTokens` is Ctrl+Shift+T, which reopens a closed tab
-  // and cannot be cancelled; it follows Create token's Ctrl+T → Ctrl+K.
   'game.createRelatedTokens': { scope: ShortcutScope.GAME, group: 'gamePlayingArea', sequences: ['Ctrl+Shift+KeyK'] },
   // Cockatrice's `aSetAnnotation` (Alt+N) — opens the annotation
   // modal against the selection. First-selected card drives the
@@ -219,9 +195,6 @@ export const defaults: Record<ActionId, ShortcutDef> = {
   // right-clicked card). No-op with an empty selection.
   'game.selectRowBattlefield': { scope: ShortcutScope.GAME, group: 'gamePlayingArea', sequences: ['Ctrl+Shift+KeyX'] },
   'game.selectColumnBattlefield': { scope: ShortcutScope.GAME, group: 'gamePlayingArea', sequences: ['Ctrl+Shift+KeyC'] },
-  // Cockatrice's `aRevealToAll` (unbound by default) — reveals the
-  // selected hand cards to every player in one Command_RevealCards,
-  // the card menu's "Reveal to... > All players".
   'game.revealSelectedToAll': { scope: ShortcutScope.GAME, group: 'gamePlayingArea', sequences: [] },
 
   // Move Selected Card (desktop ShortcutGroup::Move_selected). Each acts on the
@@ -240,11 +213,8 @@ export const defaults: Record<ActionId, ShortcutDef> = {
   'game.moveSelectedToHand': { scope: ShortcutScope.GAME, group: 'gameMoveSelected', sequences: [] },
   'game.moveSelectedToLibraryTop': { scope: ShortcutScope.GAME, group: 'gameMoveSelected', sequences: [] },
   'game.moveSelectedToBattlefield': { scope: ShortcutScope.GAME, group: 'gameMoveSelected', sequences: [] },
-  // Web only: M on a focused card opens the Move cards dialog, the keyboard's
-  // way to drag a card (and its selection) to any zone and position.
   'game.moveCardDialog': { scope: ShortcutScope.GAME, group: 'gameMoveSelected', sequences: ['KeyM'] },
 
-  // View (desktop ShortcutGroup::View).
   'game.viewHand': { scope: ShortcutScope.GAME, group: 'gameView', sequences: [] },
   'game.viewGraveyard': { scope: ShortcutScope.GAME, group: 'gameView', sequences: ['F4'] },
   'game.viewLibrary': { scope: ShortcutScope.GAME, group: 'gameView', sequences: ['F3'] },
@@ -256,10 +226,7 @@ export const defaults: Record<ActionId, ShortcutDef> = {
   'game.viewBottomCards': { scope: ShortcutScope.GAME, group: 'gameView', sequences: ['Ctrl+Alt+Shift+KeyW'] },
   'game.closeRecentView': { scope: ShortcutScope.GAME, group: 'gameView', sequences: ['Escape'] },
 
-  // Move Top Card (desktop ShortcutGroup::Move_top).
   'game.playTop': { scope: ShortcutScope.GAME, group: 'gameMoveTop', sequences: ['Ctrl+KeyY'] },
-  // Desktop's `aMoveTopToPlayFaceDown` (Ctrl+Shift+E). The other new top and
-  // bottom card actions are unbound on desktop too.
   'game.moveTopToPlayFaceDown': { scope: ShortcutScope.GAME, group: 'gameMoveTop', sequences: ['Ctrl+Shift+KeyE'] },
   'game.moveTopToGrave': { scope: ShortcutScope.GAME, group: 'gameMoveTop', sequences: ['Alt+KeyY'] },
   'game.moveTopNToGrave': { scope: ShortcutScope.GAME, group: 'gameMoveTop', sequences: ['Alt+KeyM'] },
@@ -274,7 +241,6 @@ export const defaults: Record<ActionId, ShortcutDef> = {
   'game.moveTopUntil': { scope: ShortcutScope.GAME, group: 'gameMoveTop', sequences: ['Ctrl+Shift+KeyY'] },
   'game.moveTopToBottom': { scope: ShortcutScope.GAME, group: 'gameMoveTop', sequences: [] },
 
-  // Move Bottom Card (desktop ShortcutGroup::Move_bottom).
   'game.moveBottomToPlay': { scope: ShortcutScope.GAME, group: 'gameMoveBottom', sequences: [] },
   'game.moveBottomToPlayFaceDown': { scope: ShortcutScope.GAME, group: 'gameMoveBottom', sequences: [] },
   'game.moveBottomToGrave': { scope: ShortcutScope.GAME, group: 'gameMoveBottom', sequences: [] },
@@ -291,8 +257,6 @@ export const defaults: Record<ActionId, ShortcutDef> = {
   // Cockatrice's `aDrawArrow` (Alt+A) — starts the draw-arrow pending
   // flow from the first selected battlefield card.
   'game.drawArrow': { scope: ShortcutScope.GAME, group: 'gameplay', sequences: ['Alt+KeyA'] },
-  // Cockatrice's `aRemoveLocalArrows` (Ctrl+R) deletes the arrows the local
-  // player drew (and keeps Ctrl+R from reloading the page mid-game).
   'game.removeLocalArrows': { scope: ShortcutScope.GAME, group: 'gameplay', sequences: ['Ctrl+KeyR'] },
   'game.leaveGame': { scope: ShortcutScope.GAME, group: 'gameplay', sequences: ['Ctrl+KeyQ'] },
   'game.concede': { scope: ShortcutScope.GAME, group: 'gameplay', sequences: ['F2'] },
@@ -301,12 +265,9 @@ export const defaults: Record<ActionId, ShortcutDef> = {
   'game.shuffleLibrary': { scope: ShortcutScope.GAME, group: 'gameplay', sequences: ['Ctrl+KeyS'] },
   'game.shuffleTopCards': { scope: ShortcutScope.GAME, group: 'gameplay', sequences: [] },
   'game.shuffleBottomCards': { scope: ShortcutScope.GAME, group: 'gameplay', sequences: [] },
-  // Desktop's `aRotateViewCW` / `aRotateViewCCW` have no default either.
   'game.rotateViewCW': { scope: ShortcutScope.GAME, group: 'gameplay', sequences: [] },
   'game.rotateViewCCW': { scope: ShortcutScope.GAME, group: 'gameplay', sequences: [] },
 
-  // Drawing (desktop ShortcutGroup::Drawing).
-  // Cockatrice's `aMulligan` (Ctrl+M) opens the choose-hand-size prompt.
   'game.mulligan': { scope: ShortcutScope.GAME, group: 'gameDrawing', sequences: ['Ctrl+KeyM'] },
   'game.mulliganSameSize': { scope: ShortcutScope.GAME, group: 'gameDrawing', sequences: ['Ctrl+Shift+KeyM'] },
   'game.mulliganMinusOne': { scope: ShortcutScope.GAME, group: 'gameDrawing', sequences: ['Ctrl+Shift+Alt+KeyM'] },
@@ -319,19 +280,12 @@ export const defaults: Record<ActionId, ShortcutDef> = {
   'game.alwaysRevealTopCard': { scope: ShortcutScope.GAME, group: 'gameDrawing', sequences: ['Ctrl+Alt+KeyN'] },
   'game.alwaysLookAtTopCard': { scope: ShortcutScope.GAME, group: 'gameDrawing', sequences: ['Ctrl+Alt+Shift+KeyN'] },
 
-  // Hand (desktop ShortcutGroup::Hand).
   'game.sortHandByName': { scope: ShortcutScope.GAME, group: 'gameHand', sequences: [] },
   'game.sortHandByType': { scope: ShortcutScope.GAME, group: 'gameHand', sequences: ['Ctrl+Shift+KeyH'] },
   'game.sortHandByManaValue': { scope: ShortcutScope.GAME, group: 'gameHand', sequences: [] },
   'game.revealHandToAll': { scope: ShortcutScope.GAME, group: 'gameHand', sequences: [] },
   'game.revealRandomHandCardToAll': { scope: ShortcutScope.GAME, group: 'gameHand', sequences: [] },
 
-  // Game: the Say menu's message macros and Focus chat.
-  // Desktop's Say menu binds its first ten message macros to fixed
-  // Ctrl+1 … Ctrl+9, Ctrl+0 (say_menu.cpp:21-29). Browsers keep
-  // Ctrl+digit for switching tabs, so the web client defaults to
-  // Alt+digit (as it remaps other browser-reserved desktop keys), and
-  // like every web shortcut they can be rebound.
   'game.sayMacro1': { scope: ShortcutScope.GAME, group: 'game', sequences: ['Alt+Digit1'] },
   'game.sayMacro2': { scope: ShortcutScope.GAME, group: 'game', sequences: ['Alt+Digit2'] },
   'game.sayMacro3': { scope: ShortcutScope.GAME, group: 'game', sequences: ['Alt+Digit3'] },
@@ -348,23 +302,16 @@ export const defaults: Record<ActionId, ShortcutDef> = {
   // Shortcuts tab (group items follow object-key order).
   'chat.focus': { scope: ShortcutScope.GAME, group: 'game', sequences: ['Shift+Enter', 'Shift+NumpadEnter'] },
 
-  // Desktop's `TabDeckEditor/aNewDeck` is Ctrl+N, which Chromium keeps
-  // (new window). Rebound like game.alwaysRevealTopCard, which owns
-  // Ctrl+Alt+N only in the GAME scope.
   'deck.new': { scope: ShortcutScope.DECK_EDITOR, group: 'deckEditor', sequences: ['Ctrl+Alt+KeyN'] },
   'deck.save': { scope: ShortcutScope.DECK_EDITOR, group: 'deckEditor', sequences: ['Ctrl+KeyS'] },
   'deck.load': { scope: ShortcutScope.DECK_EDITOR, group: 'deckEditor', sequences: ['Ctrl+KeyO'] },
-  // Desktop's `aIncrement` is "+", which is Shift+= on US layouts.
   'deck.addCard': { scope: ShortcutScope.DECK_EDITOR, group: 'deckEditor', sequences: ['Equal', 'Shift+Equal', 'NumpadAdd'] },
   'deck.removeCard': { scope: ShortcutScope.DECK_EDITOR, group: 'deckEditor', sequences: ['Minus', 'NumpadSubtract'] },
-  // Desktop's DeckListHistoryManagerWidget binds QKeySequence::Undo / ::Redo
-  // (Ctrl+Z; Ctrl+Y or Ctrl+Shift+Z). Text inputs keep their own undo.
   'deck.undo': { scope: ShortcutScope.DECK_EDITOR, group: 'deckEditor', sequences: ['Ctrl+KeyZ'] },
   'deck.redo': { scope: ShortcutScope.DECK_EDITOR, group: 'deckEditor', sequences: ['Ctrl+KeyY', 'Ctrl+Shift+KeyZ'] },
 
   'room.sendMessage': { scope: ShortcutScope.ROOM, group: 'room', sequences: ['Enter'] },
 
-  // Replay playback, desktop's `Replays/*` bindings (shortcuts_settings.h).
   'replays.playPause': { scope: ShortcutScope.REPLAYS, group: 'replays', sequences: ['Space'] },
   'replays.skipForward': { scope: ShortcutScope.REPLAYS, group: 'replays', sequences: ['ArrowRight'] },
   'replays.skipBackward': { scope: ShortcutScope.REPLAYS, group: 'replays', sequences: ['ArrowLeft'] },

@@ -1,5 +1,3 @@
-// The game's "Open deck in deck editor" handoff: a staged deck document opens
-// in the real DeckEditor through the draft route, without a stored deck.
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { fireEvent, screen, waitFor } from '@testing-library/react';
 import { generatePath, Route, Routes } from 'react-router-dom';
@@ -25,9 +23,7 @@ const GAME_DECK = [
 
 beforeEach(() => {
   vi.useRealTimers();
-  // A real session, so the commands the editor sends (or doesn't) are captured.
   connectAndLogin();
-  // Card lookups miss Dexie and Scryfall alike: the deck renders by name.
   vi.spyOn(globalThis, 'fetch').mockRejectedValue(new Error('offline'));
 });
 

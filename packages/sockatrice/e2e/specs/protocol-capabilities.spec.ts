@@ -1,10 +1,3 @@
-// Scope: Sockatrice speaks the Cockatrice 3.1 protocol but must keep working
-// against a 3.0 Servatrice. This spec runs unchanged against both images
-// (default pin = 3.0.0; SERVATRICE_IMAGE=webatrice-local/servatrice:master-add65ca
-// for 3.1) and asserts the behavior each server version must produce: the
-// version string consumers gate on is reported, a 3.1 session command round
-// trips on 3.1, and on 3.0 the same command fails cleanly with an error code
-// while the session stays logged in.
 
 import { describe, it, expect } from 'vitest';
 import type { Mock } from 'vitest';
@@ -35,17 +28,11 @@ function reportedServerVersion(): string {
   return calls[calls.length - 1][1] as string;
 }
 
-/**
- * Whether the server speaks the 3.1 protocol at all (major.minor of the VERSION_STRING).
- * Datatrice's serverSupports is finer: it also checks the beta that introduced each
- * capability. The pinned images are 3.0.0 and an untagged master build, which has every one.
- */
 function speaks31(version: string): boolean {
   const [major, minor] = version.split(/[.\s-]/).map(Number);
   return major > 3 || (major === 3 && minor >= 1);
 }
 
-/** Resolves with RESP_OK or the failure response code of a setCardArtParams round trip. */
 function clearCardArt(): Promise<number> {
   return new Promise((resolve) => {
     SessionCommands.setCardArtParams({ cardName: '' }, () => resolve(RESP_OK), (code) => resolve(code));
@@ -87,7 +74,6 @@ describe('protocol-capabilities', () => {
       expect(code).toBeGreaterThan(RESP_OK);
     }
 
-    // Either way the session survives an unsupported command.
     expect(WebClient.instance.status).toBe(WebsocketTypes.StatusEnum.LOGGED_IN);
   });
 });

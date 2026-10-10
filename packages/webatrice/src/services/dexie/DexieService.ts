@@ -77,10 +77,6 @@ class DexieService {
     return this.db.table(Stores.CARD_DATA_SETTINGS);
   }
 
-  /**
-   * Run `work` in one read-write transaction over the card-data tables, so a
-   * failed import or rebuild leaves the previous database untouched.
-   */
   cardDataTransaction<T>(work: () => Promise<T>): Promise<T> {
     return this.db.transaction(
       'rw',
@@ -99,12 +95,10 @@ class DexieService {
     );
   }
 
-  /** Row count of one table. */
   count(store: Stores): Promise<number> {
     return this.db.table(store).count();
   }
 
-  /** Empties the given tables in one transaction, so a failure leaves every one of them intact. */
   async clear(stores: readonly Stores[]): Promise<void> {
     const tables = stores.map((store) => this.db.table(store));
     await this.db.transaction('rw', tables, () => Promise.all(tables.map((table) => table.clear())));

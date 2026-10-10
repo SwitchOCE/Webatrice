@@ -7,23 +7,6 @@ import { ZoneName } from '@cockatrice/sockatrice';
 import type { MoveCardParams } from '@cockatrice/sockatrice/generated';
 import { useAppDispatch, type RootState } from '@app/store';
 
-/**
- * Resolve a battlefield drop to a free sub-slot on the target player's board.
- * A seat only sees its own board, so it always asks for sub-slot 0; without
- * this an opponent gift would land on sub-slot 0 and only settle when the
- * server echo arrives.
- *
- * Tries the requested column first, then walks outward (right, left, two
- * right, ...) to the first column with a free sub-slot. If the whole row is
- * full it keeps `column * 3` so the wire stays legal and the listener's
- * field-patch fallback picks up whatever Servatrice decided. Cards being moved
- * within the same TABLE don't count as occupying their old slot.
- *
- * A negative x is not a column but a request for the server to place the
- * card, and goes out unchanged: desktop sends -1 to put a card in the row's
- * first free column, on a pile of same-named cards when there is one
- * (Server_CardZone::getFreeGridColumn, server_cardzone.cpp:192-235).
- */
 export function resolveBattlefieldDropX(params: MoveCardParams, targetBattlefield: ZoneEntry): number {
   const x = params.x ?? 0;
   if (x < 0) {
@@ -81,23 +64,9 @@ export function resolveBattlefieldDropX(params: MoveCardParams, targetBattlefiel
   return requestedCol * 3;
 }
 
-/**
- * Send one Command_MoveCard for the game. Undefined until the game id is
- * known. The seat's zone port and the game's drag coordinator (useGameDnd)
- * both send through here, so every move gets the same treatment:
- *
- * - a battlefield destination is resolved to a free sub-slot on the target
- *   board (resolveBattlefieldDropX);
- * - a single known public card moves optimistically in Datatrice and rolls
- *   back if the server rejects it; the listener consumes the pending marker
- *   when the echo arrives (cardMovedInSameZone is idempotent;
- *   cardMovedBetweenZones is deduplicated). Hidden-zone sources, batches,
- *   unknown cards and tokens leaving the battlefield wait for the server.
- */
 export function useMoveCard(gameId: number | undefined): ((params: MoveCardParams) => void) | undefined {
   const webClient = useWebClient();
   const dispatch = useAppDispatch();
-  // Snapshot reads for rollback closures and drop resolution.
   const store = useStore<RootState>();
 
   return useMemo(() => {
@@ -122,8 +91,6 @@ export function useMoveCard(gameId: number | undefined): ((params: MoveCardParam
 
       const { startPlayerId, startZone, cardsToMove, targetPlayerId, targetZone, x, y } = params;
 
-      // Hidden zones (library, sideboard) address cards by position, so the
-      // real identity only arrives with Event_MoveCard.
       const cardIdsFromParams = cardsToMove?.card ?? [];
       const isHiddenSource = startZone === ZoneName.DECK || startZone === ZoneName.SIDEBOARD;
       if (isHiddenSource || cardIdsFromParams.length !== 1) {
@@ -140,9 +107,6 @@ export function useMoveCard(gameId: number | undefined): ((params: MoveCardParam
         return;
       }
 
-      // Tokens get Event_DestroyCard, not Event_MoveCard, when they leave the
-      // battlefield. An optimistic TABLE → GRAVE would strand them in GRAVE
-      // because the destroy event then finds nothing on TABLE.
       const leavingBattlefield = startZone === ZoneName.TABLE && targetZone !== ZoneName.TABLE;
       if (sourceCard.destroyOnZoneChange && leavingBattlefield) {
         game.moveCard(gameId, params);
@@ -156,10 +120,6 @@ export function useMoveCard(gameId: number | undefined): ((params: MoveCardParam
         || targetZone === ZoneName.GRAVE
         || targetZone === ZoneName.EXILE;
 
-      // Leaving the battlefield resets transient state like desktop's
-      // CardItem::resetState (server_card.cpp:51); the server doesn't
-      // broadcast the wipe for a same-id move. The stack keeps annotations
-      // (`keepAnnotations = (targetzone == STACK)`, server_abstract_player.cpp:429).
       const optimisticCard = leavingBattlefield
         ? {
           ...sourceCard,
@@ -195,7 +155,6 @@ export function useMoveCard(gameId: number | undefined): ((params: MoveCardParam
           }));
         });
       } else {
-        // Cross-zone move or a battlefield re-slot.
         dispatch(games.Actions.cardMovedBetweenZones({
           gameId,
           fromPlayerId: startPlayerId,

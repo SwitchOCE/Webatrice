@@ -10,7 +10,6 @@ const flush = async () => {
 
 import { renderWithProviders, createMockWebClient, connectedState, makeUser } from '../../__test-utils__';
 
-// Echo interpolation values so the specs can check what each label is given.
 vi.mock('react-i18next', async (importOriginal) => {
   const actual = await importOriginal<typeof import('react-i18next')>();
   const t = (key: string, values?: Record<string, unknown>) => (values ? `${key} ${JSON.stringify(values)}` : key);

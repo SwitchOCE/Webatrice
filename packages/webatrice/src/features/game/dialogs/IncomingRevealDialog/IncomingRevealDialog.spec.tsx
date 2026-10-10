@@ -1,6 +1,3 @@
-// The receiver-side reveal popup (refactor plan PB-14). Lent-library drags
-// (the lender as the move's start player, battlefield-only drops, no drag for
-// a spectator) are pinned in Game.dragdrop.spec.tsx.
 
 import { act, fireEvent, renderHook, screen, within } from '@testing-library/react';
 import { ZoneName } from '@cockatrice/sockatrice';
@@ -40,7 +37,6 @@ function renderReveal({
   grantWriteAccess = false,
   readOnly = false,
   zoneName = ZoneName.DECK as string,
-  // null: no snapshot was seeded.
   snapshot = REVEALED as typeof REVEALED | null,
 } = {}) {
   const preloadedState = buildSeatGameState({
@@ -70,7 +66,6 @@ function popup() {
   return screen.getByRole('heading', { name: TITLE }).closest<HTMLElement>('.pointer-events-auto')!;
 }
 
-// The visible selection badge beside the overlay's stable live region (shown from two cards up).
 function selectionCount(): string | null {
   const status = screen.getAllByRole('status').find((el) => el.textContent === 'TallyOverlay.selectedCount');
   return status?.nextElementSibling?.querySelector('[aria-hidden="true"]')?.textContent ?? null;
@@ -157,7 +152,6 @@ describe('IncomingRevealDialog', () => {
   it('dismisses the reveal and clears the sender’s snapshot on close', () => {
     const { reveal } = renderReveal();
 
-    // The header's close button (the first; card previews add their own).
     fireEvent.click(within(popup()).getAllByRole('button', { name: 'Common.action.close' })[0]);
 
     expect(reveal().incomingReveal).toBeNull();
@@ -373,7 +367,6 @@ describe('IncomingRevealDialog', () => {
 
         expect(screen.getByRole('heading', { name: 'P2 reveals their hand' })).toBeInTheDocument();
         expect(popup().style.width).toBe('900px');
-        // The 400×300 popup centres on the 1024×768 viewport.
         expect(popup().style.left).toBe('312px');
         expect(popup().style.top).toBe('234px');
         act(() => {
@@ -415,9 +408,6 @@ describe('incomingRevealTitle', () => {
 });
 
 describe('a lent zone from the keyboard', () => {
-  // Firefox makes the scrolling card area a tab stop; as in every other card
-  // view, the non-modal dialog keeps Tab moving focus there rather than
-  // advancing the phase, so the keyboard reaches the lent cards.
   it('is a non-modal dialog named by its title, where Tab moves focus', () => {
     const { game } = renderReveal({ grantWriteAccess: true });
     const panel = screen.getByRole('dialog', { name: TITLE });
@@ -436,7 +426,6 @@ describe('a lent zone from the keyboard', () => {
     });
     const dialog = screen.getByRole('dialog', { name: 'Move Island' });
     const to = within(dialog).getByLabelText('To') as HTMLSelectElement;
-    // Servatrice takes a lent card only onto the borrower's battlefield.
     expect([...to.options].map((o) => o.value)).toEqual(['battlefield:1']);
     act(() => {
       fireEvent.click(within(dialog).getByRole('button', { name: 'Move' }));

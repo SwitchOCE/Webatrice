@@ -27,21 +27,11 @@ import { MAX_SUBPOS } from './gridMath';
 type BattlefieldCard = BattlefieldCardViewModel;
 
 export interface UseBattlefieldLayoutArgs {
-  /** The board's cards: own cards, then foreign cards attached here. */
   cards: readonly BattlefieldCardViewModel[];
-  /** The board owner's player id. */
   playerId: number;
-  /** Mirrored seats render wire row 0 at the bottom. */
   mirrored: boolean;
 }
 
-/**
- * The battlefield's pixel layout at the current card scale: per-cell widths
- * (stacks and attachment fans widen their column), the dashed slot grid with
- * its buffer column, the content size that drives horizontal scroll, and the
- * absolute position of every card. Ports TableZone::computeCardStackWidths /
- * reorganizeCards; wire packing stays with gridMath.
- */
 export function useBattlefieldLayout({ cards, playerId, mirrored }: UseBattlefieldLayoutArgs) {
   // Scaled versions of the base card-related pixel constants. Every layout
   // computation in this component that measures against card size (grid
@@ -205,10 +195,6 @@ export function useBattlefieldLayout({ cards, playerId, mirrored }: UseBattlefie
     { ...battlefieldLayout, minCols: effectiveMinCols },
   );
   const naturalContentH = computeContentHeight(battlefieldLayout) + stackExtPx;
-  // The scroll viewport is the drop surface, including blank space beyond
-  // the content. Every row shares its width, but stacks change where that
-  // row snaps (desktop table_zone.cpp:413). Count reachable slots with the
-  // pointer resolver, not the shorter row's drawn overlay.
   const dropWidth = Math.max(naturalContentW, fitSize.w);
   const colsByWireRow = Array.from({ length: BATTLEFIELD_ROWS }, (_, row) => {
     const displayRow = mirrored ? BATTLEFIELD_ROWS - 1 - row : row;

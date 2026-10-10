@@ -18,14 +18,6 @@ export interface DebugLogDialogProps {
   onClose: () => void;
 }
 
-/**
- * Desktop's "View debug log" (dlg_view_log.cpp): the client log as read-only text, following
- * new lines live, with "Copy to clipboard" and the persisted "Clear log when closing" choice.
- * The web log can also be cleared on the spot, since there is no log file to fall back on.
- *
- * Hosts keep this mounted while closed, so it renders nothing and holds no log subscription
- * until it is opened.
- */
 export default function DebugLogDialog({ isOpen, onClose }: DebugLogDialogProps) {
   return isOpen ? <OpenDebugLogDialog onClose={onClose} /> : null;
 }
@@ -40,7 +32,6 @@ function OpenDebugLogDialog({ onClose }: Pick<DebugLogDialogProps, 'onClose'>) {
 
   const text = [...debugLog.getHeader(), ...entries.map(formatLogEntry)].join('\n');
 
-  // Follow new lines, as desktop's appendPlainText does.
   useEffect(() => {
     const area = textRef.current;
     if (area) {
@@ -89,7 +80,6 @@ function OpenDebugLogDialog({ onClose }: Pick<DebugLogDialogProps, 'onClose'>) {
             {t('DebugLogDialog.clearOnClose')}
           </label>
           <span className="flex-1" />
-          {/* Mounted while the dialog is, so the copy result is announced when it appears. */}
           <span role="status" className={copied === 'done' ? 'text-success' : 'text-danger'}>
             {copied && t(copied === 'done' ? 'DebugLogDialog.copied' : 'DebugLogDialog.copyFailed')}
           </span>

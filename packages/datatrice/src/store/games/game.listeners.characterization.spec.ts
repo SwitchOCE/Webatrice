@@ -46,11 +46,6 @@ import {
   makeZoneEntry,
 } from '../../testing/fixtures/games';
 
-// Characterization barrier for the game listeners: drives a scripted stream of
-// inbound events through the real slice + listener middleware and records every
-// action that reaches the store, in order. The listener split must leave every
-// recording below unchanged.
-
 const ALICE = 1;
 const BOB = 2;
 
@@ -131,11 +126,8 @@ function scriptedState(): GamesState {
 
 type Recorded = Record<string, unknown> | string;
 
-// Schema defaults, not falsy values: a card attached to player 0 / card 0 must not
-// render like a detached one (attach defaults are -1).
 const CARD_DEFAULTS = create(ServerInfo_CardSchema) as unknown as Record<string, unknown>;
 
-/** `#id name`, the position, and every field that differs from the schema default, e.g. `#40 Gray Ogre x=6 y=0 tapped`. */
 function describeCard(card: ServerInfo_Card): string {
   const parts = [`#${card.id} ${card.name}`.trim()];
   for (const [key, value] of Object.entries(card)) {
@@ -161,7 +153,6 @@ function isCard(value: unknown): value is ServerInfo_Card {
   return !!value && typeof value === 'object' && (value as { $typeName?: string }).$typeName === 'ServerInfo_Card';
 }
 
-/** Payload without gameId, undefined fields, or proto type names; cards and log entries as one-liners. */
 function compact(value: unknown): unknown {
   if (isCard(value)) {
     return describeCard(value);
@@ -175,7 +166,6 @@ function compact(value: unknown): unknown {
     }
     const out: Record<string, unknown> = {};
     for (const [key, field] of Object.entries(value)) {
-      // Clock payloads are pinned by game.actionTime.spec.ts, independently of this event-order recording.
       if (key === '$typeName' || key === 'gameId' || key === 'timeReceived' || field === undefined) {
         continue;
       }
@@ -208,7 +198,6 @@ function makeRecordingStore(state: GamesState) {
   });
   return {
     store,
-    /** Dispatches one event and returns the type of every action it produced, the event's own type first. */
     play(action: UnknownAction): Recorded[] {
       recorded.length = 0;
       store.dispatch(action);
@@ -245,8 +234,6 @@ describe('game listeners: recorder', () => {
 });
 
 describe('game listeners: registration', () => {
-  // Each inbound event has exactly one listener, so splitting the registrations
-  // across modules cannot reorder the effects that run for any one action.
   it('registers exactly one listener for each inbound game event', () => {
     const types: string[] = [];
     const mw = {
@@ -285,7 +272,6 @@ describe('game listeners: registration', () => {
 describe('game listeners: scripted event stream', () => {
   it('records the dispatched action sequence for every listener, in stream order', () => {
     const state = scriptedState();
-    // Survives card 10's sweep, so the plain cross-player move below sweeps it.
     state.games[1].players[BOB].arrows[4] = makeArrow({
       id: 4, startPlayerId: BOB, startZone: 'table', startCardId: 30,
       targetPlayerId: ALICE, targetZone: 'table', targetCardId: 11,
@@ -1140,9 +1126,6 @@ describe('game listeners: branch recordings', () => {
       expect(consumeOptimistic(moveOpKey(ALICE, 21))).toBe(false);
     });
 
-    // Every positional zone reorders in place (desktop's ordered piles); only HAND is in
-    // the scripted stream. A zone dropped from the reorder set would fall through to
-    // cardMovedBetweenZones and skip re-applying an optimistic reorder.
     it.each([ZoneName.HAND, ZoneName.STACK, ZoneName.GRAVE, ZoneName.EXILE])('reorders %s in place', (zoneName) => {
       const state = scriptedState();
       game(state).players[ALICE].zones[zoneName] = publicZone(zoneName, [
@@ -1542,7 +1525,6 @@ describe('game listeners: branch recordings', () => {
   });
 
   describe('players', () => {
-    // R3 parity fix: desktop eventLeave ignores a missing player (game_event_handler.cpp:469).
     it('ignores a departure for an unknown player without changing state or logging', () => {
       const recording = makeRecordingStore(scriptedState());
       const before = recording.games();
@@ -1552,7 +1534,6 @@ describe('game listeners: branch recordings', () => {
       expect(recording.games()).toBe(before);
     });
 
-    // Desktop logLeave uses the stored name verbatim (message_log_widget.cpp:444).
     it.each([undefined, '', '  ', 'Alice'])('captures the stored departure name before deletion: %j', (name) => {
       const state = scriptedState();
       game(state).players[ALICE].properties.userInfo = name === undefined ? undefined : user(name);

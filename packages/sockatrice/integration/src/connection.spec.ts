@@ -154,10 +154,6 @@ describe('connection lifecycle', () => {
     expect(getWebClient().status).toBe(WebsocketTypes.StatusEnum.RECONNECTING);
   });
 
-  // The reconnect opens a fresh server session, so a login still in flight on
-  // the dropped socket can never be answered. It settles the login form straight
-  // away, but leaves the connection status to the transport (desktop's
-  // loginResponse likewise ignores the RespNotConnected it synthesises).
   it('fails a login that is in flight when the socket drops', () => {
     connectAndHandshake();
     expect(() => findLastSessionCommand(Data.Command_Login_ext)).not.toThrow();
@@ -170,8 +166,6 @@ describe('connection lifecycle', () => {
     expect(getWebClient().status).toBe(WebsocketTypes.StatusEnum.RECONNECTING);
   });
 
-  // Desktop's passwordSaltResponse ignores RespNotConnected. The salt request
-  // settles the login form, but must not disconnect() and cancel the reconnect.
   it('keeps reconnecting when a password-salt request is cut off by the drop', () => {
     connectAndHandshakeWithSalt();
     expect(() => findLastSessionCommand(Data.Command_RequestPasswordSalt_ext)).not.toThrow();

@@ -3,7 +3,6 @@ import type { TFunction } from 'i18next';
 
 import type { ContextMenuItem, MenuShortcutFor } from '../../context-menus/ContextMenu/ContextMenu';
 
-/** The Say shortcut of each of the first ten macros (desktop's Ctrl+1 … Ctrl+0). */
 export const SAY_MACRO_ACTIONS = [
   'game.sayMacro1',
   'game.sayMacro2',
@@ -17,10 +16,6 @@ export const SAY_MACRO_ACTIONS = [
   'game.sayMacro10',
 ] as const satisfies readonly ActionId[];
 
-/**
- * The "Say" submenu: one item per message macro, sent verbatim as game chat
- * (desktop SayMenu, say_menu.cpp); disabled while there are none.
- */
 export function buildSayMenu(
   t: TFunction,
   macros: readonly string[],

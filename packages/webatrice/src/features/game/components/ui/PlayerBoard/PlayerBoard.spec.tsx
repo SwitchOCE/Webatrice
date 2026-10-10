@@ -23,7 +23,6 @@ const SPEC: SeatGameSpec = {
   ],
 };
 
-/** The seat's root: the grid every region sits in. */
 const seatRoot = () => battlefieldEl(1).closest<HTMLElement>('.rounded-lg')!;
 
 describe('PlayerBoard', () => {
@@ -99,7 +98,6 @@ describe('PlayerBoard', () => {
     expect(region('table')).toContainElement(battlefieldEl(1));
     expect(region('playerInfo')).toContainElement(screen.getByLabelText('Alice\'s life'));
     for (const zone of ['hand', 'stack', 'table', 'playerInfo']) {
-      // Isolated, so the art sits under the region's own content only.
       expect(region(zone).className + region(zone).style.zIndex).toMatch(/isolate|30/);
     }
     settingsStore.reset();

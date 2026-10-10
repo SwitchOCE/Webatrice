@@ -22,8 +22,6 @@ let consoleError: ReturnType<typeof vi.spyOn>;
 
 beforeEach(() => {
   crash.on = true;
-  // React reports caught render errors through console.error as well; keep the
-  // output quiet and assert on the boundary's own log line.
   consoleError = vi.spyOn(console, 'error').mockImplementation(() => {});
 });
 
@@ -104,7 +102,6 @@ describe('RouteErrorBoundary', () => {
     expect(screen.getByText('lobby')).toBeInTheDocument();
   });
 });
-
 
 it('recovers when Return to lobby is clicked from an already-crashed lobby', () => {
   renderWithProviders(<RouteErrorBoundary><Thrower /></RouteErrorBoundary>, {

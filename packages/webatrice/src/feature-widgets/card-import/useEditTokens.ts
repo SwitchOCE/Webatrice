@@ -15,21 +15,14 @@ export interface EditTokens {
   tokens: Token[];
   selected: Token | null;
   select: (name: string | null) => void;
-  /** Rejects names already used by a card or token, like desktop. */
   addToken: (name: string) => Promise<AddTokenOutcome>;
   updateSelected: (data: TokenData) => Promise<void>;
   removeSelected: () => Promise<void>;
-  /** Cockatrice XML of the custom tokens — desktop's `customsets/TK.xml`. */
   exportXml: () => string;
 }
 
 const byName = (a: Token, b: Token) => a.name.value.localeCompare(b.name.value);
 
-/**
- * State for the "Edit custom tokens" editor (`dlg_edit_tokens.cpp`). Every
- * change is written through at once, as desktop's edits are live and saved
- * when its dialog closes.
- */
 export function useEditTokens(): EditTokens {
   const [tokens, setTokens] = useState<Token[]>([]);
   const [selectedName, setSelectedName] = useState<string | null>(null);

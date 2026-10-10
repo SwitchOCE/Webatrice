@@ -64,9 +64,7 @@ export function PlainCardList({
   cards: DeckCard[];
   onInc: (index: number, delta: number) => void;
   onDelete: (index: number) => void;
-  /** The deck list's keyboard grid (`useDeckCardGrid`); its rows take the list's keys. */
   grid?: DeckCardGrid;
-  /** Row order, the one `grid` was given, so arrow keys follow the rows drawn. Defaults to by name. */
   order?: readonly number[];
 }) {
   const { t } = useTranslation();
@@ -87,11 +85,6 @@ export function PlainCardList({
   );
 }
 
-/** Row used inside `PlainCardList`. Deliberately simpler than
- *  `DeckCardRow` — no hover preview, no chevron menu, no printings /
- *  commander / sideboard toggles. Just quantity +/-, name, and a
- *  delete button, shown on hover and while the row has focus. In the
- *  grid the row is the tab stop and its keys do what the buttons do. */
 function PlainCardRow({
   card,
   rowProps,

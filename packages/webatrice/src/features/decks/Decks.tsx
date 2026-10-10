@@ -33,24 +33,8 @@ import { useDeckListViewMode } from './hooks/useDeckListViewMode';
 import { useDeckShareCreate, useDeckSharingSupported, useDeckVisibility } from './hooks/useDeckSharing';
 import { useDeckShareLinks } from './hooks/useDeckShareLinks';
 
-/** The `?folder=` search parameter holds the shown folder's path. */
 const FOLDER_PARAM = 'folder';
 
-/**
- * My Decks route: the user's Servatrice deck storage, one folder at a time
- * (desktop's remote tree in `TabDeckStorage`), its decks bucketed by format.
- * Data and storage commands live in `useDeckList`; this component owns
- * navigation and which dialog is open.
- *
- *   • Folder row → open it (`?folder=a/b`, so Back works); breadcrumb → up.
- *   • New deck / Import → upload into the shown folder; the new deck opens
- *     in the editor when the server acknowledges it.
- *   • New folder / delete folder (confirming what it holds) / move a deck /
- *     download a deck or a folder as `.cod` files.
- *   • Row click → `/deck/:id`. Delete → confirm → `deckDel(id)`.
- *   • Servatrice 3.1: share a deck or a folder's decks, publish/unpublish a
- *     deck or folder, review and revoke share links, open a pasted link.
- */
 function Decks() {
   const navigate = useNavigate();
   const { t } = useTranslation();
@@ -75,14 +59,10 @@ function Decks() {
   const sharingSupported = useDeckSharingSupported();
   const share = useDeckShareCreate();
   const visibility = useDeckVisibility();
-  // What the share dialog is for: one stored deck, or a folder's decks.
   const [shareTarget, setShareTarget] = useState<{ deckId: number } | { folderPath: string } | null>(null);
   const [shareLinksOpen, setShareLinksOpen] = useState(false);
   const [openLinkOpen, setOpenLinkOpen] = useState(false);
 
-  // Desktop's New Deck (Ctrl+N; Ctrl+Alt+N here, since browsers keep Ctrl+N) and
-  // Load Deck (Ctrl+O) open the create and import dialogs; the editor sends
-  // them here with the dialog to open.
   const location = useLocation();
   useEffect(() => {
     const open = (location.state as DecksLocationState | null)?.open;
@@ -106,7 +86,6 @@ function Decks() {
     if (!shareTarget || !list.isConnected) {
       return;
     }
-    // Desktop's storage tab shares stored decks by id and a folder by path.
     share.create('folderPath' in shareTarget
       ? { name, folderPath: shareTarget.folderPath }
       : { name, items: [{ deckId: shareTarget.deckId }] });
@@ -121,8 +100,6 @@ function Decks() {
     setSearchParams(path ? { [FOLDER_PARAM]: path } : {});
   };
 
-  // A dialog stays open (keeping what was typed) when the hook refuses
-  // because the connection dropped.
   const handleCreate = (name: string, format: string) => {
     if (list.createDeck(name, format)) {
       setCreateOpen(false);
@@ -176,7 +153,6 @@ function Decks() {
           onShareLinks={sharingSupported ? () => setShareLinksOpen(true) : undefined}
         />
 
-        {/* Capped at max-w-4xl so rows don't stretch across ultrawide monitors. */}
         <div className="flex-1 min-h-0 overflow-y-auto px-6 py-4">
           <div ref={listRef} className="max-w-4xl mx-auto focus:outline-none">
             {list.loading && !list.listError && <DeckListLoading />}
@@ -289,7 +265,6 @@ function Decks() {
         defaultName={t('DeckSharing.defaultDecksName')}
         state={share.state}
         onClose={() => {
-          // Drop a create still in flight, so a late answer isn't copied after a cancel.
           share.reset();
           setShareTarget(null);
         }}

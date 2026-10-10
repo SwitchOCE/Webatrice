@@ -11,7 +11,6 @@ export interface ToastProps {
   open: boolean;
   onClose: (event?: SyntheticEvent) => void;
   severity?: ToastSeverity;
-  /** Milliseconds before the toast closes itself; 0 keeps it until dismissed. */
   autoHideDuration?: number;
   children?: ReactNode;
   // Optional icon override for cases where none of the four severity
@@ -19,12 +18,9 @@ export interface ToastProps {
   // a MessageSquare, not a success checkmark). Pass a lucide-react
   // icon component; the pill's iconColor still comes from severity.
   icon?: LucideIcon;
-  /** Told when focus enters or leaves the toast. */
   onFocusChange?: (focused: boolean) => void;
 }
 
-// Severity → icon + accent color. The status tokens keep each severity
-// legible on bg-surface under both palettes.
 const SEVERITY_ICON: Record<ToastSeverity, LucideIcon> = {
   success: CheckCircle,
   info: Info,
@@ -38,27 +34,6 @@ const SEVERITY_COLOR: Record<ToastSeverity, string> = {
   error: 'text-danger',
 };
 
-/**
- * Tailwind toast pill. Replaces the pre-redo MUI Snackbar + Alert +
- * Slide. Callers use it via useToast() from ToastContext — same
- * public hook contract as before (openToast / closeToast).
- *
- * Behavior preserved:
- *   • auto-close after `autoHideDuration` (default 10s); the countdown
- *     pauses while the pointer is over the toast or focus is inside it
- *     (WCAG 2.2.1), and resumes with the time that was left
- *   • click X to close
- *   • severity icon on the left
- *   • slide-in animation from the right on mount
- *
- * The pill carries no live role of its own: ToastProvider renders it into
- * persistent status/alert regions, which announce it reliably on arrival.
- *
- * Behavior intentionally dropped: MUI's clickaway suppression. On
- * the redo surface, the toast is a portalled pill outside the
- * click target — a clickaway event no longer means "user clicked
- * the toast itself" so the check was moot.
- */
 function Toast({
   open,
   onClose,
@@ -82,8 +57,6 @@ function Toast({
     return () => cancelAnimationFrame(raf);
   }, [open]);
 
-  // Auto-hide timer, paused while hovered or focused. `remaining` carries the
-  // unspent time across pauses (and across re-runs for a new onClose identity).
   const { t } = useTranslation();
   const [hovered, setHovered] = useState(false);
   const [focused, setFocused] = useState(false);

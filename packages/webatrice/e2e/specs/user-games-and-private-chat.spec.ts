@@ -5,14 +5,6 @@ import { GamePage } from '../pages';
 import { registerAndJoinFirstRoom } from '../fixtures/flows';
 import { randomSuffix } from '../fixtures/users';
 
-// User context menu flows against a real Servatrice:
-//   - "Show this user's games" lists another user's game and joins it
-//     through the normal join flow.
-//   - A private chat follows the partner going offline: the conversation
-//     notes it, the composer explains why it can't deliver, and the draft
-//     is kept instead of being sent.
-
-// The Players Online panel (RoomUsers) renders a UserDisplay per online user.
 function userRow(page: Page, name: string) {
   return page.locator('.user-display').filter({ hasText: name });
 }
@@ -42,7 +34,6 @@ test('shows another user\'s games and joins one from the list', async ({ newCont
   await row.click();
   await dialog.getByRole('button', { name: /^join$/i }).click();
 
-  // The join routes to the game and the selector closes.
   const viewerGame = new GamePage(viewerPage);
   await viewerGame.deckSelect.waitForOpen();
   await expect(dialog).toBeHidden();
@@ -65,7 +56,6 @@ test('a private chat keeps the draft when the partner goes offline', async ({ ne
   const partner = await registerAndJoinFirstRoom(partnerPage);
   const partnerName = partner.user.username;
 
-  // Open the Player page (which hosts the private chat) from the user list.
   await userRow(senderPage, partnerName).getByRole('link').click();
   const presence = senderPage.getByTestId('private-chat-presence');
   await expect(presence).toHaveText(/online/i, { timeout: 15_000 });
@@ -75,7 +65,6 @@ test('a private chat keeps the draft when the partner goes offline', async ({ ne
   await senderPage.getByRole('button', { name: 'Send' }).click();
   await expect(senderPage.getByText('hello there')).toBeVisible();
 
-  // The partner disconnects.
   await partnerCtx.close();
 
   await expect(senderPage.getByText(`${partnerName} has left the server.`)).toBeVisible({ timeout: 30_000 });

@@ -189,7 +189,6 @@ describe('useDialogFocus', () => {
 
     const main = screen.getByRole('main', { name: 'Page' });
     expect(main).toHaveFocus();
-    // The tabindex that let it take focus goes once focus moves on.
     await user.tab();
     expect(main).not.toHaveFocus();
     expect(main).not.toHaveAttribute('tabindex');

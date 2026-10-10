@@ -12,11 +12,6 @@ interface ReportStatsPanelProps {
   state: ReportListLoadState;
 }
 
-/**
- * Desktop TabReport "Report Statistics" (checkable group, open by default):
- * totals, trends, week-over-week change and the category / most-reported /
- * top-reporter breakdowns from Command_ReportStats.
- */
 export default function ReportStatsPanel({ open, onToggle, state }: ReportStatsPanelProps) {
   const { t } = useTranslation();
   const stats = useAppSelector(server.Selectors.getReportStats);

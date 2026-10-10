@@ -1,6 +1,5 @@
 import { useCallback, useEffect, useRef, useState, type RefObject } from 'react';
 
-/** How long one card back takes to fly from the library to the hand. */
 export const DRAW_ANIMATION_MS = 450;
 
 export interface DrawFlight {
@@ -11,20 +10,13 @@ export interface DrawFlight {
 }
 
 export interface UseDrawFlightsArgs {
-  /** The seat's draw beacon: bumped by every Event_DrawCards. */
   drawSeq: number;
-  /** How many cards the last draw delivered. */
   lastDrawCount: number;
   libraryRef: RefObject<HTMLElement | null>;
   handRef: RefObject<HTMLElement | null>;
-  /** The board animation policy (useBoardAnimations): with it off, a draw flies nothing. */
   enabled: boolean;
 }
 
-/**
- * The seat's draw animation: one card back per drawn card, tweened from the
- * library pile to the hand row.
- */
 export function useDrawFlights({ drawSeq, lastDrawCount, libraryRef, handRef, enabled }: UseDrawFlightsArgs) {
   // In-flight draw animations. Purely visual: a card back tweens from
   // the library rect to the hand rect whenever this player's hand

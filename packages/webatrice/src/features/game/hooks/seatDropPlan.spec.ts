@@ -54,7 +54,6 @@ describe('planSeatMove', () => {
     expect(plan[0]).not.toHaveProperty('isReversed');
   });
 
-  // Seat 2's board shows player 1's card attached to one of seat 2's cards.
   const attachedForeign = source({
     seatPlayerId: 2,
     zone: 'battlefield',
@@ -123,7 +122,6 @@ describe('planSeatMove', () => {
     expect(planSeatMove(fromHand, battlefield(2))[0].cardsToMove).toEqual({ card: [{ cardId: 30, pt: '2/2' }, { cardId: 31 }] });
     expect(planSeatMove(fromHand, { zone: 'graveyard' })[0].cardsToMove).toEqual({ card: [{ cardId: 30 }, { cardId: 31 }] });
 
-    // A battlefield move keeps the card's own P/T.
     const onBoard = source({ zone: 'battlefield', cards: [{ id: '10', slot: { row: 0, col: 1 }, printedPT: '2/2' }] });
     expect(planSeatMove(onBoard, battlefield(2))[0].cardsToMove).toEqual({ card: [{ cardId: 10 }] });
   });
@@ -143,8 +141,6 @@ describe('planSeatMove', () => {
   });
 
   it('lands a lent card only on the borrower\'s battlefield, unless a judge moves it (cmdMoveCard)', () => {
-    // Servatrice refuses a move whose start and target players both differ
-    // from the sender, unless the sender judges (server_abstract_player.cpp:801).
     const lent = source({ zone: 'library', lenderPlayerId: 2, cards: [{ id: '3' }] });
     expect(planSeatMove(lent, battlefield(2))).toEqual([]);
     expect(planSeatMove(lent, battlefield(3))).toEqual([]);
@@ -154,15 +150,9 @@ describe('planSeatMove', () => {
   });
 
   describe('a move within the library', () => {
-    // Servatrice removes and inserts the cards of one command one at a time,
-    // in position order (server_abstract_player.cpp:332, processMoveCard), and
-    // a hidden zone addresses a card by its current position. Replaying the
-    // commands on a library shows where the cards land.
     const replay = (library: string[], plan: ReturnType<typeof planSeatMove>) => {
       const order = library.slice();
       for (const params of plan) {
-        // The command's cards are looked up by position first, then each is
-        // removed and inserted at x + k in position order.
         const cards = params.cardsToMove!.card!.map((card) => card.cardId!).sort((a, b) => a - b).map((p) => order[p]);
         cards.forEach((card, k) => {
           order.splice(order.indexOf(card), 1);

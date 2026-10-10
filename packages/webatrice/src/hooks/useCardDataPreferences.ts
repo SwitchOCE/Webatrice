@@ -12,12 +12,6 @@ import {
 
 import { createSharedStore, LoadingState, useSharedStore, type Loadable } from './useSharedStore';
 
-/**
- * React view of the services-owned preferences snapshot. The card-database
- * dialogs call `refreshCardDataPreferences` after a save so every image and
- * lookup re-resolves against the new choices.
- */
-// Arrow keeps the services binding lazy, so specs that mock `@app/services` can still import `@app/hooks`.
 export const cardDataPreferencesStore = createSharedStore<CardDataPreferences>(() => currentCardDataPreferences());
 
 export async function refreshCardDataPreferences(): Promise<CardDataPreferences> {
@@ -30,12 +24,7 @@ export function useCardDataPreferences(): Loadable<CardDataPreferences> {
   return useSharedStore(cardDataPreferencesStore);
 }
 
-/**
- * Walk an ordered candidate list the way desktop's picture loader walks its
- * URLs: show the first, advance on each load error, give up (null) at the end.
- */
 export function useImageCandidates(urls: readonly string[]): { src: string | null; onError: () => void } {
-  // Keyed on the list contents so a new card starts again from its first URL.
   const key = urls.join('\n');
   const [failed, setFailed] = useState({ key, count: 0 });
   const index = failed.key === key ? failed.count : 0;
@@ -45,11 +34,6 @@ export function useImageCandidates(urls: readonly string[]): { src: string | nul
   };
 }
 
-/**
- * Ordered image candidates for a cards.xml / tokens.xml record, honouring the
- * user's set priority and picture URL templates. Empty while preferences load
- * so the first request already goes to the right source.
- */
 export function useCardImageUrls(
   card: CardImageSubject | null | undefined, preferredSet?: string, fallbackSize = ScryfallImageSize.Normal,
 ): string[] {

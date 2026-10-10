@@ -34,8 +34,6 @@ function setup() {
 }
 
 describe('SessionResponseImpl.loginFailed', () => {
-  // Mirrors sockatrice login.ts: DISCONNECTED status, loginFailed(code), then the
-  // socket close's second DISCONNECTED. The code must survive both slice rebuilds.
   it('keeps the rejection code through the disconnect that follows a rejected login', () => {
     const { store, impl } = setup();
     impl.connectionAttempted();

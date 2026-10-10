@@ -86,7 +86,6 @@ describe('useCardFocus', () => {
     fireEvent.keyDown(card('2'), { key: 'ArrowRight', shiftKey: true });
     expect(card('3')).toHaveFocus();
     expect(CARDS.map((c) => card(c.id).getAttribute('aria-selected'))).toEqual(['false', 'true', 'true']);
-    // The card focus was last on keeps the tab stop.
     expect(card('3').tabIndex).toBe(0);
   });
 
@@ -97,7 +96,6 @@ describe('useCardFocus', () => {
     expect(['1', '2', '3'].map((id) => card(id).getAttribute('aria-selected'))).toEqual(['true', 'true', 'false']);
     fireEvent.keyDown(card('2'), { key: ' ' });
     expect(['1', '2', '3'].map((id) => card(id).getAttribute('aria-selected'))).toEqual(['true', 'false', 'false']);
-    // Unmarking the last marked card leaves nothing selected.
     fireEvent.keyDown(card('1'), { key: ' ' });
     expect(['1', '2', '3'].map((id) => card(id).getAttribute('aria-selected'))).toEqual(['false', 'false', 'false']);
   });
@@ -112,7 +110,6 @@ describe('useCardFocus', () => {
     fireEvent.keyDown(card('2'), { key: 'ArrowRight', ctrlKey: true });
     fireEvent.keyDown(card('3'), { key: ' ' });
     expect(['1', '2', '3'].map((id) => card(id).getAttribute('aria-selected'))).toEqual(['true', 'false', 'true']);
-    // A plain arrow still selects the card it lands on alone.
     fireEvent.keyDown(card('3'), { key: 'ArrowLeft' });
     expect(['1', '2', '3'].map((id) => card(id).getAttribute('aria-selected'))).toEqual(['false', 'true', 'false']);
   });

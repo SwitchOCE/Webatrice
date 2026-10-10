@@ -7,17 +7,12 @@ import { formatDisplayLabel } from '../deckSummary';
 
 export interface ReadOnlyDeckProps {
   deck: ParsedDeck;
-  /** Store a copy in the caller's deck storage; absent while disconnected. */
   onImport?: () => void;
   onClose: () => void;
 }
 
 const SECTIONS: DeckCategory[] = ['main', 'sideboard'];
 
-/**
- * A deck someone else shared or published, shown read-only: its name, format
- * and card list by zone, with "Import to my decks" to keep a copy.
- */
 export function ReadOnlyDeck({ deck, onImport, onClose }: ReadOnlyDeckProps) {
   const { t } = useTranslation();
   return (

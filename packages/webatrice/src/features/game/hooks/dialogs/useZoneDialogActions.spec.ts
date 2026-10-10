@@ -10,7 +10,6 @@ import type { ZoneViewTarget } from './gameDialogs.types';
 import { useZoneDialogActions } from './useZoneDialogActions';
 import { writeShuffleOnClose } from '../../dialogs/shared/zoneViewPreferences';
 
-/** Player 1 (local) and player 2, each with every zone a view here opens. */
 function makeZonesGame() {
   const zones = (names: NonNullable<Parameters<typeof makeZoneEntry>[0]['name']>[]) =>
     Object.fromEntries(names.map((name) => [name, makeZoneEntry({ name, cardCount: 0 })]));

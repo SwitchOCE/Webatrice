@@ -9,24 +9,6 @@ import { useCardPreviewActions } from '../CardPreviewContext';
 import { counterLetter } from './cardLabel';
 import { counterColorForId } from './counterColors';
 
-
-/**
- * A single MTG card as it appears on a seat (hand, battlefield, stack,
- * zone views, the drag ghost). Visual only: drags, taps and menus are
- * wired by the region that renders it.
- *
- * Image source: prefers `scryfallId` when known (returns the exact
- * printing chosen in the deck), falls back to `/cards/named?exact=`
- * for name-only entries. Both endpoints redirect to CDN URLs that
- * cache aggressively across the session.
- *
- * On mouse-enter the card publishes itself to the game preview store so
- * the right-rail preview (BattlefieldSidebar) can show it enlarged.
- * The hover-scale + tight name pill are ported straight from fancy
- * webatrice.
- */
-// Desktop's "Maximum font size for information displayed on cards", in fixed
-// pixels (useApplyCardPresentation); 0.7rem where nothing sets it.
 const CARD_INFO_FONT_SIZE = 'var(--card-info-font-size, 0.7rem)';
 
 interface Props {
@@ -57,10 +39,6 @@ interface Props {
    *  pills still render (Cockatrice keeps them visible) so a
    *  manifested creature's P/T remains readable. */
   faceDown?: boolean;
-  /** Per-card counters (slot id → value). Rendered as colored circular
-   *  badges arranged in up to 3 rows down the card sides, matching
-   *  Cockatrice's `paintNumberEllipse` layout in card_item.cpp. Slot id
-   *  picks the color from counterColorForId. */
   counters?: readonly { id: number; value: number }[];
   /** Explicit image URL override. When set, replaces the composed
    *  scryfallId / name-based Scryfall URL. Used by the caller to
@@ -99,10 +77,6 @@ export default function Card({ name, scryfallId, pt, basePT, annotation, id, fac
   // `AbstractCardItem::paintPicture`). We use the same "# " prefix so
   // players who bounce between the clients see a familiar tag.
   const displayName = faceDown && id != null ? `# ${id}` : name;
-  // Desktop's "Display card names on cards having a picture": the name is
-  // always drawn on a face-down card and on one without its picture, still
-  // loading or failed (AbstractCardItem::paintPicture: a null pixmap); with
-  // the option off, nowhere else.
   const displayCardNames = usePreference('displayCardNames');
   const [loadedImageUrl, setLoadedImageUrl] = useState<string | null>(null);
   const showName = displayCardNames || !!faceDown || !imageUrl || loadedImageUrl !== imageUrl;
@@ -112,7 +86,6 @@ export default function Card({ name, scryfallId, pt, basePT, annotation, id, fac
 
   return (
     <div
-      // "Scale cards on mouse over" (desktop's 1.1) through --card-hover-scale.
       className={
         'seat-card relative shadow-md select-none overflow-hidden board-motion transition-transform duration-150 ease-out '
         + 'hover:scale-[var(--card-hover-scale,1.1)]'
@@ -122,7 +95,6 @@ export default function Card({ name, scryfallId, pt, basePT, annotation, id, fac
         height: CARD_HEIGHT,
         borderRadius: CARD_CORNER_RADIUS,
       }}
-      // The tooltip names each counter's type, which the badge shows only as a colour.
       title={[displayName, ...(counters ?? []).map((c) => t('SeatCard.counterBadge', { letter: counterLetter(c.id), count: c.value }))]
         .join('\n')}
       onMouseEnter={() => {

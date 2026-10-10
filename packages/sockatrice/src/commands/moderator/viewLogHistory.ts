@@ -5,7 +5,6 @@ import type { RequestId } from '../../types/RequestId';
 import { Command_ViewLogHistory_ext, Command_ViewLogHistorySchema, Response_ViewLogHistory_ext } from '../../generated';
 import type { ViewLogHistoryParams } from '../../generated';
 
-/** Echo the client-only identity on both outcomes; omission preserves legacy callback arity. */
 export function viewLogHistory(filters: ViewLogHistoryParams, ...correlation: [requestId?: RequestId]): void {
   WebClient.instance.protobuf.sendModeratorCommand(Command_ViewLogHistory_ext, create(Command_ViewLogHistorySchema, filters), {
     responseExt: Response_ViewLogHistory_ext,

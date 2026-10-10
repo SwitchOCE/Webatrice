@@ -6,7 +6,6 @@ export const REPORT_BUTTON_CLASS =
 
 type Translate = (key: string, params?: Record<string, unknown>) => string;
 
-/** Desktop's status line under a report list: "Loading...", the failure, or "N report(s)". */
 export function listStatusText(t: Translate, loadState: ReportListLoadState, count: number): string {
   if (loadState === 'loading') {
     return t('Reports.loading');

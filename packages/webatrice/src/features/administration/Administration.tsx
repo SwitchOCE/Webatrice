@@ -27,8 +27,6 @@ interface SingleFieldFormProps {
   onSubmit: (value: string) => void;
 }
 
-// Desktop: "Replay ID" line edit with QIntValidator(0, INT_MAX), so only digits go in;
-// the button enables once it has text.
 const GrantReplayForm = ({ disabled, onSubmit }: SingleFieldFormProps) => {
   const { t } = useTranslation();
   const resolver = useMemo(() => zodResolver(buildGrantReplaySchema(t)), [t]);
@@ -90,7 +88,6 @@ const ActivateUserForm = ({ disabled, onSubmit }: SingleFieldFormProps) => {
   );
 };
 
-/** Desktop TabAdmin (tab_admin.cpp). */
 const AdministrationContent = () => {
   const { t } = useTranslation();
   const admin = useAdministration();
@@ -147,8 +144,6 @@ const AdministrationContent = () => {
   );
 };
 
-// The guards mount the page body only when it is allowed, so its mount effects
-// never send a staff or 3.1 command the user or server cannot serve.
 const Administration = () => (
   <Layout className="administration scrollable">
     <AuthGuard />

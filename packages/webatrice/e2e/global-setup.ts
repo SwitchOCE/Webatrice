@@ -16,7 +16,6 @@ const READINESS_TIMEOUT_MS = 120_000;
 const POLL_INTERVAL_MS = 1_000;
 
 async function probe(): Promise<string | null> {
-  // import(): Playwright compiles this file to CommonJS, and sockatrice only exports `import`.
   const { Event_ServerIdentification_ext, ServerMessageSchema } = await import('@cockatrice/sockatrice/generated');
   return new Promise((resolve) => {
     const ws = new WebSocket(E2E_WS_URL);

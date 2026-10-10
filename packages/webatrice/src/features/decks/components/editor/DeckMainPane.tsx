@@ -43,7 +43,6 @@ export interface DeckMainPaneProps {
   onBracketAssessmentComputed: (assessment: BracketAssessment | undefined) => void;
   isMtg: boolean;
   isCommander: boolean;
-  /** Legality by card index, for the red illegal-row styling. */
   legality?: readonly CardLegality[];
 }
 
@@ -93,15 +92,12 @@ export function DeckMainPane({
   // decks force the deckList view (no search view exists for them).
   const activeView = isMtg ? rightView : 'deckList';
 
-  // Rows in the order they are drawn: the MTG sections one after another
-  // (the CSS columns flow in DOM order), or the non-MTG list by name.
   const rowOrder = useMemo(
     () => (isMtg
       ? groups.flatMap(({ indices }) => indices)
       : sortIndicesByName(deck.cards, deck.cards.map((_, i) => i))),
     [isMtg, groups, deck.cards],
   );
-  // Removing the last card leaves no row to take focus; the add field does.
   const addFieldRef = useRef<HTMLInputElement>(null);
   const grid = useDeckCardGrid({
     cards: deck.cards,

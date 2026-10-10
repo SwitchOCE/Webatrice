@@ -3,22 +3,8 @@ import { serializeCod } from '@app/services';
 import { plainDeckText } from './deckServices';
 import type { DeckCard, HydratedDeck } from './types';
 
-/**
- * Deck export writers:
- *   - Plain text — `1 Card Name` lines grouped by section. Universal.
- *   - MTG Arena — includes set + collector number. Also works for
- *     Moxfield / Archidekt / topdecked imports.
- *   - Cockatrice (.cod) — round-trips through `serializeCod`, so the
- *     file keeps format, banner card, tags, comments-meta and per-card
- *     printing hints. Re-importing it is lossless.
- */
 export type DeckExportFormat = 'plain' | 'arena' | 'cockatrice';
 
-/**
- * Commander is a per-card flag, not a category — commanders live in
- * main with `isCommander`. They are listed once, under their own
- * section, and excluded from the main section.
- */
 function exportSections(cards: DeckCard[]): Array<{ key: 'commander' | 'main' | 'side'; cards: DeckCard[] }> {
   return [
     { key: 'commander', cards: cards.filter((c) => c.isCommander) },
@@ -72,9 +58,6 @@ export function exportDeck(deck: HydratedDeck, format: DeckExportFormat): string
     case 'arena':
       return toArenaText(deck.cards);
     case 'cockatrice':
-      // Same serializer autosave uses, so the exported .cod matches what
-      // Servatrice stores — minus the cached bracket assessment, which
-      // is only meaningful to webatrice's own deck storage.
       return serializeCod({
         name: deck.name,
         meta: deck.meta,
@@ -93,7 +76,6 @@ export function exportDeck(deck: HydratedDeck, format: DeckExportFormat): string
   }
 }
 
-/** Download file name: the slugified deck name plus `extension`. */
 export function exportFileName(deckName: string, extension: string): string {
   const slug = deckName
     .toLowerCase()

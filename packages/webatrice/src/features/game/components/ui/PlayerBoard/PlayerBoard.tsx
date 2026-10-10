@@ -20,19 +20,6 @@ import SeatDragGhostCards from './SeatDragGhostCards';
 import { usePlayerSeat, type PlayerSeatProps } from './usePlayerSeat';
 import { MARQUEE_BORDER, MARQUEE_FILL } from '../seatColors/seatColors';
 
-/**
- * One player's seat: the info column (PlayerInfoPanel: name, life, mana pool
- * and the ZoneStack piles), the stack, the battlefield and the hand, placed by
- * seatGrid. With desktop's default horizontal hand, the hand is a row under
- * the stack and battlefield (above them on a mirrored seat); with a vertical
- * hand it is a column beside the info column. Every seat shows a hand; an
- * opponent's shows card backs for the server's hand count.
- *
- * PlayerBoard runs the seat controller (usePlayerSeat) over the seat model and
- * command ports, provides it to its regions through PlayerSeatContext, and
- * draws the seat-wide overlays: draw flights, the marquee, pending arrows, the
- * card menus and the drag ghost.
- */
 function PlayerBoard(props: PlayerSeatProps) {
   const controller = usePlayerSeat(props);
   const { t } = useTranslation();
@@ -52,8 +39,6 @@ function PlayerBoard(props: PlayerSeatProps) {
 
   return (
     <PlayerSeatProvider value={controller}>
-      {/* A landmark per seat, named for its player, so a screen reader can jump between seats;
-        its zones are labelled groups inside it. */}
       <div
         ref={boxRef}
         role="region"

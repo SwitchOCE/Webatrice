@@ -35,12 +35,10 @@ import type { LifeControl, useSeatPrompts } from './useSeatPrompts';
 type SeatPrompts = ReturnType<typeof useSeatPrompts>;
 
 export interface UseBattlefieldCardOpsArgs {
-  /** The seat's battlefield, in display order. */
   cards: readonly BattlefieldCardViewModel[];
   selection: SeatSelection | null;
   setSelection: SeatSelectionApi['setSelection'];
   cardMetaByName: ReadonlyMap<string, SeatCardMeta>;
-  /** Catalog lookups of the related cards (tokens, other faces) by name. */
   tokenMetaByName: ReadonlyMap<string, LookupResult>;
   deckCount: number;
   lifeControl: LifeControl | undefined;
@@ -52,24 +50,14 @@ export interface UseBattlefieldCardOpsArgs {
     SeatPrompts,
     'openAnnotationPrompt' | 'openPTPrompt' | 'openCardCounterPrompt' | 'openMoveXFromTopPrompt' | 'openTokenCountPrompt'
   >;
-  /** Remember the token "Create another token" repeats. */
   setLastToken: SeatPrompts['setLastToken'];
-  /** Start an attach pick for these TABLE cards; the first is the arrow's anchor. */
   startAttach: (sourceCardIds: readonly number[], anchorName: string) => void;
-  /** Start a draw-arrow pick from this TABLE card. */
   startArrow: (sourceCardId: number, sourceCardName: string) => void;
 }
 
-/** The battlefield actions on one target set (see resolveTargets). Tap
- *  flips each card; the other toggles, prompt prefills, the draw-arrow pick,
- *  move-X and the row / column selection follow the anchor; an attach starts
- *  from every card with the anchor carrying the arrow; everything else
- *  applies to every card. */
 export interface BattlefieldCardOps {
-  /** Tap / Untap (desktop cmTap): flip each card. */
   toggleTapped(): void;
   toggleFaceDown(): void;
-  /** Reveal the face-down cards among the targets to the local player. */
   peek(): void;
   toggleDoesntUntap(): void;
   clone(): void;
@@ -87,26 +75,16 @@ export interface BattlefieldCardOps {
   selectColumn(): void;
   stepCounter(counterId: number, step: 1 | -1): void;
   promptCounter(counterId: number): void;
-  /** Create the anchor's related tokens (desktop actCreateAllRelatedCards). */
   createRelatedTokens(): void;
 }
 
 export interface BattlefieldCardActions {
-  /** The actions of a card menu opened on `cardId`. */
   forCard(cardId: string): BattlefieldCardOps | null;
-  /** The actions of a shortcut, on the battlefield selection. */
   forSelection(): BattlefieldCardOps | null;
   selectAll(): void;
-  /** +1 on every existing counter of the selection, or of the whole battlefield. */
   incrementAllCounters(): void;
 }
 
-/**
- * The seat's battlefield card actions, bound to its ports: the one
- * implementation behind the battlefield card menu and the seat shortcuts.
- * Each action is desktop's PlayerActions handler over the target set
- * (player_actions.cpp), and sends what that handler sends.
- */
 export function useBattlefieldCardOps({
   cards,
   selection,
@@ -125,7 +103,6 @@ export function useBattlefieldCardOps({
   startArrow,
 }: UseBattlefieldCardOpsArgs): BattlefieldCardActions {
   const { openAnnotationPrompt, openPTPrompt, openCardCounterPrompt, openMoveXFromTopPrompt, openTokenCountPrompt } = prompts;
-  // Desktop's "Annotate card text on tokens".
   const annotateTokens = usePreference('annotateTokens');
 
   return useMemo(() => {
@@ -135,7 +112,6 @@ export function useBattlefieldCardOps({
         setSelection({ zone: 'battlefield', ids });
       }
     };
-    // One command container for every card's counter.
     const setCounters = (entries: { cardId: number; counterId: number; value: number }[]) => {
       if (entries.length > 0) {
         counterCommands.setCardCounters(entries);
@@ -156,8 +132,6 @@ export function useBattlefieldCardOps({
           cardCommands.setPT(entries);
         }
       };
-      // The prompts take a snapshot of the target ids, so a selection change
-      // while one is open does not move its targets.
       const prompt = (open: (promptTargets: { targetIds: number[]; cardName: string }) => void) => {
         if (targetIds.length > 0) {
           open({ targetIds, cardName: anchor.name });
@@ -165,8 +139,6 @@ export function useBattlefieldCardOps({
       };
 
       return {
-        // Desktop cmTap flips each card (1 - tapped, player_actions.cpp:1768-1776):
-        // a mixed selection taps the untapped cards and untaps the tapped ones.
         toggleTapped: () => {
           for (const tapped of [false, true]) {
             const ids = cardIdsOf(targetCards.filter((c) => Boolean(c.tapped) === tapped));
@@ -183,13 +155,11 @@ export function useBattlefieldCardOps({
           }
         },
         toggleDoesntUntap: () => each((id) => cardCommands.setDoesntUntap(id, !anchor.doesntUntap)),
-        // One Command_CreateToken per card (desktop cmClone).
         clone: () => targetCards.forEach((c) => {
           if (Number.isFinite(Number(c.id))) {
             cardCommands.clone(cloneSource(c));
           }
         }),
-        // One Command_MoveCard for every target (cards_to_move is repeated).
         move: (to) => moveSelectedCards(zoneCommands.moveCards, ZoneName.TABLE, targetCards, to, (name) => cardMetaByName.get(name)),
         promptMoveXFromTop: () => {
           if (anchorNumeric) {
@@ -200,9 +170,6 @@ export function useBattlefieldCardOps({
         promptPT: () => prompt((t) => openPTPrompt({ ...t, current: currentPT(anchor, printedPT) })),
         resetPT: () => setPT(resetPTEntries(targetCards, printedPT)),
         promptAnnotation: () => prompt((t) => openAnnotationPrompt({ ...t, current: anchor.annotation ?? '' })),
-        // Desktop attaches every target; the anchor carries the arrow. An
-        // optimistic placeholder anchor hands the arrow to the first target
-        // with a server id.
         attach: () => {
           const sourceIds = anchorNumeric ? [anchorId, ...targetIds.filter((id) => id !== anchorId)] : targetIds;
           if (sourceIds.length > 0) {
@@ -215,11 +182,7 @@ export function useBattlefieldCardOps({
             startArrow(anchorId, anchor.name);
           }
         },
-        // Command_AttachCard has no batch form; the server ignores cards that
-        // are not attached.
         unattach: () => each((id) => targetCommands.unattach(id)),
-        // On an opponent's seat lifeControl carries the shared life counter id,
-        // so this lowers the local player's life, as desktop does.
         reduceLifeByPower: () => {
           const total = totalPower(targetCards);
           if (total > 0) {
@@ -231,7 +194,6 @@ export function useBattlefieldCardOps({
         stepCounter: (counterId, step) => setCounters(counterStepEntries(targetCards, counterId, step)),
         promptCounter: (counterId) =>
           prompt((t) => openCardCounterPrompt({ ...t, counterId, currentValue: counterValue(anchor, counterId) })),
-        // Desktop acts on the active card only, the anchor here.
         createRelatedTokens: () => {
           const meta = cardMetaByName.get(anchor.name);
           const { requests, prompt: countPrompt, lastToken } = createAllRelated({
@@ -243,7 +205,6 @@ export function useBattlefieldCardOps({
             annotate: annotateTokens,
           });
           requests.forEach((request) => cardCommands.createToken(request));
-          // Desktop remembers it even when the count prompt is cancelled.
           if (lastToken) {
             setLastToken(lastToken);
           }

@@ -8,8 +8,6 @@ import {
   Response_ReplayDownloadByGameId_ext,
 } from '../../generated';
 
-// RespNameNotFound means the game left no replay; desktop TabReport shows
-// "No replay available for this game." for any failure.
 export function replayDownloadByGameId(gameId: number, ...correlation: [requestId?: RequestId]): void {
   WebClient.instance.response.moderator.replayDownloadByGameIdPending?.(gameId);
   WebClient.instance.protobuf.sendModeratorCommand(

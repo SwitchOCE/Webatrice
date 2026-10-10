@@ -5,11 +5,6 @@ import {
   type GameReplay,
 } from '@cockatrice/sockatrice/generated';
 
-/**
- * Event number → playback time in ms. Port of desktop `createReplayTimeline`
- * (replay_manager.cpp): containers only carry whole `seconds_elapsed`, so the
- * events recorded within one second are spread evenly across that second.
- */
 export function createReplayTimeline(replay: GameReplay): number[] {
   const events = replay.eventList;
   const timeline: number[] = [];
@@ -37,24 +32,13 @@ export function createReplayTimeline(replay: GameReplay): number[] {
   return timeline;
 }
 
-/**
- * Whether a container changes anything worth watching. Desktop's
- * `hasMeaningfulEvent`: everything but the ~1/s ping-only
- * `Event_PlayerPropertiesChanged` traffic counts.
- */
 export function hasMeaningfulEvent(container: GameEventContainer): boolean {
   return container.eventList.some((event) => !hasExtension(event, Event_PlayerPropertiesChanged_ext));
 }
 
-/** Width of one timeline histogram bin (desktop `BIN_LENGTH`). */
 export const TIMELINE_BIN_MS = 5000;
-/** A timestamp must never determine an unbounded allocation or SVG path. */
 export const MAX_TIMELINE_BINS = 2048;
 
-/**
- * Event counts per 5-second bin, drawn as the activity silhouette behind the
- * timeline. Long recordings use wider bins to keep memory and rendering bounded.
- */
 export function createTimelineHistogram(timeline: readonly number[]): number[] {
   let maxTime = 0;
   for (const time of timeline) {

@@ -26,7 +26,6 @@ const DECK = `<?xml version="1.0" encoding="UTF-8"?>
   <zone name="side"><card number="1" name="Smash to Smithereens"/></zone>
 </cockatrice_deck>`;
 
-// The current plan (`<sideboard_plan><name></name>`) moves the Mountain to the sideboard.
 const WITH_PLAN = DECK.replace(
   '</cockatrice_deck>',
   '<sideboard_plan><name></name><move_card_to_zone><card_name>Mountain</card_name>'
@@ -103,7 +102,6 @@ function renderPicker() {
   return { ...utils, webClient, pick };
 }
 
-// Event_PlayerPropertiesChanged for the local player's sideboard lock.
 const setLocalSideboardLock = (sideboardLocked: boolean) => games.Actions.playerPropertiesChanged({
   gameId: 1,
   playerId: 1,
@@ -278,7 +276,6 @@ describe('GameLobby — deck states (GAME-014)', () => {
     act(() => {
       store.dispatch(games.Actions.deckSelectFailed({ gameId: 1, responseCode: Response_ResponseCode.RespContextError, requestId }));
     });
-    // Reported under the deck heading, not inside the .cod upload card.
     expect(screen.getByRole('alert')).toHaveTextContent('GameLobby.deckSelectFailed');
     expect(screen.queryByTestId('lobby-deck-view')).not.toBeInTheDocument();
   });
@@ -359,7 +356,6 @@ describe('GameLobby — sideboarding before ready (GAME-014)', () => {
       expect(row).toBeDisabled();
     }
     const lock = button('GameLobby.action.sideboardLocked');
-    // The changing label carries the state; aria-pressed on top would contradict it.
     expect(lock).not.toHaveAttribute('aria-pressed');
     fireEvent.click(lock);
     expect(webClient.request.game.setSideboardLock).toHaveBeenCalledWith(1, { locked: false });
@@ -448,7 +444,6 @@ describe('GameLobby deck-pick request ownership', () => {
     });
     act(() => store.dispatch(games.Actions.deckSelectFailed({ gameId: 1, responseCode: 3, requestId: first })));
     expect(screen.queryByRole('alert')).not.toBeInTheDocument();
-    // The row names the later pick's deck (keys render as themselves here).
     expect(screen.getByText('GameLobby.player.waitingWithDeck')).toBeInTheDocument();
     expect(first).toEqual(expect.any(String));
     expect(second).not.toBe(first);

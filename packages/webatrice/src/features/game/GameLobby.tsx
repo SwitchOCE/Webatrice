@@ -35,32 +35,6 @@ import GameInviteControls from './components/GameInviteControls/GameInviteContro
 import LobbyDeckView from './components/lobby/LobbyDeckView';
 import { useLobbyDeckView } from './components/lobby/useLobbyDeckView';
 
-/**
- * Pre-game lobby. Renders after a player joins a game that hasn't
- * started yet. Superseded fancy webatrice's deck-select modal + wait
- * screen with a persistent full-page view where:
- *
- *   • Every player's seat is visible with their ready + deck state
- *   • The local seat follows desktop's DeckViewContainer states
- *     (deck_view_container.cpp): with no deck loaded it picks one
- *     (from My Decks OR via .cod upload); once the server returns the
- *     deck it shows the deck view with Unload deck / Ready to start /
- *     Sideboard locked|unlocked / Force start (host). The sideboard
- *     plan is edited in the deck view while the sideboard is unlocked
- *     and the player isn't ready. The same view returns between games.
- *
- * Protocol calls used (via sockatrice):
- *   • deckSelect(gameId, { deckId })      — pick from server-stored deck
- *   • deckSelect(gameId, { deck: xml })   — upload a .cod XML string
- *   • readyStart(gameId, { ready })       — toggle self ready
- *   • readyStart(gameId, { ready: true, forceStart: true })
- *                                         — host force start; the server
- *                                           kicks unready players and starts
- *   • setSideboardPlan / setSideboardLock — pre-game sideboarding
- *   • kickFromGame(gameId, { playerId })  — host-only, removes a player
- *   • leaveGame(gameId)                   — self leave
- */
-
 export default function GameLobby({ gameId }: { gameId: number }) {
   const { t } = useTranslation();
   const leaveGame = useLeaveGame();
@@ -185,7 +159,6 @@ export default function GameLobby({ gameId }: { gameId: number }) {
                 ))}
               </div>
 
-              {/* Deck selection — desktop's deck-select state: seated, no deck loaded */}
               {iAmSeated && !deckView.deckLoaded && (
                 <div className="border-t border-border-strong pt-6 space-y-3">
                   <div className="text-xs font-semibold uppercase tracking-widest text-text-muted text-center">
@@ -306,7 +279,6 @@ export default function GameLobby({ gameId }: { gameId: number }) {
                 </div>
               )}
 
-              {/* Deck-loaded state: deck view + desktop's DeckViewContainer button row */}
               {iAmSeated && deckView.deckLoaded && deckView.view && (
                 <div className="border-t border-border-strong pt-6 space-y-3">
                   <div className="text-xs font-semibold uppercase tracking-widest text-text-muted text-center">
@@ -321,7 +293,6 @@ export default function GameLobby({ gameId }: { gameId: number }) {
                     <button type="button" onClick={deckView.unloadDeck} className={LOBBY_BUTTON_CLASS}>
                       <Undo2 size={14} /> {t('GameLobby.action.unloadDeck')}
                     </button>
-                    {/* Desktop's ToggleButton: green frame when on, red when off. */}
                     <button
                       type="button"
                       onClick={deckView.toggleReady}

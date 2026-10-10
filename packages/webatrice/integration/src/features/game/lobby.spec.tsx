@@ -78,7 +78,6 @@ function setLocalProperties(properties: Partial<{ sideboardLocked: boolean; read
   });
 }
 
-/** Uploads a .cod through the lobby and answers Command_DeckSelect like Servatrice. */
 async function loadDeck() {
   const previousCount = findAllGameCommands(Command_DeckSelect_ext).length;
   const input = document.querySelector<HTMLInputElement>('input[type="file"][accept*=".cod"]')!;
@@ -178,7 +177,6 @@ describe('GameLobby integration (GAME-013 / GAME-014)', () => {
     await waitFor(() => expect(findLastGameCommand(Command_DeckSelect_ext).value.deck).toBe(withPlan));
     const deckSelect = findLastGameCommand(Command_DeckSelect_ext);
 
-    // Server_Player::cmdDeckSelect broadcasts sideboard_locked before the response goes out.
     setLocalProperties({ sideboardLocked: true });
     act(() => {
       deliverMessage(buildResponseMessage(buildResponse({

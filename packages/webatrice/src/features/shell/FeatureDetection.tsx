@@ -7,17 +7,10 @@ import { dexieService } from '@app/services';
 import { RouteEnum } from '@app/types';
 import { getBrowserSupport } from '@app/utils';
 
-/**
- * Post-boot half of the capability preflight (public/preflight.js gates the boot
- * on the required features). Routes to the unsupported screen when IndexedDB cannot be
- * opened, which only an attempt reveals, and names the optional features this
- * browser lacks once so the user knows why e.g. the copy buttons do nothing.
- */
 const FeatureDetection = () => {
   const { t } = useTranslation();
   const pushToast = usePushToast();
   const [unsupported, setUnsupported] = useState(false);
-  // StrictMode re-runs mount effects; the notice is shown once per page load.
   const noticeShown = useRef(false);
 
   useEffect(() => {

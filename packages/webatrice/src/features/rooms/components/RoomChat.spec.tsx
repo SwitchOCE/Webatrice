@@ -142,7 +142,6 @@ describe('RoomChat', () => {
       mod: makeUser({ name: 'mod', userLevel: Level.IsUser | Level.IsRegistered | Level.IsModerator }),
     };
 
-    // Fresh objects per render: the filters remember each line's verdict.
     const messages = (): Message[] => [
       makeMessage({ message: 'old: earlier', messageType: Event_RoomSay_RoomMessageType.ChatHistory }),
       say('member', 'hello @TestUser'),

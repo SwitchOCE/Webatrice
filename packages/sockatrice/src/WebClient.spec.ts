@@ -350,8 +350,6 @@ describe('WebClient', () => {
       client.testConnect(target);
       wsMockInstance.onerror();
       expect(mockResponse.session.testConnectionFailed).toHaveBeenCalled();
-      // The probe socket must be released even on the error path — a leaked
-      // open socket counts against Servatrice's max_users_per_address cap.
       expect(wsMockInstance.close).toHaveBeenCalled();
     });
 
@@ -394,16 +392,12 @@ describe('WebClient', () => {
     });
 
     it('does not abort a still-CONNECTING prior probe — defers a clean close to onopen', () => {
-      // A superseded probe is usually still CONNECTING; close() on a CONNECTING
-      // socket fails the connection abnormally (1006, no clean FIN), and a proxy
-      // strands the half-open upstream against Servatrice's per-IP cap.
       const { instances } = installMockWebSocketHarness();
       client.testConnect(target);
       const first = instances[instances.length - 1];
       first.readyState = WebSocket.CONNECTING;
 
       client.testConnect(target);
-      // Not aborted synchronously; a clean close is armed for when it opens.
       expect(first.close).not.toHaveBeenCalled();
       expect(typeof first.onopen).toBe('function');
 
@@ -447,8 +441,6 @@ describe('WebClient', () => {
       expect(socketB).not.toBe(socketA);
       expect(socketA.onmessage).toBeNull();
 
-      // Invoke the captured callback as if delivery was already queued before
-      // detachment. The identity guard must still suppress A's valid reply.
       const data = buildServerIdentificationMessage();
       const message = new MessageEvent('message', { data: data.buffer });
       lateMessage(message);
@@ -456,8 +448,6 @@ describe('WebClient', () => {
       expect(mockResponse.session.testConnectionFailed).not.toHaveBeenCalled();
       expect(mockResponse.session.connectionUnreachable).not.toHaveBeenCalled();
 
-      // The same reply still succeeds for the current probe: the assertion
-      // above must not pass merely because identification handling is broken.
       socketB.onmessage!(message);
       expect(mockResponse.session.testConnectionSuccessful).toHaveBeenCalledExactlyOnceWith(false);
     });
@@ -497,8 +487,6 @@ describe('WebClient', () => {
       client.testConnect(target);
       wsMockInstance.onclose();
       expect(mockResponse.session.testConnectionFailed).toHaveBeenCalled();
-      // resolve() calls close() on every path (idempotent with the peer close)
-      // so the probe never lingers half-open on our side.
       expect(wsMockInstance.close).toHaveBeenCalled();
     });
   });

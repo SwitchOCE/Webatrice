@@ -18,12 +18,6 @@ export interface InviteToGameDialogProps {
   onClose: () => void;
 }
 
-/**
- * Desktop's DlgInviteToGame: a searchable list of online users (buddies
- * first; buddies only for a buddies-only game) minus ignored users and
- * everyone already in the game. Invite (or double-click) sends the invite
- * and closes.
- */
 export default function InviteToGameDialog({ isOpen, onlyBuddies, excludeNames, onInvite, onClose }: InviteToGameDialogProps) {
   const { t } = useTranslation();
   const users = useAppSelector(server.Selectors.getUsers);

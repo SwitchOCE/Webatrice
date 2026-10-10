@@ -525,8 +525,6 @@ describe('MenuSubmenu pointer behaviour', () => {
 });
 
 describe('Menu placement', () => {
-  // jsdom has no layout: the menu panel is 200 × 300 unless its own `maxHeight` caps it, as a
-  // browser's `overflow-y-auto` panel would be; every other element is the control at `control`.
   function layout(control: { left: number; top: number; right: number; bottom: number }) {
     vi.spyOn(HTMLElement.prototype, 'getBoundingClientRect').mockImplementation(function boundingRect(this: HTMLElement) {
       const cap = parseFloat(this.style.maxHeight);

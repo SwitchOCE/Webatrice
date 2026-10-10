@@ -53,7 +53,6 @@ describe('integration: admin handlers', () => {
     const response = attachResponseHandlers(store);
     response.session.updateUsers([makeUser('carol', ServerInfo_User_UserLevelFlag.IsModerator)]);
 
-    // Desktop's "Promote user to judge" sends only should_be_judge.
     response.admin.adjustMod('carol', undefined, true);
     const user = server.Selectors.getUsers(store.getState())['carol'];
     expect(user.userLevel & ServerInfo_User_UserLevelFlag.IsModerator).toBeTruthy();

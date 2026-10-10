@@ -41,8 +41,6 @@ export function useCurrentGame(gameId?: number): CurrentGame {
       localPlayer,
       isSpectator: game.spectator,
       isJudge: game.judge,
-      // A spectator never hosts; this also keeps a replay (no local player,
-      // unknown host) from passing host-only gates.
       isHost: !game.spectator && game.hostId === game.localPlayerId,
       isStarted: game.started,
     };

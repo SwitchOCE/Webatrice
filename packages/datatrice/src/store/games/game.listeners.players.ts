@@ -4,7 +4,6 @@ import { GamesState } from './game.interfaces';
 import { Actions } from './game.actions';
 import { diffPlayerProperties, formatLeaveMessage, formatPlayerJoined, formatPropertyDiff } from './messageLog';
 
-// Player listeners: joins, leaves and property changes.
 export function registerPlayersListeners(mw: ListenerMiddlewareInstance<unknown>): void {
   mw.startListening({
     actionCreator: Actions.playerPropertiesChanged,
@@ -64,7 +63,6 @@ export function registerPlayersListeners(mw: ListenerMiddlewareInstance<unknown>
       const preState = api.getOriginalState() as { games: GamesState };
       const preGame = preState.games.games[gameId];
       const player = preGame?.players[playerId];
-      // Desktop eventLeave ignores missing players (game_event_handler.cpp:469).
       if (!player) {
         return;
       }

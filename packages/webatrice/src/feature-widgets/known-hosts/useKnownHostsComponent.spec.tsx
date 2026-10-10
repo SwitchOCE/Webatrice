@@ -9,8 +9,6 @@ import { WebClientContext } from '@cockatrice/datatrice/react';
 vi.mock('./useKnownHosts');
 vi.mock('react-i18next', async (orig) => {
   const actual = await orig<typeof import('react-i18next')>();
-  // Surface the interpolation `mode` so fire-time content is assertable
-  // (the real ICU string isn't formatted in the test env).
   return {
     ...actual,
     useTranslation: () => ({
@@ -19,7 +17,6 @@ vi.mock('react-i18next', async (orig) => {
   };
 });
 
-// Capture the toast handle so we can assert what content `fireToast` opens with.
 const { openToast } = vi.hoisted(() => ({ openToast: vi.fn() }));
 vi.mock('@app/components', async (orig) => {
   const actual = await orig<typeof import('@app/components')>();
@@ -112,9 +109,6 @@ describe('useKnownHostsComponent', () => {
     expect(webClient.request.authentication.testConnection).toHaveBeenCalled();
   });
 
-  // Regression: a disconnect must not re-probe. Each probe is a full WebSocket
-  // that counts against Servatrice's per-IP connection cap (max_users_per_address,
-  // default 4), so re-probing on every disconnect trips "too many connections".
   it('does not re-fire testConnection when the connection drops (disconnected)', () => {
     const host = makeHost();
     const { webClient, store } = setup({
@@ -128,7 +122,6 @@ describe('useKnownHostsComponent', () => {
       store.dispatch(server.Actions.disconnected());
     });
 
-    // A disconnect adds no new probe.
     expect(testConnection).toHaveBeenCalledTimes(beforeDisconnect);
   });
 

@@ -12,11 +12,6 @@ export interface DeckHistoryControlsProps {
   onRedo: (steps?: number) => void;
 }
 
-/**
- * Undo, redo and the history list — desktop `DeckListHistoryManagerWidget`.
- * Clicking a list entry jumps there in one go: an undo entry restores the
- * deck as it was before that edit, a redo entry as it was after it.
- */
 export function DeckHistoryControls({ history, canUndo, canRedo, onUndo, onRedo }: DeckHistoryControlsProps) {
   const { t } = useTranslation();
   const [listOpen, setListOpen] = useState(false);
@@ -79,7 +74,6 @@ export function DeckHistoryControls({ history, canUndo, canRedo, onUndo, onRedo 
 
 type Translate = ReturnType<typeof useTranslation>['t'];
 
-/** The entry's label, worded as desktop's `DeckStateManager` reasons. */
 export function reasonText(reason: DeckHistoryReason, t: Translate): string {
   const zone = (z: 'main' | 'sideboard') => t(`DeckHistory.zone.${z}`);
   switch (reason.kind) {

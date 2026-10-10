@@ -1,17 +1,5 @@
 import type { TFunction } from 'i18next';
 
-/**
- * Filter, sort and group policy for zone views, matching desktop's
- * ZoneViewWidget controls (view_zone_widget.cpp:234-250) so every zone
- * viewer offers the same sort keys and grouping buckets.
- *
- * Works on `ZoneViewCardMetadata`, the card-catalog fields a view needs,
- * rather than any deck-feature type. A card with unknown metadata (null
- * type line, mana value, set, P/T) still sorts and groups: it lands in
- * "Other", mana value 0 and the trailing P/T bucket.
- */
-
-/** The card fields zone views filter, sort and group on. */
 export interface ZoneViewCardMetadata {
   name: string;
   type_line: string | null;
@@ -43,7 +31,6 @@ export interface CardGroup<M extends ZoneViewCardMetadata = ZoneViewCardMetadata
   cards: EnrichedCard<M>[];
 }
 
-/** "Group by type" buckets, in display order. */
 const TYPE_ORDER = [
   'Creature',
   'Planeswalker',
@@ -58,7 +45,6 @@ const TYPE_ORDER = [
 
 type CardTypeGroup = (typeof TYPE_ORDER)[number];
 
-/** Reduce a type line to its primary bucket. */
 function primaryType(typeLine: string | null): CardTypeGroup {
   if (!typeLine) {
     return 'Other';
@@ -150,14 +136,6 @@ export function matchesQuery(card: ZoneViewCardMetadata, query: string): boolean
   return true;
 }
 
-/** Sort key for a Scryfall power/toughness string. Variable stats like
- *  "*" and "1+*" get sorted after fixed numeric values; non-creatures
- *  (null) sort last so P/T sort surfaces creatures at the top.
- *
- *  Deliberate divergence: desktop (card_list.cpp:42-62) compares the P/T
- *  string zero-padded to ten characters, which puts non-creatures first
- *  and "2/10" after "3/3". Numeric order is what that string sort
- *  approximates; the name tie-break below matches desktop. */
 function ptSortKey(v: string | null): number {
   if (v == null) {
     return Number.POSITIVE_INFINITY;
@@ -169,9 +147,6 @@ function ptSortKey(v: string | null): number {
   return 1e6; // variable/non-numeric groups after real numbers
 }
 
-/** `Infinity - Infinity` is NaN, which a comparator must never return:
- *  two non-creatures would compare neither equal nor ordered and skip
- *  the name tie-break. */
 function comparePtKeys(a: number, b: number): number {
   return a === b ? 0 : a - b;
 }
@@ -270,20 +245,16 @@ export function groupCards<M extends ZoneViewCardMetadata>(
     }));
 }
 
-/** Metadata for a name the catalog hasn't answered for (yet): sorts and
- *  groups as unknown ("Other", mana value 0). */
 export function placeholderMeta(name: string): ZoneViewCardMetadata {
   return { name, type_line: null, cmc: null, colors: [], set: null, power: null, toughness: null };
 }
 
 export interface CardGroupOptions {
-  /** The search box's query; empty lists every card. */
   query?: string;
   sortBy: SortMode;
   groupBy: GroupMode;
 }
 
-/** A view's cards as it lists them: filtered by its search, sorted, then grouped. */
 export function buildCardGroups(
   cards: readonly HandCard[],
   metaByName: ReadonlyMap<string, ZoneViewCardMetadata>,

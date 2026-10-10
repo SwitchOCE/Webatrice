@@ -31,8 +31,6 @@
     return typeof value === 'function';
   }
 
-  // Syntax the build emits untranspiled for its baseline target (ES2022). A
-  // browser that cannot parse it would fail on the bundle with a blank page.
   var SYNTAX_PROBE = [
     'class A { #p = 1n; static s; static { A.s = 0; } m() { return this.#p ?? 0n; } }',
     'var o = { ...{} }; o?.a; o.b ??= 1; o.c ||= 1; o.d &&= 1;',
@@ -42,18 +40,14 @@
 
   function parsesModernSyntax() {
     try {
-      // Parsed only, never called.
       new root.Function(SYNTAX_PROBE);
       return true;
     } catch (error) {
-      // A CSP without 'unsafe-eval' forbids the probe itself (EvalError): unknown, not missing.
       return !(error instanceof root.SyntaxError);
     }
   }
 
   var CHECKS = [
-    // The app bundle: modern syntax, delivered as ES modules (`nomodule` support
-    // is exactly ES module support), with BigInt for protobuf int64 fields.
     { feature: 'syntax', required: true, isAvailable: parsesModernSyntax },
     {
       feature: 'esModules',
@@ -69,7 +63,6 @@
         return isFunction(root.BigInt);
       },
     },
-    // The server connection (Sockatrice WebSocketService).
     {
       feature: 'webSocket',
       required: true,
@@ -77,7 +70,6 @@
         return isFunction(root.WebSocket);
       },
     },
-    // Salts and GUIDs. Unlike crypto.subtle, it exists outside a secure context too.
     {
       feature: 'cryptoRandom',
       required: true,
@@ -92,7 +84,6 @@
         return isFunction(root.TextEncoder);
       },
     },
-    // The action slice snapshots dispatched payloads.
     {
       feature: 'structuredClone',
       required: true,
@@ -100,7 +91,6 @@
         return isFunction(root.structuredClone);
       },
     },
-    // Translations, the public server list and card data.
     {
       feature: 'fetch',
       required: true,
@@ -108,7 +98,6 @@
         return isFunction(root.fetch) && isFunction(root.AbortController);
       },
     },
-    // Settings, known hosts, cards and decks.
     {
       feature: 'indexedDB',
       required: true,
@@ -116,7 +105,6 @@
         return root.indexedDB != null;
       },
     },
-    // Card scaling, the game board, arrows and the reveal/search dialogs.
     {
       feature: 'resizeObserver',
       required: true,
@@ -125,9 +113,6 @@
       },
     },
 
-    // Password hashing (SHA-512). Missing outside a secure context (plain http://,
-    // e.g. a LAN deployment); Sockatrice then sends the plain password, as it does
-    // for a server without password hashing.
     {
       feature: 'webCrypto',
       required: false,
@@ -135,7 +120,6 @@
         return !!root.crypto && !!root.crypto.subtle && isFunction(root.crypto.subtle.digest);
       },
     },
-    // Keep-alive falls back to a main-thread timer, which browsers throttle in background tabs.
     {
       feature: 'worker',
       required: false,
@@ -143,7 +127,6 @@
         return isFunction(root.Worker);
       },
     },
-    // The pop-out card preview window.
     {
       feature: 'broadcastChannel',
       required: false,
@@ -151,7 +134,6 @@
         return isFunction(root.BroadcastChannel);
       },
     },
-    // Copy buttons (deck export, deck hash). Also needs a secure context.
     {
       feature: 'clipboard',
       required: false,
@@ -165,7 +147,6 @@
     try {
       return !!check.isAvailable();
     } catch (error) {
-      // A host getter can throw (e.g. a SecurityError in a sandboxed frame).
       return false;
     }
   }
@@ -180,7 +161,6 @@
     return support;
   }
 
-  // English source strings: copies of Unsupported.i18n.json and BrowserFeature.i18n.json.
   var STRINGS = {
     Unsupported: {
       title: 'Unsupported Browser',
@@ -218,7 +198,6 @@
     return node;
   }
 
-  // Builds the screen from `strings`; returns the root node.
   function buildScreen(missing, strings) {
     var main = element('main', 'Unsupported');
 
@@ -250,7 +229,6 @@
     container.appendChild(buildScreen(missing, strings));
   }
 
-  // Overlays a translation onto the English strings, key by key.
   function translate(translation) {
     var strings = { Unsupported: {}, BrowserFeature: {} };
     for (var namespace in strings) {
@@ -267,8 +245,6 @@
     return strings;
   }
 
-  // public/locales folder names use underscores (pt_BR); the app's i18next
-  // detector stores its choice under `i18nextLng`.
   function preferredLocales() {
     var language = null;
     try {
@@ -278,8 +254,6 @@
     }
     language = (language || (root.navigator && root.navigator.language) || '')
       .replace(/^\s+|\s+$/g, '').replace(/-/g, '_').toLowerCase();
-    // Keep in sync with Language and resolveSupportedLanguage. This classic
-    // script runs before the bundle; browserSupport.spec.ts checks their parity.
     var supported = ['en_US', 'de', 'es', 'fi', 'fr', 'it', 'nl', 'pl', 'pt_BR', 'ru', 'tok', 'yue'];
     var i;
     for (i = 0; i < supported.length; i++) {
@@ -301,8 +275,6 @@
     return script && script.src ? script.src.replace(/[^/]*$/, '') : '/';
   }
 
-  // Best effort: the English screen is already up, a translation replaces it
-  // when one loads. XMLHttpRequest because fetch may be what is missing.
   function loadTranslation(locales, baseUrl, onLoad) {
     if (locales.length === 0 || !isFunction(root.XMLHttpRequest)) {
       return;

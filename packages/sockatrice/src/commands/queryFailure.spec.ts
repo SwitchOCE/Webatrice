@@ -1,7 +1,3 @@
-// The Cockatrice 3.1 query builders route a successful answer to the scope's
-// optional result method and a refused one to the scope's optional
-// commandFailed, so a view waiting on the answer can show desktop's error
-// state. These specs drive the real handleResponse with a non-OK Response.
 
 vi.mock('../WebClient');
 
@@ -93,7 +89,6 @@ describe('3.1 query failure reporting', () => {
     expect(responseScope(scope).commandFailed).toHaveBeenCalledTimes(1);
     const [failed] = responseScope(scope).commandFailed.mock.calls;
     expect(failed.slice(0, 3)).toEqual([command, Response_ResponseCode.RespFunctionNotAllowed, target]);
-    // A server refusal carries no transport failure.
     expect(failed[3]).toBeUndefined();
     expect(responseScope(scope)[onSuccess]).not.toHaveBeenCalled();
   });

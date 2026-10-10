@@ -33,8 +33,6 @@ export function login(options: ConnectTarget & LoginParams, password?: string): 
       : { password }),
   };
 
-  // Every rejection reports its response code so consumers can localize the
-  // reasons they recognize; `message` is the English status-line fallback.
   const onLoginError = (responseCode: number, message: string, extra?: () => void) => {
     updateStatus(StatusEnum.DISCONNECTED, message);
     extra?.();
@@ -72,9 +70,6 @@ export function login(options: ConnectTarget & LoginParams, password?: string): 
       [Response_ResponseCode.RespRegistrationRequired]: rejectWith('Login failed: registration required'),
       [Response_ResponseCode.RespClientIdRequired]: rejectWith('Login failed: missing client ID'),
       [Response_ResponseCode.RespContextError]: rejectWith('Login failed: server error'),
-      // Desktop (remote_connection_controller.cpp) disconnects and tells the user an
-      // administrator reset their password; Servatrice only sends it after the
-      // supplied password checked out.
       [Response_ResponseCode.RespPasswordChangeRequired]: rejectWith('Login failed: password change required'),
       [Response_ResponseCode.RespServerFull]: rejectWith('Login failed: server is full'),
       [Response_ResponseCode.RespAccountNotActivated]: rejectWith('Login failed: account not activated',
@@ -88,10 +83,6 @@ export function login(options: ConnectTarget & LoginParams, password?: string): 
       ),
     },
     onError: (responseCode, _raw, failure) => {
-      // The connection dropped mid-login and has already reported why (a ban,
-      // a shutdown, a lost socket). Settle the form without overwriting that
-      // status or tearing down again — desktop's loginResponse likewise skips
-      // RespNotConnected.
       if (failure === CommandFailure.Disconnected) {
         WebClient.instance.response.session.loginFailed(responseCode);
         return;

@@ -25,7 +25,6 @@ describe('toggledCardViewHeight', () => {
   it('keeps within the room the page has', () => {
     const cramped = { initial: 500, expanded: 700, maxHeight: 600 };
     expect(toggledCardViewHeight(500, cramped)).toBe(600);
-    // As tall as it can get, short of expanded: back to initial.
     expect(toggledCardViewHeight(600, cramped)).toBe(500);
     expect(toggledCardViewHeight(500, { initial: 500, expanded: 700, maxHeight: 400 })).toBe(400);
   });

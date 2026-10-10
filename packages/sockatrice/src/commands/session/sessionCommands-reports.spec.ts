@@ -1,4 +1,3 @@
-// Session-scope report and profile commands (Cockatrice 3.1 protocol).
 
 vi.mock('../../WebClient');
 

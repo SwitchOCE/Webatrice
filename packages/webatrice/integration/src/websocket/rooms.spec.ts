@@ -351,7 +351,6 @@ describe('rooms', () => {
 
     const messages = store.getState().rooms.messages[1];
     expect(messages.map((m) => m.message)).toEqual(['troll: old', 'bob: from history']);
-    // The history line keeps its server time for the chat to render.
     expect(messages[0].name).toBeUndefined();
     expect(messages[1].timeOf).toBe(1791000000000n);
   });
@@ -364,8 +363,6 @@ describe('rooms', () => {
     SessionCommands.joinRoom(3);
     SessionCommands.getGamesOfUser('bob');
 
-    // A socket error ends the session with a single DISCONNECTED (the close that
-    // follows reports nothing more), the path where failures could outlive the reset.
     const mock = getMockWebSocket();
     mock.onerror?.(new Event('error'));
     mock.onclose?.({ code: 1006, reason: '', wasClean: false } as CloseEvent);

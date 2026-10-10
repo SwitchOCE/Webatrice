@@ -38,8 +38,6 @@ export class DeckSelectPage {
     return this.page.getByTestId('game-lobby');
   }
 
-  // Deck-loaded state's Ready toggle. Only rendered once the server has
-  // returned the selected deck.
   get lobbyReadyButton(): Locator {
     return this.lobby.getByRole('button', { name: /^ready to start$/i });
   }
@@ -48,7 +46,6 @@ export class DeckSelectPage {
     return this.page.getByTestId('lobby-deck-view');
   }
 
-  // Either surface counts as "open".
   async waitForOpen(): Promise<void> {
     await expect(this.lobby.or(this.dialog)).toBeVisible({ timeout: 30_000 });
   }
@@ -74,9 +71,6 @@ export class DeckSelectPage {
     await dialogInput.setInputFiles(filePath);
   }
 
-  // The lobby has no "Submit" step (file pick fires deckSelect); wait for
-  // the server's Response_DeckDownload to switch it to the deck-loaded
-  // state. The dialog surface still has an explicit submit.
   async submitDeck(): Promise<void> {
     if (await this.lobby.isVisible()) {
       await expect(this.lobbyReadyButton).toBeEnabled({ timeout: 15_000 });
@@ -92,9 +86,6 @@ export class DeckSelectPage {
 
   async setReady(): Promise<void> {
     if (await this.lobby.isVisible()) {
-      // The toggle keeps its label; readiness shows as aria-pressed. The
-      // lobby unmounts entirely when this ready starts the game, which
-      // also leaves no unpressed toggle behind.
       const unpressed = this.lobby.getByRole('button', { name: /^ready to start$/i, pressed: false });
       await expect(unpressed).toBeEnabled({ timeout: 15_000 });
       await unpressed.click();
@@ -120,8 +111,6 @@ export class DeckSelectPage {
     await unready.click();
   }
 
-  // Sideboard lock toggle (desktop's sideboardLockButton). The label
-  // follows the server's state, so wait for it to flip.
   async unlockSideboard(): Promise<void> {
     const locked = this.lobby.getByRole('button', { name: /^sideboard locked$/i });
     await expect(locked).toBeEnabled({ timeout: 15_000 });
@@ -129,8 +118,6 @@ export class DeckSelectPage {
     await expect(this.lobby.getByRole('button', { name: /^sideboard unlocked$/i })).toBeVisible({ timeout: 15_000 });
   }
 
-  // Moves one copy of `cardName` out of `from` (`main` | `side`) and waits
-  // for it to show in the other zone.
   async moveDeckCard(cardName: string, from: 'main' | 'side'): Promise<void> {
     const to = from === 'main' ? 'side' : 'main';
     const row = this.page.getByTestId(`lobby-deck-${from}`).getByRole('button', { name: new RegExp(cardName, 'i') });
@@ -139,7 +126,6 @@ export class DeckSelectPage {
     await expect(this.page.getByTestId(`lobby-deck-${to}`).getByText(cardName, { exact: true })).toBeVisible();
   }
 
-  // Host-only Force start with desktop's Yes/No confirmation.
   async forceStart(): Promise<void> {
     await this.lobby.getByRole('button', { name: /^force start$/i }).click();
     const confirm = this.page.getByRole('dialog').filter({ hasText: /force start/i });

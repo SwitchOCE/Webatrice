@@ -17,10 +17,8 @@ export interface PanelSize {
   h: number;
 }
 
-/** How much of a panel's header stays on screen when a stored position is restored. */
 const HEADER_VISIBLE_PX = 60;
 
-/** How long a panel waits after the last move or resize before it stores its geometry. */
 const STORE_DELAY_MS = 500;
 
 function readStored<K extends string>(key: string, fields: readonly K[]): Record<K, number> | null {
@@ -55,7 +53,6 @@ export function readStoredSize(storageKey: string): PanelSize | null {
   return readStored(`${storageKey}Size`, ['w', 'h']);
 }
 
-/** A size no smaller than the panel's minimum and no larger than the viewport, which wins. */
 export function clampPanelSize(size: PanelSize, min: PanelSize): PanelSize {
   return {
     w: Math.min(Math.max(min.w, size.w), window.innerWidth),
@@ -63,7 +60,6 @@ export function clampPanelSize(size: PanelSize, min: PanelSize): PanelSize {
   };
 }
 
-/** A position that keeps the panel's header reachable, for a viewport that shrank since it was stored. */
 export function clampPanelPosition(pos: PanelPoint, size: PanelSize): PanelPoint {
   return {
     x: Math.max(HEADER_VISIBLE_PX - size.w, Math.min(window.innerWidth - HEADER_VISIBLE_PX, pos.x)),
@@ -72,35 +68,21 @@ export function clampPanelPosition(pos: PanelPoint, size: PanelSize): PanelPoint
 }
 
 export interface FloatingPanelGeometryOptions {
-  /** The panel's storage key prefix: it stores `<storageKey>Position` and `<storageKey>Size`. */
   storageKey: string;
   minSize: PanelSize;
-  /** The size a panel opens at with none stored: fixed, or set on the element by the caller. */
   initialSize: PanelSize | ((panel: HTMLDivElement) => void);
-  /** Opens the panel again (size, then position) whenever it changes, e.g. a new reveal in an open panel. */
   openKey?: unknown;
 }
 
-/**
- * A floating, non-modal panel's geometry, as desktop's card views float over
- * the game: it opens at its stored size and position (else its initial size,
- * centred), moves by its header, and resizes by the browser's `resize` handle.
- * The size is written to the element rather than held in state, so the native
- * handle can change it freely; both are stored half a second after the user
- * last moved or resized the panel.
- */
 export function useFloatingPanelGeometry({ storageKey, minSize, initialSize, openKey }: FloatingPanelGeometryOptions) {
   const panelRef = useRef<HTMLDivElement | null>(null);
-  // Null until the panel is measured on open: the flex parent centres it meanwhile.
   const [pos, setPos] = useState<PanelPoint | null>(null);
   const [dragging, setDragging] = useState(false);
   const dragOffset = useRef<PanelPoint | null>(null);
-  // Only a header drag stores the position: placing the panel on open does not.
   const hasBeenDragged = useRef(false);
   const initialSizeRef = useRef(initialSize);
   initialSizeRef.current = initialSize;
 
-  // Size first, so the position below measures the size the panel opens at.
   useLayoutEffect(() => {
     const el = panelRef.current;
     if (!el) {
@@ -122,8 +104,6 @@ export function useFloatingPanelGeometry({ storageKey, minSize, initialSize, ope
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [storageKey, openKey]);
 
-  // Placed in a layout effect so the positioned panel paints on the frame the
-  // centred one would have: no visible jump.
   useLayoutEffect(() => {
     const el = panelRef.current;
     if (!el) {
@@ -140,7 +120,6 @@ export function useFloatingPanelGeometry({ storageKey, minSize, initialSize, ope
       });
   }, [storageKey, openKey]);
 
-  // The first observation is the size the panel opened at; any later one is the user resizing it.
   useEffect(() => {
     const el = panelRef.current;
     if (!el) {
@@ -168,7 +147,6 @@ export function useFloatingPanelGeometry({ storageKey, minSize, initialSize, ope
     };
   }, [storageKey, openKey]);
 
-  // Window listeners only while the header is held.
   useEffect(() => {
     if (!dragging) {
       return;
@@ -200,7 +178,6 @@ export function useFloatingPanelGeometry({ storageKey, minSize, initialSize, ope
   }, [storageKey, pos]);
 
   const onHeaderPointerDown = (e: ReactPointerEvent<HTMLElement>) => {
-    // A header button (close, toggles) is not a grab.
     if (e.button !== 0 || (e.target as HTMLElement | null)?.closest('button')) {
       return;
     }
@@ -214,8 +191,6 @@ export function useFloatingPanelGeometry({ storageKey, minSize, initialSize, ope
     hasBeenDragged.current = true;
   };
 
-  // CSS minimums beat a width, height or maximum, so the viewport (the panels' max-w-screen and
-  // max-h-screen) has to win inside them too, as it does in clampPanelSize.
   const panelStyle: CSSProperties = {
     minWidth: `min(${minSize.w}px, 100vw)`,
     minHeight: `min(${minSize.h}px, 100vh)`,

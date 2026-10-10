@@ -13,10 +13,8 @@ import type {
 } from './playerBoard.types';
 import { seatCardMetaFromLookup, type SeatCardMeta } from './useSeatCardMetadata';
 
-/** The seat zones a click (or double-click) plays from. */
 export type ClickToPlayZone = 'hand' | 'stack' | 'battlefield';
 
-/** The modifier keys desktop reads on a click to play. */
 export interface ClickModifiers {
   shiftKey: boolean;
   altKey: boolean;
@@ -24,7 +22,6 @@ export interface ClickModifiers {
   metaKey: boolean;
 }
 
-/** Desktop skips the play only when Alt is the one modifier held (`modifiers() != AltModifier`). */
 const NO_MODIFIERS: ClickModifiers = { shiftKey: false, altKey: false, ctrlKey: false, metaKey: false };
 
 function isAltOnly({ shiftKey, altKey, ctrlKey, metaKey }: ClickModifiers): boolean {
@@ -32,8 +29,6 @@ function isAltOnly({ shiftKey, altKey, ctrlKey, metaKey }: ClickModifiers): bool
 }
 
 interface UseSeatClickToPlayArgs {
-  /** Whether the local client may act for the seat's player: its own seat, or any seat for a
-   *  judge (desktop's CardItem::playCard, getLocalOrJudge). */
   canAct: boolean;
   selection: SeatSelection | null;
   handDisplayList: readonly PlayerCardViewModel[];
@@ -45,23 +40,6 @@ interface UseSeatClickToPlayArgs {
   cardCommands: PlayerCardCommands;
 }
 
-/**
- * What a click on one of the seat's cards plays: a port of desktop's CardItem::handleClickedToPlay
- * and PlayerActions::playCard.
- *
- * - "Double-click cards to play them" (on by default) picks the gesture: a double-click, or a
- *   single click (a press released without dragging). Alt on its own never plays, as on desktop;
- *   only the seat's player or a judge plays.
- * - On the battlefield it taps or untaps the clicked card, or the whole selection when the card is
- *   in it (TableZone::toggleTapped: tap all unless every one is already tapped).
- * - Anywhere else it plays the card: from the hand, a land goes to the battlefield, an instant or
- *   sorcery to the stack, any other permanent to the stack with "Play all nonlands onto the
- *   stack" (else the battlefield); from the stack, an instant or sorcery resolves to the graveyard
- *   and anything else to the battlefield, as the card menu's playCardMove sends it (printed P/T and
- *   cipt included). Shift plays it face down onto the battlefield.
- * - "Clicking plays all selected cards" (on by default) plays every selected card of the zone when
- *   the clicked card is among them, in desktop's order (highest card id first).
- */
 export function useSeatClickToPlay({
   canAct,
   selection,
@@ -76,7 +54,6 @@ export function useSeatClickToPlay({
   const doubleClickToPlay = usePreference('doubleClickToPlay');
   const clickPlaysAllSelected = usePreference('clickPlaysAllSelected');
   const playToStack = usePreference('playToStack');
-  // A play waits for the card's metadata; a seat that unmounted meanwhile (the game closed) sends nothing.
   const mounted = useRef(true);
   useEffect(() => {
     mounted.current = true;
@@ -85,8 +62,6 @@ export function useSeatClickToPlay({
     };
   }, []);
 
-  // The card's metadata from the prefetched cache; on a miss, a fresh lookup (cached for next
-  // time) so the first click routes correctly even before the prefetch lands.
   const metaOf = async (name: string): Promise<SeatCardMeta> => {
     const cached = cardMetaByName.get(name);
     if (cached?.tableRow != null || cached?.typeLine) {
@@ -112,7 +87,6 @@ export function useSeatClickToPlay({
       return;
     }
     const from = zone === 'hand' ? ZoneName.HAND : ZoneName.STACK;
-    // A face-down play needs no type line: it always lands in row 2.
     const meta = faceDown ? undefined : await metaOf(card.name);
     if (!mounted.current) {
       return;
@@ -121,7 +95,6 @@ export function useSeatClickToPlay({
     zoneCommands.moveCards(from, [play.card], play.to);
   };
 
-  // The clicked card, or the zone's whole selection when the card is in it.
   const targetsOf = <T extends PlayerCardViewModel>(
     zone: ClickToPlayZone,
     card: T,
@@ -144,7 +117,6 @@ export function useSeatClickToPlay({
     }
   };
 
-  // `selected` is the selection the click acts on: as it was before the click, for a single click.
   const clickToPlay = async (
     zone: ClickToPlayZone,
     card: PlayerCardViewModel,
@@ -171,21 +143,14 @@ export function useSeatClickToPlay({
 
   return {
     doubleClickToPlay,
-    /** Enter on a focused card: the click-to-play action, whichever click the preference asks for. */
     onCardActivate: (zone: ClickToPlayZone, card: PlayerCardViewModel) => {
       void clickToPlay(zone, card, NO_MODIFIERS, selection);
     },
-    /** A card's double-click: plays it when double-click is the gesture. */
     onCardDoubleClick: (zone: ClickToPlayZone, card: PlayerCardViewModel, e: ClickModifiers) => {
       if (doubleClickToPlay) {
         void clickToPlay(zone, card, e, selection);
       }
     },
-    /**
-     * A press released on a card without dragging: plays it when single-click is the gesture.
-     * The release has already updated the selection, so the caller hands over the one from
-     * before the click (what desktop's playSelected reads).
-     */
     onCardClick: (
       zone: ClickToPlayZone,
       card: PlayerCardViewModel,

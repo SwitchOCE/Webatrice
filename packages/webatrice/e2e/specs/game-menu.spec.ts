@@ -6,12 +6,6 @@ import { GamePage } from '../pages';
 import { registerAndJoinFirstRoom } from '../fixtures/flows';
 import { randomSuffix } from '../fixtures/users';
 
-// Two clients in a started game drive the game menu's turn and phase
-// actions and watch them land on the other client through Servatrice:
-// Command_ReverseTurn (logged under the player who sent it, not the
-// active player) and "Next phase with action" (Upkeep → Draw sends
-// Command_SetActivePhase and then Command_DrawCards).
-
 const DECK_PATH = resolve(__dirname, '..', 'fixtures', 'decks', 'forest-60.cod');
 
 test('game menu: reverse turn order and next phase with action', async ({ newContext }) => {
@@ -33,7 +27,6 @@ test('game menu: reverse turn order and next phase with action', async ({ newCon
   await Promise.all([hostGame.setReady(), joinerGame.setReady()]);
   await Promise.all([hostGame.waitForBoard(), joinerGame.waitForBoard()]);
 
-  // Servatrice starts the game in the untap step with one active player.
   await expect.poll(async () => (await hostGame.canAdvancePhase()) !== (await joinerGame.canAdvancePhase()), {
     timeout: 15_000,
   }).toBe(true);
@@ -41,17 +34,14 @@ test('game menu: reverse turn order and next phase with action', async ({ newCon
   const [active, waiting] = hostActive ? [hostGame, joinerGame] : [joinerGame, hostGame];
   const waitingName = (hostActive ? joiner : host).user.username;
 
-  // The player off turn reverses the order; both logs name them.
   await waiting.clickGameMenuItem('GameMenu.item.reverseTurn');
   const reversed = `${waitingName} reversed turn order, now it's reversed.`;
   await expect(active.logLine(reversed)).toBeVisible({ timeout: 15_000 });
   await expect(waiting.logLine(reversed)).toBeVisible({ timeout: 15_000 });
 
-  // Untap → upkeep: no follow-up action.
   await active.clickGameMenuItem('GameMenu.item.nextPhaseAction');
   await expect(waiting.logLine('It is now the upkeep step.')).toBeVisible({ timeout: 15_000 });
 
-  // Upkeep → draw: sets the phase, then draws one card.
   const libraryBefore = await waiting.zoneStackCount('deck', waiting.opponentBoard);
   await active.clickGameMenuItem('GameMenu.item.nextPhaseAction');
   await expect(waiting.logLine('It is now the draw step.')).toBeVisible({ timeout: 15_000 });

@@ -1,6 +1,3 @@
-// The seat selection is the game-level selection (PB-15): every seat reads and
-// writes useGameSelection's keys, so there is one selection across seats, it is
-// scoped to one zone, and it lives and dies with the game.
 
 import { act, fireEvent, screen } from '@testing-library/react';
 import { makeCard } from '@cockatrice/datatrice/testing';
@@ -89,7 +86,6 @@ describe('Game selection across seats', () => {
     click(cardEl(BOLT.id, 'battlefield'));
     expect(selected()).toEqual([`battlefield:${BOLT.id}`]);
 
-    // The opponent's battlefield is another seat; its selection replaces ours.
     pointerDrag(document.querySelector(`[data-card][data-card-id="${BEAR.id}"]`)!, { x: 50, y: 50 }, { x: 51, y: 51 });
     expect(selected()).toEqual([`battlefield:${BEAR.id}`]);
   });
@@ -153,7 +149,6 @@ describe('Game selection across seats', () => {
 
   it('leaves the focus on the chat when the board is pressed, with "Keep game chat focused" on', () => {
     const first = renderGame();
-    // fireEvent returns false once a handler prevented the press's default (moving the focus).
     expect(fireEvent.mouseDown(cardEl(BOLT.id, 'battlefield'))).toBe(true);
     first.unmount();
 

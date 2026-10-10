@@ -27,11 +27,9 @@ export interface UseGameLifecycleDialogActionsArgs {
     | 'setConcedeConfirm'
     | 'setLeaveConfirm'
   >;
-  /** The open create-token request; its submitter replaces the default command. */
   createTokenRequest: CreateTokenRequest | null;
 }
 
-/** Player-level dialogs: dice, tokens, concede and leave. */
 export function useGameLifecycleDialogActions({
   env,
   set,

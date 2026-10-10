@@ -17,17 +17,12 @@ import { zoneLabel } from '../shared/zoneLabels';
 import { isHiddenZone, isOrderedView } from './zoneViewTarget';
 
 export interface ZoneViewData {
-  /** The cards the view lists, as the seat renders them. A hidden zone's ids
-   *  are deck positions (its Response_DumpZone snapshot). */
   cards: PlayerCardViewModel[];
-  /** The zone's real size (`cardCount`), which a hidden zone's snapshot may not cover. */
   count: number;
   title: string;
-  /** Whether the view shows the local player's own zone. */
   isLocal: boolean;
 }
 
-/** The header of a view: "P1's library", "Top 3 cards — P1", "Graveyard — P1". */
 export function zoneViewTitle(t: TFunction, view: ZoneViewTarget, playerName: string, shownCount: number): string {
   if (view.zoneName === ZoneName.DECK) {
     return isOrderedView(view)
@@ -37,7 +32,6 @@ export function zoneViewTitle(t: TFunction, view: ZoneViewTarget, playerName: st
   return t('ZoneViewTitle.zone', { zone: zoneLabel(t, view.zoneName), player: playerName });
 }
 
-/** What one zone view shows, read from the game state. */
 export function useZoneViewDialog(gameId: number | undefined, view: ZoneViewTarget): ZoneViewData {
   const { t } = useTranslation();
   const { playerId, zoneName } = view;

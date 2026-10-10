@@ -11,14 +11,6 @@ import { useAppDispatch, type RootState } from '@app/store';
 import { useGameId } from '../GameIdContext';
 import type { PlayerCounterCommands } from '../PlayerBoard/playerBoard.types';
 
-/**
- * Player counters (life, mana), per-card counters on this seat's battlefield,
- * and the coin flip. Undefined until the game id is known.
- *
- * Player counters are optimistic: the value is applied in Datatrice first
- * (counterSet is a field assignment, so the echo re-applies the same value)
- * and restored if the server rejects.
- */
 export function usePlayerCounterCommands(playerId: number): PlayerCounterCommands | undefined {
   const gameId = useGameId();
   const webClient = useWebClient();
@@ -50,7 +42,6 @@ export function usePlayerCounterCommands(playerId: number): PlayerCounterCommand
           },
         });
       },
-      // The server clamps to [0, MAX_COUNTER_VALUE], so raw sums are fine.
       set: (counterId, value) => {
         const previousValue = currentCount(counterId);
         applyCounter(counterId, value);
@@ -61,8 +52,6 @@ export function usePlayerCounterCommands(playerId: number): PlayerCounterCommand
           },
         });
       },
-      // One command container for the whole batch, like desktop's
-      // actIncrementAllCardCounters (player_actions.cpp:1618-1620).
       setCardCounters: (entries) => {
         if (entries.length === 0) {
           return;
@@ -78,7 +67,6 @@ export function usePlayerCounterCommands(playerId: number): PlayerCounterCommand
           })),
         );
       },
-      // Desktop models a coin flip as a d2 (player_actions.cpp:866-872).
       flipCoin: () => {
         game.rollDie(gameId, { sides: 2, count: 1 });
       },

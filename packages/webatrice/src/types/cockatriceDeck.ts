@@ -1,9 +1,3 @@
-/**
- * Cockatrice deck document (`.cod`) types shared by the deck editor and
- * the game feature. Dependency-free: produced by the root deck-document
- * codec (`services/decks`); hydrated editor-only shapes (`DeckCard`,
- * `HydratedDeck`) stay in `features/decks`.
- */
 
 // Commander is not a distinct category — there is no separate
 // command zone in webatrice, and every card lives in either the
@@ -12,12 +6,6 @@
 // commander-marking UI, it was intentionally removed.
 export type DeckCategory = 'main' | 'sideboard';
 
-/**
- * Deck-list zone names, `DECK_ZONE_MAIN` / `DECK_ZONE_SIDE` in
- * `libcockatrice_deck_list`. `Command_SetSideboardPlan` moves speak these,
- * not the in-game zone names (`deck`, `sb`): Servatrice's
- * `Server_Player::setupZones` skips any plan entry naming another zone.
- */
 export const DECK_ZONE_MAIN = 'main';
 export const DECK_ZONE_SIDE = 'side';
 
@@ -40,12 +28,6 @@ export interface ParsedCard {
   scryfallId?: string;
 }
 
-/**
- * Metadata JSON embedded inside a `.cod`'s `<comments>` element.
- * Owned entirely by webatrice; Cockatrice desktop just sees it as a
- * comment string. Versioned so future schema changes can migrate
- * older decks on the fly (see `services/decks/cockatriceDeckMetadata.ts`).
- */
 export interface DeckMeta {
   v: 1;
   /** ISO 8601. Bumped by the client on every save. Servatrice only
@@ -124,28 +106,14 @@ export interface ParsedDeck {
    *  editor treats an empty format as "unspecified" (renders as MTG
    *  since that's the historic default) rather than as Other. */
   format: string;
-  /** Optional `<bannerCard>` — Cockatrice desktop's "featured card"
-   *  for the deck (typically the commander). Picked in the deck
-   *  editor and shown as the deck's art in My Decks. */
   bannerCard?: string;
-  /** `providerId` attribute of `<bannerCard>`: the banner's printing. */
   bannerCardProviderId?: string;
   /** Optional `<lastLoadedTimestamp>` — Cockatrice desktop stamps
    *  this whenever it opens a file. Preserved verbatim so a
    *  webatrice-authored save doesn't clobber the desktop client's
    *  bookkeeping. Not surfaced in the UI. */
   lastLoadedTimestamp?: string;
-  /** Optional `<playmatCard>` element — desktop's playmat card and its
-   *  margin/offset/zoom attributes. Not edited here; kept as the raw XML of
-   *  the whole element so a web save doesn't drop it. */
   playmatXml?: string;
-  /** Desktop's `<sideboard_plan>` elements (the current plan is the one
-   *  named ""), each kept as raw XML so a web save writes them back after
-   *  the zones, where desktop's `DeckList::write` puts them. Order and
-   *  duplicates are preserved as read. Desktop reads plans into a map keyed
-   *  by name (a later duplicate replaces an earlier one) and writes them
-   *  sorted by name, so a desktop re-save can differ from a web one; both
-   *  load the same plans. */
   sideboardPlansXml?: string[];
   /** Optional `<tags>` element — Cockatrice desktop's tag list.
    *  Stored as the raw XML string of the whole element so we can

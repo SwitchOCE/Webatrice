@@ -14,29 +14,10 @@ interface PrivateChatProps {
   selfName: string | null;
   entries: PrivateConversationEntry[];
   isOnline: boolean;
-  // The local user has the peer on their ignore list.
   isIgnored: boolean;
   onSend: (message: string) => void;
 }
 
-/**
- * Private-chat panel for the Player page. Renders the full conversation
- * with a single peer as a row of message bubbles (own messages align
- * right, incoming align left) and a composer at the bottom.
- *
- * Wire model: `webClient.request.session.message(name, text)` fires
- * Command_Message; the server broadcasts Event_UserMessage back to
- * both parties, the reducer stores it under the OTHER user's name
- * (see server.reducer.users.ts::userMessage), and this component
- * re-renders from that state — no local optimistic buffer needed.
- *
- * Delivery mirrors desktop TabMessage: a rejected send (the peer ignores
- * you, went offline, or you are flooding), or one the server never answered,
- * adds a notice line to the conversation and the unsent text comes back into an empty composer;
- * the peer leaving or rejoining the server is noted in the conversation.
- * Desktop refuses to send while the peer is offline or ignored by you,
- * keeping the draft; here the composer explains why and stays disabled.
- */
 export default function PrivateChat({ peerName, selfName, entries, isOnline, isIgnored, onSend }: PrivateChatProps) {
   const { t } = useTranslation();
   const describeFailure = useCommandFailureMessage();
@@ -134,7 +115,6 @@ export default function PrivateChat({ peerName, selfName, entries, isOnline, isI
                     : 'bg-bg-elevated text-text-primary border border-border-subtle',
                 ].join(' ')}
               >
-                {/* The side a bubble sits on says who wrote it; say it in words too. */}
                 <span className="sr-only">{`${m.senderName}: `}</span>
                 <MessageText text={m.message} highlight={isPrivilegedUser(users[m.senderName]) ? highlights.moderator : highlights.user} />
               </div>
@@ -143,7 +123,6 @@ export default function PrivateChat({ peerName, selfName, entries, isOnline, isI
         })}
       </div>
 
-      {/* Kept mounted so a change of reason is announced; empty while sending works. */}
       <div
         role="status"
         className={blockedReason ? 'shrink-0 px-4 py-1.5 text-xs text-text-muted border-t border-border-subtle' : 'sr-only'}

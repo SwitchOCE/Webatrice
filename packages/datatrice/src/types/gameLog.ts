@@ -1,4 +1,3 @@
-/** Captured at event time: a departing player's name must survive removal. */
 export interface LogPlayer {
   id?: number;
   name?: string;
@@ -12,16 +11,13 @@ export interface LogSegment {
 }
 
 export interface LegacyLogText {
-  /** @deprecated Render kind/params with the host's translations. Retained for one release. */
   text: string;
-  /** Compatibility spans for consumers of the deprecated English text. */
   segments: LogSegment[];
 }
 
 interface ActorParams { actor: LogPlayer }
 interface CardParams extends ActorParams { cardName: string }
 
-/** Data needed to render an event, without translated labels or sentence fragments. */
 export interface LogParamsByKind {
   cardMoved: ActorParams & {
     sourceOwner: LogPlayer;
@@ -87,7 +83,6 @@ export type LogDescriptor = {
   [K in LogKind]: { kind: K; params: LogParamsByKind[K] }
 }[LogKind];
 
-/** Legacy entries and interfaces extending LogEntry remain supported for one release. */
 export interface LogEntry extends LegacyLogText {
   kind?: LogKind;
   params?: LogDescriptor['params'];

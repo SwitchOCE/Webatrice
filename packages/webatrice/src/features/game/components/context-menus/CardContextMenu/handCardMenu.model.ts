@@ -1,37 +1,25 @@
-// The card menu for a hand card or a card in a library / sideboard zone view,
-// as data. Ports desktop CardMenu::createHandOrCustomZoneMenu
-// (card_menu.cpp:296-342); the builder only wires the caller's handlers.
 
 import type { TFunction } from 'i18next';
 
 import type { ContextMenuItem, MenuShortcutFor } from '../ContextMenu/ContextMenu';
 
-/** Desktop MoveMenu's targets (move_menu.cpp), in menu order. */
 export type HandCardMoveTarget = 'libraryTop' | 'libraryXFromTop' | 'libraryBottom' | 'table' | 'hand' | 'grave' | 'exile';
 
 export interface BuildHandOrZoneCardMenuArgs {
   t: TFunction;
   menuShortcut: MenuShortcutFor;
-  /** Where the card is: the hand, or a library / sideboard zone view. */
   source: 'hand' | 'zoneView';
-  /** The local player owns the card or is a judge (desktop writeableCard).
-   *  Otherwise the menu is the read-only branch. */
   canModify: boolean;
-  /** The other players, for "Reveal to...". */
   revealTargets: readonly { playerId: number; name: string }[];
   onPlay: () => void;
   onPlayFaceDown: () => void;
-  /** Reveal the selection to one player, or -1 for every player. */
   onReveal: (targetPlayerId: number) => void;
   onClone: () => void;
   onMove: (target: HandCardMoveTarget) => void;
   onDrawArrow: () => void;
   onSelectAll: () => void;
-  /** Zone views only: the clicked card's column. */
   onSelectColumn?: () => void;
-  /** "View related cards" with its separator (buildRelatedViewItems). */
   relatedViewItems?: ContextMenuItem[];
-  /** "Token: …" items; desktop adds them for hand cards only. */
   tokenItems?: ContextMenuItem[];
 }
 
@@ -97,9 +85,6 @@ export function buildHandOrZoneCardMenu(args: BuildHandOrZoneCardMenuArgs): Cont
         { label: args.t('ZoneLabel.title.rfg'), ...hints('game.moveSelectedToExile'), onClick: () => args.onMove('exile') },
       ],
     },
-    // Desktop drops Attach / Draw arrow for library and sideboard cards,
-    // where they are "really wonky" (card_menu.cpp:322-327). Attach from the
-    // hand is not wired in the web client yet.
     ...(inHand
       ? [
         { divider: true } as ContextMenuItem,

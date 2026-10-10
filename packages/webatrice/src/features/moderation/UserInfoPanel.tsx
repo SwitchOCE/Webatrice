@@ -10,11 +10,9 @@ interface UserInfoPanelProps {
   userName: string;
   info: Response_ReportUserInfo | undefined;
   loading: boolean;
-  /** Set when the lookup failed; shown as the status, as desktop does. */
   error: string | null;
 }
 
-/** Desktop TabModeration "User Info" group, filled from Command_ReportUserInfo. */
 const UserInfoPanel = ({ userName, info, loading, error }: UserInfoPanelProps) => {
   const { t } = useTranslation();
   const loadingText = loading ? t('ModerationPage.value.loading') : '';

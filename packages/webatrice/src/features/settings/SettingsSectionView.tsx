@@ -13,7 +13,6 @@ interface SettingsSectionViewProps {
   section: SettingsSection;
 }
 
-/** A settings page: its group boxes, or its own component for custom pages such as Shortcuts. */
 export default function SettingsSectionView({ section }: SettingsSectionViewProps) {
   const { t } = useTranslation();
   const settings = useSettings();
@@ -41,7 +40,6 @@ export default function SettingsSectionView({ section }: SettingsSectionViewProp
           <button
             type="button"
             className="settings-button"
-            // Desktop has no per-page reset; this one can wipe the message macros, so ask first.
             onClick={() => setConfirming(true)}
             disabled={settings.status !== LoadingState.READY}
           >
@@ -71,7 +69,6 @@ interface SettingsGroupBoxProps {
   caption?: string;
 }
 
-/** A titled card of settings rows, like a desktop QGroupBox. */
 export function SettingsGroupBox({ group, entries = group.entries, caption }: SettingsGroupBoxProps) {
   const { t } = useTranslation();
   const titleId = `settings-group-${group.id}`;

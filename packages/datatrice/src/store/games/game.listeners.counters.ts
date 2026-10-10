@@ -5,7 +5,6 @@ import { Actions } from './game.actions';
 import { mergeCardCounter } from './game.reducer.helpers';
 import { formatCardCounterChanged, formatCounterSet } from './messageLog';
 
-// Counter listeners: card counters and player counters.
 export function registerCountersListeners(mw: ListenerMiddlewareInstance<unknown>): void {
   mw.startListening({
     actionCreator: Actions.cardCounterChanged,

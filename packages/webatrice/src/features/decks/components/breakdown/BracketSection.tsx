@@ -15,30 +15,17 @@ import { SignalBadge } from './SignalBadge';
 
 export interface BracketSectionProps {
   cards: DeckCard[];
-  /** The `.cod`'s cached `<bracketAssessment>`; used without any network
-   *  while its fingerprint matches the deck. */
   cachedAssessment?: BracketAssessment;
-  /** Receives a complete assessment to persist on the `.cod`, or
-   *  `undefined` when the analysis was incomplete or failed. */
   onAssessmentComputed?: (assessment: BracketAssessment | undefined) => void;
 }
 
-/**
- * The bracket estimate behind desktop's Commander Spellbook consent (commander_bracket_widget.cpp
- * `maybeAutoEstimateBracket`): the first-use prompt while the user has not chosen, an estimate on
- * request when Enabled, and on every deck change when Automatic. DeckBreakdown leaves the section
- * out when Disabled.
- */
 export function BracketSection({ cards, cachedAssessment, onAssessmentComputed }: BracketSectionProps) {
   const { t } = useTranslation();
   const [mode, setMode] = useBracketLookupsMode();
   const fingerprint = useMemo(() => deckFingerprint(cards), [cards]);
-  // Enabled (not Automatic): the deck shape the user asked to estimate.
   const [requested, setRequested] = useState<string | null>(null);
   const lookupsAllowed = lookupsAllowedFor(mode, requested === fingerprint);
   const assessment = useBracketAssessment(cards, cachedAssessment, onAssessmentComputed, lookupsAllowed);
-  // The section stays mounted across states, so Retry can hand it focus
-  // before the notice (and the focused button) unmounts.
   const sectionRef = useRef<HTMLDivElement>(null);
 
   return (
@@ -74,7 +61,6 @@ export function BracketSection({ cards, cachedAssessment, onAssessmentComputed }
 function BracketResult({ assessment, onRetry, onRevokeLookups }: {
   assessment: Extract<BracketAssessmentState, { report: unknown }>;
   onRetry: () => void;
-  /** Set while lookups are allowed: turns them off again, back to asking first. */
   onRevokeLookups?: () => void;
 }) {
   const { t } = useTranslation();
@@ -156,12 +142,6 @@ const ACTION_BUTTON_CLASS = [
   'text-sm text-text-primary hover:bg-border-subtle',
 ].join(' ');
 
-/**
- * First use: nothing goes to Scryfall or Commander Spellbook until the
- * user chooses, with desktop's three answers
- * (commander_bracket_widget.cpp `promptCommanderSpellbookIntegration`).
- * The choice is remembered for every deck and can be changed in Settings.
- */
 function BracketConsentPrompt({ onChoose }: { onChoose: (mode: CommanderSpellbookIntegration) => void }) {
   const { t } = useTranslation();
   return (
@@ -182,7 +162,6 @@ function BracketConsentPrompt({ onChoose }: { onChoose: (mode: CommanderSpellboo
   );
 }
 
-/** Enabled: the estimate runs when the user asks, for the deck as it is then. */
 function EstimateBracketButton({ onClick }: { onClick: () => void }) {
   const { t } = useTranslation();
   return (
@@ -199,11 +178,6 @@ const FAILURE_KEY: Record<SourceFailure['kind'], string> = {
   malformed: 'DeckBracket.failure.malformed',
 };
 
-/**
- * Shown when a data source was unreachable: the level is only a floor
- * (missing data can hide signals, never add them) and isn't saved with
- * the deck.
- */
 function BracketDegradedNotice({ unavailable, onRetry }: {
   unavailable: UnavailableSource[];
   onRetry: () => void;

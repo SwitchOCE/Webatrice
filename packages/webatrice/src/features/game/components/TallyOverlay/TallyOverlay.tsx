@@ -8,16 +8,6 @@ const PANEL_CLASS = [
   'bg-bg-surface/85 border border-border-subtle px-2 py-1 text-xs text-text-primary shadow-glow',
 ].join(' ');
 
-/**
- * The tally of the selected cards and the selection count, overlaid at the
- * bottom right of the board (desktop GameView's tally container and total
- * count label, game_view.cpp:206-320): the count shows from two selected
- * cards, the tally above it while it has rows.
- *
- * The count follows desktop's "Show total selection count" (on by default).
- * Selection changes are announced from a stable live region. The visible
- * count stays presentational so assistive technology does not read it twice.
- */
 export default function TallyOverlay() {
   const { t } = useTranslation();
   const { rows, count: selected } = useSelectionTally();

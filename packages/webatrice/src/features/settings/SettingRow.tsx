@@ -12,7 +12,6 @@ interface SettingRowProps {
 
 export const settingControlId = (entry: SettingEntry) => `setting-${entry.id}`;
 
-/** One setting: its label and description beside the control that edits it. */
 export default function SettingRow({ entry }: SettingRowProps) {
   const { t } = useTranslation();
   const settings = useSettings();
@@ -39,7 +38,6 @@ export default function SettingRow({ entry }: SettingRowProps) {
       data-setting={entry.id}
     >
       <div className="settings-row__text">
-        {/* Custom controls label themselves with aria-labelledby; built-ins take a <label for>. */}
         {custom ? (
           <span id={labelId} className="settings-row__label">{t(entry.labelKey)}</span>
         ) : (
@@ -148,7 +146,6 @@ function BuiltInControl({ id, control, preferences, disabled, describedBy, onCha
         />
       );
     case 'color':
-      // Stored as desktop does: six hex digits without the '#'.
       return (
         <CommittedInput
           id={id}
@@ -163,11 +160,7 @@ function BuiltInControl({ id, control, preferences, disabled, describedBy, onCha
   }
 }
 
-/**
- * A spin box's value: a whole number within its range, as QSpinBox keeps it. A cleared or
- * unparsable box saves nothing, and the box shows the stored value again.
- */
-export /** The other spin box a number control pushes along, when the new value passes it. */
+export
 function pushedAlong(
   control: Extract<SettingControl, { kind: 'number' }>,
   value: number,
@@ -227,7 +220,6 @@ type NumberControlProps = Omit<BuiltInControlProps, 'control'> & {
   control: Extract<SettingControl, { kind: 'number' }>;
 };
 
-/** Desktop's spin box: a whole number kept within its range, saved once the user commits it. */
 function NumberControl({ id, control, preferences, disabled, describedBy, onChange }: NumberControlProps) {
   const { t } = useTranslation();
   const { unitKey } = control;
@@ -261,18 +253,10 @@ function NumberControl({ id, control, preferences, disabled, describedBy, onChan
 
 type CommittedInputProps = Omit<React.InputHTMLAttributes<HTMLInputElement>, 'value' | 'onChange'> & {
   value: string;
-  /** Each value the user passes through while dragging. */
   onDraft?: (value: string) => void;
-  /** The value the user settled on. */
   onCommit: (value: string) => void;
 };
 
-/**
- * A range, text, number or colour input that saves once the user lets go. The native `change`
- * event fires on release, on a keyboard step, when typed text is committed (Enter or leaving the
- * field) and when the colour picker closes; React's onChange fires on every drag tick or
- * keystroke, and saving each one would write the settings row and re-render its readers.
- */
 function CommittedInput({ value, onDraft, onCommit, ...props }: CommittedInputProps) {
   const ref = useRef<HTMLInputElement>(null);
   const [draft, setDraft] = useState<string | null>(null);
@@ -298,9 +282,6 @@ function CommittedInput({ value, onDraft, onCommit, ...props }: CommittedInputPr
       {...props}
       value={draft ?? value}
       onChange={(e) => {
-        // React's onChange fires for `input` and `change` alike; the commit above owns `change`,
-        // so taking it as a draft too would keep the uncommitted text (an out-of-range number,
-        // untrimmed room name) on screen after the saved value came back.
         if (e.nativeEvent.type !== 'input') {
           return;
         }
