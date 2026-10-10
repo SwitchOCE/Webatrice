@@ -8,15 +8,13 @@
       "unknown": "Failed to join the server room due to an unknown error: {code}."
     },
     "title": "Rooms",
-    "available": "{count, plural, other {# available}}",
-    "column": {
-      "name": "Name",
-      "description": "Description",
-      "permissions": "Permissions",
-      "players": "Players",
-      "games": "Games"
-    },
+    "count": "{count, plural, other {# on this server}}",
+    "summary": "{games, plural, one {# game} other {# games}} · {people, plural, one {# person} other {# people}}",
+    "restricted": "Restricted: {level}",
+    "joined": "Joined",
     "empty": "No rooms available.",
-    "open": "Open"
+    "open": "Open",
+    "openLabel": "Open {room}",
+    "joinLabel": "Join {room}"
   }
 }

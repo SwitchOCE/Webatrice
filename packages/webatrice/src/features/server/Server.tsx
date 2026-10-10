@@ -1,91 +1,41 @@
-import { generatePath, useNavigate } from 'react-router-dom';
-import { Megaphone } from 'lucide-react';
-import { useTranslation } from 'react-i18next';
-
 import { AuthGuard } from '@app/components';
-import { useReduxEffect } from '@app/hooks';
 import { Layout } from '@app/feature-wrappers/layout';
-import { server, rooms } from '@cockatrice/datatrice';
-import { useAppSelector } from '@app/store';
-import { ServerInfo_Room } from '@cockatrice/sockatrice/generated';
-import { RouteEnum } from '@app/types';
 
+import BuddiesOnline from './components/BuddiesOnline';
+import BuddyGames from './components/BuddyGames';
+import HomeHero from './components/HomeHero';
+import RecentDecks from './components/RecentDecks';
+import ServerAnnouncement from './components/ServerAnnouncement';
 import RoomsList from './RoomsList';
-import ServerUsers from './ServerUsers';
+import { useHome } from './useHome';
 import { useStartupRoom } from './useStartupRoom';
 
 const Server = () => {
-  const message = useAppSelector((state) => server.Selectors.getMessage(state));
-  const roomsList = useAppSelector((state) => rooms.Selectors.getRooms(state));
-  const joinedRooms = useAppSelector((state) => rooms.Selectors.getJoinedRooms(state));
-  const users = useAppSelector((state) => server.Selectors.getSortedUsers(state));
-  const navigate = useNavigate();
+  const home = useHome();
   useStartupRoom();
-
-  useReduxEffect<{ roomInfo: ServerInfo_Room; userInitiated?: boolean }>((action) => {
-    if (action.payload.userInitiated === false) {
-      return;
-    }
-    const roomId = action.payload.roomInfo.roomId.toString();
-    navigate(generatePath(RouteEnum.ROOM, { roomId }));
-  }, rooms.Types.JOIN_ROOM, []);
 
   return (
     <Layout>
       <AuthGuard />
-
       <div
-        className="grid h-full min-h-0 gap-3 p-3 bg-bg-base"
-        style={{
-          gridTemplateColumns: '1fr 320px',
-          gridTemplateRows: '1fr 280px',
-        }}
+        className={[
+          'grid h-full min-h-0 grid-cols-[minmax(0,1fr)_320px] gap-gap overflow-hidden bg-bg-base p-gap',
+          'min-[1400px]:grid-cols-[minmax(0,1fr)_372px]',
+        ].join(' ')}
       >
-        <div className="min-h-0 min-w-0">
-          <RoomsList rooms={roomsList} joinedRooms={joinedRooms} />
+        <div className="flex min-h-0 min-w-0 flex-col gap-gap overflow-y-auto">
+          <HomeHero home={home} />
+          <BuddyGames home={home} />
+          <RecentDecks />
         </div>
-        <div className="row-span-2 min-h-0 min-w-0">
-          <ServerUsers users={users} />
-        </div>
-        <div className="min-h-0 min-w-0">
-          <ServerMotd message={message} />
+        <div className="flex min-h-0 min-w-0 flex-col gap-gap overflow-y-auto">
+          <ServerAnnouncement message={home.message} />
+          <RoomsList rooms={home.roomList} joinedRoomIds={home.joinedRoomIds} onOpen={home.openRoom} />
+          <BuddiesOnline buddies={home.buddiesOnline} buddyCount={home.buddyCount} />
         </div>
       </div>
     </Layout>
   );
 };
-
-interface ServerMotdProps {
-  message: string;
-}
-
-/** Renders the server's Message of the Day. Content is DOMPurified
- *  upstream in websocket/events/session/serverMessage.ts, so
- *  dangerouslySetInnerHTML is safe here. Arbitrary-variant Tailwind
- *  classes recolor the raw `<a>` links so they use our accent instead
- *  of default browser blue. Inline `<span style="color:#...">` bits
- *  from the server still render their own colors (red for warnings,
- *  etc.) — that's intentional. */
-function ServerMotd({ message }: ServerMotdProps) {
-  const { t } = useTranslation();
-  return (
-    <section className="flex h-full flex-col bg-bg-surface border border-border-subtle rounded-lg overflow-hidden">
-      <div className="shrink-0 flex items-center gap-2 px-4 py-2 border-b border-border-subtle">
-        <Megaphone size={14} className="text-text-muted" />
-        <h3 className="font-modern text-xs font-bold uppercase tracking-wider text-text-secondary">
-          {t('Server.announcements')}
-        </h3>
-      </div>
-      <div
-        className={[
-          'flex-1 min-h-0 overflow-y-auto px-4 py-3 text-sm',
-          'text-text-secondary [&_a]:text-accent [&_a]:underline',
-          '[&_a:hover]:text-accent-hover [&_p]:my-1 [&_b]:text-text-primary [&_strong]:text-text-primary',
-        ].join(' ')}
-        dangerouslySetInnerHTML={{ __html: message }}
-      />
-    </section>
-  );
-}
 
 export default Server;

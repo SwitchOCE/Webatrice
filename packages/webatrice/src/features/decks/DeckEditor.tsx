@@ -5,6 +5,7 @@ import { useTranslation } from 'react-i18next';
 import { server } from '@cockatrice/datatrice';
 
 import { AuthGuard } from '@app/components';
+import { useRecordRecentDeck } from '@app/hooks';
 import { readDeckPlaymat } from '@app/services';
 import { AlertDialog } from '@app/dialogs';
 import { ShortcutScope, useShortcut } from '@app/feature-widgets/shortcuts';
@@ -44,6 +45,7 @@ const DeckEditor = () => {
   const deckId = Number.isFinite(parsedDeckId) ? parsedDeckId : null;
 
   const editor = useDeckEditor(deckId, draftToken ?? null);
+  useRecordRecentDeck(deckId, editor.loading ? null : editor.deck);
 
   const [previewCard, setPreviewCard] = useState<DeckCard | null>(null);
   const [printingRequest, setPrintingRequest] = useState<PrintingRequest | null>(null);

@@ -1,0 +1,13 @@
+{
+  "BuddiesOnline": {
+    "title": "Buddies online",
+    "count": "{online} of {total}",
+    "hosting": "Hosting",
+    "untitledGame": "game #{id}",
+    "online": "Online",
+    "showGames": "Show {name}'s games",
+    "message": "Message {name}",
+    "empty": "None of your buddies is online.",
+    "noBuddies": "You have no buddies yet. Add one from a player's menu."
+  }
+}

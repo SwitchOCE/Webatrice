@@ -37,3 +37,4 @@ export * from './useCardDataPreferences';
 export * from './usePlaymatSettings';
 export * from './useAnimationPreferences';
 export * from './useApplyCardPresentation';
+export * from './useRecentDecks';

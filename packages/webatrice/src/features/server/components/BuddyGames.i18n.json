@@ -1,0 +1,13 @@
+{
+  "BuddyGames": {
+    "title": "Hosted by your buddies",
+    "whereOne": "in {room}, open seats first",
+    "whereMany": "in the {count} rooms you joined, open seats first",
+    "allGames": "All games in {room}",
+    "empty": "None of your buddies is hosting a game in your rooms right now.",
+    "emptyNoBuddies": "Add buddies from a player's menu to see the games they host here.",
+    "emptyNotJoined": "Join a room to see the games your buddies host there.",
+    "passwordTitle": "Join game",
+    "errorTitle": "Couldn't join the game"
+  }
+}
