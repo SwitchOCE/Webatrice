@@ -257,8 +257,7 @@ describe('GamesList', () => {
       const { webClient } = setup();
 
       fireEvent.click(screen.getByRole('button', { name: 'Common.action.create' }));
-      const create = screen.getAllByRole('button', { name: 'Common.action.create' });
-      fireEvent.click(create[create.length - 1]);
+      fireEvent.click(screen.getByRole('button', { name: 'CreateGameDialog.action.create' }));
 
       expect(webClient.request.rooms.createGame).toHaveBeenCalledTimes(1);
       expect(vi.mocked(webClient.request.rooms.createGame).mock.calls[0][0]).toBe(1);

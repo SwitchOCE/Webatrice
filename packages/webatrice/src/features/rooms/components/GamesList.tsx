@@ -311,6 +311,7 @@ export default function GamesList({ room }: GamesListProps) {
       {/* Dialogs — kept as-is; a later piece will reskin these too */}
       <CreateGameDialog
         isOpen={createOpen}
+        roomName={room.info.name}
         gametypeMap={room.gametypeMap}
         onCancel={() => setCreateOpen(false)}
         onSubmit={handleCreateSubmit}
