@@ -1,8 +1,8 @@
 import { useCallback, useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 
-import { useWatchReplay } from '@app/hooks';
-import { REPLAY_LIBRARY_ROOT, ReplayFileDTO, ReplayNameTakenError, parseReplay } from '@app/services';
+import { useImportSummaryText, useWatchReplay } from '@app/hooks';
+import { ReplayFileDTO, importReplayFiles } from '@app/services';
 
 import { MAX_REPLAY_FILE_BYTES, hasReplayExtension, readReplayFile, saveReplayFile } from './replayFiles';
 import type { ReplayNotice } from './useServerReplays';
@@ -26,6 +26,7 @@ export interface LocalLibrary {
 export function useLocalLibrary(refreshKey = 0): LocalLibrary {
   const { t } = useTranslation();
   const watchReplay = useWatchReplay();
+  const summaryText = useImportSummaryText();
   const [entries, setEntries] = useState<ReplayFileDTO[]>([]);
   const [loading, setLoading] = useState(true);
   const [pendingDelete, setPendingDelete] = useState<number | null>(null);
@@ -90,43 +91,18 @@ export function useLocalLibrary(refreshKey = 0): LocalLibrary {
   }, [watchReplay, showError, t]);
 
   const importFiles = useCallback((files: readonly File[]) => {
-    const rejected: string[] = [];
-    const tooLarge: string[] = [];
-    const failed: string[] = [];
-    const imports = files.map(async (file) => {
-      if (file.size > MAX_REPLAY_FILE_BYTES) {
-        tooLarge.push(file.name);
-        return;
-      }
-      let data: Uint8Array;
-      try {
-        if (!hasReplayExtension(file)) {
-          throw new Error('not a .cor file');
-        }
-        data = await readReplayFile(file);
-        parseReplay(data);
-      } catch {
-        rejected.push(file.name);
-        return;
-      }
-      try {
-        await ReplayFileDTO.addReplay(REPLAY_LIBRARY_ROOT, file.name, data);
-      } catch (err) {
-        failed.push(err instanceof ReplayNameTakenError ? t('Replays.local.nameTaken', { name: file.name }) : file.name);
-      }
-    });
-    void Promise.allSettled(imports).then(() => {
-      const problems = [
-        rejected.length ? t('Replays.local.invalidFiles', { names: rejected.join(', ') }) : null,
-        tooLarge.length ? t('Replays.local.tooLarge', { names: tooLarge.join(', ') }) : null,
-        failed.length ? t('Replays.local.importFailed', { names: failed.join(', ') }) : null,
-      ].filter((problem): problem is string => problem != null);
-      if (problems.length) {
-        showError(problems.join(' '));
-      }
-      reload();
-    });
-  }, [reload, showError, t]);
+    importReplayFiles(files)
+      .then((summary) => {
+        const text = summaryText(summary, 'replays');
+        setNotice({
+          title: t('Replays.notice.imported'),
+          message: [text.headline, ...text.problems].join(' '),
+          severity: text.severity,
+        });
+      })
+      .catch(() => showError(t('Replays.local.saveFailed')))
+      .finally(reload);
+  }, [reload, showError, summaryText, t]);
 
   const exportEntry = useCallback((entryId: number) => {
     const name = entries.find((e) => e.id === entryId)?.name ?? `replay_${entryId}`;

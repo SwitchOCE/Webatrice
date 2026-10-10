@@ -19,7 +19,7 @@ export type ServerReplaySelection =
 export interface ReplayNotice {
   title: string;
   message: string;
-  severity: 'error' | 'info';
+  severity: 'error' | 'warning' | 'info';
 }
 
 export type ServerReplaysAvailability = 'available' | 'disconnected' | 'unregistered';

@@ -1,8 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 
-import type { Set } from '@app/services';
+import { cardDatabaseService, type Set } from '@app/services';
 
-import { cardDatabaseService } from './CardDatabaseService';
 import { toCardDataError, type CardDataError } from './cardDataError';
 import {
   buildSetRows,

@@ -38,8 +38,20 @@ export function currentCardDataPreferences(): Promise<CardDataPreferences> {
   return snapshot;
 }
 
+type CardDataPreferencesListener = (preferences: CardDataPreferences) => void;
+
+const listeners = new globalThis.Set<CardDataPreferencesListener>();
+
+export function onCardDataPreferencesRefreshed(listener: CardDataPreferencesListener): () => void {
+  listeners.add(listener);
+  return () => {
+    listeners.delete(listener);
+  };
+}
+
 export async function refreshCardDataPreferences(): Promise<CardDataPreferences> {
   const next = await loadCardDataPreferences();
   snapshot = Promise.resolve(next);
+  listeners.forEach((listener) => listener(next));
   return next;
 }

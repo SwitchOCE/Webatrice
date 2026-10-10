@@ -45,6 +45,20 @@ describe('currentCardDataPreferences', () => {
     expect(next.pictureUrlTemplates).toEqual(['https://b/!name!']);
   });
 
+  it('tells listeners about each refresh until they unsubscribe', async () => {
+    const { onCardDataPreferencesRefreshed, refreshCardDataPreferences } = await load();
+    hoisted.settings.mockResolvedValue({ pictureUrlTemplates: ['https://a/!name!'] });
+    const listener = vi.fn();
+    const unsubscribe = onCardDataPreferencesRefreshed(listener);
+
+    const next = await refreshCardDataPreferences();
+    unsubscribe();
+    await refreshCardDataPreferences();
+
+    expect(listener).toHaveBeenCalledTimes(1);
+    expect(listener).toHaveBeenCalledWith(next);
+  });
+
   it('retries a failed load on the next read', async () => {
     const { currentCardDataPreferences } = await load();
     hoisted.settings.mockRejectedValueOnce(new Error('blocked'));

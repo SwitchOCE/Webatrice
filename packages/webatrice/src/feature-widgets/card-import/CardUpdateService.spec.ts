@@ -8,10 +8,13 @@ const hoisted = vi.hoisted(() => ({
   recordUpdateCheck: vi.fn(),
 }));
 
-vi.mock('./CardDatabaseService', () => ({ cardDatabaseService: hoisted }));
+vi.mock('@app/services', async (importOriginal) => ({
+  ...(await importOriginal<typeof import('@app/services')>()),
+  cardDatabaseService: hoisted,
+}));
 
 import { CardUpdateService, UpdateFetchError, UpstreamUrl } from './CardUpdateService';
-import { MAX_DOWNLOAD_BYTES, MAX_METADATA_BYTES } from './cardImportLimits';
+import { MAX_DOWNLOAD_BYTES, MAX_METADATA_BYTES } from '@app/services';
 
 const rebuild = { summary: { cards: 0, sets: 0, tokens: 1, formats: 0 }, unknownSets: [], allNewSetsEnabled: false };
 

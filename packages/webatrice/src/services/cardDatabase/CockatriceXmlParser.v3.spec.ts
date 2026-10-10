@@ -1,6 +1,6 @@
 import 'fake-indexeddb/auto';
 
-import { dexieService } from '../../services/dexie/DexieService';
+import { dexieService } from '../dexie/DexieService';
 import { cockatriceXmlParser } from './CockatriceXmlParser';
 import { writeCockatriceXml } from './CockatriceXmlWriter';
 import legacyXml from './__fixtures__/cards-v3.xml?raw';

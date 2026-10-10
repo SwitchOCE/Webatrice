@@ -46,7 +46,6 @@
     "message": {
       "reloaded": "Card database reloaded: {cards} cards, {sets} sets, {tokens} tokens.",
       "allSetsEnabled": "All sets have been enabled. Use Manage sets to change which sets are used and their art priority.",
-      "noXml": "Pick one or more Cockatrice XML files.",
       "spoilersUpToDate": "Spoilers already up to date.",
       "spoilerSeasonEnded": "Spoiler season has ended.",
       "spoilerSeasonEndedRemoved": "Spoiler season has ended; spoiler.xml was removed. Import a fresh cards.xml from Oracle.",
