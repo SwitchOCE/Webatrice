@@ -135,29 +135,61 @@ export function isPresetAvailable(preset: CreateGamePreset, isRegistered: boolea
   return isRegistered || !preset.needsRegistration;
 }
 
-export function applyPreset(
-  form: CreateGameForm,
-  preset: CreateGamePreset,
-  ctx: { gametypeMap: Record<number, string>; isRegistered: boolean },
-): CreateGameForm {
-  const next: CreateGameForm = { ...form, ...presetFields(preset, ctx.isRegistered) };
+type PresetContext = { gametypeMap: Record<number, string>; isRegistered: boolean };
+
+function presetFormat(preset: CreateGamePreset, gametypeMap: Record<number, string>): number | null | undefined {
   if (preset.format === 'commander') {
-    next.gameTypeId = findCommanderGameType(ctx.gametypeMap);
-  } else if (preset.format === 'any') {
-    next.gameTypeId = null;
+    return findCommanderGameType(gametypeMap);
+  }
+  return preset.format === 'any' ? null : undefined;
+}
+
+export function applyPreset(form: CreateGameForm, preset: CreateGamePreset, ctx: PresetContext): CreateGameForm {
+  const next: CreateGameForm = { ...form, ...presetFields(preset, ctx.isRegistered) };
+  const format = presetFormat(preset, ctx.gametypeMap);
+  if (format !== undefined) {
+    next.gameTypeId = format;
   }
   return next;
 }
 
-export function matchingPreset(form: CreateGameForm, isRegistered: boolean): PresetId | null {
-  const match = CREATE_GAME_PRESETS.find(
-    (preset) =>
-      isPresetAvailable(preset, isRegistered) &&
-      Object.entries(presetFields(preset, isRegistered)).every(
-        ([key, value]) => form[key as keyof PresetFields] === value,
-      ),
+export function presetMatches(form: CreateGameForm, preset: CreateGamePreset, ctx: PresetContext): boolean {
+  const format = presetFormat(preset, ctx.gametypeMap);
+  return (
+    isPresetAvailable(preset, ctx.isRegistered) &&
+    (format === undefined || form.gameTypeId === format) &&
+    Object.entries(presetFields(preset, ctx.isRegistered)).every(
+      ([key, value]) => form[key as keyof PresetFields] === value,
+    )
   );
+}
+
+export function matchingPreset(form: CreateGameForm, ctx: PresetContext): PresetId | null {
+  const match = CREATE_GAME_PRESETS.find((preset) => presetMatches(form, preset, ctx));
   return match ? match.id : null;
+}
+
+export function findPreset(id: PresetId | null | undefined): CreateGamePreset | undefined {
+  return CREATE_GAME_PRESETS.find((preset) => preset.id === id);
+}
+
+export function isPresetId(value: unknown): value is PresetId {
+  return CREATE_GAME_PRESETS.some((preset) => preset.id === value);
+}
+
+export type InvalidField = 'maxPlayers' | 'startingLifeTotal';
+
+const inRange = (value: number, range: { min: number; max: number }) =>
+  Number.isInteger(value) && value >= range.min && value <= range.max;
+
+export function invalidCreateGameField(form: CreateGameForm): InvalidField | null {
+  if (!inRange(form.maxPlayers, MAX_PLAYERS_RANGE)) {
+    return 'maxPlayers';
+  }
+  if (!inRange(form.startingLifeTotal, STARTING_LIFE_RANGE)) {
+    return 'startingLifeTotal';
+  }
+  return null;
 }
 
 export function toCreateGameParams(form: CreateGameForm, isJudge: boolean): CreateGameParams {

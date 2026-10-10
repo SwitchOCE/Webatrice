@@ -1,7 +1,12 @@
 import {
   defaultCreateGameForm,
   findGameTypeByName,
+  findPreset,
+  isPresetAvailable,
+  isPresetId,
+  matchingPreset,
   type CreateGameForm,
+  type PresetId,
 } from './createGamePresets';
 
 export const CREATE_GAME_DEFAULTS_KEY = 'createGame:defaults';
@@ -12,6 +17,7 @@ export interface StoredCreateGameDefaults {
   remember: boolean;
   fields?: RememberedFields;
   gameTypeName?: string | null;
+  presetId?: PresetId | null;
 }
 
 const BOOLEAN_FIELDS = [
@@ -64,6 +70,7 @@ export function readCreateGameDefaults(): StoredCreateGameDefaults {
       remember: parsed.remember !== false,
       fields: parseFields(parsed.fields),
       gameTypeName: typeof parsed.gameTypeName === 'string' ? parsed.gameTypeName : null,
+      presetId: isPresetId(parsed.presetId) ? parsed.presetId : null,
     };
   } catch {
     return { remember: true };
@@ -74,6 +81,7 @@ export function writeCreateGameDefaults(
   remember: boolean,
   form: CreateGameForm,
   gametypeMap: Record<number, string>,
+  presetId: PresetId | null,
 ): void {
   const stored: StoredCreateGameDefaults = remember
     ? {
@@ -92,6 +100,7 @@ export function writeCreateGameDefaults(
         shareDecklistsOnLoad: form.shareDecklistsOnLoad,
       },
       gameTypeName: form.gameTypeId != null ? (gametypeMap[form.gameTypeId] ?? null) : null,
+      presetId,
     }
     : { remember };
   try {
@@ -119,4 +128,16 @@ export function initialCreateGameForm(
     form.onlyRegistered = false;
   }
   return form;
+}
+
+export function initialPresetId(
+  stored: StoredCreateGameDefaults,
+  form: CreateGameForm,
+  ctx: { gametypeMap: Record<number, string>; isRegistered: boolean },
+): PresetId | null {
+  const remembered = stored.remember ? findPreset(stored.presetId) : undefined;
+  if (remembered && isPresetAvailable(remembered, ctx.isRegistered)) {
+    return remembered.id;
+  }
+  return matchingPreset(form, ctx);
 }
