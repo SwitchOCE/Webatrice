@@ -1,4 +1,4 @@
-import { Library, Plus } from 'lucide-react';
+import { FileUp, Layers, Library, Plus } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { generatePath, useNavigate } from 'react-router-dom';
 
@@ -9,7 +9,8 @@ import { recentDeckArtUrl, type RecentDeck } from '@app/services';
 import { useAppSelector } from '@app/store';
 import { RouteEnum } from '@app/types';
 
-import { deckFormatLabel, liveRecentDecks } from '../homeModel';
+import { deckFormatLabel, liveRecentDecks, serverDeckCount } from '../homeModel';
+import HomeEmpty from './HomeEmpty';
 import SectionHead from './SectionHead';
 
 export const RECENT_DECKS_SHOWN = 4;
@@ -49,6 +50,49 @@ function DeckTile({ deck, onOpen }: { deck: RecentDeck; onOpen: (deckId: number)
   );
 }
 
+function RecentDecksEmpty({ savedDecks }: { savedDecks: number }) {
+  const { t } = useTranslation();
+  const navigate = useNavigate();
+  const openDecks = (open?: 'create' | 'import') => navigate(RouteEnum.DECKS, open ? { state: { open } } : undefined);
+  const newDeck = (
+    <Button size="sm" icon={<Plus size={14} aria-hidden />} onClick={() => openDecks('create')}>
+      {t('RecentDecks.newDeck')}
+    </Button>
+  );
+  if (savedDecks > 0) {
+    return (
+      <HomeEmpty
+        icon={<Layers size={17} />}
+        actions={(
+          <>
+            <Button size="sm" variant="primary" icon={<Library size={14} aria-hidden />} onClick={() => openDecks()}>
+              {t('RecentDecks.openDecks')}
+            </Button>
+            {newDeck}
+          </>
+        )}
+      >
+        {t('RecentDecks.emptySaved', { count: savedDecks })}
+      </HomeEmpty>
+    );
+  }
+  return (
+    <HomeEmpty
+      icon={<Layers size={17} />}
+      actions={(
+        <>
+          {newDeck}
+          <Button size="sm" icon={<FileUp size={14} aria-hidden />} onClick={() => openDecks('import')}>
+            {t('RecentDecks.importDeck')}
+          </Button>
+        </>
+      )}
+    >
+      {t('RecentDecks.empty')}
+    </HomeEmpty>
+  );
+}
+
 export default function RecentDecks() {
   const { t } = useTranslation();
   const navigate = useNavigate();
@@ -62,33 +106,36 @@ export default function RecentDecks() {
       <SectionHead
         id="home-recent-decks"
         title={t('RecentDecks.title')}
-        count={t('RecentDecks.where')}
-        action={(
+        count={decks.length > 0 ? t('RecentDecks.where') : undefined}
+        action={decks.length > 0 && (
           <Button size="sm" variant="ghost" icon={<Library size={14} aria-hidden />} onClick={() => navigate(RouteEnum.DECKS)}>
             {t('RecentDecks.allDecks')}
           </Button>
         )}
       />
-      <ul className="grid grid-cols-[repeat(auto-fill,minmax(min(100%,180px),1fr))] gap-gap">
-        {decks.map((deck) => (
-          <DeckTile key={deck.deckId} deck={deck} onOpen={openDeck} />
-        ))}
-        <li className="flex min-h-[150px] min-w-0">
-          <button
-            type="button"
-            onClick={() => navigate(RouteEnum.DECKS, { state: { open: 'create' } })}
-            className={[
-              'flex w-full flex-col items-center justify-center gap-2 rounded-ui-lg border border-dashed border-border-strong px-3',
-              'text-[13px] font-medium text-text-secondary hover:border-accent/60 hover:text-accent',
-              'focus-visible:outline focus-visible:outline-2 focus-visible:outline-accent',
-            ].join(' ')}
-          >
-            <Plus size={20} aria-hidden />
-            {t('RecentDecks.newDeck')}
-            {decks.length === 0 && <span className="text-center text-[12px] font-normal text-text-muted">{t('RecentDecks.empty')}</span>}
-          </button>
-        </li>
-      </ul>
+      {decks.length === 0 ? (
+        <RecentDecksEmpty savedDecks={serverDeckCount(tree?.root)} />
+      ) : (
+        <ul className="grid grid-cols-[repeat(auto-fill,minmax(min(100%,180px),1fr))] gap-gap">
+          {decks.map((deck) => (
+            <DeckTile key={deck.deckId} deck={deck} onOpen={openDeck} />
+          ))}
+          <li className="flex min-h-[150px] min-w-0">
+            <button
+              type="button"
+              onClick={() => navigate(RouteEnum.DECKS, { state: { open: 'create' } })}
+              className={[
+                'flex w-full flex-col items-center justify-center gap-2 rounded-ui-lg border border-dashed border-border-strong px-3',
+                'text-[13px] font-medium text-text-secondary hover:border-accent/60 hover:text-accent',
+                'focus-visible:outline focus-visible:outline-2 focus-visible:outline-accent',
+              ].join(' ')}
+            >
+              <Plus size={20} aria-hidden />
+              {t('RecentDecks.newDeck')}
+            </button>
+          </li>
+        </ul>
+      )}
     </section>
   );
 }

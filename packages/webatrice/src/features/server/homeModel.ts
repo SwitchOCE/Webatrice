@@ -98,3 +98,34 @@ export function deckFormatLabel(format: string, t: TFunction): string {
   const known = MTG_FORMAT_LABELS.find((f) => f.value === normalizeFormat(format));
   return known ? known.label(t) : format.replace(/^\w/, (c) => c.toUpperCase());
 }
+
+export type BuddyGamesEmpty = 'noBuddies' | 'notJoined' | 'noneHosting';
+
+export function buddyGamesEmptyKind(buddyCount: number, joinedRoomCount: number): BuddyGamesEmpty {
+  if (buddyCount === 0) {
+    return 'noBuddies';
+  }
+  return joinedRoomCount > 0 ? 'noneHosting' : 'notJoined';
+}
+
+export interface OpenGamesOptions {
+  exclude: ReadonlySet<number>;
+  isRegistered: boolean;
+  limit: number;
+}
+
+export function joinableOpenGames(games: readonly Game[], { exclude, isRegistered, limit }: OpenGamesOptions): Game[] {
+  return games
+    .filter(({ info }) => hasOpenSeat(info)
+      && !info.withPassword
+      && !info.onlyBuddies
+      && (isRegistered || !info.onlyRegistered)
+      && !exclude.has(info.gameId))
+    .sort((a, b) => (a.info.maxPlayers - a.info.playerCount) - (b.info.maxPlayers - b.info.playerCount)
+      || b.info.gameId - a.info.gameId)
+    .slice(0, limit);
+}
+
+export function serverDeckCount(root: ServerInfo_DeckStorage_Folder | undefined): number {
+  return root ? flattenBackendDecks(root).length : 0;
+}

@@ -2,7 +2,7 @@ import { AuthGuard } from '@app/components';
 import { Layout } from '@app/feature-wrappers/layout';
 
 import BuddiesOnline from './components/BuddiesOnline';
-import BuddyGames from './components/BuddyGames';
+import HomeGames from './components/HomeGames';
 import HomeHero from './components/HomeHero';
 import RecentDecks from './components/RecentDecks';
 import ServerAnnouncement from './components/ServerAnnouncement';
@@ -25,13 +25,13 @@ const Server = () => {
       >
         <div className="flex min-w-0 shrink-0 flex-col gap-gap lg:min-h-0 lg:shrink lg:overflow-y-auto">
           <HomeHero home={home} />
-          <BuddyGames home={home} />
+          <HomeGames home={home} />
           <RecentDecks />
         </div>
         <div className="flex min-w-0 shrink-0 flex-col gap-gap lg:min-h-0 lg:shrink lg:overflow-y-auto">
           <ServerAnnouncement message={home.message} />
           <RoomsList rooms={home.roomList} joinedRoomIds={home.joinedRoomIds} onOpen={home.openRoom} />
-          <BuddiesOnline buddies={home.buddiesOnline} buddyCount={home.buddyCount} />
+          {home.buddyCount > 0 && <BuddiesOnline buddies={home.buddiesOnline} buddyCount={home.buddyCount} />}
         </div>
       </div>
     </Layout>

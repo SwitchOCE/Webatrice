@@ -1,8 +1,8 @@
-import { MessageSquare, Swords } from 'lucide-react';
+import { MessageSquare, Swords, Users } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { generatePath, useNavigate } from 'react-router-dom';
 
-import { Avatar, CountryFlag, IconButton, Panel, UserBadges } from '@app/components';
+import { Avatar, Button, CountryFlag, IconButton, Panel, UserBadges } from '@app/components';
 import { useUserGames } from '@app/feature-widgets/user-games';
 import { useOpenChat } from '@app/feature-widgets/chat-dock';
 import { RouteEnum } from '@app/types';
@@ -60,20 +60,32 @@ function BuddyRow({ buddy }: { buddy: OnlineBuddy }) {
   );
 }
 
+function BuddiesEmpty({ buddyCount }: { buddyCount: number }) {
+  const { t } = useTranslation();
+  const navigate = useNavigate();
+  return (
+    <div className="flex flex-col items-start gap-3 px-pad py-4">
+      <p className="text-[13px] leading-snug text-text-secondary">{t('BuddiesOnline.empty', { count: buddyCount })}</p>
+      <Button size="sm" icon={<Users size={14} aria-hidden />} onClick={() => navigate(RouteEnum.PEOPLE)}>
+        {t('BuddiesOnline.allBuddies')}
+      </Button>
+    </div>
+  );
+}
+
 export default function BuddiesOnline({ buddies, buddyCount }: { buddies: OnlineBuddy[]; buddyCount: number }) {
   const { t } = useTranslation();
+  const empty = buddies.length === 0;
   return (
     <Panel
       title={t('BuddiesOnline.title')}
       count={buddyCount > 0 ? t('BuddiesOnline.count', { online: buddies.length, total: buddyCount }) : undefined}
       flush
-      className="min-h-[160px] flex-1"
+      className={empty ? 'shrink-0' : 'min-h-[160px] flex-1'}
       bodyClassName="overflow-y-auto"
     >
-      {buddies.length === 0 ? (
-        <p className="px-pad py-4 text-[13px] text-text-muted">
-          {buddyCount === 0 ? t('BuddiesOnline.noBuddies') : t('BuddiesOnline.empty')}
-        </p>
+      {empty ? (
+        <BuddiesEmpty buddyCount={buddyCount} />
       ) : (
         <ul className="flex flex-col px-1.5 py-1.5">
           {buddies.map((buddy) => (

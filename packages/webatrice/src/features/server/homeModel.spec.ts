@@ -8,11 +8,14 @@ import {
 import type { RecentDeck } from '@app/services';
 
 import {
+  buddyGamesEmptyKind,
   buddyHostedGames,
   countOpenSeatGames,
+  joinableOpenGames,
   liveRecentDecks,
   onlineBuddies,
   pickUsualRoom,
+  serverDeckCount,
   sortRooms,
   totalGames,
 } from './homeModel';
@@ -101,5 +104,54 @@ describe('liveRecentDecks', () => {
       })],
     });
     expect(liveRecentDecks([deck(1, 'One'), deck(2, 'Two')], root)).toEqual([deck(1, 'Renamed')]);
+  });
+});
+
+describe('buddyGamesEmptyKind', () => {
+  it('asks for buddies first, then a joined room', () => {
+    expect(buddyGamesEmptyKind(0, 2)).toBe('noBuddies');
+    expect(buddyGamesEmptyKind(3, 0)).toBe('notJoined');
+    expect(buddyGamesEmptyKind(3, 1)).toBe('noneHosting');
+  });
+});
+
+describe('joinableOpenGames', () => {
+  const game = (gameId: number, extra: Record<string, unknown> = {}) =>
+    makeGame({ gameId, playerCount: 1, maxPlayers: 2, ...extra });
+
+  it('keeps games a stranger can join and orders them closest to starting, newest first', () => {
+    const games = [
+      game(1, { maxPlayers: 4 }),
+      game(2),
+      game(3),
+      game(4, { withPassword: true }),
+      game(5, { onlyBuddies: true }),
+      game(6, { started: true }),
+      game(7, { playerCount: 2 }),
+    ];
+    const ids = joinableOpenGames(games, { exclude: new Set(), isRegistered: true, limit: 10 }).map((g) => g.info.gameId);
+    expect(ids).toEqual([3, 2, 1]);
+  });
+
+  it('drops registered-only games for guests, excluded games, and caps the list', () => {
+    const games = [game(1, { onlyRegistered: true }), game(2), game(3), game(4)];
+    const guest = joinableOpenGames(games, { exclude: new Set([4]), isRegistered: false, limit: 1 });
+    expect(guest.map((g) => g.info.gameId)).toEqual([3]);
+    expect(joinableOpenGames(games, { exclude: new Set(), isRegistered: true, limit: 10 })).toHaveLength(4);
+  });
+});
+
+describe('serverDeckCount', () => {
+  it('counts decks in nested folders and is zero before the tree loads', () => {
+    const file = (id: number) => create(ServerInfo_DeckStorage_TreeItemSchema, {
+      id, name: `d${id}`, file: create(ServerInfo_DeckStorage_FileSchema, {}),
+    });
+    const root = create(ServerInfo_DeckStorage_FolderSchema, {
+      items: [file(1), create(ServerInfo_DeckStorage_TreeItemSchema, {
+        id: 9, name: 'folder', folder: create(ServerInfo_DeckStorage_FolderSchema, { items: [file(2), file(3)] }),
+      })],
+    });
+    expect(serverDeckCount(root)).toBe(3);
+    expect(serverDeckCount(undefined)).toBe(0);
   });
 });

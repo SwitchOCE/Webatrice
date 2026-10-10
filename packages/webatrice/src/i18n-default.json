@@ -4140,8 +4140,8 @@
     "online": "Online",
     "showGames": "Show {name}'s games",
     "message": "Message {name}",
-    "empty": "None of your buddies is online.",
-    "noBuddies": "You have no buddies yet. Add one from a player's menu."
+    "empty": "{count, plural, one {Your buddy isn't online right now.} other {None of your # buddies is online right now.}}",
+    "allBuddies": "See all buddies"
   },
   "BuddyGames": {
     "title": "Hosted by your buddies",
@@ -4149,8 +4149,12 @@
     "whereMany": "in the {count} rooms you joined, open seats first",
     "allGames": "All games in {room}",
     "empty": "None of your buddies is hosting a game in your rooms right now.",
-    "emptyNoBuddies": "Add buddies from a player's menu to see the games they host here.",
+    "emptyNoBuddies": "Add buddies on the People page to see when they're online and the games they host.",
     "emptyNotJoined": "Join a room to see the games your buddies host there.",
+    "findPeople": "Find people",
+    "joinRoom": "Join {room}"
+  },
+  "HomeGames": {
     "passwordTitle": "Join game",
     "errorTitle": "Couldn't join the game"
   },
@@ -4164,18 +4168,30 @@
     "play": "Play in {room}",
     "createGame": "Create game"
   },
+  "OpenGames": {
+    "title": "Open seats in {room}",
+    "where": "closest to starting first",
+    "allGames": "All {count, plural, one {# game} other {# games}}",
+    "empty": "No open seats in {room} right now. Create a game and players can join you.",
+    "createGame": "Create game"
+  },
   "RecentDecks": {
     "title": "Recent decks",
     "where": "opened in this browser",
     "allDecks": "All decks",
     "newDeck": "New deck",
-    "empty": "Decks you open in the editor appear here.",
+    "empty": "No recent decks yet. Start a new deck, or import a list you already have.",
     "cards": "{count, plural, one {# card} other {# cards}}",
-    "bracket": "· Bracket {level}"
+    "bracket": "· Bracket {level}",
+    "emptySaved": "{count, plural, one {You have # deck saved on this server.} other {You have # decks saved on this server.}} Open one and it shows up here.",
+    "openDecks": "Open your decks",
+    "importDeck": "Import deck"
   },
   "ServerAnnouncement": {
     "title": "From the server",
-    "empty": "No announcement from this server."
+    "empty": "No announcement from this server.",
+    "showMore": "Show more",
+    "showLess": "Show less"
   },
   "Settings": {
     "title": "Settings",

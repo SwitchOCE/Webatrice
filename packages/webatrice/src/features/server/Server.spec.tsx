@@ -52,6 +52,36 @@ const withBuddyGame = () => {
   };
 };
 
+const withOpenGames = () => {
+  const base = connectedWithRoomsState as any;
+  const stranger = makeUser({ name: 'stranger' });
+  const game = (gameId: number, extra: Record<string, unknown> = {}) => makeGame({
+    gameId, roomId: 1, description: `Open ${gameId}`, playerCount: 1, maxPlayers: 2, creatorInfo: stranger, ...extra,
+  });
+  return {
+    ...base,
+    rooms: {
+      ...base.rooms,
+      rooms: {
+        1: {
+          ...base.rooms.rooms[1],
+          info: create(ServerInfo_RoomSchema, { roomId: 1, name: 'Main Room', autoJoin: true, gameCount: 3, playerCount: 4 }),
+          games: {
+            11: game(11),
+            12: game(12, { withPassword: true }),
+            13: game(13, { started: true }),
+          },
+        },
+      },
+    },
+  };
+};
+
+function LocationProbe({ name }: { name: string }) {
+  const location = useLocation();
+  return <div>{`${name}:${JSON.stringify(location.state)}`}</div>;
+}
+
 function RoomStateProbe() {
   const location = useLocation();
   return <div>{`create:${String((location.state as { createGame?: boolean } | null)?.createGame)}`}</div>;
@@ -63,6 +93,8 @@ function renderHome(preloadedState: any) {
       <Route path="/server" element={<Server />} />
       <Route path="/room/:roomId" element={<div>room-page</div>} />
       <Route path="/player/:name" element={<div>player-page</div>} />
+      <Route path="/people" element={<div>people-page</div>} />
+      <Route path="/decks" element={<LocationProbe name="decks-page" />} />
     </Routes>,
     { preloadedState, route: '/server' },
   );
@@ -140,10 +172,61 @@ describe('Server (Home)', () => {
     expect(getExpandedChats()).toContain('otherUser');
   });
 
-  it('explains the empty buddy sections when there are no buddies', () => {
+  it('explains buddies once, on the left, when there are none', () => {
     renderHome(connectedWithRoomsState);
     expect(screen.getByText('BuddyGames.emptyNoBuddies')).toBeInTheDocument();
-    expect(screen.getByText('BuddiesOnline.noBuddies')).toBeInTheDocument();
+    expect(screen.queryByRole('heading', { name: 'BuddiesOnline.title' })).not.toBeInTheDocument();
+  });
+
+  it('sends a user without buddies to the People page', () => {
+    renderHome(connectedWithRoomsState);
+    const section = screen.getByRole('heading', { name: 'BuddyGames.title' }).closest('section') as HTMLElement;
+    fireEvent.click(within(section).getByRole('button', { name: 'BuddyGames.findPeople' }));
+    expect(screen.getByText('people-page')).toBeInTheDocument();
+  });
+
+  it('points at the People page when no buddy is online', () => {
+    const base = withBuddyGame();
+    renderHome({ ...base, server: { ...base.server, users: { testUser: makeUser() } } });
+    const panel = screen.getByRole('heading', { name: 'BuddiesOnline.title' }).closest('section') as HTMLElement;
+    expect(within(panel).getByText('BuddiesOnline.empty')).toBeInTheDocument();
+    fireEvent.click(within(panel).getByRole('button', { name: 'BuddiesOnline.allBuddies' }));
+    expect(screen.getByText('people-page')).toBeInTheDocument();
+  });
+
+  it('offers a new deck or an import when there are no recent decks', () => {
+    renderHome(connectedWithRoomsState);
+    const section = screen.getByRole('heading', { name: 'RecentDecks.title' }).closest('section') as HTMLElement;
+    expect(within(section).getByText('RecentDecks.empty')).toBeInTheDocument();
+    fireEvent.click(within(section).getByRole('button', { name: 'RecentDecks.importDeck' }));
+    expect(screen.getByText('decks-page:{"open":"import"}')).toBeInTheDocument();
+  });
+
+  it('previews the joinable open games of the usual room and joins one', () => {
+    renderHome(withOpenGames());
+    const section = screen.getByRole('heading', { name: 'OpenGames.title' }).closest('section') as HTMLElement;
+    expect(within(section).queryByRole('article', { name: 'Open 12' })).not.toBeInTheDocument();
+    expect(within(section).queryByRole('article', { name: 'Open 13' })).not.toBeInTheDocument();
+    const card = within(section).getByRole('article', { name: 'Open 11' });
+    fireEvent.click(within(card).getByRole('button', { name: 'GameCard.joinLabel' }));
+    expect(hoisted.mockWebClient.request.rooms.joinGame).toHaveBeenCalledWith(
+      1,
+      expect.objectContaining({ gameId: 11, spectator: false }),
+      expect.anything(),
+    );
+  });
+
+  it('offers Create game when the usual room has no open seats', () => {
+    renderHome(connectedWithRoomsState);
+    const section = screen.getByRole('heading', { name: 'OpenGames.title' }).closest('section') as HTMLElement;
+    expect(within(section).getByText('OpenGames.empty')).toBeInTheDocument();
+    expect(within(section).getByRole('button', { name: 'OpenGames.createGame' })).toBeInTheDocument();
+  });
+
+  it('leaves the open games preview out until the usual room is joined', () => {
+    const base = connectedWithRoomsState as any;
+    renderHome({ ...base, rooms: { ...base.rooms, joinedRoomIds: {} } });
+    expect(screen.queryByRole('heading', { name: 'OpenGames.title' })).not.toBeInTheDocument();
   });
 
   describe('when a room join lands', () => {

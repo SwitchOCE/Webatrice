@@ -1,27 +1,59 @@
+import { ArrowRight, UserRoundPlus, Users } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
+import { useNavigate } from 'react-router-dom';
 
-import { games, type Game } from '@cockatrice/datatrice';
-import { Button, GameCard } from '@app/components';
-import { AlertDialog, ConfirmDialog, PromptDialog } from '@app/dialogs';
-import { useCanOverrideGameRestrictions, useJoinGame, useJoinGameErrorMessage, useNavigateOnGameJoined } from '@app/hooks';
-import { useAppSelector } from '@app/store';
+import { Button } from '@app/components';
+import { RouteEnum } from '@app/types';
 
+import { buddyGamesEmptyKind } from '../homeModel';
 import type { HomeData } from '../useHome';
+import GameGrid, { type RenderGameCard } from './GameGrid';
+import HomeEmpty from './HomeEmpty';
 import SectionHead from './SectionHead';
 
 export const BUDDY_GAMES_LIMIT = 6;
 
-export default function BuddyGames({ home }: { home: HomeData }) {
+function BuddyGamesEmpty({ home }: { home: HomeData }) {
   const { t } = useTranslation();
-  const overrideRestrictions = useCanOverrideGameRestrictions();
-  const activeGameIds = useAppSelector(games.Selectors.getActiveGameIds);
-  const join = useJoinGame();
-  const joinErrorMessage = useJoinGameErrorMessage(join.joinError);
-  useNavigateOnGameJoined();
+  const navigate = useNavigate();
+  const room = home.usualRoom;
+  const kind = buddyGamesEmptyKind(home.buddyCount, home.joinedRooms.length);
 
+  if (kind === 'noBuddies') {
+    return (
+      <HomeEmpty
+        icon={<UserRoundPlus size={17} />}
+        actions={(
+          <Button size="sm" icon={<Users size={14} aria-hidden />} onClick={() => navigate(RouteEnum.PEOPLE)}>
+            {t('BuddyGames.findPeople')}
+          </Button>
+        )}
+      >
+        {t('BuddyGames.emptyNoBuddies')}
+      </HomeEmpty>
+    );
+  }
+  if (kind === 'notJoined') {
+    return (
+      <HomeEmpty
+        icon={<Users size={17} />}
+        actions={room && (
+          <Button size="sm" iconRight={<ArrowRight size={14} aria-hidden />} onClick={home.play}>
+            {t('BuddyGames.joinRoom', { room: room.info.name })}
+          </Button>
+        )}
+      >
+        {t('BuddyGames.emptyNotJoined')}
+      </HomeEmpty>
+    );
+  }
+  return <HomeEmpty icon={<Users size={17} />}>{t('BuddyGames.empty')}</HomeEmpty>;
+}
+
+export default function BuddyGames({ home, renderCard }: { home: HomeData; renderCard: RenderGameCard }) {
+  const { t } = useTranslation();
   const room = home.usualRoom;
   const shown = home.buddyGames.slice(0, BUDDY_GAMES_LIMIT);
-  const begin = (roomId: number, game: Game, asSpectator: boolean) => join.beginJoin(roomId, game.info, asSpectator, false);
 
   let where: string | undefined;
   if (home.joinedRooms.length === 1) {
@@ -30,69 +62,29 @@ export default function BuddyGames({ home }: { home: HomeData }) {
     where = t('BuddyGames.whereMany', { count: home.joinedRooms.length });
   }
 
-  let empty = t('BuddyGames.emptyNotJoined');
-  if (home.buddyCount === 0) {
-    empty = t('BuddyGames.emptyNoBuddies');
-  } else if (home.joinedRooms.length > 0) {
-    empty = t('BuddyGames.empty');
-  }
-
   return (
     <section className="flex shrink-0 flex-col gap-2.5" aria-labelledby="home-buddy-games">
       <SectionHead
         id="home-buddy-games"
         title={t('BuddyGames.title')}
-        count={where}
-        action={room && home.usualRoomJoined && (
+        count={shown.length > 0 ? where : undefined}
+        action={shown.length > 0 && room && home.usualRoomJoined && (
           <Button size="sm" variant="ghost" onClick={home.play}>
             {t('BuddyGames.allGames', { room: room.info.name })}
           </Button>
         )}
       />
       {shown.length === 0 ? (
-        <p className="rounded-ui-lg border border-dashed border-border-subtle px-pad py-5 text-[13px] text-text-muted">{empty}</p>
+        <BuddyGamesEmpty home={home} />
       ) : (
-        <ul className="grid grid-cols-[repeat(auto-fill,minmax(min(100%,340px),1fr))] gap-gap">
+        <GameGrid>
           {shown.map(({ room: gameRoom, game }) => (
             <li key={`${gameRoom.info.roomId}:${game.info.gameId}`} className="flex min-w-0">
-              <GameCard
-                game={game}
-                gametypeMap={gameRoom.gametypeMap}
-                overrideRestrictions={overrideRestrictions}
-                alreadyJoined={activeGameIds.includes(game.info.gameId)}
-                busy={join.joinPending}
-                onJoin={(g) => begin(gameRoom.info.roomId, g, false)}
-                onSpectate={(g) => begin(gameRoom.info.roomId, g, true)}
-              />
+              {renderCard(gameRoom, game)}
             </li>
           ))}
-        </ul>
+        </GameGrid>
       )}
-      <ConfirmDialog
-        cancelDefault
-        title={t('GameLink.confirm.title')}
-        message={t('GameLink.full')}
-        confirmLabel={t('GameLink.yes')}
-        cancelLabel={t('GameLink.no')}
-        isOpen={join.spectatorConfirmationRequired}
-        onConfirm={join.confirmSpectatorJoin}
-        onCancel={join.cancelSpectatorJoin}
-      />
-      <PromptDialog
-        isOpen={join.passwordRequired}
-        title={t('BuddyGames.passwordTitle')}
-        label={t('Common.label.password')}
-        type="password"
-        submitLabel={t('Common.action.join')}
-        onSubmit={join.submitPassword}
-        onCancel={join.cancelPassword}
-      />
-      <AlertDialog
-        isOpen={join.joinError !== null}
-        title={t('BuddyGames.errorTitle')}
-        message={joinErrorMessage}
-        onDismiss={join.clearJoinError}
-      />
     </section>
   );
 }

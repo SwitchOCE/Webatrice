@@ -1,9 +1,9 @@
 import { useCallback, useMemo } from 'react';
 import { generatePath, useNavigate } from 'react-router-dom';
 
-import { rooms, server, type Room } from '@cockatrice/datatrice';
+import { rooms, server, type Game, type Room } from '@cockatrice/datatrice';
 import { useWebClient } from '@cockatrice/datatrice/react';
-import type { ServerInfo_Room } from '@cockatrice/sockatrice/generated';
+import { ServerInfo_User_UserLevelFlag, type ServerInfo_Room } from '@cockatrice/sockatrice/generated';
 import { usePreference, useReduxEffect } from '@app/hooks';
 import { useAppSelector } from '@app/store';
 import { RouteEnum, type RoomRouteState } from '@app/types';
@@ -11,6 +11,7 @@ import { RouteEnum, type RoomRouteState } from '@app/types';
 import {
   buddyHostedGames,
   countOpenSeatGames,
+  joinableOpenGames,
   onlineBuddies,
   pickUsualRoom,
   sortRooms,
@@ -18,6 +19,8 @@ import {
   type BuddyGame,
   type OnlineBuddy,
 } from './homeModel';
+
+export const OPEN_GAMES_LIMIT = 2;
 
 export interface HomeData {
   userName: string;
@@ -32,6 +35,7 @@ export interface HomeData {
   usualRoomJoined: boolean;
   usualRoomOpenSeats: number;
   buddyGames: BuddyGame[];
+  openGames: Game[];
   buddiesOnline: OnlineBuddy[];
   buddyCount: number;
   openRoom: (roomId: number) => void;
@@ -68,7 +72,9 @@ export function useHome(): HomeData {
   const joinedRooms = useAppSelector(rooms.Selectors.getJoinedRooms);
   const buddyList = useAppSelector(server.Selectors.getBuddyList);
   const users = useAppSelector(server.Selectors.getUsers);
-  const userName = useAppSelector(server.Selectors.getUser)?.name ?? '';
+  const user = useAppSelector(server.Selectors.getUser);
+  const userName = user?.name ?? '';
+  const isRegistered = ((user?.userLevel ?? 0) & ServerInfo_User_UserLevelFlag.IsRegistered) !== 0;
   const serverName = useAppSelector(server.Selectors.getName);
   const message = useAppSelector(server.Selectors.getMessage);
   const startupRoom = usePreference('startupRoom');
@@ -86,6 +92,14 @@ export function useHome(): HomeData {
   const buddiesOnline = useMemo(() => onlineBuddies(buddyList, users, buddyGames), [buddyList, users, buddyGames]);
   const usualRoomJoined = Boolean(usualRoom && joinedRoomIds[usualRoom.info.roomId]);
   const usualRoomId = usualRoom?.info.roomId;
+  const usualRoomGames = useAppSelector((state) => rooms.Selectors.getFilteredRoomGames(state, usualRoomId ?? -1));
+  const openGames = useMemo(() => {
+    if (!usualRoomJoined) {
+      return [];
+    }
+    const exclude = new Set(buddyGames.map(({ game }) => game.info.gameId));
+    return joinableOpenGames(usualRoomGames, { exclude, isRegistered, limit: OPEN_GAMES_LIMIT });
+  }, [usualRoomJoined, usualRoomGames, buddyGames, isRegistered]);
 
   const play = useCallback(() => {
     if (usualRoomId != null) {
@@ -113,6 +127,7 @@ export function useHome(): HomeData {
     usualRoomJoined,
     usualRoomOpenSeats: usualRoom && usualRoomJoined ? countOpenSeatGames(usualRoom) : 0,
     buddyGames,
+    openGames,
     buddiesOnline,
     buddyCount: buddyNames.size,
     openRoom,
