@@ -25,14 +25,20 @@ function setup() {
   return { ...view, get: () => current, moderator, row, reopen: () => view.rerender(<Probe key="reopened" />) };
 }
 
-it.each(['refresh', 'hide', 'other-caller'] as const)('only settles the current statistics request after %s', (origin) => {
+function run(view: ReturnType<typeof setup>, operation: 'assign' | 'resolve' | 'viewReplay') {
+  if (operation === 'resolve') {
+    act(() => view.get().promptResolve(false));
+    act(() => view.get().submitResolvePrompt(''));
+  } else {
+    act(() => view.get()[operation]());
+  }
+}
+
+it.each(['refresh', 'other-caller'] as const)('only settles the current statistics request after %s', (origin) => {
   const view = setup();
   const oldId = view.moderator.reportStats.mock.lastCall?.[0];
   if (origin === 'refresh') {
     act(() => view.get().refresh());
-  }
-  if (origin === 'hide') {
-    act(() => view.get().setStatsOpen(false)); act(() => view.get().setStatsOpen(true));
   }
   const currentId = view.moderator.reportStats.mock.lastCall?.[0];
   const requestId = origin === 'other-caller' ? 'other' : oldId;
@@ -81,11 +87,11 @@ it.each(['assign', 'resolve', 'viewReplay'] as const)('%s ignores another caller
   const reply = (id?: string) => operation === 'assign' ? server.Actions.reportAssigned({ reportId: 1, requestId: id })
     : operation === 'resolve' ? server.Actions.reportResolved({ reportId: 1, dismissed: false, requestId: id })
       : server.Actions.reportReplayDownloaded({ gameId: 7, replayId: 8, replayData: new Uint8Array([1]), requestId: id });
-  act(() => view.get()[operation]());
+  run(view, operation);
   const oldId = requestId();
   act(() => view.get().refresh());
   expect(view.get().actions.canResolve).toBe(true);
-  act(() => view.get()[operation]());
+  run(view, operation);
   const currentId = requestId();
   const message = view.get().actionMessage;
   for (const id of ['other', undefined, oldId]) {
@@ -107,7 +113,7 @@ it.each(['assign', 'resolve', 'viewReplay'] as const)('%s ignores another caller
 
 it.each(['assign', 'resolve', 'viewReplay'] as const)('%s abandons its notice when selection changes', (operation) => {
   const view = setup();
-  act(() => view.get()[operation]());
+  run(view, operation);
   const command = operation === 'assign' ? 'reportAssign' : operation === 'resolve' ? 'reportResolve' : 'replayDownloadByGameId';
   const requestId = view.moderator[command].mock.lastCall?.at(-1) as string | undefined;
   act(() => view.get().select(2));
@@ -125,11 +131,11 @@ it.each(['assign', 'resolve', 'viewReplay'] as const)('%s abandons its notice wh
 it.each(['assign', 'resolve', 'viewReplay'] as const)('%s ignores the previous mount and settles its current failure', (operation) => {
   const view = setup();
   const command = operation === 'assign' ? 'reportAssign' : operation === 'resolve' ? 'reportResolve' : 'replayDownloadByGameId';
-  act(() => view.get()[operation]());
+  run(view, operation);
   const oldId = view.moderator[command].mock.lastCall?.at(-1) as string | undefined;
   view.reopen();
   act(() => view.get().select(1));
-  act(() => view.get()[operation]());
+  run(view, operation);
   const currentId = view.moderator[command].mock.lastCall?.at(-1) as string | undefined;
   const message = view.get().actionMessage;
   const reply = operation === 'assign' ? server.Actions.reportAssigned({ reportId: 1, requestId: oldId })

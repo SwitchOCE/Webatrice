@@ -19,7 +19,7 @@ export interface MyReports {
   refresh: () => void;
   selectedId: number | null;
   selected: ServerInfo_Report | undefined;
-  select: (reportId: number) => void;
+  select: (reportId: number | null) => void;
   thread: ReportThread;
 }
 

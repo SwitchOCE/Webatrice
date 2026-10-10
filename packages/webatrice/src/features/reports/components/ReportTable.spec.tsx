@@ -14,21 +14,22 @@ function rowIds() {
 }
 
 describe('ReportTable', () => {
-  it('renders the desktop My Reports columns and formats the cells', () => {
+  it('renders the My Reports columns with the category, status and assignee', () => {
     renderWithProviders(<ReportTable reports={rows} columns={MY_REPORT_COLUMNS} selectedId={null} onSelect={vi.fn()} label="Reports" />);
     expect(screen.getAllByRole('columnheader').map((h) => h.textContent)).toEqual(
       MY_REPORT_COLUMNS.map((c) => `Reports.column.${c}`),
     );
     const first = within(screen.getByTestId('report-row-2'));
-    expect(first.getByText('Bug abuse')).toBeTruthy();
-    expect(first.getByText('12')).toBeTruthy();
-    expect(first.getByText('open').className).toContain('text-danger');
+    expect(first.getByText('#2')).toBeTruthy();
+    expect(first.getByText('bug_abuse')).toBeTruthy();
+    expect(first.getByText('open')).toBeTruthy();
+    expect(first.getByText('Reports.column.nobody')).toBeTruthy();
   });
 
-  it('shows replay and room in the queue columns', () => {
+  it('shows the age of each report and the queue columns in desktop order', () => {
     renderWithProviders(<ReportTable reports={rows} columns={QUEUE_COLUMNS} selectedId={null} onSelect={vi.fn()} label="Reports" />);
-    expect(within(screen.getByTestId('report-row-5')).getByText('Reports.column.yes')).toBeTruthy();
-    expect(within(screen.getByTestId('report-row-2')).getByText('Reports.column.no')).toBeTruthy();
+    expect(screen.getAllByRole('columnheader').map((h) => h.textContent)).toEqual(QUEUE_COLUMNS.map((c) => `Reports.column.${c}`));
+    expect(within(screen.getByTestId('report-row-5')).getByText('Reports.age.days')).toBeTruthy();
   });
 
   it('keeps server order until a header is clicked, then toggles the direction', () => {

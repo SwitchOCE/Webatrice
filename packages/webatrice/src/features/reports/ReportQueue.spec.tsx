@@ -90,7 +90,7 @@ describe('ReportQueue', () => {
     for (let request = 1; request <= 2; request++) {
       expect(button('Reports.refresh').disabled).toBe(true);
       load([]);
-      expect(screen.getByTestId('report-queue-status').textContent).toBe('Reports.count');
+      expect(screen.getByTestId('report-queue-status').textContent).toBe('Reports.queue.shownOfTotal');
       expect(button('Reports.refresh').disabled).toBe(false);
       fireEvent.click(button('Reports.refresh'));
       expect(moderator.reportList).toHaveBeenCalledTimes(request + 1);
@@ -103,7 +103,7 @@ describe('ReportQueue', () => {
     fireEvent.click(screen.getByTestId('report-row-1'));
     fireEvent.click(button('Reports.queue.assign'));
     act(() => store.dispatch(server.Actions.reportAssigned({ requestId: requestId('reportAssign'), reportId: 1 })));
-    expect(screen.getByTestId('report-queue-status').textContent).toBe('Reports.queue.assignedDone');
+    expect(screen.getByTestId('report-action-status').textContent).toBe('Reports.queue.assignedDone');
     load();
     fireEvent.click(button('Reports.refresh'));
     expect(screen.getByTestId('report-queue-status').textContent).toBe('Reports.loading');
@@ -125,7 +125,7 @@ describe('ReportQueue', () => {
     const { moderator } = renderQueue();
     expect(moderator.reportList).toHaveBeenCalledWith(true, undefined, undefined, expect.any(String));
     expect(moderator.reportStats).toHaveBeenCalledTimes(1);
-    fireEvent.click(screen.getByLabelText('Reports.queue.unresolvedOnly'));
+    fireEvent.click(screen.getByRole('button', { name: /^Reports\.view\.resolved/ }));
     expect(moderator.reportList).toHaveBeenLastCalledWith(false, undefined, undefined, expect.any(String));
   });
 
@@ -149,17 +149,19 @@ describe('ReportQueue', () => {
     fireEvent.change(screen.getByLabelText('Reports.queue.searchPlaceholder'), { target: { value: 'MALL' } });
     expect(screen.getAllByTestId(/^report-row-/).map((r) => r.dataset.testid)).toEqual(['report-row-1']);
     fireEvent.change(screen.getByLabelText('Reports.queue.searchPlaceholder'), { target: { value: '' } });
-    fireEvent.change(screen.getByLabelText('Reports.column.status'), { target: { value: 'assigned' } });
+    const assignedTab = screen.getByRole('button', { name: /^Reports\.view\.assigned/ });
+    fireEvent.click(assignedTab);
+    expect(assignedTab.getAttribute('aria-pressed')).toBe('true');
     expect(screen.getAllByTestId(/^report-row-/).map((r) => r.dataset.testid)).toEqual(['report-row-2']);
   });
 
   it('enables actions by status like desktop updateActionStates', () => {
     const { load } = renderQueue();
     load();
-    expect(button('Reports.queue.assign').disabled).toBe(true);
+    expect(screen.queryByRole('button', { name: 'Reports.queue.assign' })).toBeNull();
     fireEvent.click(screen.getByTestId('report-row-1'));
     expect(button('Reports.queue.assign').disabled).toBe(false);
-    expect(button('Reports.queue.resolve').disabled).toBe(false);
+    expect(button('Reports.queue.resolveWithNote').disabled).toBe(false);
     expect(button('Reports.queue.viewReplay').disabled).toBe(true);
     expect(button('Reports.queue.joinGame').disabled).toBe(true);
     fireEvent.click(screen.getByTestId('report-row-2'));
@@ -175,46 +177,47 @@ describe('ReportQueue', () => {
     fireEvent.click(screen.getByTestId('report-row-1'));
     fireEvent.click(button('Reports.queue.assign'));
     expect(moderator.reportAssign).toHaveBeenCalledWith(1, expect.any(String));
-    expect(screen.getByTestId('report-queue-status').textContent).toBe('Reports.queue.assigning');
-    expect(button('Reports.queue.resolve').disabled).toBe(true);
+    expect(screen.getByTestId('report-action-status').textContent).toBe('Reports.queue.assigning');
+    expect(button('Reports.queue.resolveWithNote').disabled).toBe(true);
 
     act(() => {
       store.dispatch(failed('reportAssign', '2'));
     });
-    expect(screen.getByTestId('report-queue-status').textContent).toBe('Reports.queue.assigning');
+    expect(screen.getByTestId('report-action-status').textContent).toBe('Reports.queue.assigning');
     act(() => {
       store.dispatch(failed('reportAssign', '1'));
     });
-    expect(screen.getByTestId('report-queue-status').textContent).toBe('Reports.queue.assignFailed');
+    expect(screen.getByTestId('report-action-status').textContent).toBe('Reports.queue.assignFailed');
     expect(moderator.reportList).toHaveBeenCalledTimes(1);
 
     fireEvent.click(button('Reports.queue.assign'));
     act(() => {
       store.dispatch(server.Actions.reportAssigned({ requestId: requestId('reportAssign'), reportId: 1 }));
     });
-    expect(screen.getByTestId('report-queue-status').textContent).toBe('Reports.queue.assignedDone');
+    expect(screen.getByTestId('report-action-status').textContent).toBe('Reports.queue.assignedDone');
     expect(moderator.reportList).toHaveBeenCalledTimes(2);
   });
 
-  it('resolves without a note, and dismisses with the note from the prompt', () => {
+  it('resolves with an empty note, and dismisses with the note from the prompt', () => {
     const { moderator, load, store, requestId, failed } = renderQueue();
     load();
     fireEvent.click(screen.getByTestId('report-row-2'));
-    fireEvent.click(button('Reports.queue.resolve'));
+    fireEvent.click(button('Reports.queue.resolveWithNote'));
+    fireEvent.click(screen.getByRole('button', { name: 'Reports.queue.ok' }));
     expect(moderator.reportResolve).toHaveBeenCalledWith(2, undefined, false, expect.any(String));
     act(() => {
       store.dispatch(failed('reportResolve', '2'));
     });
-    expect(screen.getByTestId('report-queue-status').textContent).toBe('Reports.queue.actionFailed');
+    expect(screen.getByTestId('report-action-status').textContent).toBe('Reports.queue.actionFailed');
 
-    fireEvent.click(button('Reports.queue.dismiss'));
+    fireEvent.click(screen.getByRole('button', { name: 'Reports.queue.dismiss', hidden: true }));
     fireEvent.change(screen.getByLabelText('Reports.queue.dismissNoteLabel'), { target: { value: ' duplicate ' } });
     fireEvent.click(screen.getByRole('button', { name: 'Reports.queue.ok' }));
     expect(moderator.reportResolve).toHaveBeenLastCalledWith(2, 'duplicate', true, expect.any(String));
     act(() => {
       store.dispatch(server.Actions.reportResolved({ requestId: requestId('reportResolve'), reportId: 2, dismissed: true }));
     });
-    expect(screen.getByTestId('report-queue-status').textContent).toBe('Reports.queue.done');
+    expect(screen.getByTestId('report-action-status').textContent).toBe('Reports.queue.done');
     expect(moderator.reportList).toHaveBeenCalledTimes(2);
   });
 
@@ -334,7 +337,7 @@ describe('ReportQueue', () => {
     fireEvent.click(screen.getByTestId('report-row-2'));
     fireEvent.click(button('Reports.queue.viewReplay'));
     expect(moderator.replayDownloadByGameId).toHaveBeenCalledWith(30, expect.any(String));
-    expect(screen.getByTestId('report-queue-status').textContent).toBe('Reports.queue.loadingReplay');
+    expect(screen.getByTestId('report-action-status').textContent).toBe('Reports.queue.loadingReplay');
 
     const replayData = toBinary(GameReplaySchema, buildReplay([sayContainer(0)], 30));
     act(() => {
@@ -361,7 +364,7 @@ describe('ReportQueue', () => {
     fireEvent.click(screen.getByTestId('report-row-2'));
     fireEvent.click(button('Reports.queue.viewReplay'));
     expect(screen.queryByTestId('replay-view')).toBeNull();
-    expect(screen.getByTestId('report-queue-status').textContent).toBe('Reports.queue.loadingReplay');
+    expect(screen.getByTestId('report-action-status').textContent).toBe('Reports.queue.loadingReplay');
 
     act(() => {
       store.dispatch(server.Actions.reportReplayDownloaded({ requestId: requestId('replayDownloadByGameId'),
@@ -380,7 +383,7 @@ describe('ReportQueue', () => {
         gameId: 30, replayId: 9, replayData: new Uint8Array([1, 2, 3]) }));
     });
     expect(screen.queryByTestId('replay-view')).toBeNull();
-    expect(screen.getByTestId('report-queue-status').textContent).toBe('Reports.queue.replayParseFailed');
+    expect(screen.getByTestId('report-action-status').textContent).toBe('Reports.queue.replayParseFailed');
   });
 
   it('says there is no replay when the download fails', () => {
@@ -391,7 +394,7 @@ describe('ReportQueue', () => {
     act(() => {
       store.dispatch(failed('replayDownloadByGameId', '30'));
     });
-    expect(screen.getByTestId('report-queue-status').textContent).toBe('Reports.queue.noReplay');
+    expect(screen.getByTestId('report-action-status').textContent).toBe('Reports.queue.noReplay');
   });
 
   it('joins the room first, then spectates the reported game', () => {
@@ -454,7 +457,10 @@ describe('ReportQueue', () => {
         stats: create(Response_ReportStatsSchema, { totalReports: 5, reportsThisWeek: 3, reportsLastWeek: 2 }),
       }));
     });
-    expect(screen.getByTestId('report-stats').textContent).toContain('Reports.stats.total');
+    expect(screen.getByTestId('report-stats').textContent).toBe('Reports.stats.line');
+    expect(screen.queryByTestId('report-stats-detail')).toBeNull();
+    fireEvent.click(button('Reports.stats.title'));
+    expect(screen.getByTestId('report-stats-detail').textContent).toContain('Reports.stats.total');
     expect(screen.getByTestId('report-stats-detail').textContent).toContain('Reports.stats.topCategories');
   });
 

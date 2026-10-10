@@ -1287,6 +1287,37 @@
       "unregistered": "Unregistered user"
     }
   },
+  "Staff": {
+    "nav": "Staff tools",
+    "tool": {
+      "reports": "Reports",
+      "moderation": "Moderation",
+      "logs": "Logs",
+      "administration": "Administration",
+      "cardArtRules": "Card art rules",
+      "developer": "Developer"
+    },
+    "unresolvedBadge": "{count, plural, one {# unresolved report} other {# unresolved reports}}",
+    "lock": {
+      "region": "Administration lock",
+      "locked": "Functions locked",
+      "unlocked": "Functions unlocked",
+      "lockedIcon": "Locked",
+      "lockedHint": "Administration functions (server message, shut down, reload config, force-activate, grant replay access) and moderator actions on users stay greyed out until you unlock.",
+      "unlockedHint": "Administration functions and moderator actions on users are live. Lock again when you are done.",
+      "unlock": "Unlock functions",
+      "lock": "Lock functions"
+    },
+    "drawer": {
+      "close": "Close details"
+    },
+    "sanctions": {
+      "warn": "Warn...",
+      "ban": "Ban...",
+      "hint": "Both ask to confirm, with a reason",
+      "lockedHint": "Unlock functions to warn or ban."
+    }
+  },
   "Account": {
     "action": {
       "edit": "Edit",
@@ -1376,17 +1407,23 @@
   },
   "Administration": {
     "admin": {
-      "title": "Server administration functions",
+      "title": "Server",
       "updateServerMessage": "Update server message",
       "shutdownServer": "Shut down server",
-      "reloadConfig": "Reload configuration"
+      "reloadConfig": "Reload configuration",
+      "updateServerMessageHint": "Re-read the server's welcome message and send it to everyone.",
+      "reloadConfigHint": "Re-read the server's configuration file.",
+      "shutdownServerHint": "Warn everyone and stop the server after a delay.",
+      "adminOnly": "Only administrators can use the server functions."
     },
     "moderator": {
-      "title": "Server moderator functions",
+      "title": "Moderator",
       "replayId": "Replay ID",
-      "grantReplayAccess": "Grant Replay Access",
-      "userToActivate": "Username to Activate",
-      "forceActivateUser": "Force Activate User"
+      "grantReplayAccess": "Grant replay access",
+      "userToActivate": "User name",
+      "forceActivateUser": "Force-activate user",
+      "grantReplayAccessHint": "Give yourself access to a replay by its ID.",
+      "forceActivateUserHint": "Activate an account that never confirmed its email."
     },
     "shutdown": {
       "title": "Shut down server",
@@ -1396,7 +1433,6 @@
     },
     "button": {
       "unlock": "Unlock functions",
-      "lock": "Lock functions",
       "cancel": "Cancel",
       "ok": "OK"
     },
@@ -1420,27 +1456,31 @@
     "validation": {
       "minutes": "Enter a whole number of minutes from 0 to {max}",
       "replayId": "Enter a replay ID (digits only)"
-    }
+    },
+    "title": "Administration",
+    "subtitle": "Server and moderator functions. They stay greyed out while functions are locked.",
+    "lockedNotice": "Functions are locked. Unlock them here or in the staff tools list."
   },
   "CardArtRules": {
-    "title": "Card Art Rules",
+    "title": "Card art rules",
     "label": {
       "card": "Card",
       "cardPlaceholder": "Type a card name...",
-      "providerId": "ProviderId",
+      "providerId": "Printing (provider ID)",
       "mode": "Mode",
       "reason": "Reason"
     },
     "column": {
       "card": "Card",
-      "providerId": "ProviderId",
+      "providerId": "Provider ID",
       "mode": "Mode",
       "reason": "Reason"
     },
     "button": {
       "add": "Add rule",
       "remove": "Remove rule",
-      "refresh": "Refresh"
+      "refresh": "Refresh",
+      "dismiss": "Dismiss"
     },
     "error": {
       "list": "Failed to load card art rules.",
@@ -1449,7 +1489,16 @@
     },
     "validation": {
       "tooLong": "At most {max} characters"
-    }
+    },
+    "subtitle": "Allow or deny the art of a card printing for everyone on this server.",
+    "empty": "No rules yet.",
+    "count": "{count, plural, one {# rule} other {# rules}}",
+    "drawer": "Rule details",
+    "noSelection": "No rule selected",
+    "noSelectionHint": "Pick a rule to remove it, or add one below.",
+    "anyPrinting": "Every printing",
+    "noReason": "No reason given.",
+    "addTitle": "Add a rule"
   },
   "DeckEditor": {
     "downloadFailed": "Failed to download this deck from the server.",
@@ -2238,8 +2287,6 @@
       "commands": "Command statistics"
     },
     "column": {
-      "statistic": "Statistic",
-      "value": "Value",
       "command": "Command",
       "count": "Count",
       "totalMs": "Total ms",
@@ -2277,16 +2324,19 @@
     "autoRefresh": {
       "label": "Auto-refresh",
       "tooltip": "Automatically request fresh server statistics at a fixed interval.",
-      "interval": "Refresh interval (seconds)",
+      "interval": "Every (seconds)",
       "intervalTooltip": "Seconds between automatic refreshes."
     },
     "status": {
       "updated": "Updated {time}",
-      "unavailable": "No server statistics available yet."
+      "unavailable": "No server statistics available yet.",
+      "idle": "Server statistics, on request."
     },
     "button": {
       "refresh": "Refresh server stats"
-    }
+    },
+    "title": "Developer",
+    "empty": "No statistics yet. Refresh to ask the server."
   },
   "Game": {
     "empty": "No active game. Join a game from a room to see the board.",
@@ -3401,24 +3451,24 @@
   "LogSearchForm": {
     "group": {
       "filters": "Filters",
-      "locations": "Log Locations",
-      "dateRange": "Date Range",
-      "maximumResults": "Maximum Results"
+      "locations": "Log locations",
+      "dateRange": "Date range",
+      "results": "Results"
     },
     "label": {
-      "userName": "Username",
-      "ipAddress": "IP Address",
-      "gameName": "Game Name",
-      "gameId": "GameID",
+      "userName": "User name",
+      "ipAddress": "IP address",
+      "gameName": "Game name",
+      "gameId": "Game ID",
       "message": "Message",
-      "rooms": "Main Room",
-      "games": "Game Room",
-      "chats": "Private Chat",
-      "pastDays": "Past X Days",
+      "rooms": "Main room",
+      "games": "Game room",
+      "chats": "Private chat",
+      "pastDays": "Past days",
       "today": "Today",
-      "lastHour": "Last Hour",
+      "lastHour": "Last hour",
       "days": "Days",
-      "maximumResults": "Maximum Results"
+      "maximumResults": "At most"
     },
     "description": "At least one filter is required. The more information you put in, the more specific your results will be.",
     "error": {
@@ -3426,23 +3476,23 @@
       "noDays": "You have to select a valid number of days to locate."
     },
     "button": {
-      "search": "Get User Logs",
-      "clear": "Clear Filters"
+      "search": "Get user logs",
+      "clear": "Clear filters"
     }
   },
   "Logs": {
     "tab": {
-      "rooms": "Room Logs",
-      "games": "Game Logs",
-      "chats": "Chat Logs"
+      "rooms": "Room logs",
+      "games": "Game logs",
+      "chats": "Chat logs"
     },
     "column": {
       "time": "Time",
-      "senderName": "Sender Name",
+      "senderName": "Sender",
       "senderIp": "Sender IP",
       "message": "Message",
       "targetId": "Target ID",
-      "targetName": "Target Name"
+      "targetName": "Target"
     },
     "notice": {
       "title": "Message History",
@@ -3450,7 +3500,11 @@
       "failed": "Failed to collect message history information."
     },
     "title": "Log Results",
-    "tabWithCount": "{tab} [{count}]"
+    "tabWithCount": "{tab} ({count})",
+    "pageTitle": "Logs",
+    "subtitle": "Search room, game and private chat history.",
+    "empty": "No messages to show. Search to see results.",
+    "details": "Message details"
   },
   "ModerationPage": {
     "search": {
@@ -3458,34 +3512,38 @@
       "investigate": "Investigate"
     },
     "action": {
-      "resetPassword": "Reset Password",
-      "removeAvatar": "Remove Avatar"
+      "resetPassword": "Reset password",
+      "removeAvatar": "Remove avatar"
     },
     "info": {
-      "title": "User Info",
-      "name": "Name:",
-      "registered": "Registered:",
-      "lastLogin": "Last login:",
-      "status": "Status:",
-      "counts": "Counts:",
-      "adminNotes": "Admin notes:",
+      "title": "User info",
+      "registered": "Registered",
+      "lastLogin": "Last login",
+      "status": "Status",
+      "adminNotes": "Admin notes",
       "active": "active",
       "inactive": "inactive",
       "admin": "admin",
-      "countsValue": "Reports: {reports}   Bans: {bans}   Warnings: {warnings}",
-      "noNotes": "(none)",
-      "loadError": "Error loading user info."
+      "noNotes": "No notes.",
+      "loadError": "Error loading user info.",
+      "drawer": "User details",
+      "noUser": "No user",
+      "hint": "Search for a user name to see their account, alts and sessions.",
+      "reports": "Reports",
+      "warnings": "Warnings",
+      "bans": "Bans"
     },
     "alts": {
       "title": "Alts",
       "user": "User",
-      "email": "eMail",
+      "email": "Email",
       "clientId": "Client ID",
       "registered": "Registered",
       "lastLogin": "Last login",
       "warns": "Warns",
       "bans": "Bans",
-      "active": "Active"
+      "active": "Active",
+      "empty": "No alts found."
     },
     "sessions": {
       "title": "Sessions",
@@ -3493,14 +3551,16 @@
       "clientId": "Client ID",
       "start": "Start",
       "end": "End",
-      "type": "Type"
+      "type": "Type",
+      "empty": "No sessions found."
     },
     "staff": {
-      "title": "Staff Last Logins",
+      "title": "Staff last logins",
       "user": "User",
       "level": "Level",
       "lastLogin": "Last login",
-      "refresh": "Refresh"
+      "refresh": "Refresh",
+      "empty": "No staff logins to show."
     },
     "level": {
       "admin": "Admin",
@@ -3513,7 +3573,8 @@
       "loading": "Loading...",
       "yes": "yes",
       "no": "no",
-      "activeSession": "Active"
+      "activeSession": "Active",
+      "noUser": "Search for a user to fill this table."
     },
     "confirm": {
       "resetTitle": "Reset Password",
@@ -3537,7 +3598,9 @@
     "button": {
       "ok": "OK",
       "cancel": "Cancel"
-    }
+    },
+    "title": "Moderation",
+    "subtitle": "Look up a user's account, alts and sessions."
   },
   "People": {
     "title": "People",
@@ -3688,61 +3751,70 @@
   "Reports": {
     "loading": "Loading...",
     "loadFailed": "Failed to load reports.",
-    "count": "{count} report(s)",
+    "count": "{count, plural, one {# report} other {# reports}}",
     "refresh": "Refresh",
     "column": {
-      "id": "#",
-      "time": "Time",
-      "reporter": "Reporter",
-      "reportedUser": "Reported User",
+      "id": "ID",
+      "age": "Age",
+      "reportedUser": "Reported user",
       "category": "Category",
-      "gameId": "Game ID",
       "status": "Status",
-      "assignedTo": "Assigned To",
-      "replay": "Replay",
-      "room": "Room",
-      "yes": "Yes",
-      "no": "No"
+      "assignedTo": "Assigned",
+      "nobody": "Nobody"
+    },
+    "age": {
+      "minutes": "{count} min",
+      "hours": "{count} h",
+      "days": "{count} d"
+    },
+    "view": {
+      "unresolved": "Unresolved",
+      "open": "Open",
+      "assigned": "Assigned",
+      "resolved": "Resolved",
+      "dismissed": "Dismissed",
+      "all": "All"
+    },
+    "drawer": {
+      "label": "Report {id}",
+      "subtitle": "{reporter} reported {reported} · {time}",
+      "game": "Game #{gameId}",
+      "mineSubtitle": "You reported {reported} · {time}"
     },
     "thread": {
-      "detailsGroup": "Report Details",
-      "description": "Description",
       "noDescription": "No description.",
-      "chatGroup": "Chat Log Context",
-      "chatTooltip": "Chat log attached by the reporter. It is captured from their client and may be incomplete or edited.",
+      "chatGroup": "Chat log",
+      "chatCaveat": "Captured from {name}'s client. It may be incomplete or edited; check it against the server log or replay.",
       "noChatLog": "No chat log attached.",
-      "comments": "Comments:",
-      "commentsThread": "Comments / Thread",
+      "comments": "Replies",
+      "threadWith": "Thread with {name}",
       "noComments": "No comments yet.",
       "detailsFailed": "Failed to load report details.",
-      "addComment": "Add a comment:",
-      "commentPlaceholder": "Type your comment here...",
-      "replyPlaceholder": "Type a reply...",
+      "addComment": "Add a comment",
+      "commentPlaceholder": "Add to your report (moderators will see it)",
+      "replyPlaceholder": "Comment to {name} (they will see it)",
       "closedPlaceholder": "This report is closed.",
       "send": "Send",
       "commentFailed": "Failed to send comment.",
-      "moderatorPrefix": "[Moderator]",
-      "youPrefix": "[You]",
-      "reporterPrefix": "[Reporter]",
-      "resolution": "Resolution note:",
-      "selectReport": "Select a report to see its details."
+      "moderatorPrefix": "Moderator",
+      "youPrefix": "You",
+      "reporterPrefix": "Reporter",
+      "resolution": "Resolution note:"
     },
     "mine": {
-      "title": "My Reports"
+      "title": "My reports",
+      "subtitle": "Reports you filed, and what moderators said about them."
     },
     "queue": {
-      "title": "Report Queue",
-      "searchPlaceholder": "Search by username, category...",
-      "allStatuses": "All Statuses",
-      "unresolvedOnly": "Unresolved only",
-      "statusCounts": "{open} open  |  {assigned} assigned  |  {resolved} resolved  |  {dismissed} dismissed",
-      "shownOfTotal": "Showing the newest {shown} of {total} reports.",
-      "assign": "Assign to Me",
-      "resolve": "Resolve",
-      "resolveWithNote": "Resolve with note...",
+      "title": "Reports",
+      "searchPlaceholder": "Search reports",
+      "filter": "Report status",
+      "shownOfTotal": "{shown} of {total, plural, one {# report} other {# reports}}",
+      "assign": "Assign to me",
+      "resolveWithNote": "Resolve...",
       "dismiss": "Dismiss...",
-      "viewReplay": "View Replay",
-      "joinGame": "Join Game",
+      "viewReplay": "Replay",
+      "joinGame": "Join",
       "assigning": "Assigning...",
       "assignedDone": "Assigned.",
       "assignFailed": "Assignment failed.",
@@ -3757,8 +3829,8 @@
       "replayTitle": "Report game #{gameId}",
       "noRoom": "No room recorded for this report, use the replay instead.",
       "joining": "Attempting to join game...",
-      "resolveTitle": "Resolve Report",
-      "dismissTitle": "Dismiss Report",
+      "resolveTitle": "Resolve report",
+      "dismissTitle": "Dismiss report",
       "resolveNoteLabel": "Resolution note (optional):",
       "dismissNoteLabel": "Optional note:",
       "ok": "OK",
@@ -3771,34 +3843,33 @@
       "dismissed": "Dismissed"
     },
     "userContext": {
-      "title": "Reported User Context",
-      "user": "User:",
-      "accountAge": "Account Age:",
-      "reports": "Reports:",
-      "bans": "Bans:",
-      "warns": "Warns:",
-      "adminNotes": "Admin Notes:",
-      "recentReports": "Recent Reports Against User:",
-      "ageValue": "{days} days (since {date})",
-      "none": "(none)",
+      "title": "Reported user",
+      "reports": "reports",
+      "warns": "warnings",
+      "bans": "bans",
+      "adminNotes": "Admin notes",
+      "recentReports": "Recent reports against this user",
+      "ageValue": "{days} days old · since {date}",
+      "none": "No notes.",
       "noRecent": "No previous reports against this user.",
       "loadFailed": "Error loading user info.",
-      "recentLine": "[{date}] #{id} by {reporter} [{status}]: {category}"
+      "recentLine": "[{date}] #{id} by {reporter} [{status}]: {category}",
+      "openProfile": "Open profile",
+      "newAccount": "New account"
     },
     "stats": {
-      "title": "Report Statistics",
+      "title": "Report statistics",
       "loading": "Loading statistics...",
       "failed": "Error loading statistics.",
-      "total": "Total: {total} reports ({open} open, {assigned} assigned, {resolved} resolved/dismissed)",
-      "trend": "Last 24h: {day}  |  Last 7d: {week}  |  Last 30d: {month}  |  Avg resolution: {hours}h",
-      "weekCompare": "This week: {thisWeek} vs last week: {lastWeek} ({change})",
+      "line": "Last 24 h {day} · 7 days {week} · average time to resolve {hours} h",
+      "total": "Total: {total} reports ({open} open, {assigned} assigned, {resolved} resolved or dismissed)",
+      "month": "Last 30 days: {month}",
+      "weekCompare": "This week {thisWeek}, last week {lastWeek} ({change})",
       "weekChangeNew": "new",
-      "byCategory": "By category:",
-      "topCategories": "=== Top Categories ===",
-      "mostReported": "=== Most Reported Users ===",
-      "topReporters": "=== Top Reporters ===",
-      "reportedCount": "{user}: {count} reports",
-      "filedCount": "{user}: {count} reports filed"
+      "topCategories": "Top categories",
+      "mostReported": "Most reported users",
+      "topReporters": "Top reporters",
+      "none": "None yet."
     }
   },
   "Room": {

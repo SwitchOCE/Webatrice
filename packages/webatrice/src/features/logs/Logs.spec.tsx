@@ -40,9 +40,10 @@ const makeMessage = (overrides: Record<string, unknown> = {}) =>
 
 describe('Logs', () => {
   it('renders the search form and the results tabs', () => {
-    const { container } = renderWithProviders(<Logs />, { preloadedState: connectedState });
+    renderWithProviders(<Logs />, { preloadedState: connectedState });
 
-    expect(container.querySelector('.moderator-logs')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /LogSearchForm\.button\.search/ })).toBeInTheDocument();
+    expect(screen.getByRole('tab', { name: /Logs\.tab\.rooms/ })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: /LogSearchForm\.button\.search/ })).toBeInTheDocument();
     expect(screen.getByRole('tab', { name: /Logs\.tab\.rooms/ })).toBeInTheDocument();
   });

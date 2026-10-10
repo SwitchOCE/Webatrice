@@ -1,15 +1,13 @@
-import { useMemo } from 'react';
+import { useMemo, type ReactNode } from 'react';
 import { Controller, useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useTranslation } from 'react-i18next';
+import { Lock, LockOpen, MessageSquareText, Power, RefreshCw, ShieldCheck, Film } from 'lucide-react';
 
-import Button from '@mui/material/Button';
-import Paper from '@mui/material/Paper';
-import TextField from '@mui/material/TextField';
-
-import { AuthGuard, ModGuard } from '@app/components';
+import { Button, ModGuard, TextInput } from '@app/components';
 import { AlertDialog } from '@app/dialogs';
-import { Layout } from '@app/feature-wrappers/layout';
+import { sectionLabelClass, StaffConsole, StaffHeader } from '@app/feature-wrappers/staff';
+import { cx } from '@app/utils';
 
 import {
   buildActivateUserSchema,
@@ -20,7 +18,28 @@ import {
 import ShutdownDialog from './ShutdownDialog';
 import { useAdministration } from './useAdministration';
 
-import './Administration.css';
+const rowClass = 'flex flex-wrap items-center gap-x-4 gap-y-2 border-b border-border-subtle px-5 py-3 last:border-b-0';
+
+interface FunctionRowProps {
+  icon: ReactNode;
+  title: string;
+  description: string;
+  disabled: boolean;
+  children: ReactNode;
+}
+
+const FunctionRow = ({ icon, title, description, disabled, children }: FunctionRowProps) => (
+  <li className={cx(rowClass, disabled && 'opacity-60')}>
+    <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-ui bg-bg-elevated text-text-secondary" aria-hidden>
+      {icon}
+    </span>
+    <div className="flex min-w-[220px] flex-1 flex-col">
+      <span className="text-[13px] font-semibold text-text-primary">{title}</span>
+      <span className="text-[12px] text-text-muted">{description}</span>
+    </div>
+    <div className="flex items-start gap-2">{children}</div>
+  </li>
+);
 
 interface SingleFieldFormProps {
   disabled: boolean;
@@ -34,26 +53,28 @@ const GrantReplayForm = ({ disabled, onSubmit }: SingleFieldFormProps) => {
   const empty = watch('replayId').trim() === '';
 
   return (
-    <form className="administration__row" onSubmit={handleSubmit(({ replayId }) => onSubmit(replayId))} noValidate>
+    <form className="flex items-start gap-2" onSubmit={handleSubmit(({ replayId }) => onSubmit(replayId))} noValidate>
       <Controller
         name="replayId"
         control={control}
         render={({ field, fieldState }) => (
-          <TextField
-            {...field}
-            onChange={(e) => field.onChange(e.target.value.replace(/\D/g, ''))}
-            size="small"
-            disabled={disabled}
-            placeholder={t('Administration.moderator.replayId')}
-            error={Boolean(fieldState.error)}
-            helperText={fieldState.error?.message}
-            slotProps={{ htmlInput: { inputMode: 'numeric', 'aria-label': t('Administration.moderator.replayId') } }}
-          />
+          <span className="flex flex-col gap-1">
+            <TextInput
+              {...field}
+              icon={null}
+              wrapperClassName="w-[150px]"
+              onChange={(e) => field.onChange(e.target.value.replace(/\D/g, ''))}
+              disabled={disabled}
+              inputMode="numeric"
+              placeholder={t('Administration.moderator.replayId')}
+              aria-label={t('Administration.moderator.replayId')}
+              aria-invalid={Boolean(fieldState.error)}
+            />
+            {fieldState.error && <span role="alert" className="text-[12px] text-danger">{fieldState.error.message}</span>}
+          </span>
         )}
       />
-      <Button type="submit" variant="contained" disabled={disabled || empty}>
-        {t('Administration.moderator.grantReplayAccess')}
-      </Button>
+      <Button type="submit" disabled={disabled || empty}>{t('Administration.moderator.grantReplayAccess')}</Button>
     </form>
   );
 };
@@ -65,25 +86,26 @@ const ActivateUserForm = ({ disabled, onSubmit }: SingleFieldFormProps) => {
   const empty = watch('userName') === '';
 
   return (
-    <form className="administration__row" onSubmit={handleSubmit(({ userName }) => onSubmit(userName))} noValidate>
+    <form className="flex items-start gap-2" onSubmit={handleSubmit(({ userName }) => onSubmit(userName))} noValidate>
       <Controller
         name="userName"
         control={control}
         render={({ field, fieldState }) => (
-          <TextField
-            {...field}
-            size="small"
-            disabled={disabled}
-            placeholder={t('Administration.moderator.userToActivate')}
-            error={Boolean(fieldState.error)}
-            helperText={fieldState.error?.message}
-            slotProps={{ htmlInput: { 'aria-label': t('Administration.moderator.userToActivate') } }}
-          />
+          <span className="flex flex-col gap-1">
+            <TextInput
+              {...field}
+              icon={null}
+              wrapperClassName="w-[150px]"
+              disabled={disabled}
+              placeholder={t('Administration.moderator.userToActivate')}
+              aria-label={t('Administration.moderator.userToActivate')}
+              aria-invalid={Boolean(fieldState.error)}
+            />
+            {fieldState.error && <span role="alert" className="text-[12px] text-danger">{fieldState.error.message}</span>}
+          </span>
         )}
       />
-      <Button type="submit" variant="contained" disabled={disabled || empty}>
-        {t('Administration.moderator.forceActivateUser')}
-      </Button>
+      <Button type="submit" disabled={disabled || empty}>{t('Administration.moderator.forceActivateUser')}</Button>
     </form>
   );
 };
@@ -91,40 +113,87 @@ const ActivateUserForm = ({ disabled, onSubmit }: SingleFieldFormProps) => {
 const AdministrationContent = () => {
   const { t } = useTranslation();
   const admin = useAdministration();
+  const serverDisabled = !admin.adminFunctionsEnabled;
+  const moderatorDisabled = !admin.moderatorFunctionsEnabled;
 
   return (
     <>
-      <Paper component="section" className="administration__group" aria-labelledby="administration-admin-title">
-        <h2 id="administration-admin-title" className="administration__title">{t('Administration.admin.title')}</h2>
-        <div className="administration__buttons">
-          <Button variant="contained" disabled={!admin.adminFunctionsEnabled} onClick={admin.updateServerMessage}>
-            {t('Administration.admin.updateServerMessage')}
-          </Button>
-          <Button variant="contained" disabled={!admin.adminFunctionsEnabled} onClick={admin.openShutdownDialog}>
-            {t('Administration.admin.shutdownServer')}
-          </Button>
-          <Button variant="contained" disabled={!admin.adminFunctionsEnabled} onClick={admin.reloadConfig}>
-            {t('Administration.admin.reloadConfig')}
-          </Button>
-        </div>
-      </Paper>
+      <StaffHeader title={t('Administration.title')} subtitle={t('Administration.subtitle')} />
+      <div className="flex min-h-0 flex-1 flex-col gap-4 overflow-y-auto border-t border-border-subtle px-5 py-4">
+        {admin.locked && (
+          <div
+            role="status"
+            className="flex flex-wrap items-center gap-3 rounded-ui-lg border border-border-subtle bg-bg-surface px-4 py-3 text-[13px]"
+          >
+            <Lock size={16} className="text-text-muted" aria-hidden />
+            <span className="flex-1 text-text-secondary">{t('Administration.lockedNotice')}</span>
+            <Button size="sm" icon={<LockOpen size={13} aria-hidden />} onClick={admin.unlock}>{t('Administration.button.unlock')}</Button>
+          </div>
+        )}
 
-      <Paper component="section" className="administration__group" aria-labelledby="administration-moderator-title">
-        <h2 id="administration-moderator-title" className="administration__title">{t('Administration.moderator.title')}</h2>
-        <GrantReplayForm
-          disabled={!admin.moderatorFunctionsEnabled}
-          onSubmit={(replayId) => admin.grantReplayAccess(Number(replayId))}
-        />
-        <ActivateUserForm disabled={!admin.moderatorFunctionsEnabled} onSubmit={admin.forceActivateUser} />
-      </Paper>
+        <section aria-labelledby="administration-admin-title" className="rounded-ui-lg border border-border-subtle bg-bg-surface">
+          <h2 id="administration-admin-title" className={cx(sectionLabelClass, 'block border-b border-border-subtle px-5 py-2.5')}>
+            {t('Administration.admin.title')}
+          </h2>
+          <ul>
+            <FunctionRow
+              icon={<MessageSquareText size={15} />}
+              title={t('Administration.admin.updateServerMessage')}
+              description={t('Administration.admin.updateServerMessageHint')}
+              disabled={serverDisabled}
+            >
+              <Button disabled={serverDisabled} onClick={admin.updateServerMessage}>{t('Administration.admin.updateServerMessage')}</Button>
+            </FunctionRow>
+            <FunctionRow
+              icon={<RefreshCw size={15} />}
+              title={t('Administration.admin.reloadConfig')}
+              description={t('Administration.admin.reloadConfigHint')}
+              disabled={serverDisabled}
+            >
+              <Button disabled={serverDisabled} onClick={admin.reloadConfig}>{t('Administration.admin.reloadConfig')}</Button>
+            </FunctionRow>
+            <FunctionRow
+              icon={<Power size={15} />}
+              title={t('Administration.admin.shutdownServer')}
+              description={t('Administration.admin.shutdownServerHint')}
+              disabled={serverDisabled}
+            >
+              <Button variant="danger" disabled={serverDisabled} onClick={admin.openShutdownDialog}>
+                {t('Administration.admin.shutdownServer')}
+              </Button>
+            </FunctionRow>
+          </ul>
+          {!admin.isAdmin && (
+            <p className="border-t border-border-subtle px-5 py-2.5 text-[12px] text-text-muted">{t('Administration.admin.adminOnly')}</p>
+          )}
+        </section>
 
-      <div className="administration__lock">
-        <Button variant="outlined" disabled={!admin.locked} onClick={admin.unlock}>
-          {t('Administration.button.unlock')}
-        </Button>
-        <Button variant="outlined" disabled={admin.locked} onClick={admin.lock}>
-          {t('Administration.button.lock')}
-        </Button>
+        <section aria-labelledby="administration-moderator-title" className="rounded-ui-lg border border-border-subtle bg-bg-surface">
+          <h2 id="administration-moderator-title" className={cx(sectionLabelClass, 'block border-b border-border-subtle px-5 py-2.5')}>
+            {t('Administration.moderator.title')}
+          </h2>
+          <ul>
+            <FunctionRow
+              icon={<Film size={15} />}
+              title={t('Administration.moderator.grantReplayAccess')}
+              description={t('Administration.moderator.grantReplayAccessHint')}
+              disabled={moderatorDisabled}
+            >
+              <GrantReplayForm
+                disabled={moderatorDisabled}
+                onSubmit={(replayId) => admin.grantReplayAccess(Number(replayId))}
+              />
+            </FunctionRow>
+            <FunctionRow
+              icon={<ShieldCheck size={15} />}
+              title={t('Administration.moderator.forceActivateUser')}
+              description={t('Administration.moderator.forceActivateUserHint')}
+              disabled={moderatorDisabled}
+            >
+              <ActivateUserForm disabled={moderatorDisabled} onSubmit={admin.forceActivateUser} />
+            </FunctionRow>
+          </ul>
+        </section>
       </div>
 
       <ShutdownDialog
@@ -145,12 +214,11 @@ const AdministrationContent = () => {
 };
 
 const Administration = () => (
-  <Layout className="administration scrollable">
-    <AuthGuard />
+  <StaffConsole>
     <ModGuard>
       <AdministrationContent />
     </ModGuard>
-  </Layout>
+  </StaffConsole>
 );
 
 export default Administration;

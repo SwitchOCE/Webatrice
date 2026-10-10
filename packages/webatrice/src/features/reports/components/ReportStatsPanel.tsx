@@ -1,78 +1,102 @@
 import { useTranslation } from 'react-i18next';
 
 import { server } from '@cockatrice/datatrice';
+import { sectionLabelClass } from '@app/feature-wrappers/staff';
 import { useAppSelector } from '@app/store';
+import { cx } from '@app/utils';
 
-import { formatReportCategory } from '../reportFormat';
 import type { ReportListLoadState } from '../hooks/useReportListLoad';
+import { weekChange } from '../reportFormat';
+import { useReportLabels } from './ReportBadges';
 
-interface ReportStatsPanelProps {
-  open: boolean;
-  onToggle: (open: boolean) => void;
-  state: ReportListLoadState;
-}
-
-export default function ReportStatsPanel({ open, onToggle, state }: ReportStatsPanelProps) {
+export function ReportStatsLine({ state }: { state: ReportListLoadState }) {
   const { t } = useTranslation();
   const stats = useAppSelector(server.Selectors.getReportStats);
 
-  let body: React.ReactNode;
+  let text: string;
   if (state === 'failed') {
-    body = <p>{t('Reports.stats.failed')}</p>;
+    text = t('Reports.stats.failed');
   } else if (state === 'loading' || !stats) {
-    body = <p>{t('Reports.stats.loading')}</p>;
+    text = t('Reports.stats.loading');
   } else {
-    const { reportsThisWeek: thisWeek, reportsLastWeek: lastWeek } = stats;
-    let change: string;
-    if (lastWeek > 0) {
-      change = `${(((thisWeek - lastWeek) * 100) / lastWeek).toFixed(0)}%`;
-    } else {
-      change = thisWeek > 0 ? t('Reports.stats.weekChangeNew') : '0%';
-    }
-    body = (
-      <>
-        <p>
+    text = t('Reports.stats.line', {
+      day: stats.reportsLast24h,
+      week: stats.reportsLast7d,
+      hours: stats.avgResolutionHours.toFixed(1),
+    });
+  }
+  return <span data-testid="report-stats">{text}</span>;
+}
+
+function TopList({ title, rows }: { title: string; rows: { key: string; label: string; count: number }[] }) {
+  const { t } = useTranslation();
+  return (
+    <div className="flex min-w-0 flex-col gap-1">
+      <span className={sectionLabelClass}>{title}</span>
+      {rows.length === 0 ? (
+        <span className="text-[12px] text-text-muted">{t('Reports.stats.none')}</span>
+      ) : (
+        <ol className="flex flex-col text-[12px]">
+          {rows.map((row) => (
+            <li key={row.key} className="flex gap-2">
+              <span className="min-w-0 flex-1 truncate text-text-primary">{row.label}</span>
+              <span className="font-mono tabular-nums text-text-muted">{row.count}</span>
+            </li>
+          ))}
+        </ol>
+      )}
+    </div>
+  );
+}
+
+export function ReportStatsDetails() {
+  const { t } = useTranslation();
+  const labels = useReportLabels();
+  const stats = useAppSelector(server.Selectors.getReportStats);
+  if (!stats) {
+    return null;
+  }
+  const change = weekChange(stats.reportsThisWeek, stats.reportsLastWeek);
+  return (
+    <section
+      aria-label={t('Reports.stats.title')}
+      data-testid="report-stats-detail"
+      className={cx(
+        'mx-5 mb-3 grid shrink-0 gap-4 rounded-ui-lg border border-border-subtle bg-bg-surface p-3',
+        'text-[12px] text-text-secondary md:grid-cols-[1.2fr_1fr_1fr_1fr]',
+      )}
+    >
+      <div className="flex flex-col gap-1">
+        <span className={sectionLabelClass}>{t('Reports.stats.title')}</span>
+        <span>
           {t('Reports.stats.total', {
             total: stats.totalReports,
             open: stats.totalPending,
             assigned: stats.totalAssigned,
             resolved: stats.totalResolved,
           })}
-        </p>
-        <p>
-          {t('Reports.stats.trend', {
-            day: stats.reportsLast24h,
-            week: stats.reportsLast7d,
-            month: stats.reportsLast30d,
-            hours: stats.avgResolutionHours.toFixed(1),
+        </span>
+        <span>{t('Reports.stats.month', { month: stats.reportsLast30d })}</span>
+        <span>
+          {t('Reports.stats.weekCompare', {
+            thisWeek: stats.reportsThisWeek,
+            lastWeek: stats.reportsLastWeek,
+            change: change === null ? t('Reports.stats.weekChangeNew') : `${change}%`,
           })}
-          {'  |  '}
-          {t('Reports.stats.weekCompare', { thisWeek, lastWeek, change })}
-        </p>
-        <p>{t('Reports.stats.byCategory')}</p>
-        <pre className="max-h-40 overflow-y-auto rounded-md bg-bg-base p-2 text-xs" data-testid="report-stats-detail">
-          {[
-            t('Reports.stats.topCategories'),
-            ...stats.categoryCounts.map((c) => `  ${formatReportCategory(c.category)}: ${c.count}`),
-            '',
-            t('Reports.stats.mostReported'),
-            ...stats.topReportedUsers.map((u) => `  ${t('Reports.stats.reportedCount', { user: u.userName, count: u.count })}`),
-            '',
-            t('Reports.stats.topReporters'),
-            ...stats.topReporters.map((u) => `  ${t('Reports.stats.filedCount', { user: u.userName, count: u.count })}`),
-          ].join('\n')}
-        </pre>
-      </>
-    );
-  }
-
-  return (
-    <section className="rounded-md border border-border-subtle p-3 text-sm" aria-label={t('Reports.stats.title')}>
-      <label className="flex items-center gap-2 text-xs font-semibold uppercase tracking-wide text-text-muted">
-        <input type="checkbox" checked={open} onChange={(e) => onToggle(e.target.checked)} />
-        {t('Reports.stats.title')}
-      </label>
-      {open && <div className="mt-2 flex flex-col gap-1" data-testid="report-stats">{body}</div>}
+        </span>
+      </div>
+      <TopList
+        title={t('Reports.stats.topCategories')}
+        rows={stats.categoryCounts.map((c) => ({ key: c.category, label: labels.category(c.category), count: c.count }))}
+      />
+      <TopList
+        title={t('Reports.stats.mostReported')}
+        rows={stats.topReportedUsers.map((u) => ({ key: u.userName, label: u.userName, count: u.count }))}
+      />
+      <TopList
+        title={t('Reports.stats.topReporters')}
+        rows={stats.topReporters.map((u) => ({ key: u.userName, label: u.userName, count: u.count }))}
+      />
     </section>
   );
 }

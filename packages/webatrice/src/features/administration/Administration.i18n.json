@@ -1,17 +1,23 @@
 {
   "Administration": {
     "admin": {
-      "title": "Server administration functions",
+      "title": "Server",
       "updateServerMessage": "Update server message",
       "shutdownServer": "Shut down server",
-      "reloadConfig": "Reload configuration"
+      "reloadConfig": "Reload configuration",
+      "updateServerMessageHint": "Re-read the server's welcome message and send it to everyone.",
+      "reloadConfigHint": "Re-read the server's configuration file.",
+      "shutdownServerHint": "Warn everyone and stop the server after a delay.",
+      "adminOnly": "Only administrators can use the server functions."
     },
     "moderator": {
-      "title": "Server moderator functions",
+      "title": "Moderator",
       "replayId": "Replay ID",
-      "grantReplayAccess": "Grant Replay Access",
-      "userToActivate": "Username to Activate",
-      "forceActivateUser": "Force Activate User"
+      "grantReplayAccess": "Grant replay access",
+      "userToActivate": "User name",
+      "forceActivateUser": "Force-activate user",
+      "grantReplayAccessHint": "Give yourself access to a replay by its ID.",
+      "forceActivateUserHint": "Activate an account that never confirmed its email."
     },
     "shutdown": {
       "title": "Shut down server",
@@ -21,7 +27,6 @@
     },
     "button": {
       "unlock": "Unlock functions",
-      "lock": "Lock functions",
       "cancel": "Cancel",
       "ok": "OK"
     },
@@ -45,6 +50,9 @@
     "validation": {
       "minutes": "Enter a whole number of minutes from 0 to {max}",
       "replayId": "Enter a replay ID (digits only)"
-    }
+    },
+    "title": "Administration",
+    "subtitle": "Server and moderator functions. They stay greyed out while functions are locked.",
+    "lockedNotice": "Functions are locked. Unlock them here or in the staff tools list."
   }
 }
