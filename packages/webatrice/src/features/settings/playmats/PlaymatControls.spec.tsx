@@ -13,7 +13,7 @@ import {
   PlaymatModeSelect,
   PlaymatVisibilitySelect,
 } from './PlaymatControls';
-import { movePlaymat } from './playmatList';
+import { asDecimal, asPercent, movePlaymat } from './playmatList';
 
 const PARAMS = { marginPctL: 0.07, marginPctR: 0.07, verticalOffset: 0.33, zoom: 1 };
 const mat = (cardName: string) => ({ cardName, cardProviderId: '', params: PARAMS });
@@ -34,6 +34,13 @@ async function openAddForm() {
   fireEvent.click(screen.getByRole('button', { name: 'PlaymatSettings.collection.addArt' }));
   return screen.getByRole('textbox', { name: 'PlaymatSettings.collection.cardName' });
 }
+
+describe('crop value formats', () => {
+  it('shows margins as whole percentages and the offset and zoom with two decimals', () => {
+    expect(asPercent(0.07)).toBe('7');
+    expect(asDecimal(1)).toBe('1.00');
+  });
+});
 
 describe('movePlaymat', () => {
   it('swaps neighbours and leaves the list alone for an index out of range', () => {
@@ -125,6 +132,42 @@ describe('playmat controls', () => {
     expect(getPlaymatSettings().fallbackList).toEqual([]);
   });
 
+  it('drops an add that is cancelled while the card is still being looked up', async () => {
+    let resolve: (card: CardDTO) => void = () => {};
+    vi.mocked(CardDTO.get).mockReturnValue(new Promise<CardDTO>((r) => {
+      resolve = r;
+    }) as ReturnType<typeof CardDTO.get>);
+    renderCollection();
+    fireEvent.change(await openAddForm(), { target: { value: 'Island' } });
+    await act(async () => {
+      fireEvent.click(screen.getByRole('button', { name: 'PlaymatSettings.collection.add' }));
+    });
+
+    fireEvent.click(screen.getByRole('button', { name: 'PlaymatSettings.collection.cancel' }));
+    expect(screen.getByRole('button', { name: 'PlaymatSettings.collection.addArt' })).toHaveFocus();
+    await act(async () => {
+      resolve({ name: { value: 'Island' }, set: [] } as unknown as CardDTO);
+    });
+
+    expect(getPlaymatSettings().fallbackList).toEqual([]);
+    expect(screen.queryByRole('group', { name: 'PlaymatSettings.crop.title' })).not.toBeInTheDocument();
+  });
+
+  it('keeps the typed name and says so when saving the new card fails', async () => {
+    const save = vi.spyOn(SettingDTO.prototype, 'save').mockRejectedValue(new Error('quota'));
+    renderCollection();
+    const input = await openAddForm();
+    fireEvent.change(input, { target: { value: 'Island' } });
+    await act(async () => {
+      fireEvent.click(screen.getByRole('button', { name: 'PlaymatSettings.collection.add' }));
+    });
+
+    expect(screen.getByText('PlaymatSettings.validation.saveFailed')).toBeInTheDocument();
+    expect(input).toHaveValue('Island');
+    expect(input).toBeInTheDocument();
+    save.mockRestore();
+  });
+
   it('requires a card name, and Cancel closes the form', async () => {
     renderCollection();
     await openAddForm();
@@ -172,5 +215,27 @@ describe('playmat controls', () => {
 
     fireEvent.click(screen.getByRole('button', { name: 'PlaymatSettings.collection.done' }));
     expect(screen.queryByRole('group', { name: 'PlaymatSettings.crop.title' })).not.toBeInTheDocument();
+    expect(edit).toHaveFocus();
+  });
+
+  it('saves a dragged crop once, on release, and announces the margins as percentages', () => {
+    act(() => {
+      void setPlaymatSettings({ fallbackList: [mat('A')] });
+    });
+    renderCollection();
+    fireEvent.click(screen.getByRole('button', { name: 'PlaymatSettings.collection.editCrop' }));
+
+    const left = screen.getByRole('slider', { name: 'PlaymatSettings.crop.leftMargin' });
+    expect(left).toHaveAttribute('aria-valuetext', '7');
+    expect(left).toHaveAttribute('step', '0.01');
+    expect(left).toHaveAttribute('max', '0.95');
+    const saved = getPlaymatSettings();
+
+    fireEvent.input(left, { target: { value: '0.2' } });
+    expect(getPlaymatSettings()).toBe(saved);
+    expect(left).toHaveAttribute('aria-valuetext', '20');
+
+    fireEvent.change(left);
+    expect(getPlaymatSettings().fallbackList[0].params).toEqual({ ...PARAMS, marginPctL: 0.2 });
   });
 });

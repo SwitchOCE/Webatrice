@@ -71,6 +71,15 @@ describe('Settings', () => {
     expect(within(nav()).queryByRole('button', { name: 'SettingsGeneral.group.startup' })).not.toBeInTheDocument();
   });
 
+  it('moves focus to the heading it jumps to', async () => {
+    await renderSettings();
+    fireEvent.click(within(nav()).getByRole('button', { name: /Settings\.section\.chat/ }));
+    expect(screen.getByRole('heading', { level: 2, name: 'Settings.section.chat' })).toHaveFocus();
+
+    fireEvent.click(within(nav()).getByRole('button', { name: 'SettingsChat.group.macros' }));
+    expect(screen.getByRole('heading', { level: 3, name: 'SettingsChat.group.macros' })).toHaveFocus();
+  });
+
   it('flashes the group picked from the list', async () => {
     vi.useFakeTimers({ shouldAdvanceTime: true });
     await renderSettings();
@@ -407,6 +416,16 @@ describe('Settings', () => {
     expect(within(nav()).getByRole('button', { name: /Settings\.section\.shortcuts/ })).toHaveTextContent(/1$/);
     expect(screen.queryByText('Settings.noResults')).not.toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Settings.shortcuts.open' })).toBeInTheDocument();
+  });
+
+  it('keeps the Shortcuts section and its link when the search names the section', async () => {
+    await renderSettings();
+    search('section.shortcuts');
+
+    expect(screen.getByRole('region', { name: /^Settings\.section\.shortcuts$/ })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Settings.shortcuts.open' })).toBeInTheDocument();
+    expect(within(nav()).getByRole('button', { name: /Settings\.section\.shortcuts/ })).toBeEnabled();
+    expect(screen.queryByText('Settings.noResults')).not.toBeInTheDocument();
   });
 
   it('keeps shortcut overrides in the shortcuts slice', async () => {

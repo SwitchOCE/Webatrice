@@ -38,8 +38,13 @@ const Settings = ({ sections = settingsSections }: SettingsProps) => {
   const { t } = useTranslation();
   const page = useSettingsPage(sections);
   const { query, searching, result, active, flash, jump } = page;
-  const shownCount = (entry: FilteredSection) => (entry.section.page ? (searching ? result.shortcuts.length : shortcutCount) : entry.count);
-  const visible = result.sections.filter((entry) => !searching || shownCount(entry) > 0);
+  const shownCount = (entry: FilteredSection) => {
+    if (!entry.section.page) {
+      return entry.count;
+    }
+    return !searching || (entry.titleMatch && result.shortcuts.length === 0) ? shortcutCount : result.shortcuts.length;
+  };
+  const visible = result.sections.filter((entry) => !searching || entry.titleMatch || shownCount(entry) > 0);
   const nothing = searching && visible.length === 0;
 
   return (
@@ -117,7 +122,7 @@ const Settings = ({ sections = settingsSections }: SettingsProps) => {
               const Icon = section.icon;
               const on = !searching && section.id === active;
               const count = shownCount(entry);
-              const empty = searching && count === 0;
+              const empty = searching && count === 0 && !entry.titleMatch;
               return (
                 <div key={section.id} className="flex flex-col">
                   <button
@@ -221,7 +226,7 @@ function SectionBlock({ entry, query, children }: SectionBlockProps) {
         className="sticky top-0 z-10 -mx-8 flex flex-wrap items-end gap-3 bg-bg-base/95 px-8 pb-2 pt-5 backdrop-blur"
       >
         <div className="flex flex-col">
-          <h2 id={headingId} className="font-display text-[18px] font-semibold text-text-primary">
+          <h2 id={headingId} tabIndex={-1} className="font-display text-[18px] font-semibold text-text-primary outline-none">
             <Highlight text={title} query={query} />
           </h2>
           <span className="text-[12px] text-text-muted">{t(SECTION_BLURB_KEYS[section.id])}</span>
@@ -262,7 +267,11 @@ function GroupCard({ id, title, query, flash, children }: GroupCardProps) {
     >
       <h3
         id={headingId}
-        className="border-b border-border-subtle px-pad py-2.5 text-[12px] font-semibold uppercase tracking-[0.07em] text-text-muted"
+        tabIndex={-1}
+        className={cx(
+          'border-b border-border-subtle px-pad py-2.5 outline-none',
+          'text-[12px] font-semibold uppercase tracking-[0.07em] text-text-muted',
+        )}
       >
         <Highlight text={title} query={query} />
       </h3>

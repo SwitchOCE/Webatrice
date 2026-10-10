@@ -14,6 +14,7 @@ export interface FilteredSection {
   section: SettingsSection;
   groups: FilteredGroup[];
   count: number;
+  titleMatch: boolean;
 }
 
 export interface ShortcutHit {
@@ -83,7 +84,12 @@ export function filterSections(
       ));
       return entries.length > 0 ? [{ group, entries }] : [];
     });
-    return { section, groups, count: groups.reduce((sum, { entries }) => sum + entries.length, 0) };
+    return {
+      section,
+      groups,
+      count: groups.reduce((sum, { entries }) => sum + entries.length, 0),
+      titleMatch: query.trim() !== '' && matchesQuery(query, sectionTitle),
+    };
   });
 }
 

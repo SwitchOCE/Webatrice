@@ -52,13 +52,18 @@ const buildSchema = (t: TFunction, maxLength?: number) => {
 
 type FormValues = { cardName: string };
 
+export interface SubmitResult {
+  ok: boolean;
+  error?: string;
+}
+
 interface CardNameFormProps {
   label: string;
   submitLabel: string;
   submitAriaLabel?: string;
   maxLength?: number;
   disabled?: boolean;
-  onSubmit: (cardName: string) => Promise<string | undefined> | string | undefined;
+  onSubmit: (cardName: string) => Promise<SubmitResult> | SubmitResult;
   onCancel: () => void;
   className?: string;
 }
@@ -81,11 +86,11 @@ export function CardNameForm({
   });
 
   const submit = handleSubmit(async ({ cardName }) => {
-    const error = await onSubmit(cardName.trim());
-    if (error) {
-      setError('cardName', { message: error });
-    } else {
+    const result = await onSubmit(cardName.trim());
+    if (result.ok) {
       reset();
+    } else if (result.error) {
+      setError('cardName', { message: result.error });
     }
   });
 

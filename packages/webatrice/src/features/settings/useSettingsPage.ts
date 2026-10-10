@@ -56,6 +56,7 @@ export function useSettingsPage(sections: readonly SettingsSection[]) {
     const header = section.querySelector<HTMLElement>('[data-section-header]');
     const top = group ? offsetWithin(scroller, group) - (header?.offsetHeight ?? 0) - 12 : offsetWithin(scroller, section);
     scroller.scrollTop = Math.max(0, top);
+    (group ?? section).querySelector<HTMLElement>('h2, h3')?.focus({ preventScroll: true });
     setActive(sectionId);
     setFlash(groupId ?? sectionId);
     window.clearTimeout(flashTimer.current);
