@@ -79,7 +79,8 @@ test('log in, join a room and join a game with the keyboard only', async ({ newC
     await page.keyboard.press('ArrowDown');
     moves++;
   }
-  expect(moves).toBeGreaterThanOrEqual(14);
+  expect(moves).toBeGreaterThanOrEqual(10);
+  await expect(gameRow).toHaveAttribute('aria-rowindex', String(moves + 2));
   await expect.poll(() => scroller.evaluate((element) => element.scrollTop)).toBeGreaterThan(0);
   await expect(gameRow).toBeInViewport();
   await expect(gameRow).toBeFocused();

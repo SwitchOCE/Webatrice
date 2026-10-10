@@ -42,6 +42,15 @@ describe('keepsTabNavigation', () => {
     expect(keepsTabNavigation(document.getElementById('t'))).toBe(false);
   });
 
+  it('keeps Tab navigation on a scroller the browser made a tab stop, on the board or off it', () => {
+    mount(
+      '<div data-game-board><div id="info" style="overflow-y:auto"><div role="spinbutton" tabindex="0">20</div></div></div>'
+      + '<div id="list" style="overflow:scroll">people</div>',
+    );
+    expect(keepsTabNavigation(document.getElementById('info'))).toBe(true);
+    expect(keepsTabNavigation(document.getElementById('list'))).toBe(true);
+  });
+
   it('keeps Tab navigation on a real control on the board', () => {
     mount('<div data-game-board><button id="t">Untap all</button></div>');
     expect(keepsTabNavigation(document.getElementById('t'))).toBe(true);

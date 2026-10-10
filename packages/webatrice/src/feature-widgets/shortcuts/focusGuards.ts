@@ -22,6 +22,17 @@ const CONTROL_SELECTOR = [
   '[tabindex]:not([tabindex="-1"])',
 ].join(', ');
 
+const SCROLLING_OVERFLOW = new Set(['auto', 'scroll']);
+
+function isImplicitScrollerStop(target: Element): boolean {
+  if (target.hasAttribute('tabindex') || target === target.ownerDocument.body) {
+    return false;
+  }
+  const style = target.ownerDocument.defaultView?.getComputedStyle(target);
+  return style != null && [style.overflow, style.overflowX, style.overflowY]
+    .some((value) => value.split(' ').some((part) => SCROLLING_OVERFLOW.has(part)));
+}
+
 export function keepsTabNavigation(target: EventTarget | null): boolean {
   if (!(target instanceof Element)) {
     return false;
@@ -32,7 +43,7 @@ export function keepsTabNavigation(target: EventTarget | null): boolean {
   if (target.closest(CARD_SELECTOR) !== null || target.matches(BOARD_SELECTOR)) {
     return false;
   }
-  return target.matches(CONTROL_SELECTOR);
+  return target.matches(CONTROL_SELECTOR) || isImplicitScrollerStop(target);
 }
 
 export function isModalOpen(doc: Document = document): boolean {
