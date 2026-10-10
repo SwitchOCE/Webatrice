@@ -3,7 +3,7 @@ import { useTranslation } from 'react-i18next';
 import { useNavigate } from 'react-router-dom';
 import { BellOff, CheckCheck, CheckCircle2, X } from 'lucide-react';
 
-import { Button, IconButton, useOpenNotification } from '@app/components';
+import { Button, IconButton, useOpenNotification, useToastLaneForRoute } from '@app/components';
 import { useMarkRead, useNotificationLog, useUnreadTracker } from '@app/hooks';
 import type { NotificationEntry } from '@app/services';
 import { RouteEnum } from '@app/types';
@@ -33,6 +33,7 @@ const focusRing = 'focus-visible:outline focus-visible:outline-2 focus-visible:o
 
 export default function NotificationCentre() {
   useUnreadTracker();
+  useToastLaneForRoute();
   const panel = useRef<HTMLElement>(null);
   const { open, close } = useDrawerFocus(panel);
   return open ? <NotificationDrawer panel={panel} onClose={close} /> : null;
@@ -59,7 +60,7 @@ function NotificationDrawer({ panel, onClose }: { panel: RefObject<HTMLElement |
       tabIndex={-1}
       aria-labelledby={headingId}
       className={cx(
-        'fixed bottom-0 right-0 top-11 z-30 flex w-[384px] max-w-full flex-col outline-none',
+        'fixed bottom-0 right-0 top-11 z-[35] flex w-[384px] max-w-full flex-col outline-none',
         'border-l border-border-subtle bg-bg-surface shadow-pop',
       )}
     >

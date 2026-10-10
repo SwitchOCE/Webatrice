@@ -1,7 +1,7 @@
 import { useCallback } from 'react';
 import { useTranslation } from 'react-i18next';
 
-import { logNotification, notificationStore, showSystemNotification, type NotificationInput } from '@app/services';
+import { bindToSession, logNotification, notificationStore, showSystemNotification, type NotificationInput } from '@app/services';
 import { usePushToast } from '../Toast';
 import NotificationLead from './NotificationLead';
 import NotificationToast from './NotificationToast';
@@ -25,7 +25,7 @@ export function useNotify(): (options: NotifyOptions) => NotifyResult {
 
   return useCallback(({ entry, tag, system, toast, read = false }: NotifyOptions): NotifyResult => {
     const id = logNotification(entry, read);
-    const open = () => openNotification({ id, target: entry.target });
+    const open = bindToSession(() => openNotification({ id, target: entry.target }));
     const title = entryTitle(t, entry);
     const body = entryBody(t, entry);
 
@@ -37,7 +37,11 @@ export function useNotify(): (options: NotifyOptions) => NotifyResult {
     }
     pushToast(
       <NotificationToast title={body ? t('Notifications.toastTitle', { title }) : title} body={body} />,
-      { lead: <NotificationLead entry={entry} size={30} />, action: { label: actionLabel(t, entry.kind), onSelect: open } },
+      {
+        lead: <NotificationLead entry={entry} size={30} />,
+        action: { label: actionLabel(t, entry.kind), onSelect: open },
+        sessionScoped: true,
+      },
     );
     return 'toast';
   }, [t, pushToast, openNotification]);

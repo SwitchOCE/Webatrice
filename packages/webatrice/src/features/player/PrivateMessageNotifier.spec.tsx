@@ -7,7 +7,10 @@ import { connectedState, makeUser, renderWithProviders } from '../../__test-util
 import { playSound } from '../../hooks/playSound';
 import { getSettings, settingsStore } from '../../hooks/useSettings';
 import PrivateMessageNotifier from './PrivateMessageNotifier';
-import { markChatSeen, notificationStore } from '../../services/notifications/notificationStore';
+import { logNotification, notificationStore } from '../../services/notifications/notificationStore';
+import { endSession } from '../../services/session';
+import { dispatchChatDock } from '../../hooks/useChatDock';
+import { ChatDock } from '../../feature-widgets/chat-dock';
 import { chatFilterVerdicts } from '../../utils/chatFilters';
 
 vi.mock('../../hooks/playSound');
@@ -34,21 +37,12 @@ const state = {
   },
 };
 
-const settle = () => new Promise((resolve) => setTimeout(resolve, 0));
-
-const receive = (
-  store: { dispatch: (action: unknown) => unknown },
-  senderName: string,
-  message: string,
-  whileRendering?: () => void,
-) =>
-  act(async () => {
+const receive = async (store: { dispatch: (action: unknown) => unknown }, senderName: string, message: string) =>
+  act(() => {
     store.dispatch(server.Actions.userMessage({
       timeReceived: 123,
       messageData: create(Event_UserMessageSchema, { senderName, receiverName: 'me', message }),
     }));
-    whileRendering?.();
-    await settle();
   });
 
 const renderNotifier = (route = '/') => renderWithProviders(<PrivateMessageNotifier />, { preloadedState: state, route });
@@ -84,7 +78,6 @@ describe('PrivateMessageNotifier', () => {
       expect(chatFilterVerdicts.get(stored)).toBe(visible);
       store.dispatch(server.Actions.userLeft({ name: 'alice' }));
     });
-    await act(settle);
     expect(Boolean(screen.queryByText('arrival'))).toBe(visible);
   });
 
@@ -156,14 +149,45 @@ describe('PrivateMessageNotifier', () => {
     expect(screen.getByText('are you there?')).toBeInTheDocument();
   });
 
-  it('skips the toast and sound for a chat the dock already shows, logging it as read', async () => {
-    const { store } = renderNotifier();
+  it('skips the toast and sound for a chat open in the dock, logging it as read', async () => {
+    dispatchChatDock({ type: 'open', name: 'alice', max: 3 });
+    try {
+      const { store } = renderWithProviders(<><PrivateMessageNotifier /><ChatDock /></>, { preloadedState: state });
 
-    await receive(store, 'alice', 'seen in the dock', () => markChatSeen('alice'));
+      await receive(store, 'alice', 'seen in the dock');
+
+      expect(screen.getByText('seen in the dock')).toBeInTheDocument();
+      expect(screen.queryByTestId('toast')).not.toBeInTheDocument();
+      expect(playSound).not.toHaveBeenCalled();
+      expect(notificationStore.getState().entries[0]).toMatchObject({ actor: 'alice', read: true });
+    } finally {
+      dispatchChatDock({ type: 'reset' });
+    }
+  });
+
+  it('takes its toast down when the session ends', async () => {
+    const { store } = renderNotifier();
+    await receive(store, 'alice', 'private words');
+    expect(screen.getByTestId('toast')).toBeInTheDocument();
+
+    act(() => endSession());
 
     expect(screen.queryByTestId('toast')).not.toBeInTheDocument();
-    expect(playSound).not.toHaveBeenCalled();
-    expect(notificationStore.getState().entries[0]).toMatchObject({ actor: 'alice', read: true });
+    expect(notificationStore.getState().entries).toHaveLength(0);
+  });
+
+  it('closes its OS notification at session end and ignores a late click on it', async () => {
+    vi.spyOn(document, 'hidden', 'get').mockReturnValue(true);
+    const { store } = renderNotifier();
+    await receive(store, 'alice', 'are you there?');
+    const [stale] = FakeNotification.instances;
+
+    act(() => endSession());
+    const fresh = logNotification({ kind: 'report', title: 'next session', target: { type: 'route', path: '/' } });
+    act(() => stale.onclick?.());
+
+    expect(stale.close).toHaveBeenCalled();
+    expect(notificationStore.getState().entries.find((entry) => entry.id === fresh)?.read).toBe(false);
   });
 
   it('raises nothing for a message the Chat preferences filter out', async () => {

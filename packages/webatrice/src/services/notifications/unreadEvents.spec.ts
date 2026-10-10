@@ -29,14 +29,19 @@ const visible: VisibilityChecks = { roomMessage: () => true, privateMessage: () 
 const change = (action: { type: string; payload: unknown }, pathname = '/', checks = visible) =>
   unreadChange(action, state, state, currentView(pathname), checks);
 
+const withGame = (patch: Record<string, unknown>) => ({
+  ...state,
+  games: { ...state.games, games: { 4: { ...state.games.games[4], ...patch } } },
+}) as RootState;
+
 const roomLine = (name: string, messageType = Event_RoomSay_RoomMessageType.UserMessage) =>
   rooms.Actions.addMessage({ roomId: 1, message: { name, message: 'hi', messageType, timeReceived: 0 } as never });
 
 describe('currentView', () => {
   it('reads the room, game or conversation on screen from the route', () => {
-    expect(currentView('/room/3')).toEqual({ roomId: 3, gameId: undefined, chatPeer: undefined });
+    expect(currentView('/room/3')).toEqual({ roomId: 3, gameId: undefined, chatPeers: [] });
     expect(currentView('/game/9')).toMatchObject({ gameId: 9 });
-    expect(currentView('/player/bob')).toMatchObject({ chatPeer: 'bob' });
+    expect(currentView('/player/bob')).toMatchObject({ chatPeers: ['bob'] });
   });
 });
 
@@ -68,5 +73,25 @@ describe('unreadChange', () => {
     const left = games.Actions.playerLeft({ gameId: 4, playerId: 2, reason: 0 } as never);
     expect(change(left)).toEqual({ op: 'bump', scope: 'games', key: 4 });
     expect(change(games.Actions.gameLeft({ gameId: 4 }))).toEqual({ op: 'clear', scope: 'games', key: 4 });
+  });
+
+  it('counts turn changes and phase changes on your turn, not every card move', () => {
+    const view = currentView('/');
+    const turn = games.Actions.activePlayerSet({ gameId: 4, activePlayerId: 2 });
+    expect(unreadChange(turn, withGame({ activePlayerId: 1 }), withGame({ activePlayerId: 2 }), view, visible))
+      .toEqual({ op: 'bump', scope: 'games', key: 4 });
+
+    const phase = games.Actions.activePhaseSet({ gameId: 4, phase: 3 });
+    const mine = { activePlayerId: 1 };
+    expect(unreadChange(phase, withGame({ ...mine, activePhase: 2 }), withGame({ ...mine, activePhase: 3 }), view, visible))
+      .toEqual({ op: 'bump', scope: 'games', key: 4 });
+    const theirs = { activePlayerId: 2 };
+    expect(unreadChange(phase, withGame({ ...theirs, activePhase: 2 }), withGame({ ...theirs, activePhase: 3 }), view, visible))
+      .toBeNull();
+
+    const moved = { type: games.Types.CARD_MOVED, payload: { gameId: 4, playerId: 2, data: {} } };
+    expect(unreadChange(moved, state, state, view, visible)).toBeNull();
+    expect(unreadChange(turn, withGame({ activePlayerId: 1, replay: true }), withGame({ activePlayerId: 2, replay: true }), view, visible))
+      .toBeNull();
   });
 });

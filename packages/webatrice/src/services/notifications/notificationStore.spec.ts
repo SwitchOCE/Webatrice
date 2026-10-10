@@ -1,10 +1,9 @@
 import { endSession } from '@app/services/session';
 
 import {
-  afterChatRender,
+  bindToSession,
   initialNotificationState,
   logNotification,
-  markChatSeen,
   MAX_ENTRIES,
   notificationReducer,
   notificationStore,
@@ -82,18 +81,21 @@ describe('notification store', () => {
     vi.useRealTimers();
   });
 
-  it('tells a notifier whether the chat was marked seen while the message rendered', () => {
-    const seen = vi.fn();
-    afterChatRender('bob', seen);
-    markChatSeen('bob');
-    afterChatRender('alice', seen);
-    vi.runAllTimers();
-    expect(seen.mock.calls).toEqual([[true], [false]]);
+  it('runs a session-bound callback only within the session that made it', () => {
+    const run = vi.fn();
+    const current = bindToSession(run);
+    const stale = bindToSession(run);
+    current();
+    endSession();
+    stale();
+    bindToSession(run)();
+    expect(run).toHaveBeenCalledTimes(2);
   });
 
-  it('forgets the log when the session ends', () => {
-    logNotification(report);
+  it('forgets the log when the session ends without reusing entry ids', () => {
+    const before = logNotification(report);
     endSession();
-    expect(notificationStore.getState()).toBe(initialNotificationState);
+    expect(notificationStore.getState().entries).toEqual([]);
+    expect(logNotification(report)).toBeGreaterThan(before);
   });
 });

@@ -25,6 +25,7 @@ export interface ToastProps {
   icon?: LucideIcon;
   lead?: ReactNode;
   action?: ToastActionButton;
+  onFocusChange?: (focused: boolean) => void;
 }
 
 const SEVERITY_ICON: Record<ToastSeverity, LucideIcon> = {
@@ -49,6 +50,7 @@ function Toast({
   icon,
   lead,
   action,
+  onFocusChange,
 }: ToastProps) {
   const [entered, setEntered] = useState(false);
   useEffect(() => {
@@ -91,10 +93,14 @@ function Toast({
       data-testid="toast"
       onMouseEnter={() => setHovered(true)}
       onMouseLeave={() => setHovered(false)}
-      onFocus={() => setFocused(true)}
+      onFocus={() => {
+        setFocused(true);
+        onFocusChange?.(true);
+      }}
       onBlur={(e) => {
         if (!e.currentTarget.contains(e.relatedTarget as Node | null)) {
           setFocused(false);
+          onFocusChange?.(false);
         }
       }}
       className={cx(

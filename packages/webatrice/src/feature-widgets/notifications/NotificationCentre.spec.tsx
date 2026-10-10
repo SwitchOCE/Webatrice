@@ -110,4 +110,26 @@ describe('NotificationBell and NotificationCentre', () => {
 
     expect(notificationStore.getState().rooms).toEqual({});
   });
+
+  it('counts a room line that arrives while the window is unfocused and clears it on refocus', () => {
+    const focus = vi.spyOn(document, 'hasFocus').mockReturnValue(false);
+    const { store } = renderCentre('/room/1');
+    act(() => {
+      store.dispatch(rooms.Actions.addMessage({
+        roomId: 1,
+        message: { name: 'otherUser', message: 'hello', messageType: Event_RoomSay_RoomMessageType.UserMessage, timeReceived: 0 } as never,
+      }));
+      logNotification({ kind: 'mention', actor: 'otherUser', target: { type: 'room', roomId: 1 } });
+    });
+    expect(notificationStore.getState().rooms).toEqual({ 1: 1 });
+
+    focus.mockReturnValue(true);
+    act(() => {
+      window.dispatchEvent(new Event('focus'));
+    });
+
+    expect(notificationStore.getState().rooms).toEqual({});
+    expect(notificationStore.getState().entries[0].read).toBe(true);
+    focus.mockRestore();
+  });
 });

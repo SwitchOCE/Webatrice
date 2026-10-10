@@ -57,6 +57,13 @@ export const isPageHidden = (): boolean => typeof document !== 'undefined' && do
 
 export const isPageInactive = (): boolean => typeof document !== 'undefined' && (document.hidden || !document.hasFocus());
 
+const shown = new Set<Notification>();
+
+export function closeSystemNotifications(): void {
+  shown.forEach((notification) => notification.close());
+  shown.clear();
+}
+
 export function showSystemNotification({ title, body, tag, onClick }: SystemNotificationOptions): boolean {
   if (!isPageInactive() || getNotificationPermission() !== 'granted') {
     return false;
@@ -66,9 +73,12 @@ export function showSystemNotification({ title, body, tag, onClick }: SystemNoti
       body: body ? truncate(body, NOTIFICATION_BODY_LIMIT) : undefined,
       tag,
     });
+    shown.add(notification);
+    notification.onclose = () => shown.delete(notification);
     notification.onclick = () => {
       window.focus();
       notification.close();
+      shown.delete(notification);
       onClick?.();
     };
     return true;
