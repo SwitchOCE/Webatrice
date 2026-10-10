@@ -8,6 +8,7 @@ export type PopoverAnchor = RefObject<HTMLElement | null> | HTMLElement | (() =>
 export interface AnchoredPopoverProps {
   anchor: PopoverAnchor;
   fallback?: HTMLElement | null;
+  focusFallback?: HTMLElement | null;
   layoutKey?: unknown;
   label: string;
   onClose: () => void;
@@ -57,7 +58,11 @@ export function placePopover(
   return { top: Math.max(MARGIN, rect.top - GAP - height), left, maxHeight };
 }
 
-function focusTarget(anchor: HTMLElement | null, fallback: HTMLElement | null | undefined): HTMLElement | null {
+function focusTarget(
+  anchor: HTMLElement | null,
+  fallback: HTMLElement | null | undefined,
+  focusFallback: HTMLElement | null | undefined,
+): HTMLElement | null {
   if (anchor && !(anchor as HTMLButtonElement).disabled) {
     return anchor;
   }
@@ -65,12 +70,16 @@ function focusTarget(anchor: HTMLElement | null, fallback: HTMLElement | null | 
   if (row) {
     return row;
   }
+  if (focusFallback?.isConnected) {
+    return focusFallback;
+  }
   return fallback?.matches(FOCUSABLE) ? fallback : fallback?.querySelector<HTMLElement>(FOCUSABLE) ?? null;
 }
 
 export function AnchoredPopover({
   anchor,
   fallback,
+  focusFallback,
   layoutKey,
   label,
   onClose,
@@ -80,10 +89,10 @@ export function AnchoredPopover({
 }: AnchoredPopoverProps) {
   const ref = useRef<HTMLDivElement>(null);
   const [placement, setPlacement] = useState<Placement | null>(null);
-  const latest = useRef({ onClose, anchor, fallback });
+  const latest = useRef({ onClose, anchor, fallback, focusFallback });
   const restoreFocus = useRef(true);
   useEffect(() => {
-    latest.current = { onClose, anchor, fallback };
+    latest.current = { onClose, anchor, fallback, focusFallback };
   });
 
   useLayoutEffect(() => {
@@ -139,7 +148,8 @@ export function AnchoredPopover({
       if (!restoreFocus.current || (active && active !== document.body && !panel?.contains(active))) {
         return;
       }
-      focusTarget(resolveAnchor(latest.current.anchor), latest.current.fallback)?.focus();
+      const { anchor: lastAnchor, fallback: lastFallback, focusFallback: lastFocusFallback } = latest.current;
+      focusTarget(resolveAnchor(lastAnchor), lastFallback, lastFocusFallback)?.focus();
     };
   }, []);
 

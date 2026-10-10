@@ -17,7 +17,7 @@ vi.mock('@cockatrice/datatrice/react', async (importOriginal) => {
 
 import { useRecentDecks, useRecordRecentDeck } from './useRecentDecks';
 
-const HOST = 'localhost:4748';
+const HOST = 'ws://localhost:4748';
 const deck = (name: string): RecentDeckSource => ({ name, format: 'modern', meta: {}, cards: [] });
 
 function wrapperFor(userName: string | null) {
@@ -38,7 +38,7 @@ beforeEach(() => {
 describe('useRecentDecks', () => {
   it('shows only the decks of this server and account', () => {
     recordRecentDeck(recentDeckSnapshot(HOST, 'bob', 1, deck('Bob deck'), 1));
-    recordRecentDeck(recentDeckSnapshot('other.net:4748', 'alice', 3, deck('Other server'), 3));
+    recordRecentDeck(recentDeckSnapshot('ws://other.net:4748', 'alice', 3, deck('Other server'), 3));
     recordRecentDeck(recentDeckSnapshot(HOST, 'alice', 2, deck('Alice deck'), 2));
     const { result } = renderHook(() => useRecentDecks(), { wrapper: wrapperFor('alice') });
     expect(result.current.map((d) => d.name)).toEqual(['Alice deck']);

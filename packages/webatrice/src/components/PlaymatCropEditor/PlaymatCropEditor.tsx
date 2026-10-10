@@ -4,12 +4,9 @@ import Slider from '@mui/material/Slider';
 
 import { type games } from '@cockatrice/datatrice';
 import PlaymatImage from '../PlaymatImage/PlaymatImage';
-import { type Size } from '@app/utils';
+import { CROP_LABEL_KEYS, CROP_SLIDERS, type Size } from '@app/utils';
 
 const PREVIEW: Size = { width: 320, height: 120 };
-
-const asPercent = (value: number) => `${Math.round(value * 100)}`;
-const asDecimal = (value: number) => value.toFixed(2);
 
 interface PlaymatCropEditorProps {
   playmat: games.Playmat;
@@ -21,19 +18,7 @@ export default function PlaymatCropEditor({ playmat, onChange }: PlaymatCropEdit
   const [draft, setDraft] = useState<games.PlaymatParams | null>(null);
   const params = draft ?? playmat.params;
 
-  const sliders: {
-    key: keyof games.PlaymatParams;
-    label: string;
-    min: number;
-    max: number;
-    step: number;
-    format: (value: number) => string;
-  }[] = [
-    { key: 'marginPctL', label: t('PlaymatSettings.crop.leftMargin'), min: 0, max: 0.95, step: 0.01, format: asPercent },
-    { key: 'marginPctR', label: t('PlaymatSettings.crop.rightMargin'), min: 0, max: 0.95, step: 0.01, format: asPercent },
-    { key: 'verticalOffset', label: t('PlaymatSettings.crop.verticalOffset'), min: 0, max: 1, step: 0.01, format: asDecimal },
-    { key: 'zoom', label: t('PlaymatSettings.crop.zoom'), min: 0.1, max: 4, step: 0.05, format: asDecimal },
-  ];
+  const sliders = CROP_SLIDERS.map((slider) => ({ ...slider, label: t(CROP_LABEL_KEYS[slider.key]) }));
 
   return (
     <div className="flex flex-col gap-1 py-2 pl-4" role="group" aria-label={t('PlaymatSettings.crop.title')}>

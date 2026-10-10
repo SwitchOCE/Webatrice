@@ -47,6 +47,7 @@ export default function GamesList({ room, header }: GamesListProps) {
   const gameLink = useGameLink();
   const [measureRef, width, section] = useElementWidth<HTMLElement>();
   const [gridHeader, setGridHeader] = useState<HTMLElement | null>(null);
+  const [grid, setGrid] = useState<HTMLElement | null>(null);
   const watchingColumn = width >= WATCHING_MIN_WIDTH;
   const passwordInBar = width >= PASSWORD_TOGGLE_MIN_WIDTH;
   const columns = watchingColumn ? COLUMNS_WIDE : COLUMNS_NARROW;
@@ -104,7 +105,9 @@ export default function GamesList({ room, header }: GamesListProps) {
       </div>
 
       <div
+        ref={setGrid}
         role="grid"
+        tabIndex={-1}
         aria-label={t('GamesList.heading', { room: room.info.name })}
         aria-rowcount={gameList.length + 1}
         className="flex min-h-0 flex-1 flex-col overflow-hidden border-t border-border-subtle"
@@ -229,6 +232,7 @@ export default function GamesList({ room, header }: GamesListProps) {
           key={password.gameId}
           anchor={passwordAnchor}
           fallback={gridHeader}
+          focusFallback={grid}
           layoutKey={gameList}
           gameName={password.description || t('GameRow.untitled', { id: password.gameId })}
           spectating={password.action === 'spectate'}

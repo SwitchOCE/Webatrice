@@ -1,4 +1,4 @@
-import { computeArtSourceRect, coverFitRect, playmatImageBox } from './playmatCrop';
+import { CROP_LABEL_KEYS, CROP_SLIDERS, computeArtSourceRect, coverFitRect, playmatImageBox } from './playmatCrop';
 
 const CARD = { width: 672, height: 936 };
 const DEFAULTS = { marginPctL: 0.07, marginPctR: 0.07, verticalOffset: 0.33, zoom: 1 };
@@ -59,5 +59,23 @@ describe('playmatImageBox', () => {
   it('returns null for an empty area or crop', () => {
     expect(playmatImageBox(CARD, DEFAULTS, { width: 0, height: 300 })).toBeNull();
     expect(playmatImageBox(CARD, { ...DEFAULTS, marginPctL: 0.95, marginPctR: 0.95 }, { width: 100, height: 100 })).toBeNull();
+  });
+});
+
+describe('CROP_SLIDERS', () => {
+  it('describes every crop parameter once, with a label', () => {
+    expect(CROP_SLIDERS.map((slider) => slider.key).sort()).toEqual(Object.keys(DEFAULTS).sort());
+    expect(CROP_SLIDERS.every((slider) => CROP_LABEL_KEYS[slider.key].startsWith('PlaymatSettings.crop.'))).toBe(true);
+  });
+
+  it('stops the zoom slider where the renderer stops zooming', () => {
+    const zoom = CROP_SLIDERS.find((slider) => slider.key === 'zoom')!;
+    const atMax = computeArtSourceRect(CARD, { ...DEFAULTS, zoom: zoom.max });
+    expect(computeArtSourceRect(CARD, { ...DEFAULTS, zoom: zoom.max - zoom.step }).width).toBeGreaterThan(atMax.width);
+    expect(computeArtSourceRect(CARD, { ...DEFAULTS, zoom: zoom.max + zoom.step })).toEqual(atMax);
+  });
+
+  it('formats margins as whole percentages and the offset and zoom with two decimals', () => {
+    expect(CROP_SLIDERS.map((slider) => slider.format(0.07))).toEqual(['7', '7', '0.07', '0.07']);
   });
 });

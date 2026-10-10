@@ -189,13 +189,23 @@ describe('ChatDock', () => {
     expect(getVisibleChats()).toEqual(['alice']);
   });
 
-  it('marks read on every new message, even when the conversation length stays the same', () => {
-    const { store } = renderWithProviders(<ChatDock />, { preloadedState: state });
+  it('marks read on a new message even when the conversation is at its cap and its length stays the same', () => {
+    const full = Array.from({ length: server.MAX_USER_MESSAGES }, (_, i) => Object.assign(
+      create(Event_UserMessageSchema, { senderName: 'alice', receiverName: 'me', message: `old ${i}` }),
+      { timeReceived: i },
+    ));
+    const capped = { ...state, server: { ...state.server, messages: { alice: full } } };
+    const { store } = renderWithProviders(<ChatDock />, { preloadedState: capped });
     open('alice');
     marks.markChatRead.mockClear();
-    receive(store, 'alice', 'one');
-    receive(store, 'alice', 'two');
-    expect(marks.markChatRead).toHaveBeenCalledTimes(2);
+
+    receive(store, 'alice', 'one more');
+
+    const conversation = store.getState().server.messages.alice;
+    expect(conversation).toHaveLength(server.MAX_USER_MESSAGES);
+    expect(conversation.at(-1)?.message).toBe('one more');
+    expect(marks.markChatRead).toHaveBeenCalledTimes(1);
+    expect(marks.markChatRead).toHaveBeenCalledWith('alice');
   });
 
   it('moves focus to the bar after minimising and back to the opener after closing', () => {
