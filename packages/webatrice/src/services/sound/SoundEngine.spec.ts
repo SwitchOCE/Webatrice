@@ -1,4 +1,4 @@
-import { PHASE_SOUNDS, SOUND_THEMES, SoundEngine, resolveSoundTheme, soundUrl } from './SoundEngine';
+import { MAX_SOUND_GAIN, PHASE_SOUNDS, SOUND_THEMES, SoundEngine, resolveSoundTheme, soundUrl, volumeToGain } from './SoundEngine';
 
 class FakeAudio {
   static instances: FakeAudio[] = [];
@@ -24,13 +24,13 @@ describe('SoundEngine', () => {
     vi.unstubAllGlobals();
   });
 
-  it('plays the theme file for the event from the start, at the master volume', () => {
+  it('plays the theme file for the event from the start, scaled from the master volume', () => {
     new SoundEngine().play('shuffle', { ...on, volume: 40 });
 
     expect(FakeAudio.instances).toHaveLength(1);
     const [audio] = FakeAudio.instances;
     expect(audio.src).toBe('/sounds/Legacy/shuffle.wav');
-    expect(audio.volume).toBeCloseTo(0.4);
+    expect(audio.volume).toBeCloseTo(0.24);
     expect(audio.currentTime).toBe(0);
     expect(audio.play).toHaveBeenCalledTimes(1);
   });
@@ -93,7 +93,7 @@ describe('SoundEngine', () => {
 
   it('clamps the volume into range', () => {
     new SoundEngine().play('shuffle', { ...on, volume: 250 });
-    expect(FakeAudio.instances[0].volume).toBe(1);
+    expect(FakeAudio.instances[0].volume).toBeCloseTo(MAX_SOUND_GAIN);
   });
 
   it('test() plays the player-join sound', () => {
@@ -125,5 +125,21 @@ describe('sound themes', () => {
         .sort();
       expect([...names].sort()).toEqual(files);
     }
+  });
+});
+
+describe('volumeToGain', () => {
+  it.each([
+    [100, 0.6],
+    [60, 0.36],
+    [50, 0.3],
+    [0, 0],
+  ])('maps the %i%% slider to a gain of %f, so the top of the slider is the old 60%%', (percent, gain) => {
+    expect(volumeToGain(percent)).toBeCloseTo(gain);
+  });
+
+  it('clamps out-of-range slider values', () => {
+    expect(volumeToGain(-10)).toBe(0);
+    expect(volumeToGain(150)).toBeCloseTo(0.6);
   });
 });

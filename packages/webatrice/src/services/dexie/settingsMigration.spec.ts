@@ -19,7 +19,7 @@ describe('migrateSetting', () => {
     expect(migrated.shortcuts).toEqual({ 'game.drawCard': ['Ctrl+KeyD'] });
     expect(migrated.playToStack).toBe(PREFERENCE_DEFAULTS.playToStack);
     expect(migrated.soundEnabled).toBe(false);
-    expect(migrated.masterVolume).toBe(100);
+    expect(migrated.masterVolume).toBe(50);
     expect(migrated.chatMentionColor).toBe('A6120D');
   });
 
