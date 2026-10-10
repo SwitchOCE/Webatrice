@@ -13,6 +13,9 @@ import { endSession } from '@app/services/session';
 
 import { connectedState, createMockWebClient, disconnectedState, renderWithProviders } from '../../../__test-utils__';
 import { getCachedDeck, setCachedDeck } from '../deckEditorCache';
+import { deckSaveSignature } from '../deckPersistence';
+import { getDeckSaveRegistry } from '../deckSaveRegistry';
+import type { HydratedDeck } from '../types';
 import { clearDecksListCache, useDeckList, type UseDeckList } from './useDeckList';
 
 let latest: UseDeckList;
@@ -365,18 +368,27 @@ describe('useDeckList', () => {
     });
   });
 
-  it('refresh drops summaries and editor copies and re-requests everything', () => {
+  it('refresh drops summaries and clean editor copies, keeps unsaved ones, and re-requests everything', () => {
     const { webClient, store } = setup();
     act(() => {
       store.dispatch(server.Actions.backendDecks({ deckList: deckTree() }));
       store.dispatch(server.Actions.deckDownloaded({ deckId: 1, deck: COD('modern') }));
     });
-    setCachedDeck(1, { deck: { name: 'x', meta: { v: 1, updatedAt: 'x' }, cards: [], format: '' }, savedSignature: null });
+    const cached: HydratedDeck = { name: 'x', meta: { v: 1, updatedAt: 'x' }, cards: [], format: '' };
+    setCachedDeck(1, { deck: cached, savedSignature: deckSaveSignature(cached) });
+    setCachedDeck(2, { deck: cached, savedSignature: deckSaveSignature(cached) });
+    setCachedDeck(3, { deck: { ...cached, name: 'unsaved' }, savedSignature: deckSaveSignature(cached) });
+    const registry = getDeckSaveRegistry(store, webClient);
+    registry.connect();
+    registry.initialize(2, deckSaveSignature(cached));
+    registry.markDirty(2);
 
     act(() => latest.refresh());
 
     expect(latest.summaries.size).toBe(0);
     expect(getCachedDeck(1)).toBeUndefined();
+    expect(getCachedDeck(2)).toBeDefined();
+    expect(getCachedDeck(3)).toBeDefined();
     expect(webClient.request.session.deckList).toHaveBeenCalledTimes(2);
   });
 });

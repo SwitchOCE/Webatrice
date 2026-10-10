@@ -78,6 +78,27 @@ const NESTED_TREE = [
   ]),
 ];
 
+function tile(name: string) {
+  return screen.getByRole('article', { name });
+}
+
+function deckAction(deckName: string, item: string) {
+  fireEvent.click(within(tile(deckName)).getByRole('button', { name: 'DeckActionsMenu.more' }));
+  fireEvent.click(screen.getByRole('menuitem', { name: item }));
+}
+
+function folderTree() {
+  return screen.getByRole('navigation', { name: 'DeckStorageSidebar.folders' });
+}
+
+function openFolder(name: string) {
+  fireEvent.click(within(folderTree()).getByRole('button', { name: new RegExp(`^${name}`) }));
+}
+
+function downloadsOf(id: number) {
+  return sentDeckDownloadIds().filter((sent) => sent === id).length;
+}
+
 function acknowledge(cmdId: number) {
   act(() => {
     deliverMessage(buildResponseMessage(buildResponse({ cmdId })));
@@ -94,29 +115,31 @@ describe('Decks (integration)', () => {
   it('requests the deck tree and lists the decks at the root, newest first', async () => {
     await loadTree();
 
-    expect(await screen.findByText('Decks.list.deckCount')).toBeInTheDocument();
+    expect(await screen.findByText('DeckStorageSidebar.subtitle')).toBeInTheDocument();
     const names = screen.getAllByText(/^(Older|Newer) Deck$/).map((el) => el.textContent);
     expect(names).toEqual(['Newer Deck', 'Older Deck']);
     expect(screen.getAllByText('Decks.list.created')).toHaveLength(2);
   });
 
   describe('folders (desktop TabDeckStorage remote tree)', () => {
-    it('keeps the hierarchy: folder rows open a folder, the breadcrumb goes back up', async () => {
+    it('keeps the hierarchy: the folder tree opens a folder with the decks under it, All decks goes back up', async () => {
       await loadTree(NESTED_TREE);
 
-      expect(await screen.findByText('Decks.list.deckCount')).toBeInTheDocument();
-      expect(screen.getByText('Older Deck')).toBeInTheDocument();
-      expect(screen.queryByText('Newer Deck')).toBeNull();
-      expect(sentDeckDownloadIds()).toEqual([1]);
+      expect(await screen.findByText('DeckStorageSidebar.subtitle')).toBeInTheDocument();
+      expect(tile('Older Deck')).toBeInTheDocument();
+      expect(tile('Oldest Deck')).toBeInTheDocument();
+      expect(within(folderTree()).getByRole('button', { name: /^Old\s?\d/ })).toBeInTheDocument();
+      await waitFor(() => expect(sentDeckDownloadIds().sort()).toEqual([1, 2, 3]));
 
-      fireEvent.click(screen.getByText('Tournament'));
-      expect(await screen.findByText('Newer Deck')).toBeInTheDocument();
-      expect(screen.queryByText('Older Deck')).toBeNull();
-      expect(screen.getByText('Old')).toBeInTheDocument();
-      await waitFor(() => expect(sentDeckDownloadIds().sort()).toEqual([1, 2]));
+      openFolder('Tournament');
+      expect(await screen.findByRole('heading', { level: 2, name: 'Tournament' })).toBeInTheDocument();
+      expect(tile('Newer Deck')).toBeInTheDocument();
+      expect(tile('Oldest Deck')).toBeInTheDocument();
+      expect(screen.queryByRole('article', { name: 'Older Deck' })).toBeNull();
+      expect(sentDeckDownloadIds()).toHaveLength(3);
 
-      fireEvent.click(screen.getByRole('button', { name: /DeckFolders.root/ }));
-      expect(await screen.findByText('Older Deck')).toBeInTheDocument();
+      openFolder('DeckStorageSidebar.allDecks');
+      expect(await screen.findByRole('article', { name: 'Older Deck' })).toBeInTheDocument();
     });
 
     it('creates a folder inside the shown folder with Command_DeckNewDir', async () => {
@@ -137,7 +160,9 @@ describe('Decks (integration)', () => {
     it('deletes a folder after naming what goes with it, through Command_DeckDelDir', async () => {
       await loadTree(NESTED_TREE);
 
-      fireEvent.click(await screen.findByRole('button', { name: 'DeckFolders.deleteFolderNamed' }));
+      openFolder('Tournament');
+      fireEvent.click(await screen.findByRole('button', { name: 'DeckGridToolbar.folderActions' }));
+      fireEvent.click(screen.getByRole('menuitem', { name: 'DeckFolders.deleteFolder' }));
       const dialog = screen.getByRole('alertdialog', { name: 'DeleteFolder.title' });
       expect(within(dialog).getByText('DeleteFolder.scope')).toBeInTheDocument();
       fireEvent.click(within(dialog).getByRole('button', { name: 'DeleteFolder.delete' }));
@@ -145,9 +170,10 @@ describe('Decks (integration)', () => {
       const { cmdId, value } = findLastSessionCommand(Command_DeckDelDir_ext);
       expect(value.path).toBe('Tournament');
       acknowledge(cmdId);
-      await waitFor(() => expect(screen.queryByText('Tournament')).toBeNull());
-      expect(screen.getByText('Decks.list.deckCount')).toBeInTheDocument();
-      expect(screen.getByText('Older Deck')).toBeInTheDocument();
+      await waitFor(() => expect(within(folderTree()).queryByRole('button', { name: /^Tournament/ })).toBeNull());
+      expect(screen.getByRole('heading', { level: 2, name: 'DeckStorageSidebar.allDecks' })).toBeInTheDocument();
+      expect(tile('Older Deck')).toBeInTheDocument();
+      expect(screen.queryByRole('article', { name: 'Newer Deck' })).toBeNull();
     });
 
     it('creates a deck inside the shown folder', async () => {
@@ -175,23 +201,23 @@ describe('Decks (integration)', () => {
     it('moves a deck: uploads the copy into the target folder, then deletes the original', async () => {
       await loadTree(NESTED_TREE);
       const xml = codXml({ name: 'Older Deck', format: 'modern' });
-      await waitFor(() => expect(sentDeckDownloadIds()).toEqual([1]));
+      await waitFor(() => expect(sentDeckDownloadIds().sort()).toEqual([1, 2, 3]));
       act(() => {
         respondToDeckDownload(1, xml);
       });
 
-      fireEvent.click(screen.getByRole('button', { name: 'DeckFolders.moveDeckNamed' }));
+      deckAction('Older Deck', 'DeckActionsMenu.move');
       fireEvent.change(screen.getByRole('combobox', { name: 'MoveDeck.target' }), { target: { value: 'Tournament/Old' } });
       const listRequestsBefore = findAllSessionCommands(Command_DeckList_ext).length;
       fireEvent.click(screen.getByRole('button', { name: /MoveDeck.move/ }));
 
       await waitFor(() => expect(findAllSessionCommands(Command_DeckList_ext)).toHaveLength(listRequestsBefore + 1));
-      expect(sentDeckDownloadIds()).toEqual([1]);
+      expect(downloadsOf(1)).toBe(1);
       expect(findAllSessionCommands(Command_DeckUpload_ext)).toHaveLength(0);
       act(() => {
         respondToDeckList(NESTED_TREE);
       });
-      await waitFor(() => expect(sentDeckDownloadIds()).toEqual([1, 1]));
+      await waitFor(() => expect(downloadsOf(1)).toBe(2));
       expect(findAllSessionCommands(Command_DeckUpload_ext)).toHaveLength(0);
       act(() => {
         respondToDeckDownload(1, xml);
@@ -212,18 +238,21 @@ describe('Decks (integration)', () => {
 
       const del = findLastSessionCommand(Command_DeckDel_ext);
       expect(del.value.deckId).toBe(1);
+      expect(screen.getAllByRole('article', { name: 'Older Deck' })).toHaveLength(2);
       acknowledge(del.cmdId);
-      await waitFor(() => expect(screen.queryByText('Older Deck')).toBeNull());
+      await waitFor(() => expect(screen.getAllByRole('article', { name: 'Older Deck' })).toHaveLength(1));
+      openFolder('Tournament');
+      expect(tile('Older Deck')).toBeInTheDocument();
       expect(screen.queryByTestId('location')).toBeNull();
-      expect(screen.getByText('Decks.list.deckCount')).toBeInTheDocument();
+      expect(screen.getByText('DeckStorageSidebar.subtitle')).toBeInTheDocument();
     });
   });
 
-  it('downloads every deck once and groups rows by the format each file declares', async () => {
+  it('downloads every deck once and shows format, card count, bracket and price on its tile', async () => {
     await loadTree();
 
     await waitFor(() => expect(sentDeckDownloadIds().sort()).toEqual([1, 2]));
-    expect(screen.getByRole('heading', { level: 2, name: /Common\.status\.loading/ })).toBeInTheDocument();
+    expect(within(tile('Older Deck')).getByTitle('Decks.badge.priceLoading')).toBeInTheDocument();
 
     act(() => {
       respondToDeckDownload(1, codXml({ name: 'Older Deck', format: 'modern', comments: { priceUsd: 12.5 } }));
@@ -235,15 +264,15 @@ describe('Decks (integration)', () => {
       }));
     });
 
-    const sections = await screen.findAllByRole('heading', { level: 2 });
-    expect(sections.map((h) => h.textContent)).toEqual(['DeckFormat.commander1', 'DeckFormat.modern1']);
-    expect(screen.getByText('Decks.badge.bracketShort')).toHaveAttribute('title', 'Decks.badge.bracket');
-    expect(screen.getByText('$12.50')).toBeInTheDocument();
-    expect(screen.getByText('$40.00+')).toBeInTheDocument();
+    expect(await within(tile('Newer Deck')).findByText(/^DeckFormat\.commander/)).toBeInTheDocument();
+    expect(within(tile('Older Deck')).getByText(/^DeckFormat\.modern/)).toBeInTheDocument();
+    expect(within(tile('Newer Deck')).getByText('Decks.badge.bracketShort')).toHaveAttribute('title', 'Decks.badge.bracket');
+    expect(within(tile('Older Deck')).getByTitle('Decks.badge.priceTotal')).toHaveTextContent(/12\.50$/);
+    expect(within(tile('Newer Deck')).getByTitle('Decks.badge.priceTotalMissing')).toHaveTextContent(/40\.00\+$/);
     expect(sentDeckDownloadIds()).toHaveLength(2);
   });
 
-  it('files decks without a format under "Unknown format" and custom formats under "Other"', async () => {
+  it('offers each declared format as a filter, custom formats included, and filters by it', async () => {
     await loadTree();
     await waitFor(() => expect(sentDeckDownloadIds()).toHaveLength(2));
     act(() => {
@@ -251,9 +280,54 @@ describe('Decks (integration)', () => {
       respondToDeckDownload(2, codXml({ name: 'Newer Deck', format: 'netrunner' }));
     });
 
-    const sections = await screen.findAllByRole('heading', { level: 2 });
-    expect(sections.map((h) => h.textContent)).toEqual(['DeckSummary.section.other1', 'DeckSummary.section.unknown1']);
-    expect(screen.getByText('Netrunner')).toBeInTheDocument();
+    const format = screen.getByRole('combobox', { name: 'DeckGridToolbar.format' });
+    await waitFor(() => expect(within(format).getAllByRole('option').map((o) => o.textContent))
+      .toEqual(['DeckGridToolbar.anyFormat', 'Netrunner']));
+    fireEvent.change(format, { target: { value: 'netrunner' } });
+    expect(tile('Newer Deck')).toBeInTheDocument();
+    expect(screen.queryByRole('article', { name: 'Older Deck' })).toBeNull();
+  });
+
+  describe('details from storage (download, patch, upload over the same deck)', () => {
+    const stored = codXml({ name: 'Older Deck', format: 'modern', main: [{ name: 'Lightning Bolt', quantity: 4 }] });
+
+    async function startRename(name: string) {
+      await loadTree();
+      await waitFor(() => expect(downloadsOf(1)).toBe(1));
+      act(() => {
+        respondToDeckDownload(1, stored);
+      });
+      await waitFor(() => expect(within(tile('Older Deck')).getByTitle('Decks.badge.priceNone')).toBeInTheDocument());
+      deckAction('Older Deck', 'DeckActionsMenu.rename');
+      const field = await screen.findByRole('textbox', { name: 'DeckStorageEditDialog.name' });
+      fireEvent.change(field, { target: { value: name } });
+      fireEvent.click(screen.getByRole('button', { name: 'DeckStorageEditDialog.save' }));
+      await waitFor(() => expect(downloadsOf(1)).toBe(2));
+      expect(findAllSessionCommands(Command_DeckUpload_ext)).toHaveLength(0);
+    }
+
+    it('downloads the stored file again right before renaming, then uploads it over the same deck id', async () => {
+      await startRename('Renamed Deck');
+      act(() => {
+        respondToDeckDownload(1, stored);
+      });
+      await waitFor(() => expect(findAllSessionCommands(Command_DeckUpload_ext)).toHaveLength(1));
+      const { value } = findLastSessionCommand(Command_DeckUpload_ext);
+      expect(value.deckId).toBe(1);
+      expect(isFieldSet(value, Command_DeckUploadSchema.field.path)).toBe(false);
+      expect(parseCod(value.deckList).name).toBe('Renamed Deck');
+      expect(parseCod(value.deckList).cards).toEqual(parseCod(stored).cards);
+    });
+
+    it('refuses to rename when the card list changed on the server since the list loaded', async () => {
+      await startRename('Renamed Deck');
+      act(() => {
+        respondToDeckDownload(1, codXml({ name: 'Older Deck', format: 'modern', main: [{ name: 'Lightning Bolt', quantity: 3 }] }));
+      });
+      expect(await screen.findByText('DeckStorageEditDialog.changedElsewhere')).toBeInTheDocument();
+      expect(findAllSessionCommands(Command_DeckUpload_ext)).toHaveLength(0);
+      expect(screen.getByRole('textbox', { name: 'DeckStorageEditDialog.name' })).toHaveValue('Older Deck');
+    });
   });
 
   it('opens a deck in the editor route when its row is clicked', async () => {
@@ -265,15 +339,14 @@ describe('Decks (integration)', () => {
   it('asks for confirmation, then deletes the deck through Command_DeckDel', async () => {
     await loadTree();
 
-    const deleteOlder = async () => within((await screen.findByText('Older Deck')).closest('li')!)
-      .getByRole('button', { name: 'Decks.list.deleteDeckNamed' });
-    fireEvent.click(await deleteOlder());
+    await screen.findByRole('article', { name: 'Older Deck' });
+    deckAction('Older Deck', 'DeckActionsMenu.delete');
     const dialog = screen.getByRole('alertdialog', { name: 'DeleteDeckDialog.title' });
     fireEvent.click(within(dialog).getByRole('button', { name: 'Common.action.cancel' }));
     expect(screen.queryByRole('alertdialog')).toBeNull();
     expect(findAllSessionCommands(Command_DeckDel_ext)).toHaveLength(0);
 
-    fireEvent.click(await deleteOlder());
+    deckAction('Older Deck', 'DeckActionsMenu.delete');
     fireEvent.click(within(screen.getByRole('alertdialog')).getByRole('button', { name: 'Common.action.delete' }));
 
     const { cmdId, value } = findLastSessionCommand(Command_DeckDel_ext);
@@ -281,9 +354,9 @@ describe('Decks (integration)', () => {
     act(() => {
       deliverMessage(buildResponseMessage(buildResponse({ cmdId })));
     });
-    await waitFor(() => expect(screen.queryByText('Older Deck')).toBeNull());
-    expect(screen.getByText('Decks.list.deckCount')).toBeInTheDocument();
-    expect(screen.getByText('Newer Deck')).toBeInTheDocument();
+    await waitFor(() => expect(screen.queryByRole('article', { name: 'Older Deck' })).toBeNull());
+    expect(screen.getByText('DeckStorageSidebar.subtitle')).toBeInTheDocument();
+    expect(tile('Newer Deck')).toBeInTheDocument();
   });
 
   it('creates a named deck in the chosen format at the storage root and opens it', async () => {
@@ -291,7 +364,7 @@ describe('Decks (integration)', () => {
 
     fireEvent.click(screen.getAllByRole('button', { name: /Decks\.list\.newDeck/ })[0]);
     fireEvent.change(screen.getByPlaceholderText('CreateDeckDialog.namePlaceholder'), { target: { value: '  Fresh Brew  ' } });
-    fireEvent.change(screen.getByRole('combobox'), { target: { value: 'modern' } });
+    fireEvent.change(within(screen.getByRole('dialog')).getByRole('combobox'), { target: { value: 'modern' } });
     fireEvent.click(screen.getByRole('button', { name: 'Common.action.create' }));
 
     const { cmdId, value } = findLastSessionCommand(Command_DeckUpload_ext);
@@ -394,13 +467,13 @@ describe('Decks (integration)', () => {
     await waitFor(() => expect(findAllSessionCommands(Command_DeckDownload_ext)).toHaveLength(4));
   });
 
-  it('switches between card and compact rows and remembers the choice', async () => {
+  it('switches between grid and list and remembers the choice', async () => {
     await loadTree();
 
-    const compact = screen.getByRole('button', { name: 'Decks.list.view.compact' });
-    expect(compact).toHaveAttribute('aria-pressed', 'false');
+    const compact = screen.getByRole('radio', { name: 'Decks.list.view.compact' });
+    expect(compact).toHaveAttribute('aria-checked', 'false');
     fireEvent.click(compact);
-    expect(compact).toHaveAttribute('aria-pressed', 'true');
+    expect(compact).toHaveAttribute('aria-checked', 'true');
     expect(window.localStorage.getItem('decks:viewMode')).toBe('compact');
     expect(store.getState().server.backendDecks).not.toBeNull();
   });

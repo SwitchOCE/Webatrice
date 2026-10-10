@@ -1,4 +1,4 @@
-import { useEffect, useId, useState, type FormEvent } from 'react';
+import { useEffect, useId, useMemo, useState, type FormEvent } from 'react';
 import { useTranslation } from 'react-i18next';
 import { CircleAlert, Loader2 } from 'lucide-react';
 
@@ -6,10 +6,10 @@ import { Button, TextInput } from '@app/components';
 
 import { DeckBannerPicker } from '../components/editor/DeckBannerPicker';
 import { DeckTagsEditor } from '../components/editor/DeckTagsEditor';
-import type { DeckStorageEditKind } from '../components/list/DeckActionsMenu';
-import { readDeckTags, type BannerCandidate } from '../deckTags';
+import { storageEditDraft, type DeckStorageEdit, type DeckStorageEditKind } from '../deckStorageEdits';
 import type { FlatDeck } from '../deckTree';
-import { useDeckStorageDetails, type DeckStorageEdit } from '../hooks/useDeckStorageDetails';
+import { useDeckStorageDetails } from '../hooks/useDeckStorageDetails';
+import type { HydratedDeck } from '../types';
 import { DeckDialogFrame } from './DeckDialogFrame';
 
 export interface DeckStorageEditDialogProps {
@@ -26,33 +26,30 @@ const TITLE_KEYS = {
   banner: 'DeckStorageEditDialog.title.banner',
 } as const satisfies Record<DeckStorageEditKind, string>;
 
-type Draft = { name: string } | { tags: string[] } | { banner: BannerCandidate | null };
 
 export function DeckStorageEditDialog({ kind, deck, xml, onSaved, onClose }: DeckStorageEditDialogProps) {
   const { t } = useTranslation();
   const titleId = useId();
   const details = useDeckStorageDetails(deck.id, xml, onSaved, deck.colorIdentity);
-  const [draft, setDraft] = useState<Draft | null>(null);
   const loaded = details.deck;
+  const { failedEdit } = details;
+  const initial = useMemo(
+    () => (loaded ? storageEditDraft(kind, loaded, deck.name, failedEdit) : null),
+    [loaded, kind, deck.name, failedEdit],
+  );
+  const [edited, setEdited] = useState<{ base: HydratedDeck; value: DeckStorageEdit } | null>(null);
+  const draft = edited && edited.base === loaded ? edited.value : initial;
+  const setDraft = (value: DeckStorageEdit) => {
+    if (loaded) {
+      setEdited({ base: loaded, value });
+    }
+  };
 
   const { activate } = details;
   useEffect(() => {
     void activate();
     // eslint-disable-next-line react-hooks/exhaustive-deps -- load once per opened dialog
   }, []);
-
-  useEffect(() => {
-    if (!loaded || draft) {
-      return;
-    }
-    if (kind === 'rename') {
-      setDraft({ name: loaded.name || deck.name });
-    } else if (kind === 'tags') {
-      setDraft({ tags: readDeckTags(loaded.tagsXml) });
-    } else {
-      setDraft({ banner: loaded.bannerCard ? { name: loaded.bannerCard, providerId: loaded.bannerCardProviderId } : null });
-    }
-  }, [loaded, draft, kind, deck.name]);
 
   const close = () => {
     if (!details.saving) {
@@ -65,7 +62,7 @@ export function DeckStorageEditDialog({ kind, deck, xml, onSaved, onClose }: Dec
     if (!draft || invalid || details.disabled) {
       return;
     }
-    const edit: DeckStorageEdit = 'name' in draft ? { name: draft.name.trim() } : draft;
+    const edit = 'name' in draft ? { name: draft.name.trim() } : draft;
     if (await details.save(edit)) {
       onClose();
     }
@@ -124,12 +121,22 @@ export function DeckStorageEditDialog({ kind, deck, xml, onSaved, onClose }: Dec
           </fieldset>
         )}
         {details.saving && <p role="status" className="text-[12px] text-text-muted">{t('DeckStorageEditDialog.saving')}</p>}
-        {details.error && <p role="alert" className="text-[13px] text-danger">{details.error}</p>}
+        {details.discardFailed ? (
+          <div
+            role="alert"
+            className="flex items-start gap-3 rounded-ui border border-danger/40 bg-danger/10 px-3 py-2 text-[13px] text-danger"
+          >
+            <span className="flex-1">{details.error ?? t('DeckStorageEditDialog.lastSaveFailed')}</span>
+            <Button size="sm" variant="danger" onClick={details.discardFailed} disabled={details.saving}>
+              {t('DeckStorageEditDialog.discard')}
+            </Button>
+          </div>
+        ) : details.error && <p role="alert" className="text-[13px] text-danger">{details.error}</p>}
         <p className="text-[12px] text-text-muted">{t('DeckStorageEditDialog.howItWorks')}</p>
         <div className="flex justify-end gap-2">
           <Button variant="quiet" onClick={close} disabled={details.saving}>{t('Common.action.cancel')}</Button>
           <Button variant="primary" onClick={() => void submit()} disabled={!draft || invalid || details.disabled}>
-            {t('DeckStorageEditDialog.save')}
+            {t(details.discardFailed ? 'DeckStorageEditDialog.retry' : 'DeckStorageEditDialog.save')}
           </Button>
         </div>
       </div>

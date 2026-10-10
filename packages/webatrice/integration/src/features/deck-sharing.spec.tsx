@@ -92,6 +92,19 @@ async function renderDecks() {
   });
 }
 
+function deckAction(deckName: string, item: string) {
+  const tile = screen.getByRole('article', { name: deckName });
+  fireEvent.click(within(tile).getByRole('button', { name: 'DeckActionsMenu.more' }));
+  fireEvent.click(screen.getByRole('menuitem', { name: item }));
+}
+
+function folderAction(folder: string, item: string) {
+  const tree = screen.getByRole('navigation', { name: 'DeckStorageSidebar.folders' });
+  fireEvent.click(within(tree).getByRole('button', { name: new RegExp(`^${folder}`) }));
+  fireEvent.click(screen.getByRole('button', { name: 'DeckGridToolbar.folderActions' }));
+  fireEvent.click(screen.getByRole('menuitem', { name: item }));
+}
+
 beforeEach(() => {
   vi.useRealTimers();
   clearDecksListCache();
@@ -109,7 +122,7 @@ describe('deck sharing (integration)', () => {
     loginTo31();
     await renderDecks();
 
-    fireEvent.click(screen.getByRole('button', { name: 'DeckSharing.shareDeckNamed' }));
+    deckAction('Burn', 'DeckActionsMenu.share');
     fireEvent.change(screen.getByRole('textbox', { name: 'DeckSharing.nameLabel' }), { target: { value: 'For Bob' } });
     fireEvent.click(screen.getByRole('button', { name: /DeckSharing.create/ }));
 
@@ -133,7 +146,7 @@ describe('deck sharing (integration)', () => {
   it('reports a share the server refuses, with desktop\'s message', async () => {
     loginTo31();
     await renderDecks();
-    fireEvent.click(screen.getByRole('button', { name: 'DeckSharing.shareFolderNamed' }));
+    folderAction('Cube', 'DeckGridToolbar.shareFolder');
     fireEvent.click(screen.getByRole('button', { name: /DeckSharing.create/ }));
 
     await waitFor(() => expect(findAllSessionCommands(Command_DeckShareCreate_ext)).toHaveLength(1));
@@ -150,8 +163,7 @@ describe('deck sharing (integration)', () => {
     await renderDecks();
     expect(screen.getByText('DeckSharing.public')).toBeInTheDocument();
 
-    const deckRow = screen.getByText('Burn').closest('.group') as HTMLElement;
-    fireEvent.click(within(deckRow).getByRole('button', { name: 'DeckSharing.publishNamed' }));
+    deckAction('Burn', 'DeckActionsMenu.makePrivate');
     const { cmdId, value } = findLastSessionCommand(Command_DeckSetVisibility_ext);
     expect(value.deckId).toBe(1);
     expect(value.isPublic).toBe(false);
@@ -163,8 +175,7 @@ describe('deck sharing (integration)', () => {
   it('reports a rejected visibility change', async () => {
     loginTo31();
     await renderDecks();
-    const folderRow = screen.getByText('Cube').closest('.group') as HTMLElement;
-    fireEvent.click(within(folderRow).getByRole('button', { name: 'DeckSharing.publishNamed' }));
+    folderAction('Cube', 'DeckGridToolbar.makeFolderPublic');
     const { cmdId, value } = findLastSessionCommand(Command_DeckSetVisibility_ext);
     expect(value.folderPath).toBe('Cube');
     expect(value.isPublic).toBe(true);
@@ -259,8 +270,10 @@ describe('deck sharing (integration)', () => {
   it('offers no sharing on a 3.0 server', async () => {
     connectAndLogin();
     await renderDecks();
-    expect(screen.queryByRole('button', { name: 'DeckSharing.shareDeckNamed' })).toBeNull();
-    expect(screen.queryByRole('button', { name: 'DeckSharing.publishNamed' })).toBeNull();
+    fireEvent.click(within(screen.getByRole('article', { name: 'Burn' })).getByRole('button', { name: 'DeckActionsMenu.more' }));
+    expect(screen.getByRole('menuitem', { name: 'DeckActionsMenu.rename' })).toBeInTheDocument();
+    expect(screen.queryByRole('menuitem', { name: 'DeckActionsMenu.share' })).toBeNull();
+    expect(screen.queryByRole('menuitem', { name: /DeckActionsMenu.make/ })).toBeNull();
     expect(screen.queryByRole('button', { name: /DeckShareLinks.open/ })).toBeNull();
   });
 });
