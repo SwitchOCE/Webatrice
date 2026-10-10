@@ -10,15 +10,18 @@ import { cx } from '@app/utils';
 interface ChatBarProps {
   name: string;
   unread: number;
+  registerButton: (name: string, el: HTMLButtonElement | null) => void;
+  onClose: (name: string) => void;
 }
 
-export default function ChatBar({ name, unread }: ChatBarProps) {
+export default function ChatBar({ name, unread, registerButton, onClose }: ChatBarProps) {
   const { t } = useTranslation();
   const online = useAppSelector((state) => server.Selectors.getIsUserOnline(state, name));
 
   return (
     <div className="pointer-events-auto flex h-10 min-w-0 items-center rounded-ui-lg border border-border-strong bg-bg-elevated shadow-pop">
       <button
+        ref={(el) => registerButton(name, el)}
         type="button"
         aria-label={unread > 0 ? t('ChatDock.openUnread', { name, count: unread }) : t('ChatDock.open', { name })}
         onClick={() => dispatchChatDock({ type: 'expand', name, max: currentMaxExpandedChats() })}
@@ -53,7 +56,7 @@ export default function ChatBar({ name, unread }: ChatBarProps) {
       <button
         type="button"
         aria-label={t('ChatDock.close', { name })}
-        onClick={() => dispatchChatDock({ type: 'close', name })}
+        onClick={() => onClose(name)}
         className={cx(
           'mr-1 inline-flex h-7 w-7 shrink-0 items-center justify-center',
           'rounded-ui-sm text-text-muted hover:bg-bg-surface hover:text-text-primary',

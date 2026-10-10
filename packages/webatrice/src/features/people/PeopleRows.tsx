@@ -1,3 +1,4 @@
+import { useId } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Gamepad2, MessageSquare, UserRoundMinus, Volume2 } from 'lucide-react';
 
@@ -41,12 +42,16 @@ export function ConversationRow({
 }) {
   const { t } = useTranslation();
   const presence = online ? t('PrivateChat.presence.online') : t('PrivateChat.presence.offline');
+  const detailsId = useId();
   return (
     <li>
       <button
         type="button"
         onClick={onOpen}
-        aria-label={t('People.conversation.open', { name: summary.name, presence })}
+        aria-label={unread > 0
+          ? t('People.conversation.openUnread', { name: summary.name, presence, count: unread })
+          : t('People.conversation.open', { name: summary.name, presence })}
+        aria-describedby={detailsId}
         className={cx(
           'flex w-full items-center gap-3 rounded-ui px-2.5',
           'py-2 text-left hover:bg-bg-elevated focus-visible:outline focus-visible:outline-2 focus-visible:outline-accent',
@@ -58,19 +63,20 @@ export function ConversationRow({
             <span className={cx('truncate text-[13.5px] text-text-primary', unread > 0 ? 'font-bold' : 'font-semibold')}>
               {summary.name}
             </span>
-            <span className="ml-auto shrink-0 text-[11px] tabular-nums text-text-muted">{time}</span>
+            <span aria-hidden className="ml-auto shrink-0 text-[11px] tabular-nums text-text-muted">{time}</span>
           </span>
           <span className="mt-0.5 flex items-center gap-2">
             <span className={cx('min-w-0 flex-1 truncate text-[12.5px]', unread > 0 ? 'text-text-primary' : 'text-text-muted')}>
               {summary.lastFromSelf && <span className="text-text-muted">{t('People.conversation.you')} </span>}
               {summary.lastText}
             </span>
-            {unread > 0 && (
-              <span className={UNREAD_BADGE}>
-                {unread}
-                <span className="sr-only"> {t('People.conversation.unread')}</span>
-              </span>
-            )}
+            {unread > 0 && <span aria-hidden className={UNREAD_BADGE}>{unread}</span>}
+            <span id={detailsId} hidden>
+              {t('People.conversation.details', {
+                preview: summary.lastFromSelf ? `${t('People.conversation.you')} ${summary.lastText}` : summary.lastText,
+                time,
+              })}
+            </span>
           </span>
         </span>
       </button>
