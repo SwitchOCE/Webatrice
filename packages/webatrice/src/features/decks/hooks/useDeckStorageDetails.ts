@@ -9,12 +9,26 @@ import { parseCod, patchDeckDetails } from '@app/services';
 import { useAppSelector, type RootState } from '@app/store';
 
 import { deleteCachedDeck } from '../deckEditorCache';
-import { setDeckBanner, setDeckTags } from '../deckEdits';
+import { renameDeck, setDeckBanner, setDeckTags } from '../deckEdits';
 import { deckSaveSignature } from '../deckPersistence';
 import { getDeckSaveRegistry } from '../deckSaveRegistry';
 import type { BannerCandidate } from '../deckTags';
 import { hydrateDeck } from '../hydrate';
 import type { HydratedDeck } from '../types';
+
+export type DeckStorageEdit = { banner: BannerCandidate | null } | { tags: readonly string[] } | { name: string };
+
+function applyEdit(deck: HydratedDeck, xml: string, edit: DeckStorageEdit): { next: HydratedDeck; document: string } {
+  if ('banner' in edit) {
+    return { next: setDeckBanner(deck, edit.banner), document: patchDeckDetails(xml, edit) };
+  }
+  if ('tags' in edit) {
+    const next = setDeckTags(deck, edit.tags);
+    return { next, document: patchDeckDetails(xml, { tagsXml: next.tagsXml ?? '<tags/>' }) };
+  }
+  const next = renameDeck(deck, edit.name);
+  return { next, document: patchDeckDetails(xml, { name: next.name }) };
+}
 
 export function useDeckStorageDetails(
   deckId: number, xml: string, onSaved: (deckId: number, xml: string) => void, colorIdentity?: string,
@@ -73,7 +87,7 @@ export function useDeckStorageDetails(
         }
       } catch {
         if (requests.isCurrent(request)) {
-          setError(t('DeckStorageDetails.loadFailed'));
+          setError(t('DeckStorageEditDialog.loadFailed'));
         }
       } finally {
         if (requests.isCurrent(request)) {
@@ -96,14 +110,14 @@ export function useDeckStorageDetails(
   useReduxEffect<CommandFailedPayload & { deckId: number }>(
     ({ payload }) => {
       if (payload.deckId === deckId && requests.isCurrent(payload.requestId) && requests.settle(payload.requestId)) {
-        setError(describeFailure(payload.failure, t('DeckStorageDetails.loadFailed')));
+        setError(describeFailure(payload.failure, t('DeckStorageEditDialog.loadFailed')));
         download.current?.(null);
         download.current = null;
       }
     }, server.Types.DECK_DOWNLOAD_FAILED, [deckId, requests, describeFailure, t],
   );
 
-  const save = async (edit: { banner: BannerCandidate | null } | { tags: readonly string[] }): Promise<boolean> => {
+  const save = async (edit: DeckStorageEdit): Promise<boolean> => {
     const current = registry.getSnapshot(deckId);
     if (!source.current || !connected || busy.current || (current.isModified && !(error && current.saveState === 'failed'))
       || current.pending.size > 0) {
@@ -131,8 +145,7 @@ export function useDeckStorageDetails(
           return false;
         }
       }
-      const next = 'banner' in edit ? setDeckBanner(base.deck, edit.banner) : setDeckTags(base.deck, edit.tags);
-      const document = patchDeckDetails(base.xml, 'banner' in edit ? edit : { tagsXml: next.tagsXml });
+      const { next, document } = applyEdit(base.deck, base.xml, edit);
       deleteCachedDeck(deckId);
       const saved = await registry.saveNow(deckId, next, { xml: document, colorIdentity });
       if (saved) {
@@ -143,7 +156,7 @@ export function useDeckStorageDetails(
       }
       if (!saved) {
         const failure = registry.getSnapshot(deckId).lastFailure;
-        setError(describeFailure(failure?.failure, t('DeckStorageDetails.saveFailed')));
+        setError(describeFailure(failure?.failure, t('DeckStorageEditDialog.saveFailed')));
         return false;
       }
       source.current = { deck: next, xml: document };
@@ -151,7 +164,7 @@ export function useDeckStorageDetails(
       return true;
     } catch {
       if (requests.isCurrent(request)) {
-        setError(t('DeckStorageDetails.loadFailed'));
+        setError(t('DeckStorageEditDialog.loadFailed'));
       }
       return false;
     } finally {
@@ -161,6 +174,7 @@ export function useDeckStorageDetails(
       }
     }
   };
-  return { deck, error, saving, activate, disabled: !connected || !deck || saving || snapshot.pending.size > 0
-    || (snapshot.isModified && !(error && snapshot.saveState === 'failed')), save };
+  const editorHasChanges = snapshot.isModified && !(error && snapshot.saveState === 'failed');
+  return { deck, error, saving, activate, editorHasChanges,
+    disabled: !connected || !deck || saving || snapshot.pending.size > 0 || editorHasChanges, save };
 }

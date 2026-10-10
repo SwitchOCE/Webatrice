@@ -50,7 +50,7 @@ function folderTree() {
     root: create(ServerInfo_DeckStorage_FolderSchema, {
       items: [
         file(1, 'Root deck', 10),
-        folder('Modern', [file(3, 'Burn', 30, { isPublic: true, colorIdentity: 'R' }), folder('Old', [file(4, 'Affinity', 40)])]),
+        folder('Modern', [file(3, 'Burn', 30, { isPublic: true, colorIdentity: 'R' }), folder('Old', [file(4, 'Affinity', 20)])]),
       ],
     }),
   });
@@ -131,20 +131,19 @@ describe('useDeckList', () => {
     expect(latest.loading).toBe(true);
   });
 
-  it('flattens the tree, downloads each deck once, and sections them by summary format', () => {
+  it('flattens the tree newest first, downloads each deck once, and keeps the summaries', () => {
     const { webClient, store } = setup();
     act(() => {
       store.dispatch(server.Actions.backendDecks({ deckList: deckTree() }));
     });
     expect(latest.decks.map((d) => d.name)).toEqual(['New', 'Old']);
     expect(vi.mocked(webClient.request.session.deckDownload).mock.calls).toEqual([[2], [1]]);
-    expect(latest.sections).toEqual([{ section: 'loading', decks: latest.decks }]);
 
     act(() => {
       store.dispatch(server.Actions.deckDownloaded({ deckId: 1, deck: COD('modern') }));
     });
     expect(latest.summaries.get(1)).toEqual(expect.objectContaining({ format: 'modern', usd: 3 }));
-    expect(latest.sections.map((s) => s.section)).toEqual(['modern', 'loading']);
+    expect(latest.summaries.has(2)).toBe(false);
   });
 
   it('ignores an unreadable deck download', () => {
@@ -202,15 +201,18 @@ describe('useDeckList', () => {
   });
 
   describe('folders', () => {
-    it('shows one folder level and downloads only its decks', () => {
+    it('shows a folder with the decks under it, downloading only those', () => {
       const { webClient, store } = setup('Modern');
       act(() => {
         store.dispatch(server.Actions.backendDecks({ deckList: folderTree() }));
       });
       expect(latest.folder.path).toBe('Modern');
       expect(latest.folder.folders.map((f) => [f.name, f.deckCount])).toEqual([['Old', 1]]);
-      expect(latest.decks.map((d) => d.name)).toEqual(['Burn']);
-      expect(vi.mocked(webClient.request.session.deckDownload).mock.calls).toEqual([[3]]);
+      expect(latest.decks.map((d) => d.name)).toEqual(['Burn', 'Affinity']);
+      expect(vi.mocked(webClient.request.session.deckDownload).mock.calls).toEqual([[3], [4]]);
+      expect(latest.folderTree).toEqual([expect.objectContaining({
+        path: 'Modern', deckCount: 2, children: [expect.objectContaining({ path: 'Modern/Old', deckCount: 1 })],
+      })]);
       expect(latest.folderPaths).toEqual(['', 'Modern', 'Modern/Old']);
       expect(latest.decksUnder('Modern').map((d) => d.id)).toEqual([3, 4]);
     });

@@ -84,6 +84,17 @@ describe('Decks sharing (Servatrice 3.1)', () => {
     }),
   });
 
+  function deckAction(item: string, index = 0) {
+    fireEvent.click(screen.getAllByRole('button', { name: 'DeckActionsMenu.more' })[index]);
+    fireEvent.click(screen.getByRole('menuitem', { name: item }));
+  }
+
+  function folderAction(folder: string, item: string) {
+    fireEvent.click(screen.getByRole('button', { name: new RegExp(`^${folder}`) }));
+    fireEvent.click(screen.getByRole('button', { name: 'DeckGridToolbar.folderActions' }));
+    fireEvent.click(screen.getByRole('menuitem', { name: item }));
+  }
+
   function renderLoaded(preloadedState = connected31State) {
     const rendered = renderWithProviders(<Decks />, { preloadedState });
     act(() => {
@@ -94,7 +105,7 @@ describe('Decks sharing (Servatrice 3.1)', () => {
 
   it('shares a stored deck by id under desktop\'s default name', async () => {
     const { webClient } = renderLoaded();
-    fireEvent.click(screen.getByRole('button', { name: 'DeckSharing.shareDeckNamed' }));
+    deckAction('DeckActionsMenu.share');
     expect(screen.getByRole('textbox', { name: 'DeckSharing.nameLabel' })).toHaveValue('DeckSharing.defaultDecksName');
     fireEvent.click(screen.getByRole('button', { name: /DeckSharing.create/ }));
     await waitFor(() => expect(webClient.request.session.deckShareCreate).toHaveBeenCalledWith({
@@ -107,7 +118,7 @@ describe('Decks sharing (Servatrice 3.1)', () => {
     const writeText = vi.fn().mockResolvedValue(undefined);
     Object.defineProperty(navigator, 'clipboard', { value: { writeText }, configurable: true });
     const { store, webClient } = renderLoaded();
-    fireEvent.click(screen.getByRole('button', { name: 'DeckSharing.shareDeckNamed' }));
+    deckAction('DeckActionsMenu.share');
     fireEvent.click(screen.getByRole('button', { name: /DeckSharing.create/ }));
     await waitFor(() => expect(webClient.request.session.deckShareCreate).toHaveBeenCalled());
     fireEvent.click(screen.getByRole('button', { name: 'DeckSharing.cancel' }));
@@ -123,7 +134,7 @@ describe('Decks sharing (Servatrice 3.1)', () => {
 
   it('shares a folder\'s decks by path', async () => {
     const { webClient } = renderLoaded();
-    fireEvent.click(screen.getByRole('button', { name: 'DeckSharing.shareFolderNamed' }));
+    folderAction('Cube', 'DeckGridToolbar.shareFolder');
     fireEvent.click(screen.getByRole('button', { name: /DeckSharing.create/ }));
     await waitFor(() => expect(webClient.request.session.deckShareCreate).toHaveBeenCalledWith({
       name: 'DeckSharing.defaultDecksName',
@@ -133,14 +144,13 @@ describe('Decks sharing (Servatrice 3.1)', () => {
 
   it('publishes and unpublishes, and reports a rejected change', () => {
     const { webClient, store } = renderLoaded();
-    const [folderToggle, deckToggle] = screen.getAllByRole('button', { name: 'DeckSharing.publishNamed' });
-    fireEvent.click(deckToggle);
-    fireEvent.click(folderToggle);
+    expect(screen.getByText('DeckSharing.public')).toBeInTheDocument();
+    deckAction('DeckActionsMenu.makePrivate');
+    folderAction('Cube', 'DeckGridToolbar.makeFolderPublic');
     expect(vi.mocked(webClient.request.session.deckSetVisibility).mock.calls).toEqual([
       [{ deckId: 3, isPublic: false }],
       [{ folderPath: 'Cube', isPublic: true }],
     ]);
-    expect(screen.getByText('DeckSharing.public')).toBeInTheDocument();
 
     act(() => {
       store.dispatch(server.Actions.sessionCommandFailed({ command: 'deckSetVisibility', target: 'Cube', responseCode: 11 }));
@@ -157,8 +167,10 @@ describe('Decks sharing (Servatrice 3.1)', () => {
 
   it('offers none of it on a 3.0 server', () => {
     renderLoaded(connectedState);
-    expect(screen.queryByRole('button', { name: 'DeckSharing.shareDeckNamed' })).toBeNull();
-    expect(screen.queryByRole('button', { name: 'DeckSharing.publishNamed' })).toBeNull();
+    fireEvent.click(screen.getAllByRole('button', { name: 'DeckActionsMenu.more' })[0]);
+    expect(screen.getByRole('menuitem', { name: 'DeckActionsMenu.rename' })).toBeInTheDocument();
+    expect(screen.queryByRole('menuitem', { name: 'DeckActionsMenu.share' })).toBeNull();
+    expect(screen.queryByRole('menuitem', { name: /DeckActionsMenu.make/ })).toBeNull();
     expect(screen.queryByRole('button', { name: /DeckShareLinks.open/ })).toBeNull();
     expect(screen.queryByRole('button', { name: /OpenShareLink.open/ })).toBeNull();
   });
@@ -207,15 +219,16 @@ describe('Decks delete focus', () => {
     act(() => {
       store.dispatch(server.Actions.backendDecks({ deckList: storage }));
     });
-    const [burnDelete] = screen.getAllByRole('button', { name: 'Decks.list.deleteDeckNamed' });
-    await user.click(burnDelete);
+    const [burnMenu] = screen.getAllByRole('button', { name: 'DeckActionsMenu.more' });
+    await user.click(burnMenu);
+    await user.click(screen.getByRole('menuitem', { name: 'DeckActionsMenu.delete' }));
     await user.click(screen.getByRole('button', { name: 'Common.action.delete' }));
-    expect(burnDelete).toHaveFocus();
+    expect(burnMenu).toHaveFocus();
 
     act(() => {
       store.dispatch(server.Actions.deckDelete({ deckId: 3 }));
     });
-    expect(screen.getAllByRole('button', { name: 'Decks.list.deleteDeckNamed' })).toHaveLength(1);
+    expect(screen.getAllByRole('button', { name: 'DeckActionsMenu.more' })).toHaveLength(1);
     expect(document.activeElement?.closest('[data-deck-id]')).toHaveAttribute('data-deck-id', '5');
   });
 });

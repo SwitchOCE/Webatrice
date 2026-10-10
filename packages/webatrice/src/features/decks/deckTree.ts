@@ -1,5 +1,9 @@
 import { isFieldSet } from '@bufbuild/protobuf';
-import { ServerInfo_DeckStorage_FileSchema, type ServerInfo_DeckStorage_Folder } from '@cockatrice/sockatrice/generated';
+import {
+  ServerInfo_DeckStorage_FileSchema,
+  type ServerInfo_DeckStorage_File,
+  type ServerInfo_DeckStorage_Folder,
+} from '@cockatrice/sockatrice/generated';
 
 export type DeckVisibility = 'public' | 'inherited' | 'private';
 
@@ -19,7 +23,24 @@ export interface FlatDeck {
   creationTime: number;
   isPublic?: boolean;
   colorIdentity?: string;
+  bannerCardName?: string;
+  bannerCardProvider?: string;
+  tags?: string[];
   visibility: DeckVisibility;
+}
+
+function storedPreview(file: ServerInfo_DeckStorage_File): Pick<FlatDeck, 'bannerCardName' | 'bannerCardProvider' | 'tags'> {
+  const preview: Pick<FlatDeck, 'bannerCardName' | 'bannerCardProvider' | 'tags'> = {};
+  if (file.bannerCardName) {
+    preview.bannerCardName = file.bannerCardName;
+    if (file.bannerCardProvider) {
+      preview.bannerCardProvider = file.bannerCardProvider;
+    }
+  }
+  if (file.tags.length > 0) {
+    preview.tags = [...file.tags];
+  }
+  return preview;
 }
 
 export function flattenFolder(
@@ -39,6 +60,7 @@ export function flattenFolder(
         isPublic: item.file.isPublic,
         colorIdentity: isFieldSet(item.file, ServerInfo_DeckStorage_FileSchema.field.colorIdentity)
           ? item.file.colorIdentity : undefined,
+        ...storedPreview(item.file),
         visibility: deckVisibility(item.file.isPublic, inherited),
       });
     } else if (item.folder) {

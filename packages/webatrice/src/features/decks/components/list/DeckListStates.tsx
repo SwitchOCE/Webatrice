@@ -1,17 +1,14 @@
 import { CircleAlert, FileText, Loader2, Plus, RefreshCw, X } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 
-const NEW_DECK_BUTTON_CLASS =
-  'inline-flex items-center gap-1.5 px-4 py-2 rounded-md text-sm font-semibold bg-accent '
-  + 'text-white hover:bg-accent-hover shadow-glow disabled:opacity-40 '
-  + 'disabled:cursor-not-allowed transition-colors';
+import { Button } from '@app/components';
 
 export function NewDeckButton({ onClick, disabled }: { onClick: () => void; disabled: boolean }) {
   const { t } = useTranslation();
   return (
-    <button type="button" onClick={onClick} disabled={disabled} className={NEW_DECK_BUTTON_CLASS}>
-      <Plus size={14} /> {t('Decks.list.newDeck')}
-    </button>
+    <Button variant="primary" icon={<Plus size={15} />} onClick={onClick} disabled={disabled}>
+      {t('Decks.list.newDeck')}
+    </Button>
   );
 }
 
@@ -56,7 +53,7 @@ export function DeckStorageError({ message, onDismiss }: { message: string; onDi
   return (
     <div
       role="alert"
-      className="mb-4 flex items-start gap-2 rounded-md border border-red-500/30 bg-red-500/10 px-3 py-2 text-sm text-danger"
+      className="mb-4 flex items-start gap-2 rounded-ui border border-danger/30 bg-danger/10 px-3 py-2 text-sm text-danger"
     >
       <CircleAlert size={16} className="shrink-0 mt-0.5 text-danger" />
       <span className="flex-1">{message}</span>
@@ -64,7 +61,10 @@ export function DeckStorageError({ message, onDismiss }: { message: string; onDi
         type="button"
         onClick={onDismiss}
         aria-label={t('Decks.dismiss')}
-        className="shrink-0 rounded p-0.5 text-danger hover:bg-red-500/15"
+        className={[
+          'shrink-0 rounded p-0.5 text-danger hover:bg-danger/15',
+          'focus-visible:outline focus-visible:outline-2 focus-visible:outline-accent',
+        ].join(' ')}
       >
         <X size={14} />
       </button>

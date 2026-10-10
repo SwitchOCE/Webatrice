@@ -9,6 +9,8 @@ import {
 import {
   allDeckFolderPaths,
   checkNewFolderName,
+  deckFolderEntry,
+  deckFolderTree,
   deckPathCrumbs,
   decksUnderFolder,
   findDeckFolder,
@@ -158,5 +160,44 @@ describe('checkNewFolderName', () => {
     expect(checkNewFolderName('x'.repeat(250), 'abcde', [])).toEqual({ problem: 'tooLong' });
     expect(checkNewFolderName('x'.repeat(249), 'abcde', [])).toEqual({ name: 'x'.repeat(249) });
     expect(checkNewFolderName('Cube', '', ['Cube', 'Modern'])).toEqual({ problem: 'exists' });
+  });
+});
+
+describe('deckFolderTree', () => {
+  it('nests folders by name with recursive deck counts and inherited visibility', () => {
+    const publicFolder = create(ServerInfo_DeckStorage_TreeItemSchema, {
+      name: 'Cube',
+      folder: create(ServerInfo_DeckStorage_FolderSchema, { isPublic: true, items: [folder('Old', [file(5, 'E', 1)])] }),
+    });
+    const root = create(ServerInfo_DeckStorage_FolderSchema, {
+      items: [
+        file(1, 'Root', 1),
+        folder('Modern', []),
+        folder('Commander', [file(2, 'A', 1), folder('Testing', [file(3, 'B', 1), file(4, 'C', 1)])]),
+        publicFolder,
+      ],
+    });
+    expect(deckFolderTree(root)).toEqual([
+      { name: 'Commander', path: 'Commander', deckCount: 3, visibility: 'private', children: [
+        { name: 'Testing', path: 'Commander/Testing', deckCount: 2, visibility: 'private', children: [] },
+      ] },
+      { name: 'Cube', path: 'Cube', deckCount: 1, visibility: 'public', children: [
+        { name: 'Old', path: 'Cube/Old', deckCount: 1, visibility: 'inherited', children: [] },
+      ] },
+      { name: 'Modern', path: 'Modern', deckCount: 0, visibility: 'private', children: [] },
+    ]);
+    expect(deckFolderTree(undefined)).toEqual([]);
+  });
+});
+
+describe('deckFolderEntry', () => {
+  it('describes a nested folder and nothing for the root or a missing path', () => {
+    const root = create(ServerInfo_DeckStorage_FolderSchema, {
+      items: [folder('Commander', [file(1, 'A', 1), folder('Testing', [file(2, 'B', 1)])])],
+    });
+    expect(deckFolderEntry(root, 'Commander')).toMatchObject({ name: 'Commander', deckCount: 2, folderCount: 1 });
+    expect(deckFolderEntry(root, 'Commander/Testing')).toMatchObject({ name: 'Testing', deckCount: 1, folderCount: 0 });
+    expect(deckFolderEntry(root, '')).toBeNull();
+    expect(deckFolderEntry(root, 'Nope')).toBeNull();
   });
 });

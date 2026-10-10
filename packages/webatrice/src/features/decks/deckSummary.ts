@@ -18,6 +18,7 @@ export interface DeckSummary {
   tags?: string[];
   commanderName?: string;
   commanderScryfallId?: string;
+  cardCount?: number;
 }
 
 export function summarizeDeck(parsed: ParsedDeck): DeckSummary {
@@ -35,6 +36,7 @@ export function summarizeDeck(parsed: ParsedDeck): DeckSummary {
     tags: tagsOrUndefined(readDeckTags(parsed.tagsXml)),
     commanderName: commander?.name,
     commanderScryfallId: commander?.scryfallId,
+    cardCount: parsed.cards.filter((c) => c.category === 'main').reduce((sum, c) => sum + c.quantity, 0),
   };
 }
 
@@ -56,7 +58,8 @@ export function summariesEqual(a: DeckSummary, b: DeckSummary): boolean {
     a.bannerCardProviderId === b.bannerCardProviderId &&
     sameTags(a.tags, b.tags) &&
     a.commanderName === b.commanderName &&
-    a.commanderScryfallId === b.commanderScryfallId
+    a.commanderScryfallId === b.commanderScryfallId &&
+    a.cardCount === b.cardCount
   );
 }
 

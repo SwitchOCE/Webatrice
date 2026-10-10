@@ -3992,16 +3992,6 @@
       "count": 1
     },
     {
-      "file": "src/features/decks/components/list/DeckListHeader.tsx",
-      "prefix": "Decks.list.view.",
-      "count": 2
-    },
-    {
-      "file": "src/features/decks/components/list/DeckRow.tsx",
-      "prefix": "Decks.list.age.",
-      "count": 1
-    },
-    {
       "file": "src/features/decks/components/search/CardSearchFilters.tsx",
       "prefix": "CardSearch.cardType.",
       "count": 1
