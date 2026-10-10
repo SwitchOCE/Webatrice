@@ -11,16 +11,17 @@ import {
 } from '@app/services';
 import type { ParsedCard, ParsedDeck } from '@app/types';
 
+import { mergeDuplicateRows } from './deckEdits';
 import type { DeckCard, HydratedDeck } from './types';
 
 export async function hydrateDeck(parsed: ParsedDeck, signal?: AbortSignal): Promise<HydratedDeck> {
   const uniqueNames = Array.from(new Set(parsed.cards.map((c) => c.name)));
   const lookups = await lookupCards(uniqueNames, signal);
 
-  const cards: DeckCard[] = parsed.cards.map((row) => {
+  const cards: DeckCard[] = mergeDuplicateRows(parsed.cards.map((row) => {
     const lookup = lookups.get(row.name);
     return assembleDeckCard(row, lookup);
-  });
+  }));
 
   return {
     name: parsed.name,

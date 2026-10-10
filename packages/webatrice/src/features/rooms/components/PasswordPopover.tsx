@@ -8,6 +8,7 @@ import { AnchoredPopover, type PopoverAnchor } from './AnchoredPopover';
 export interface PasswordPopoverProps {
   anchor: PopoverAnchor;
   fallback?: HTMLElement | null;
+  focusFallback?: HTMLElement | null;
   layoutKey?: unknown;
   gameName: string;
   spectating: boolean;
@@ -18,6 +19,7 @@ export interface PasswordPopoverProps {
 export default function PasswordPopover({
   anchor,
   fallback,
+  focusFallback,
   layoutKey,
   gameName,
   spectating,
@@ -32,6 +34,7 @@ export default function PasswordPopover({
     <AnchoredPopover
       anchor={anchor}
       fallback={fallback}
+      focusFallback={focusFallback}
       layoutKey={layoutKey}
       label={t('PasswordPopover.label', { game: gameName })}
       onClose={onCancel}

@@ -1,67 +1,18 @@
-import { useCallback, useLayoutEffect, useRef, type CSSProperties } from 'react';
+import { type CSSProperties } from 'react';
 import { useTranslation } from 'react-i18next';
 
-import { dispatchChatDock, useUnreadCounts } from '@app/hooks';
+import { useUnreadCounts } from '@app/hooks';
 
 import ChatBar from './ChatBar';
 import ChatWindow from './ChatWindow';
-import { focusAfterClose, type DockFocusTarget } from './splitDock';
 import { useChatDockController } from './useChatDockController';
+import { useDockFocus } from './useDockFocus';
 
 export default function ChatDock() {
   const { t } = useTranslation();
   const { visible, windows, bars, bottom, focus } = useChatDockController();
   const unread = useUnreadCounts().chats;
-  const rootRef = useRef<HTMLDivElement>(null);
-  const inputs = useRef(new Map<string, HTMLInputElement>());
-  const barButtons = useRef(new Map<string, HTMLButtonElement>());
-  const opener = useRef<HTMLElement | null>(null);
-  const pending = useRef<DockFocusTarget | null>(null);
-
-  useLayoutEffect(() => {
-    const active = document.activeElement;
-    if (focus && active instanceof HTMLElement && active !== document.body && !rootRef.current?.contains(active)) {
-      opener.current = active;
-    }
-  }, [focus]);
-
-  useLayoutEffect(() => {
-    const target = pending.current;
-    if (!target) {
-      return;
-    }
-    pending.current = null;
-    if (target === 'opener') {
-      if (opener.current?.isConnected) {
-        opener.current.focus();
-      }
-      return;
-    }
-    (target.kind === 'bar' ? barButtons : inputs).current.get(target.name)?.focus();
-  });
-
-  const registerInput = useCallback((name: string, el: HTMLInputElement | null) => {
-    if (el) {
-      inputs.current.set(name, el);
-    } else {
-      inputs.current.delete(name);
-    }
-  }, []);
-  const registerBar = useCallback((name: string, el: HTMLButtonElement | null) => {
-    if (el) {
-      barButtons.current.set(name, el);
-    } else {
-      barButtons.current.delete(name);
-    }
-  }, []);
-  const minimise = useCallback((name: string) => {
-    pending.current = { kind: 'bar', name };
-    dispatchChatDock({ type: 'minimise', name });
-  }, []);
-  const close = useCallback((name: string) => {
-    pending.current = focusAfterClose(windows, bars, name);
-    dispatchChatDock({ type: 'close', name });
-  }, [windows, bars]);
+  const { rootRef, registerInput, registerBar, minimise, close } = useDockFocus(windows, bars, focus);
 
   if (!visible) {
     return null;

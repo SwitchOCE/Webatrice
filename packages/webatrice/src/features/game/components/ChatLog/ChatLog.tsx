@@ -29,20 +29,21 @@ import { formatElapsed, useGameLog } from './useGameLog';
  */
 export interface ChatLogProps {
   onReveal?: () => void;
+  visible?: boolean;
 }
 
-export default function ChatLog({ onReveal }: ChatLogProps = {}) {
+export default function ChatLog({ onReveal, visible }: ChatLogProps = {}) {
   const gameId = useGameId();
   const messages = useAppSelector((state) => (gameId != null ? games.Selectors.getMessages(state, gameId) : undefined));
   const getChatContext = useCallback(() => gameChatContext(messages ?? []), [messages]);
   return (
     <ReportChatScope gameId={gameId ?? undefined} getChatContext={getChatContext}>
-      <ChatLogView onReveal={onReveal} />
+      <ChatLogView onReveal={onReveal} visible={visible} />
     </ReportChatScope>
   );
 }
 
-function ChatLogView({ onReveal }: ChatLogProps) {
+function ChatLogView({ onReveal, visible }: ChatLogProps) {
   const { t } = useTranslation();
   const gameId = useGameId();
   const listRef = useRef<HTMLDivElement>(null);
@@ -59,7 +60,7 @@ function ChatLogView({ onReveal }: ChatLogProps) {
     handleSubmit,
     canChat,
     chatDisabledReason,
-  } = useGameLog({ gameId, listRef });
+  } = useGameLog({ gameId, listRef, visible });
   const names = useMemo(
     () => Object.values(players ?? {}).flatMap((player) => player.properties.userInfo?.name ?? []),
     [players],

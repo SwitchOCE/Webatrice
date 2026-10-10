@@ -12,7 +12,7 @@ import { useAppSelector, type RootState } from '@app/store';
 import { deleteCachedDeck } from '../deckEditorCache';
 import { renameDeck, setDeckBanner, setDeckTags } from '../deckEdits';
 import { deckSaveSignature } from '../deckPersistence';
-import { getDeckSaveRegistry, type DeckSaveSnapshot } from '../deckSaveRegistry';
+import { dropCleanCachedDeck, getDeckSaveRegistry, type DeckSaveSnapshot } from '../deckSaveRegistry';
 import { storageEditConflict, type DeckStorageEdit } from '../deckStorageEdits';
 import { hydrateDeck } from '../hydrate';
 import type { HydratedDeck } from '../types';
@@ -155,6 +155,8 @@ export function useDeckStorageDetails(
           return false;
         }
         const conflict = storageEditConflict(base.xml, freshXml, edit);
+        registry.rebase(deckId, deckSaveSignature(fresh.deck));
+        dropCleanCachedDeck(registry, deckId);
         source.current = fresh;
         base = fresh;
         if (conflict) {

@@ -117,7 +117,7 @@ export default function GameDock({ collapsed, tab, onCollapse, onSelectTab }: Ga
   };
 
   const panelContent: Record<DockTab, React.ReactNode> = {
-    log: <ChatLog onReveal={() => onSelectTab('log')} />,
+    log: <ChatLog onReveal={() => onSelectTab('log')} visible={!collapsed && tab === 'log'} />,
     players: (
       <div className="flex min-h-0 flex-1 flex-col overflow-y-auto">
         <div className="flex shrink-0 flex-wrap items-center gap-1.5 px-3 py-2">

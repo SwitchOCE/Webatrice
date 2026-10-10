@@ -258,6 +258,26 @@ describe('GamesList', () => {
       expect(join(/^GameRow\.joinWithPassword/)).toHaveFocus();
     });
 
+    it('returns focus to the games grid when the password popover closes after its row scrolled out of view', () => {
+      const many = Object.fromEntries(Array.from({ length: 40 }, (_, i) => [i + 2, makeGame(i + 2, `Open ${i + 2}`)]));
+      const newest = makeGame(1, 'Locked', 1, true, { withPassword: true, startTime: 1000 });
+      const { container } = setup({ games: { 1: newest, ...many } });
+      const lockedRow = row('Locked');
+      fireEvent.click(within(lockedRow).getByRole('button', { name: /^GameRow\.joinWithPassword/ }));
+      const list = container.querySelector<HTMLElement>('.virtual-list__list')!;
+
+      act(() => {
+        list.scrollTop = 40 * 60;
+        fireEvent.scroll(list);
+      });
+      expect(lockedRow).not.toBeInTheDocument();
+      const popover = screen.getByRole('dialog', { name: 'PasswordPopover.label' });
+      fireEvent.keyDown(within(popover).getByLabelText('PasswordPopover.label'), { key: 'Escape' });
+
+      expect(screen.queryByRole('dialog', { name: 'PasswordPopover.label' })).not.toBeInTheDocument();
+      expect(screen.getByRole('grid')).toHaveFocus();
+    });
+
     it('closes the password popover on Escape without joining', () => {
       const { webClient } = setup({ games: locked() });
 

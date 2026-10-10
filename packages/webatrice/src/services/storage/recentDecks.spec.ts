@@ -17,7 +17,7 @@ import {
 } from './recentDecks';
 
 const SCRYFALL_ID = '0b9a7a0b-8f8e-4b0f-9a8c-1f1e1d1c1b1a';
-const HOST = 'localhost:4748';
+const HOST = 'ws://localhost:4748';
 
 const source = (overrides: Partial<RecentDeckSource> = {}): RecentDeckSource => ({
   name: 'Atraxa',
@@ -44,11 +44,17 @@ const entry = (deckId: number, overrides: Partial<RecentDeck> = {}): RecentDeck 
 });
 
 describe('recentDeckScope', () => {
-  it('canonicalises the websocket endpoint to host:port and path', () => {
-    expect(recentDeckScope('ws://LocalHost:4748')).toBe('localhost:4748');
-    expect(recentDeckScope('wss://server.cockatrice.us:4748/servatrice/')).toBe('server.cockatrice.us:4748/servatrice');
-    expect(recentDeckScope('wss://mtg.example.net/')).toBe('mtg.example.net:443');
-    expect(recentDeckScope('ws://mtg.example.net')).toBe('mtg.example.net:80');
+  it('lowercases the scheme and host, drops the default port and keeps the path as typed', () => {
+    expect(recentDeckScope('WS://LocalHost:4748')).toBe('ws://localhost:4748');
+    expect(recentDeckScope('wss://server.cockatrice.us:4748/servatrice/')).toBe('wss://server.cockatrice.us:4748/servatrice');
+    expect(recentDeckScope('wss://mtg.example.net:443/')).toBe('wss://mtg.example.net');
+    expect(recentDeckScope('ws://mtg.example.net:80')).toBe('ws://mtg.example.net');
+  });
+
+  it('keeps servers whose paths differ only in case apart', () => {
+    expect(recentDeckScope('wss://h/Alpha')).toBe('wss://h/Alpha');
+    expect(recentDeckScope('wss://h/Alpha')).not.toBe(recentDeckScope('wss://h/alpha'));
+    expect(recentDeckScope('WSS://H:443/Alpha')).toBe(recentDeckScope('wss://h/Alpha'));
   });
 
   it('has no scope without a websocket connection', () => {
@@ -87,15 +93,15 @@ describe('withRecentDeck', () => {
   });
 
   it('keeps the same deck id on another server or account apart', () => {
-    const list = [entry(1, { owner: 'bob' }), entry(1, { scope: 'other.net:4748' })];
+    const list = [entry(1, { owner: 'bob' }), entry(1, { scope: 'ws://other.net:4748' })];
     expect(withRecentDeck(list, entry(1))).toHaveLength(3);
   });
 
   it('caps each server and account separately', () => {
-    const otherHost = [entry(7, { scope: 'other.net:4748' }), entry(8, { scope: 'other.net:4748' })];
+    const otherHost = [entry(7, { scope: 'ws://other.net:4748' }), entry(8, { scope: 'ws://other.net:4748' })];
     const next = withRecentDeck([entry(1), entry(2), ...otherHost], entry(3), 2);
     expect(recentDecksIn(next, HOST, 'alice').map((d) => d.deckId)).toEqual([3, 1]);
-    expect(recentDecksIn(next, 'other.net:4748', 'alice').map((d) => d.deckId)).toEqual([7, 8]);
+    expect(recentDecksIn(next, 'ws://other.net:4748', 'alice').map((d) => d.deckId)).toEqual([7, 8]);
   });
 });
 
@@ -153,5 +159,89 @@ describe('recordRecentDeck', () => {
   it('keeps a stable snapshot while storage is unchanged', () => {
     recordRecentDeck(entry(1));
     expect(getRecentDecks()).toBe(getRecentDecks());
+  });
+
+  it('keeps decks recorded after a failed write visible this session, beside what storage still holds', () => {
+    window.localStorage.setItem(RECENT_DECKS_STORAGE_KEY, JSON.stringify([entry(1)]));
+    const setItem = vi.spyOn(Storage.prototype, 'setItem').mockImplementation(() => {
+      throw new DOMException('full', 'QuotaExceededError');
+    });
+    recordRecentDeck(entry(2));
+    recordRecentDeck(entry(3));
+    expect(getRecentDecks().map((d) => d.deckId)).toEqual([3, 2, 1]);
+    setItem.mockRestore();
+
+    recordRecentDeck(entry(4));
+    expect(parseRecentDecks(window.localStorage.getItem(RECENT_DECKS_STORAGE_KEY)).map((d) => d.deckId)).toEqual([4, 3, 2, 1]);
+  });
+});
+
+describe('recordRecentDeck across tabs', () => {
+  const realLocks = Object.getOwnPropertyDescriptor(navigator, 'locks');
+
+  function sharedLocks() {
+    let tail: Promise<unknown> = Promise.resolve();
+    return {
+      request: vi.fn((_name: string, callback: () => unknown) => {
+        const run = tail.then(() => callback());
+        tail = run.catch(() => undefined);
+        return run;
+      }),
+    };
+  }
+
+  function useLocks(locks: unknown) {
+    Object.defineProperty(navigator, 'locks', { configurable: true, value: locks });
+  }
+
+  beforeEach(() => {
+    window.localStorage.clear();
+    resetRecentDecksCache();
+  });
+
+  afterEach(() => {
+    if (realLocks) {
+      Object.defineProperty(navigator, 'locks', realLocks);
+    } else {
+      Reflect.deleteProperty(navigator, 'locks');
+    }
+  });
+
+  it('waits for another tab that is mid-update and keeps both decks', async () => {
+    const locks = sharedLocks();
+    useLocks(locks);
+    let started: () => void = () => {};
+    let finish: () => void = () => {};
+    const otherTabRead = new Promise<void>((resolve) => {
+      started = resolve;
+    });
+    const otherTab = locks.request(RECENT_DECKS_STORAGE_KEY, async () => {
+      const snapshot = parseRecentDecks(window.localStorage.getItem(RECENT_DECKS_STORAGE_KEY));
+      started();
+      await new Promise<void>((resolve) => {
+        finish = resolve;
+      });
+      window.localStorage.setItem(RECENT_DECKS_STORAGE_KEY, JSON.stringify(withRecentDeck(snapshot, entry(2))));
+    });
+    await otherTabRead;
+
+    const mine = recordRecentDeck(entry(1));
+    finish();
+    await Promise.all([otherTab, mine]);
+
+    expect(locks.request).toHaveBeenLastCalledWith(RECENT_DECKS_STORAGE_KEY, expect.any(Function));
+    expect(getRecentDecks().map((d) => d.deckId)).toEqual([1, 2]);
+  });
+
+  it('applies overlapping updates from this tab in order', async () => {
+    useLocks(sharedLocks());
+    await Promise.all([recordRecentDeck(entry(1)), recordRecentDeck(entry(2)), recordRecentDeck(entry(3))]);
+    expect(getRecentDecks().map((d) => d.deckId)).toEqual([3, 2, 1]);
+  });
+
+  it('still records when the lock cannot be taken', async () => {
+    useLocks({ request: vi.fn(() => Promise.reject(new DOMException('denied', 'SecurityError'))) });
+    await recordRecentDeck(entry(1));
+    expect(getRecentDecks().map((d) => d.deckId)).toEqual([1]);
   });
 });

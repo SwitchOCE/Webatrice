@@ -21,7 +21,15 @@ export { formatRestrictions, formatSpectators } from './gameInfo';
 export { downloadBlob } from './downloadBlob';
 export { formatReplayTime } from './formatReplayTime';
 export { phaseLabel } from './phaseLabels';
-export { computeArtSourceRect, coverFitRect, playmatImageBox } from './playmatCrop';
+export {
+  CROP_LABEL_KEYS,
+  CROP_SLIDERS,
+  asDecimal,
+  asPercent,
+  computeArtSourceRect,
+  coverFitRect,
+  playmatImageBox,
+} from './playmatCrop';
 export type { Rect, Size } from './playmatCrop';
 export {
   GAME_LINK_REGEX,

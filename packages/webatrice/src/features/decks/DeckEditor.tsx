@@ -14,7 +14,6 @@ import { Layout } from '@app/feature-wrappers/layout';
 import { useAppSelector } from '@app/store';
 import { isCommanderFormat, isMtgFormat, RouteEnum } from '@app/types';
 
-import { deckFingerprint } from './bracket';
 import { DeckBreakdown } from './components/breakdown/DeckBreakdown';
 import CardSearchDock, { type CardSearchDockApi } from './components/CardSearchDock/CardSearchDock';
 import { DeckEditorHeader } from './components/editor/DeckEditorHeader';
@@ -42,10 +41,13 @@ import { useDeckImagePreload } from './hooks/useDeckImagePreload';
 import { useDeckLegality } from './hooks/useDeckLegality';
 import { useDeckPricing } from './hooks/useDeckPricing';
 import { useDeckShareCreate, useDeckSharingSupported } from './hooks/useDeckSharing';
+import { useBracketCache } from './hooks/useBracketCache';
 import { useMediaQuery } from './hooks/useMediaQuery';
 import type { DeckCard } from './types';
 
 export const WIDE_EDITOR_QUERY = '(min-width: 1340px)';
+
+const NO_CARDS: DeckCard[] = [];
 
 const DeckEditor = () => {
   const { deckId: deckIdParam, token: draftToken } = useParams<{ deckId: string; token: string }>();
@@ -100,21 +102,10 @@ const DeckEditor = () => {
     () => groupDeckCards(editor.deck?.cards ?? [], isCommander),
     [editor.deck, isCommander],
   );
-  const colorIdentity = useMemo(
-    () => (isCommander ? dockColorIdentity(editor.deck?.cards ?? [], true) : undefined),
-    [editor.deck, isCommander],
-  );
-  const cards = editor.deck?.cards;
-  const fingerprint = useMemo(() => (cards ? deckFingerprint(cards) : ''), [cards]);
-  const assessment = editor.deck?.bracketAssessment;
-  const bracketLevel = isCommander && assessment?.fingerprint === fingerprint ? assessment.level : undefined;
-  const { setBracketAssessment } = editor;
-  useEffect(() => {
-    if (assessment && assessment.fingerprint !== fingerprint) {
-      setBracketAssessment(undefined);
-    }
-  }, [assessment, fingerprint, setBracketAssessment]);
-  const selectedIndex = useMemo(() => resolveInspectedRow(cards ?? [], selected), [cards, selected]);
+  const cards = editor.deck?.cards ?? NO_CARDS;
+  const colorIdentity = useMemo(() => dockColorIdentity(cards, isCommander), [cards, isCommander]);
+  const bracketLevel = useBracketCache(cards, editor.deck?.bracketAssessment, editor.setBracketAssessment, isCommander);
+  const selectedIndex = useMemo(() => resolveInspectedRow(cards, selected), [cards, selected]);
   useEffect(() => {
     if (selected && !selected.preview && selectedIndex < 0) {
       setSelected(null);

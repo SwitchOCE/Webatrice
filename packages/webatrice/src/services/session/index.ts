@@ -1,6 +1,11 @@
 type SessionEndHandler = () => void;
 const handlers = new Set<SessionEndHandler>();
 let ending = false;
+let generation = 0;
+
+export function sessionGeneration(): number {
+  return generation;
+}
 
 export function onSessionEnd(handler: SessionEndHandler): () => void {
   const registration = () => handler();
@@ -15,6 +20,7 @@ export function endSession(): void {
     return;
   }
   ending = true;
+  generation += 1;
   try {
     for (const handler of [...handlers]) {
       if (!handlers.has(handler)) {

@@ -21,30 +21,37 @@ describe('resolveInspectedRow', () => {
     expect(resolveInspectedRow(cards, null)).toBe(-1);
   });
 
-  it('lets a search pick fall back from its printing to any copy of the card', () => {
-    expect(resolveInspectedRow(cards, { name: 'Sol Ring', category: 'main', scryfallId: 'sr-lea', preview })).toBe(1);
-    expect(resolveInspectedRow(cards, { name: 'Sol Ring', category: 'main', scryfallId: 'sr-foil', preview })).toBe(0);
+  it('resolves a search pick without a chosen printing to any copy of the card', () => {
     expect(resolveInspectedRow(cards, { name: 'Sol Ring', category: 'main', preview })).toBe(0);
     expect(resolveInspectedRow(cards, { name: 'Ponder', category: 'main', preview })).toBe(3);
     expect(resolveInspectedRow(cards, { name: 'Brainstorm', category: 'main', preview })).toBe(-1);
   });
+
+  it('keeps a search pick with a printing the deck lacks as a preview, in any zone', () => {
+    expect(resolveInspectedRow(cards, { name: 'Sol Ring', category: 'main', scryfallId: 'sr-lea', preview })).toBe(1);
+    expect(resolveInspectedRow(cards, { name: 'Sol Ring', category: 'sideboard', scryfallId: 'sr-lea', preview })).toBe(1);
+    expect(resolveInspectedRow(cards, { name: 'Sol Ring', category: 'main', scryfallId: 'sr-foil', preview })).toBe(-1);
+  });
 });
 
 describe('dockColorIdentity', () => {
-  it('uses the commanders in a commander deck, and every card otherwise', () => {
-    const cards = [
-      card('Atraxa', 'main', { isCommander: true, colors: ['g', 'W', 'U', 'B'] }),
-      card('Lightning Bolt', 'main', { colors: ['R'] }),
-    ];
-    expect(dockColorIdentity(cards, true)).toEqual(['W', 'U', 'B', 'G']);
-    expect(dockColorIdentity(cards, false)).toEqual(['W', 'U', 'B', 'R', 'G']);
-    expect(dockColorIdentity([cards[1]], true)).toEqual(['R']);
+  const bolt = card('Lightning Bolt', 'main', { colors: ['R'], colorIdentity: ['R'] });
+
+  it('is the commanders\' combined identity, only in commander formats with a commander', () => {
+    const atraxa = card('Atraxa', 'main', { isCommander: true, colors: ['g', 'W', 'U', 'B'], colorIdentity: ['g', 'W', 'U', 'B'] });
+    const partner = card('Tymna', 'main', { isCommander: true, colors: ['W'], colorIdentity: ['W', 'B'] });
+    expect(dockColorIdentity([atraxa, bolt], true)).toEqual(['W', 'U', 'B', 'G']);
+    expect(dockColorIdentity([partner, card('Kozilek', 'main', { isCommander: true, colorIdentity: [] }), bolt], true)).toEqual(['W', 'B']);
+    expect(dockColorIdentity([atraxa, bolt], false)).toBeUndefined();
+    expect(dockColorIdentity([bolt], true)).toBeUndefined();
   });
 
-  it('prefers colour identity over colours, and treats a known colourless identity as colourless', () => {
-    const commander = card('Kozilek', 'main', { isCommander: true, colors: [], colorIdentity: [] });
-    const hybrid = card('Tasigur', 'main', { isCommander: true, colors: ['B'], colorIdentity: ['B', 'G', 'U'] });
-    expect(dockColorIdentity([hybrid, card('Bolt', 'main', { colors: ['R'] })], true)).toEqual(['U', 'B', 'G']);
-    expect(dockColorIdentity([commander, card('Bolt', 'main', { colors: ['R'] })], true)).toEqual([]);
+  it('treats a known colourless identity as colourless, and an unknown one as no restriction', () => {
+    const kozilek = card('Kozilek', 'main', { isCommander: true, colors: [], colorIdentity: [] });
+    expect(dockColorIdentity([kozilek, bolt], true)).toEqual([]);
+    const unknown = card('Mystery', 'main', { isCommander: true, colors: ['B'] });
+    expect(dockColorIdentity([unknown, bolt], true)).toBeUndefined();
+    const tasigur = card('Tasigur', 'main', { isCommander: true, colors: ['B'], colorIdentity: ['B', 'G', 'U'] });
+    expect(dockColorIdentity([tasigur, unknown], true)).toBeUndefined();
   });
 });

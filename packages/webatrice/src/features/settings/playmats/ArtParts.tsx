@@ -63,6 +63,7 @@ interface CardNameFormProps {
   submitAriaLabel?: string;
   maxLength?: number;
   disabled?: boolean;
+  cancelDisabled?: boolean;
   onSubmit: (cardName: string) => Promise<SubmitResult> | SubmitResult;
   onCancel: () => void;
   className?: string;
@@ -74,6 +75,7 @@ export function CardNameForm({
   submitAriaLabel,
   maxLength,
   disabled,
+  cancelDisabled,
   onSubmit,
   onCancel,
   className,
@@ -111,7 +113,7 @@ export function CardNameForm({
               placeholder={t('PlaymatSettings.collection.cardNamePlaceholder')}
               aria-invalid={fieldState.error ? true : undefined}
               onKeyDown={(e) => {
-                if (e.key === 'Escape') {
+                if (e.key === 'Escape' && !cancelDisabled) {
                   e.preventDefault();
                   onCancel();
                 }
@@ -125,7 +127,7 @@ export function CardNameForm({
         <Button type="submit" variant="primary" aria-label={submitAriaLabel} disabled={disabled || isSubmitting}>
           {submitLabel}
         </Button>
-        <Button variant="quiet" onClick={onCancel}>{t('PlaymatSettings.collection.cancel')}</Button>
+        <Button variant="quiet" disabled={cancelDisabled} onClick={onCancel}>{t('PlaymatSettings.collection.cancel')}</Button>
       </span>
     </form>
   );

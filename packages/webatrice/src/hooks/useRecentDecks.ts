@@ -37,7 +37,7 @@ export function useRecordRecentDeck(deckId: number | null, deck: RecentDeckSourc
   const key = snapshot ? JSON.stringify(snapshot) : null;
   useEffect(() => {
     if (key) {
-      recordRecentDeck({ ...(JSON.parse(key) as RecentDeck), openedAt: Date.now() });
+      void recordRecentDeck({ ...(JSON.parse(key) as RecentDeck), openedAt: Date.now() });
     }
   }, [key]);
 }

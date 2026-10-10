@@ -13,7 +13,8 @@ import {
   PlaymatModeSelect,
   PlaymatVisibilitySelect,
 } from './PlaymatControls';
-import { asDecimal, asPercent, movePlaymat } from './playmatList';
+import { asDecimal, asPercent } from '@app/utils';
+import { movePlaymat } from './playmatList';
 
 const PARAMS = { marginPctL: 0.07, marginPctR: 0.07, verticalOffset: 0.33, zoom: 1 };
 const mat = (cardName: string) => ({ cardName, cardProviderId: '', params: PARAMS });
@@ -151,6 +152,37 @@ describe('playmat controls', () => {
 
     expect(getPlaymatSettings().fallbackList).toEqual([]);
     expect(screen.queryByRole('group', { name: 'PlaymatSettings.crop.title' })).not.toBeInTheDocument();
+  });
+
+  it('locks Cancel once the new card is being saved, so a cancel cannot leave it saved behind the user', async () => {
+    let finishSave: () => void = () => {};
+    const save = vi.spyOn(SettingDTO.prototype, 'save').mockReturnValue(new Promise((resolve) => {
+      finishSave = () => resolve('*app');
+    }) as ReturnType<SettingDTO['save']>);
+    renderCollection();
+    const input = await openAddForm();
+    fireEvent.change(input, { target: { value: 'Island' } });
+    await act(async () => {
+      fireEvent.click(screen.getByRole('button', { name: 'PlaymatSettings.collection.add' }));
+    });
+
+    const cancel = screen.getByRole('button', { name: 'PlaymatSettings.collection.cancel' });
+    const addArt = screen.getByRole('button', { name: 'PlaymatSettings.collection.addArt' });
+    expect(cancel).toBeDisabled();
+    expect(addArt).toBeDisabled();
+    fireEvent.click(cancel);
+    fireEvent.click(addArt);
+    fireEvent.keyDown(input, { key: 'Escape' });
+    expect(input).toBeInTheDocument();
+
+    await act(async () => {
+      finishSave();
+    });
+    expect(names()).toEqual(['Island']);
+    expect(screen.getByRole('group', { name: 'PlaymatSettings.crop.title' })).toBeInTheDocument();
+    expect(screen.queryByRole('textbox', { name: 'PlaymatSettings.collection.cardName' })).not.toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'PlaymatSettings.collection.addArt' })).toBeEnabled();
+    save.mockRestore();
   });
 
   it('keeps the typed name and says so when saving the new card fails', async () => {

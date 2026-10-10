@@ -6,7 +6,7 @@ import { rootReducerMap, type RootState } from '@app/store';
 import { connectedState, createMockWebClient } from '../../__test-utils__';
 import { makeReduxHookWrapper } from '../../__test-utils__/makeHookWrapper';
 import { clearDeckEditorCache, getCachedDeck, setCachedDeck } from './deckEditorCache';
-import { createDeckSaveRegistry, dropCleanCachedDecks, getDeckSaveRegistry } from './deckSaveRegistry';
+import { createDeckSaveRegistry, dropCleanCachedDeck, dropCleanCachedDecks, getDeckSaveRegistry } from './deckSaveRegistry';
 import { deckSaveSignature } from './deckPersistence';
 import type { HydratedDeck } from './types';
 
@@ -222,6 +222,41 @@ describe('deckSaveRegistry', () => {
     unsubscribe();
     response(0)(null);
     expect(listener).toHaveBeenCalledTimes(1);
+  });
+});
+
+describe('rebase', () => {
+  it('moves the saved baseline to a downloaded document unless the editor has work outstanding', () => {
+    const { registry, response } = setup();
+    registry.rebase(7, deckSaveSignature(first));
+    expect(registry.getSnapshot(7).savedSignature).toBe(deckSaveSignature(first));
+    registry.save(7, first);
+    expect(registry.getSnapshot(7).pending.size).toBe(0);
+
+    registry.markDirty(8);
+    registry.rebase(8, deckSaveSignature(second));
+    expect(registry.getSnapshot(8).savedSignature).toBe(deckSaveSignature(original));
+    registry.save(8, first);
+    registry.rebase(8, deckSaveSignature(second));
+    expect(registry.getSnapshot(8).savedSignature).toBe(deckSaveSignature(original));
+    response(0)(null);
+    expect(registry.getSnapshot(8).savedSignature).toBe(deckSaveSignature(first));
+
+    registry.rebase(9, deckSaveSignature(second));
+    expect(registry.getSnapshot(9).savedSignature).toBe(deckSaveSignature(second));
+  });
+});
+
+describe('dropCleanCachedDeck', () => {
+  it('drops only that deck, and only when it holds no unsaved work', () => {
+    const { registry } = setup();
+    const clean = { deck: original, savedSignature: deckSaveSignature(original) };
+    setCachedDeck(1, clean);
+    setCachedDeck(2, clean);
+    setCachedDeck(3, { deck: first, savedSignature: deckSaveSignature(original) });
+    dropCleanCachedDeck(registry, 1);
+    dropCleanCachedDeck(registry, 3);
+    expect([1, 2, 3].map((id) => getCachedDeck(id) != null)).toEqual([false, true, true]);
   });
 });
 

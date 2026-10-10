@@ -2,8 +2,9 @@ import { act } from '@testing-library/react';
 import { create } from '@bufbuild/protobuf';
 import { WebClientContext } from '@cockatrice/datatrice/react';
 import { server } from '@cockatrice/datatrice';
-import { ServerInfo_ReplayMatchSchema, ServerInfo_User_UserLevelFlag } from '@cockatrice/sockatrice/generated';
+import { ServerInfo_ReplayMatchSchema, ServerInfo_ReplaySchema, ServerInfo_User_UserLevelFlag } from '@cockatrice/sockatrice/generated';
 import { WebsocketTypes } from '@cockatrice/sockatrice/types';
+import { ReplayFileDTO } from '@app/services';
 import { endSession } from '@app/services/session';
 import { connectedState, createMockWebClient, makeStoreState, makeUser, renderWithProviders } from '../../__test-utils__';
 import { useServerReplays, type ServerReplays } from './useServerReplays';
@@ -35,6 +36,7 @@ function setup() {
     },
     requestId: () => vi.mocked(client.request.session.replayList).mock.lastCall?.[0],
     requestCount: () => vi.mocked(client.request.session.replayList).mock.calls.length,
+    replayDownload: () => vi.mocked(client.request.session.replayDownload),
     refresh: () => {
       client = createMockWebClient();
       view.rerender(ui());
@@ -97,5 +99,60 @@ describe('server replay refresh ownership', () => {
     act(() => endSession());
     view.fail(requestId);
     expect(view.model.notice).toBeNull();
+  });
+});
+
+describe('saving to the library across a session boundary', () => {
+  const recorded = create(ServerInfo_ReplayMatchSchema, {
+    gameId: 7,
+    gameName: 'Game 7',
+    doNotHide: false,
+    replayList: [create(ServerInfo_ReplaySchema, { replayId: 70, replayName: 'Replay 70', duration: 10 })],
+  });
+
+  function selectMatch(view: ReturnType<typeof setup>) {
+    act(() => {
+      view.store.dispatch(server.Actions.replayList({ matchList: [recorded], requestId: view.requestId() }));
+    });
+    act(() => view.model.select({ kind: 'match', gameId: 7 }));
+  }
+
+  it('downloads nothing when the session ended while the folder was being created', async () => {
+    let resolveFolder: (id: number) => void = () => {};
+    vi.spyOn(ReplayFileDTO, 'addFolder').mockReturnValue(new Promise((resolve) => {
+      resolveFolder = resolve;
+    }));
+    const view = setup();
+    selectMatch(view);
+
+    act(() => view.model.saveToLibrary(1));
+    act(() => endSession());
+    await act(async () => {
+      resolveFolder(11);
+    });
+
+    expect(view.replayDownload()).not.toHaveBeenCalled();
+  });
+
+  it('persists nothing when the session ended while the replay was downloading', async () => {
+    vi.spyOn(ReplayFileDTO, 'addFolder').mockResolvedValue(11);
+    const add = vi.spyOn(ReplayFileDTO, 'addReplay').mockResolvedValue(12);
+    const view = setup();
+    selectMatch(view);
+
+    act(() => view.model.saveToLibrary(1));
+    await act(async () => {
+      await Promise.resolve();
+    });
+    expect(view.replayDownload()).toHaveBeenCalledTimes(1);
+
+    act(() => endSession());
+    const deliver = view.replayDownload().mock.lastCall![1] as (data: Uint8Array) => void;
+    await act(async () => {
+      deliver(new Uint8Array([1]));
+    });
+
+    expect(add).not.toHaveBeenCalled();
+    expect(view.model.librarySaves).toBe(0);
   });
 });
