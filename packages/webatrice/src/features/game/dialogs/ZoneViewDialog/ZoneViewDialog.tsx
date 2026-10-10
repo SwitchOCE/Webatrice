@@ -1,11 +1,12 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useForkRef } from '@mui/material/utils';
-import { ZoneName } from '@cockatrice/sockatrice';
+import { ZoneName, isBuiltinZone } from '@cockatrice/sockatrice';
 
 import { usePreference } from '@app/hooks';
 
 import { useCanActFor } from '../../components/ui/CardVisualStateContext';
+import { useGameReadOnly } from '../../components/ui/GameReadOnlyContext';
 import { useGameDialogsContext } from '../../components/ui/GameDialogsContext';
 import { useGameId } from '../../components/ui/GameIdContext';
 import { useGameSelectionState } from '../../components/ui/GameSelectionContext';
@@ -17,6 +18,7 @@ import { useActiveSeatDrag, useSeatDragSource, useSeatDropZone } from '../../com
 import type { ZoneViewTarget } from '../../hooks/dialogs/gameDialogs.types';
 import {
   SEAT_DROP_PRIORITY,
+  seatZoneName,
   type SeatDragSource,
   type SeatDropPoint,
   type SeatDropTarget,
@@ -52,11 +54,15 @@ const CARD_MENU_KIND: Partial<Record<string, 'pile' | 'zoneView'>> = {
 
 function ZoneViewDialog({ view, handleClose }: ZoneViewDialogProps) {
   const { t } = useTranslation();
+  const readOnly = useGameReadOnly();
   const gameId = useGameId();
   const { playerId, zoneName } = view;
   const { cards, count, title, isLocal } = useZoneViewDialog(gameId, view);
   const ordered = isOrderedView(view);
-  const seatZone = SEAT_ZONE[zoneName];
+  const seatZone = useMemo<SeatZone | undefined>(
+    () => SEAT_ZONE[zoneName] ?? (isBuiltinZone(zoneName) ? undefined : { kind: 'custom', name: zoneName }),
+    [zoneName],
+  );
 
   const closeEmptyCardView = usePreference('closeEmptyCardView');
   const viewKey = `${view.numberCards ?? -1}:${view.isReversed ?? false}`;
@@ -75,14 +81,14 @@ function ZoneViewDialog({ view, handleClose }: ZoneViewDialogProps) {
     seatPlayerId: playerId,
     zone: seatZone ?? 'library',
     canMoveFor: canActFor,
-    disabled: !isLocal || seatZone == null,
+    disabled: readOnly || !isLocal || seatZone == null,
   });
-  const onCardPointerDown = isLocal && seatZone != null
+  const onCardPointerDown = !readOnly && isLocal && seatZone != null
     ? (e: React.PointerEvent<HTMLElement>, card: { id: string }) => startDrag(e, [card])
     : undefined;
 
   const activeDrag = useActiveSeatDrag();
-  const draggingCardIds = activeDrag?.seatPlayerId === playerId && activeDrag.zone === seatZone
+  const draggingCardIds = activeDrag?.seatPlayerId === playerId && seatZoneName(activeDrag.zone) === zoneName
     ? new Set(activeDrag.cards.map((c) => c.id))
     : undefined;
 
@@ -121,14 +127,14 @@ function ZoneViewDialog({ view, handleClose }: ZoneViewDialogProps) {
   const dropRef = useSeatDropZone(
     viewId,
     { seatPlayerId: playerId, priority: dropPriority(view), resolve: resolveDrop },
-    seatZone == null,
+    readOnly || seatZone == null,
   );
   const panelDropRef = useForkRef(panelRef, dropRef);
 
   const { selectedIds, setSelectedIds } = useZoneViewSelection(playerId, zoneName, cards);
 
   const requestKeyboardMove = useKeyboardMove();
-  const onCardMove = isLocal && seatZone != null && requestKeyboardMove && canActFor(playerId)
+  const onCardMove = !readOnly && isLocal && seatZone != null && requestKeyboardMove && canActFor(playerId)
     ? (card: { id: string; name: string }) => {
       const moved = selectedIds.has(card.id) ? cards.filter((c) => selectedIds.has(c.id)) : [card];
       requestKeyboardMove({
@@ -150,12 +156,12 @@ function ZoneViewDialog({ view, handleClose }: ZoneViewDialogProps) {
     previewOf: (card) => ({ name: card.name, scryfallId: card.scryfallId }),
     selectedIds,
     onSelectIds: setSelectedIds,
-    onActivate: (_card, element) => pickArrowAt(element),
+    onActivate: readOnly ? undefined : (_card, element) => pickArrowAt(element),
     onMove: onCardMove,
     onOpenMenu: () => undefined,
   });
-  const cardMenuKind = CARD_MENU_KIND[zoneName];
-  const onCardContextMenu = cardMenuKind
+  const cardMenuKind = typeof seatZone === 'object' ? 'zoneView' : CARD_MENU_KIND[zoneName];
+  const onCardContextMenu = !readOnly && cardMenuKind
     ? (at: { x: number; y: number }, card: { id: string; name: string }, scope: ZoneViewCardScope) => {
       openSeatCardMenu({
         kind: cardMenuKind,
@@ -202,11 +208,11 @@ function ZoneViewDialog({ view, handleClose }: ZoneViewDialogProps) {
     <ZoneViewPanel
       title={title}
       library={cards}
-      showShuffleOnClose={offersShuffleOnClose(view)}
+      showShuffleOnClose={!readOnly && offersShuffleOnClose(view)}
       onClose={handleClose}
       onCardPointerDown={onCardPointerDown}
       onCardContextMenu={onCardContextMenu}
-      onCardActivate={(_card, element) => pickArrowAt(element)}
+      onCardActivate={readOnly ? undefined : (_card, element) => pickArrowAt(element)}
       onCardMove={onCardMove}
       onEscapeCancel={() => {
         if (!pending) {

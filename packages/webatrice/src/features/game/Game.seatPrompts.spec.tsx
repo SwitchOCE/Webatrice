@@ -176,8 +176,8 @@ const CASES: Record<string, PromptCase> = {
       chooseMenuPath('Move to', 'X cards from the top of library...');
     },
     dialog: /^place card x cards from top of library$/i,
-    initial: '3',
-    invalid: '-1',
+    initial: '1',
+    invalid: '0',
     answer: '99',
   },
 };

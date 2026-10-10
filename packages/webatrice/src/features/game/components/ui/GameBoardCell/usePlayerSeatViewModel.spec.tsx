@@ -196,7 +196,10 @@ describe('usePlayerSeatViewModel', () => {
         });
       },
     }).model();
-    expect(model.zones.customZones).toEqual([{ name: 'command', type: 1, withCoords: false, cardCount: 1 }]);
+    expect(model.zones.customZones).toEqual([expect.objectContaining({
+      name: 'command', type: 1, withCoords: false, cardCount: 1,
+      cards: [expect.objectContaining({ id: '70', name: 'Kenrith' })],
+    })]);
     expect(renderModel(OPP).model().zones.customZones).toEqual([]);
   });
 

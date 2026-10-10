@@ -14,7 +14,8 @@ import {
 import type { PlayerCardViewModel } from '../../components/ui/PlayerBoard/playerBoard.types';
 import type { ZoneViewTarget } from '../../hooks/dialogs/gameDialogs.types';
 import { zoneLabel } from '../shared/zoneLabels';
-import { isHiddenZone, isOrderedView } from './zoneViewTarget';
+import { isOrderedView } from './zoneViewTarget';
+import { isHiddenZone } from '../../utils/zones';
 
 export interface ZoneViewData {
   cards: PlayerCardViewModel[];
@@ -47,8 +48,8 @@ export function useZoneViewDialog(gameId: number | undefined, view: ZoneViewTarg
   const isLocal = playerId === localPlayerId;
 
   const cards = useMemo(
-    () => (isHiddenZone(zoneName) ? revealedCardsToSeatCards(zone?.revealedCards) : zoneToSeatCards(zone)),
-    [zoneName, zone],
+    () => (isHiddenZone(zone) ? revealedCardsToSeatCards(zone?.revealedCards) : zoneToSeatCards(zone)),
+    [zone],
   );
   const count = zone?.cardCount ?? cards.length;
   const title = zoneViewTitle(t, view, seatDisplayName(t, realName, isLocal, playerId), cards.length);

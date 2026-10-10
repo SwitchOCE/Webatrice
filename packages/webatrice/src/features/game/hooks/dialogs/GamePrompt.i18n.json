@@ -28,7 +28,7 @@
       "numberOfCards": "Number of cards",
       "empty": "The library is empty",
       "moveFromTopTitle": "Place card X cards from top of library",
-      "position": "Place at position (0 = top, {count} = bottom)"
+      "position": "Place at position (1 = top, {count} = bottom)"
     },
     "mulligan": {
       "title": "Draw hand",

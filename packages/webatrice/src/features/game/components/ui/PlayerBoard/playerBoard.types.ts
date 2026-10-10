@@ -93,6 +93,7 @@ export interface CustomZoneViewModel {
   type: number;
   withCoords: boolean;
   cardCount: number;
+  cards: readonly PlayerCardViewModel[];
 }
 
 export interface PlayerBoardModel {
@@ -133,12 +134,12 @@ export type RevealSelection = 'zone' | 'random' | { top: number } | { cardIds: r
 
 export interface PlayerZoneCommands {
   move(params: MoveCardParams): void;
-  moveCards(from: ZoneNameValue, cards: readonly SeatMoveCard[], to: SeatMoveDestination): void;
+  moveCards(from: string, cards: readonly SeatMoveCard[], to: SeatMoveDestination): void;
   draw(count: number): void;
   undoDraw(): void;
   mulligan(handSize: number): void;
   shuffleLibrary(range?: { start: number; end: number }): void;
-  reveal(zone: ZoneNameValue, to: RevealRecipient, cards?: RevealSelection): void;
+  reveal(zone: string, to: RevealRecipient, cards?: RevealSelection): void;
   lendLibrary(to: number): void;
   setAlwaysRevealTopCard(value: boolean): void;
   setAlwaysLookAtTopCard(value: boolean): void;
@@ -197,7 +198,7 @@ export type ArrowTarget =
 export interface PlayerTargetCommands {
   attach(sourceCardId: number, target: { playerId: number; cardId: number }): void;
   unattach(sourceCardId: number): void;
-  createArrow(sourceCardId: number, sourceZone: ZoneNameValue, target: ArrowTarget, color?: ColorRGBA): void;
+  createArrow(sourceCardId: number, sourceZone: string, target: ArrowTarget, color?: ColorRGBA): void;
   playAndCreateArrow(handCardId: number, target: ArrowTarget, color?: ColorRGBA): void;
   clearOwnArrows(): void;
 }

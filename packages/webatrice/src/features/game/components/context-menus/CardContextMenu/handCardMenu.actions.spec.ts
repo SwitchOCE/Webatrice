@@ -51,8 +51,7 @@ function makeDeps(overrides: Partial<HandOrZoneCardMenuDeps> = {}): HandOrZoneCa
     canModify: true,
     revealTargets: [{ playerId: 2, name: 'Bob' }],
     handCards: HAND,
-    libraryViewCards: LIBRARY,
-    sideboardCards: SIDEBOARD,
+    zoneViewCards: LIBRARY,
     handSelection: null,
     setHandSelection: vi.fn(),
     selectedCardKeys: new Set(),
@@ -146,7 +145,7 @@ describe('resolveHandOrZoneCardMenu', () => {
   });
 
   it('reads a sideboard view\'s cards from the sideboard', () => {
-    const deps = makeDeps({ menu: libraryViewMenu('30', ZoneName.SIDEBOARD) });
+    const deps = makeDeps({ menu: libraryViewMenu('30', ZoneName.SIDEBOARD), zoneViewCards: SIDEBOARD });
     click(itemsOf(deps), 'Move to', 'Hand');
     expect(deps.moveCards).toHaveBeenCalledWith(ZoneName.SIDEBOARD, [30], { zone: ZoneName.HAND, reversed: false });
   });
@@ -164,7 +163,7 @@ describe('resolveHandOrZoneCardMenu', () => {
   it.each([ZoneName.DECK, ZoneName.SIDEBOARD])('plays positional cards descending from %s', (zone) => {
     const deps = makeDeps({
       menu: libraryViewMenu('21', zone),
-      sideboardCards: LIBRARY,
+      zoneViewCards: LIBRARY,
       selectedCardKeys: new Set([makeCardKey(OWNER, zone, 20), makeCardKey(OWNER, zone, 21)]),
     });
     click(itemsOf(deps), 'Play');

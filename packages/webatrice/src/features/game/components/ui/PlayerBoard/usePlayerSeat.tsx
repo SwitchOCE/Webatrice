@@ -83,8 +83,10 @@ export function usePlayerSeat({ model, commands, onOpenDeckInEditor, onSay }: Pl
       zones.exile.cards,
       zones.library.revealedCards,
       zones.sideboard.revealedCards,
+      ...(zones.customZones ?? []).map((zone) => zone.cards),
     ],
-    [zones.stack.cards, zones.graveyard.cards, zones.exile.cards, zones.library.revealedCards, zones.sideboard.revealedCards],
+    [zones.stack.cards, zones.graveyard.cards, zones.exile.cards,
+      zones.library.revealedCards, zones.sideboard.revealedCards, zones.customZones],
   );
   const manaCounters = counters.mana;
   const { alwaysRevealTopCard, alwaysLookAtTopCard, topCard: deckTopCard } = zones.library;
@@ -239,7 +241,7 @@ export function usePlayerSeat({ model, commands, onOpenDeckInEditor, onSay }: Pl
   const { startArrow: startPendingArrow, startAttach: startPendingAttach, pickAttachTarget, pickArrowAt } = pendingTarget;
   const attachPicking = pendingTarget.pending?.kind === 'attach';
   const startDrawArrow = useCallback(
-    ({ sourceCardId, sourceCardName, sourceZone }: { sourceCardId: number; sourceCardName: string; sourceZone: ZoneNameValue }) =>
+    ({ sourceCardId, sourceCardName, sourceZone }: { sourceCardId: number; sourceCardName: string; sourceZone: string }) =>
       startPendingArrow({ playerId, zone: sourceZone, cardId: sourceCardId, name: sourceCardName }),
     [startPendingArrow, playerId],
   );

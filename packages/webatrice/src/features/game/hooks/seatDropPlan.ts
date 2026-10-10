@@ -4,7 +4,8 @@ import type { MoveCardParams } from '@cockatrice/sockatrice/generated';
 import type { Coordinates, PointerGestureData } from './gamePointerSensor';
 import { planHandReorder, planPositionalReorder } from './handReorder';
 
-export type SeatZone = 'hand' | 'battlefield' | 'library' | 'graveyard' | 'exile' | 'stack' | 'sideboard';
+export type FixedSeatZone = 'hand' | 'battlefield' | 'library' | 'graveyard' | 'exile' | 'stack' | 'sideboard';
+export type SeatZone = FixedSeatZone | { kind: 'custom'; name: string };
 
 export interface SeatSlot {
   row: number;
@@ -75,7 +76,7 @@ export function seatDropAccepts(zone: SeatDropZone, source: SeatDragSource): boo
   return zone.acceptsOtherSeats === true || zone.seatPlayerId === seatDragOwner(source);
 }
 
-const WIRE_ZONE: Record<SeatZone, string> = {
+const WIRE_ZONE: Record<FixedSeatZone, (typeof ZoneName)[keyof typeof ZoneName]> = {
   battlefield: ZoneName.TABLE,
   hand: ZoneName.HAND,
   library: ZoneName.DECK,
@@ -84,6 +85,10 @@ const WIRE_ZONE: Record<SeatZone, string> = {
   stack: ZoneName.STACK,
   sideboard: ZoneName.SIDEBOARD,
 };
+
+export function seatZoneName(zone: SeatZone): string {
+  return typeof zone === 'string' ? WIRE_ZONE[zone] : zone.name;
+}
 
 export function intendedBattlefieldSlots(
   cards: readonly SeatDragCard[],
@@ -221,7 +226,7 @@ export function planSeatMove(source: SeatDragSource, target: SeatDropTarget, opt
   const entersBattlefield = target.zone === 'battlefield' && source.zone !== 'battlefield';
   return [{
     startPlayerId: source.lenderPlayerId ?? owner,
-    startZone: WIRE_ZONE[source.zone],
+    startZone: seatZoneName(source.zone),
     cardsToMove: {
       card: cardIds.map((cardId, i) => {
         const pt = entersBattlefield ? source.cards[i].printedPT : undefined;

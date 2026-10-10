@@ -11,6 +11,7 @@ import { useAppSelector } from '@app/store';
 import type { BoardCell } from '../../../hooks/useGameBoardLayout';
 import { avatarSrc } from '../../../utils/avatarSrc';
 import { useGameId } from '../GameIdContext';
+import { isHiddenZone } from '../../../utils/zones';
 import type {
   BattlefieldCardViewModel,
   ManaSymbol,
@@ -295,7 +296,10 @@ export function usePlayerSeatViewModel(cell: BoardCell, totalPlayers: number): P
   const customZones = useMemo(
     () => Object.values(allZones ?? {})
       .filter((z) => !isBuiltinZone(z.name))
-      .map((z) => ({ name: z.name, type: z.type, withCoords: z.withCoords, cardCount: z.cardCount })),
+      .map((z) => ({
+        name: z.name, type: z.type, withCoords: z.withCoords, cardCount: z.cardCount,
+        cards: isHiddenZone(z) ? revealedCardsToSeatCards(z.revealedCards) : zoneToSeatCards(z),
+      })),
     [allZones],
   );
 

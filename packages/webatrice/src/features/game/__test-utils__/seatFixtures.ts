@@ -10,6 +10,7 @@ import { createElement } from 'react';
 import { act, fireEvent, screen } from '@testing-library/react';
 import { ZoneName } from '@cockatrice/sockatrice';
 import type { ServerInfo_Card, ServerInfo_PlayerProperties_PlaymatParams } from '@cockatrice/sockatrice/generated';
+import { ServerInfo_Zone_ZoneType } from '@cockatrice/sockatrice/generated';
 import {
   makeCounter,
   makeGameEntry,
@@ -84,7 +85,11 @@ function counterSet(life: number) {
 
 export function makeSeat(seat: SeatSpec) {
   const zone = (name: (typeof ZoneName)[keyof typeof ZoneName], cards: ServerInfo_Card[] = [], cardCount = cards.length) =>
-    makeZoneEntry({ name, cards, cardCount });
+    makeZoneEntry({
+      name, cards, cardCount,
+      type: name === ZoneName.DECK || name === ZoneName.SIDEBOARD
+        ? ServerInfo_Zone_ZoneType.HiddenZone : ServerInfo_Zone_ZoneType.PublicZone,
+    });
   return makePlayerEntry({
     properties: makePlayerProperties({
       playerId: seat.playerId,

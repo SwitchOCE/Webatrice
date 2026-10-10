@@ -105,20 +105,24 @@ describe('libraryCountPrompt', () => {
 });
 
 describe('moveXFromTopPrompt', () => {
-  it('takes a position from 0 and clamps it to the library size', () => {
+  it('displays one-based positions and submits the zero-based protocol position', () => {
     const onSubmit = vi.fn();
     const prompt = moveXFromTopPrompt(t, { cardName: 'Bear', deckSize: 4, initial: 3, onSubmit });
 
     expect(prompt).toMatchObject({
       title: 'Place card X cards from top of library',
-      label: 'Place at position (0 = top, 4 = bottom)',
-      initialValue: '3',
+      label: 'Place at position (1 = top, 5 = bottom)',
+      initialValue: '4',
       submitLabel: 'Move',
     });
-    expect(prompt.validate?.('0')).toBeNull();
-    expect(prompt.validate?.('-1')).toBe('Enter 0 or more');
+    expect(prompt.validate?.('1')).toBeNull();
+    expect(prompt.validate?.('0')).toBe('Enter 1 or more');
+    prompt.onSubmit('1');
+    expect(onSubmit).toHaveBeenLastCalledWith(0);
+    prompt.onSubmit('5');
+    expect(onSubmit).toHaveBeenLastCalledWith(4);
     prompt.onSubmit('10');
-    expect(onSubmit).toHaveBeenCalledWith(4);
+    expect(onSubmit).toHaveBeenLastCalledWith(4);
   });
 });
 

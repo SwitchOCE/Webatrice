@@ -1,6 +1,6 @@
 import { useCallback, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { ZoneName, type ZoneNameValue } from '@cockatrice/sockatrice';
+import { ZoneName } from '@cockatrice/sockatrice';
 
 import {
   annotationPrompt,
@@ -136,12 +136,12 @@ export function useSeatPrompts({
     cardIds: number[];
     cardName: string;
     deckSize: number;
-    fromZone?: ZoneNameValue;
+    fromZone?: string;
   }) =>
     openPrompt(moveXFromTopPrompt(t, {
       cardName,
       deckSize,
-      initial: Math.min(3, Math.max(0, deckSize)),
+      initial: 0,
       onSubmit: (position) => zoneCommands.moveCards(fromZone, cardIds, { zone: ZoneName.DECK, index: position, reversed: false }),
     })), [openPrompt, zoneCommands, t]);
   const countDefault = (deckSize: number) => Math.min(3, Math.max(1, deckSize));

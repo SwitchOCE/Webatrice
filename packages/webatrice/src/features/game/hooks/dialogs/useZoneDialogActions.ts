@@ -7,7 +7,9 @@ import type { GameDialogsActions, ZoneViewTarget } from './gameDialogs.types';
 import type { GameDialogEnv } from './gameDialogEnv';
 import type { GameDialogSetters } from './useGameDialogState';
 import { readShuffleOnClose } from '../../dialogs/shared/zoneViewPreferences';
-import { isHiddenZone, offersShuffleOnClose } from '../../dialogs/ZoneViewDialog/zoneViewTarget';
+import { offersShuffleOnClose } from '../../dialogs/ZoneViewDialog/zoneViewTarget';
+import { isHiddenZone } from '../../utils/zones';
+import { useGameReadOnly } from '../../components/ui/GameReadOnlyContext';
 
 function viewHasZone(game: GameEntry | undefined, view: ZoneViewTarget): boolean {
   return game?.players[view.playerId]?.zones[view.zoneName] != null;
@@ -38,17 +40,19 @@ export function useZoneDialogActions({
   const { gameId, webClient, readGame, readLocalPlayer } = env;
   const { setZoneViews } = set;
   const dispatch = useAppDispatch();
+  const readOnly = useGameReadOnly();
 
   const sendViewClosed = useCallback((view: ZoneViewTarget, shuffleOnClose?: boolean) => {
     const { playerId, zoneName } = view;
-    if (gameId == null || playerId !== readGame()?.localPlayerId || !isHiddenZone(zoneName)) {
+    const game = readGame();
+    if (readOnly || gameId == null || playerId !== game?.localPlayerId || !isHiddenZone(game?.players[playerId]?.zones[zoneName])) {
       return;
     }
     if (offersShuffleOnClose(view) && (shuffleOnClose ?? readShuffleOnClose())) {
       webClient.request.game.shuffle(gameId, { zoneName, start: 0, end: -1 });
     }
     dispatch(games.Actions.zoneViewCleared({ gameId, playerId, zoneName }));
-  }, [gameId, readGame, webClient, dispatch]);
+  }, [readOnly, gameId, readGame, webClient, dispatch]);
 
   const openZoneView = useCallback((view: ZoneViewTarget) => {
     const game = readGame();
@@ -65,7 +69,8 @@ export function useZoneDialogActions({
         ? prev.map((v) => (sameZone(v) ? view : v))
         : [...prev, view],
     );
-    if (gameId != null && view.playerId === game?.localPlayerId && isHiddenZone(view.zoneName)) {
+    const zone = game?.players[view.playerId]?.zones[view.zoneName];
+    if (!readOnly && gameId != null && view.playerId === game?.localPlayerId && isHiddenZone(zone)) {
       webClient.request.game.dumpZone(gameId, {
         playerId: view.playerId,
         zoneName: view.zoneName,
@@ -73,7 +78,7 @@ export function useZoneDialogActions({
         isReversed: view.isReversed ?? false,
       });
     }
-  }, [zoneViews, gameId, readGame, webClient, setZoneViews, sendViewClosed]);
+  }, [readOnly, zoneViews, gameId, readGame, webClient, setZoneViews, sendViewClosed]);
 
   const hasOrphanedView = useAppSelector((state) => {
     const game = gameId != null ? games.Selectors.getGame(state, gameId) : undefined;

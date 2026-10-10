@@ -8,6 +8,7 @@ import {
   makeZoneEntry,
 } from '@cockatrice/datatrice/testing';
 import type { ServerInfo_Card } from '@cockatrice/sockatrice/generated';
+import { ServerInfo_Zone_ZoneType } from '@cockatrice/sockatrice/generated';
 
 import { makeStoreState, makeUser, renderWithProviders } from '../../../../__test-utils__';
 import { getSettings, settingsStore } from '../../../../hooks/useSettings';
@@ -32,7 +33,11 @@ type ZoneSpec = {
 
 function stateWith(zone: ZoneSpec) {
   const seat = (playerId: number, name: string) => {
-    const entry = makeZoneEntry({ name: zone.name, cards: zone.cards ?? [], cardCount: zone.cardCount });
+    const entry = makeZoneEntry({
+      name: zone.name, cards: zone.cards ?? [], cardCount: zone.cardCount,
+      type: zone.name === ZoneName.DECK || zone.name === ZoneName.SIDEBOARD
+        ? ServerInfo_Zone_ZoneType.HiddenZone : ServerInfo_Zone_ZoneType.PublicZone,
+    });
     entry.revealedCards = zone.revealedCards;
     return makePlayerEntry({
       properties: makePlayerProperties({ playerId, userInfo: makeUser({ name }) }),

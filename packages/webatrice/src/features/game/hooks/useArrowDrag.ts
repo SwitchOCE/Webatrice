@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useState, type RefObject } from 'react';
-import { ZoneName, type ZoneNameValue } from '@cockatrice/sockatrice';
+import { ZoneName } from '@cockatrice/sockatrice';
 
 import { rgbaToCss, type ColorRGBA } from '@app/types';
 import type { ArrowTarget } from '../components/ui/PlayerBoard/playerBoard.types';
@@ -17,7 +17,7 @@ export function arrowCardAt(el: Element | null | undefined): ArrowSource | null 
     return null;
   }
   const playerId = Number(cardEl.getAttribute('data-card-owner'));
-  const zone = cardEl.getAttribute('data-card-zone') as ZoneNameValue;
+  const zone = cardEl.getAttribute('data-card-zone');
   const cardId = Number(cardEl.getAttribute('data-card-id'));
   return Number.isFinite(playerId) && zone && Number.isFinite(cardId) ? { playerId, zone, cardId } : null;
 }
@@ -29,7 +29,7 @@ export function arrowTargetAt(el: Element | null | undefined): ArrowTarget | nul
       && card.zone !== ZoneName.GRAVE && card.zone !== ZoneName.EXILE) {
       return null;
     }
-    return { kind: 'card', ...card };
+    return { kind: 'card', ...card, zone: card.zone };
   }
   const playerEl = el?.closest(PLAYER_SELECTOR);
   const playerId = Number(playerEl?.getAttribute('data-arrow-target-player-id') ?? NaN);

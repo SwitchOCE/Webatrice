@@ -4,6 +4,8 @@ import { cx } from '@app/utils';
 
 import { BoardCell } from '../../../hooks/useGameBoardLayout';
 import PlayerBoard from '../PlayerBoard/PlayerBoard';
+import type { PlayerBoardCommands } from '../PlayerBoard/playerBoard.types';
+import { useGameReadOnly } from '../GameReadOnlyContext';
 import { useGameSay } from './useGameSay';
 import { useOpenDeckInEditor } from './useOpenDeckInEditor';
 import { usePlayerCardCommands } from './usePlayerCardCommands';
@@ -13,6 +15,34 @@ import { usePlayerTargetCommands } from './usePlayerTargetCommands';
 import { usePlayerZoneCommands } from './usePlayerZoneCommands';
 
 import './GameBoardCell.css';
+
+const noop = () => {};
+const READ_ONLY_COMMANDS: PlayerBoardCommands = {
+  zone: {
+    move: noop,
+    moveCards: noop,
+    draw: noop,
+    undoDraw: noop,
+    mulligan: noop,
+    shuffleLibrary: noop,
+    reveal: noop,
+    lendLibrary: noop,
+    setAlwaysRevealTopCard: noop,
+    setAlwaysLookAtTopCard: noop,
+  },
+  card: {
+    setTapped: noop,
+    untapAll: noop,
+    flip: noop,
+    setDoesntUntap: noop,
+    setAnnotation: noop,
+    setPT: noop,
+    clone: noop,
+    createToken: async () => {},
+  },
+  counter: { increment: noop, set: noop, setCardCounters: noop, flipCoin: noop },
+  target: { attach: noop, unattach: noop, createArrow: noop, playAndCreateArrow: noop, clearOwnArrows: noop },
+};
 
 export interface GameBoardCellProps {
   cell: BoardCell;
@@ -25,6 +55,7 @@ export interface GameBoardCellProps {
 }
 
 function GameBoardCell({ cell, totalPlayers }: GameBoardCellProps) {
+  const readOnly = useGameReadOnly();
   const model = usePlayerSeatViewModel(cell, totalPlayers);
   const zone = usePlayerZoneCommands(cell.playerId);
   const card = usePlayerCardCommands(cell.playerId, cell.isLocal);
@@ -34,8 +65,8 @@ function GameBoardCell({ cell, totalPlayers }: GameBoardCellProps) {
   const onSay = useGameSay(cell.isLocal);
 
   const commands = useMemo(
-    () => (zone && card && counter && target ? { zone, card, counter, target } : undefined),
-    [zone, card, counter, target],
+    () => (readOnly ? READ_ONLY_COMMANDS : zone && card && counter && target ? { zone, card, counter, target } : undefined),
+    [readOnly, zone, card, counter, target],
   );
 
   return (

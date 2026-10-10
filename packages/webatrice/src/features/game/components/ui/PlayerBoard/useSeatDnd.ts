@@ -1,7 +1,7 @@
 import type { RefObject } from 'react';
 import { useForkRef } from '@mui/material/utils';
 
-import { SEAT_DROP_PRIORITY, type SeatDragSource, type SeatZone } from '../../../hooks/seatDropPlan';
+import { SEAT_DROP_PRIORITY, type SeatDragSource, type FixedSeatZone } from '../../../hooks/seatDropPlan';
 import type { SeatSelection, SeatSelectionApi } from '../../../hooks/useSeatSelection';
 import { layoutVerticalPile, verticalPileDropIndex, type VerticalPileOptions } from '../VerticalPile/verticalPile';
 import { useCanActFor } from '../CardVisualStateContext';
@@ -9,7 +9,7 @@ import { useActiveSeatDrag, useSeatDragSource, useSeatDropZone, type SeatDragSta
 import type { BattlefieldCardViewModel, PlayerCardViewModel } from './playerBoard.types';
 
 type HandCard = PlayerCardViewModel & Pick<BattlefieldCardViewModel, 'ownerPlayerId'>;
-type DragSourceZone = SeatZone;
+type DragSourceZone = FixedSeatZone;
 /** A marquee selection is always within a single zone. */
 type Selection = SeatSelection;
 type ActiveSeatDrag = NonNullable<ReturnType<typeof useActiveSeatDrag>>;

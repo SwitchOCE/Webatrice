@@ -1,5 +1,7 @@
 import { combineReducers } from '@reduxjs/toolkit';
-import { act, fireEvent, screen } from '@testing-library/react';
+import { act, fireEvent, screen, within } from '@testing-library/react';
+import { create } from '@bufbuild/protobuf';
+import { Event_GameStateChangedSchema, ServerInfo_Zone_ZoneType } from '@cockatrice/sockatrice/generated';
 import { Route, Routes } from 'react-router-dom';
 
 import { attachResponseHandlers, createStore } from '@cockatrice/datatrice';
@@ -15,10 +17,12 @@ import {
 } from '@cockatrice/datatrice/testing';
 import { closeReplay, getOpenedReplay, getOpenedReplays, openReplay } from '@app/services';
 import { rootReducerMap, type RootState } from '@app/store';
+import { ShortcutProvider } from '@app/feature-widgets/shortcuts';
 import { RouteEnum } from '@app/types';
 
 import { createMockWebClient, connectedState, makeStoreState, makeUser, renderWithProviders } from '../../../__test-utils__';
 import { buildReplay, sayContainer } from '../../../services/replay/__mocks__/fixtures';
+import { ReplayEngine } from '../../../services/replay/ReplayEngine';
 import { GameBoard } from '../Game';
 import { GameReadOnlyProvider } from '../components/ui/GameReadOnlyContext';
 import GameReplay from './GameReplay';
@@ -29,11 +33,11 @@ vi.mock('../../../services/cards/cardCatalog', async () =>
 
 function renderReplayRoute(replayKey: string, webClient: WebClient = createMockWebClient(), store = makeStore()) {
   return renderWithProviders(
-    <Routes>
+    <ShortcutProvider><Routes>
       <Route path={RouteEnum.REPLAY} element={<GameReplay />} />
       <Route path={RouteEnum.REPLAYS} element={<div data-testid="replays-page" />} />
       <Route path={RouteEnum.SERVER} element={<div data-testid="server-page" />} />
-    </Routes>,
+    </Routes></ShortcutProvider>,
     {
       route: `/replay/${replayKey}`,
       store,
@@ -93,6 +97,34 @@ describe('GameReplay route', () => {
     expect(replayGames).toHaveLength(1);
   });
 
+  it.each(['.game__board button', '[data-replay-zone-view="grave"]'])('toggles playback with Space while %s has focus', (selector) => {
+    const { key, store, render } = openTestReplay(buildReplay([sayContainer(0), sayContainer(30)]));
+    const opened = getOpenedReplay(key)!;
+    attachResponseHandlers(store).game.gameStateChanged(opened.gameId, create(Event_GameStateChangedSchema, {
+      gameStarted: true,
+      playerList: [{
+        properties: makePlayerProperties({ playerId: 0, userInfo: makeUser({ name: 'P0' }) }),
+        zoneList: [
+          {
+            name: ZoneName.TABLE, type: ServerInfo_Zone_ZoneType.PublicZone,
+            cardList: [makeCard({ id: 10, name: 'Island' })], cardCount: 1,
+          },
+          { name: ZoneName.GRAVE, type: ServerInfo_Zone_ZoneType.PublicZone, cardCount: 0 },
+        ],
+      }],
+    }));
+    const { container } = render();
+    const target = container.querySelector<HTMLElement>(selector)!;
+    expect(target).not.toBeNull();
+    target.focus();
+    expect(target).toHaveFocus();
+    fireEvent.keyDown(target, { key: ' ', code: 'Space' });
+    expect(opened.engine.getState().playing).toBe(true);
+    fireEvent.keyDown(target, { key: ' ', code: 'Space' });
+    expect(opened.engine.getState().playing).toBe(false);
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+  });
+
   it('closes the replay from the sidebar instead of leaving a game', () => {
     const { key, render, store, webClient } = openTestReplay();
     render();
@@ -122,15 +154,18 @@ describe('GameReplay route', () => {
 describe('GameBoard in read-only mode', () => {
   const REPLAY_GAME_ID = -1001;
 
-  function boardState() {
+  function boardState(withViews = false) {
     const players = Object.fromEntries([0, 1].map((pid) => [pid, makePlayerEntry({
       properties: makePlayerProperties({ playerId: pid, userInfo: makeUser({ name: `P${pid}` }) }),
       zones: {
         [ZoneName.TABLE]: makeZoneEntry({ name: ZoneName.TABLE, cards: [makeCard({ id: 10 + pid, name: 'Island' })], cardCount: 1 }),
         [ZoneName.HAND]: makeZoneEntry({ name: ZoneName.HAND, cards: [makeCard({ id: 20 + pid, name: 'Forest' })], cardCount: 1 }),
         [ZoneName.DECK]: makeZoneEntry({ name: ZoneName.DECK, cardCount: 30 }),
-        [ZoneName.GRAVE]: makeZoneEntry({ name: ZoneName.GRAVE }),
-        [ZoneName.EXILE]: makeZoneEntry({ name: ZoneName.EXILE }),
+        [ZoneName.GRAVE]: makeZoneEntry({ name: ZoneName.GRAVE, cards: withViews ? [makeCard({ id: 30 + pid, name: 'Opt' })] : [] }),
+        [ZoneName.EXILE]: makeZoneEntry({ name: ZoneName.EXILE, cards: withViews ? [makeCard({ id: 40 + pid, name: 'Duress' })] : [] }),
+        [ZoneName.SIDEBOARD]: makeZoneEntry({
+          name: ZoneName.SIDEBOARD, type: ServerInfo_Zone_ZoneType.HiddenZone, cardCount: 15,
+        }),
       },
     })]));
     return makeStoreState({
@@ -175,6 +210,87 @@ describe('GameBoard in read-only mode', () => {
   it('lets no press, click or menu on the board reach a game command', async () => {
     expect(await hammerBoard(true)).toEqual([]);
     expect(screen.queryByRole('menu')).not.toBeInTheDocument();
+  });
+
+  it.each([
+    [ZoneName.GRAVE, 'Graveyard', 'Opt'],
+    [ZoneName.EXILE, 'Exile', 'Duress'],
+  ])('opens the replay %s view without card menus, drags or commands', async (zone, title, name) => {
+    const webClient = createMockWebClient();
+    const { container } = renderWithProviders(
+      <GameReadOnlyProvider value><GameBoard gameId={REPLAY_GAME_ID} /></GameReadOnlyProvider>,
+      { preloadedState: boardState(true), webClient, gameId: undefined },
+    );
+    vi.clearAllMocks();
+    const trigger = container.querySelector<HTMLElement>(`[data-replay-zone-view="${zone}"]`)!;
+    expect(trigger).not.toBeNull();
+    fireEvent.click(trigger);
+    const panel = screen.getByRole('heading', { name: new RegExp(`^${title}`) }).closest<HTMLElement>('[role="dialog"]')!;
+    const card = within(panel).getByRole('option', { name });
+    fireEvent.contextMenu(card);
+    fireEvent.keyDown(card, { key: 'F10', shiftKey: true });
+    fireEvent.keyDown(card, { key: 'm', code: 'KeyM' });
+    fireEvent.doubleClick(card);
+    fireEvent.pointerDown(card, { pointerId: 1, button: 0, clientX: 10, clientY: 10 });
+    fireEvent.pointerMove(document, { pointerId: 1, clientX: 100, clientY: 100 });
+    fireEvent.pointerUp(document, { pointerId: 1, clientX: 100, clientY: 100 });
+    const boardCard = container.querySelector<HTMLElement>('[data-card-id="10"]')!;
+    expect(fireEvent.contextMenu(boardCard)).toBe(false);
+    expect(fireEvent.dragStart(boardCard)).toBe(false);
+    expect(fireEvent.pointerDown(boardCard)).toBe(false);
+    fireEvent.keyDown(boardCard, { key: 'F10', shiftKey: true });
+    await act(async () => {});
+    expect(screen.queryByRole('menu')).not.toBeInTheDocument();
+    expect(document.querySelector('[data-drag-ghost]')).toBeNull();
+    expect(screen.queryByRole('dialog', { name: /Move/ })).not.toBeInTheDocument();
+    fireEvent.click(within(panel).getByTitle('ZoneViewPanel.close'));
+    expect(allRequestSpies(webClient).filter((spy) => spy.mock.calls.length > 0)).toEqual([]);
+  });
+
+  it('offers no sideboard view in replays', () => {
+    const { container } = renderWithProviders(
+      <GameReadOnlyProvider value><GameBoard gameId={REPLAY_GAME_ID} /></GameReadOnlyProvider>,
+      { preloadedState: boardState(true), gameId: undefined },
+    );
+    expect(container.querySelector('[data-replay-zone-view="sb"]')).toBeNull();
+    expect(screen.queryByRole('button', { name: /sideboard/i })).not.toBeInTheDocument();
+  });
+
+  it('keeps an open replay graveyard view current across seek and rewind state replacements', () => {
+    const webClient = createMockWebClient();
+    const { container, store } = renderWithProviders(
+      <GameReadOnlyProvider value><GameBoard gameId={REPLAY_GAME_ID} /></GameReadOnlyProvider>,
+      { preloadedState: boardState(true), webClient, gameId: undefined },
+    );
+    vi.clearAllMocks();
+    const trigger = container.querySelector<HTMLElement>(`[data-replay-zone-view="${ZoneName.GRAVE}"]`)!;
+    expect(trigger).not.toBeNull();
+    fireEvent.click(trigger);
+    const response = attachResponseHandlers(store);
+    const engine = new ReplayEngine(buildReplay([sayContainer(0), sayContainer(1), sayContainer(3)]), {
+      rewind: () => response.game.replayGameLoaded?.(REPLAY_GAME_ID, makeGameInfo()),
+      apply: (event) => response.game.gameStateChanged(REPLAY_GAME_ID, create(Event_GameStateChangedSchema, {
+        gameStarted: true,
+        playerList: [{
+          properties: makePlayerProperties({ playerId: 0, userInfo: makeUser({ name: 'P0' }) }),
+          zoneList: [{
+            name: ZoneName.GRAVE, type: ServerInfo_Zone_ZoneType.PublicZone,
+            cardList: [makeCard({ id: 50, name: event.secondsElapsed === 0 ? 'Ponder' : 'Island' })], cardCount: 1,
+          }],
+        }],
+      })),
+    });
+    try {
+      for (const [time, name] of [[2000, 'Island'], [200, 'Ponder']] as const) {
+        act(() => engine.seek(time));
+        const panel = screen.getByRole('heading', { name: /^Graveyard/ }).closest<HTMLElement>('[role="dialog"]')!;
+        expect(within(panel).getByRole('option', { name })).toBeInTheDocument();
+      }
+      expect(engine.getRewindCount()).toBe(1);
+    } finally {
+      engine.dispose();
+    }
+    expect(allRequestSpies(webClient).filter((spy) => spy.mock.calls.length > 0)).toEqual([]);
   });
 
   it('lets no click on the phase track reach a game command', () => {

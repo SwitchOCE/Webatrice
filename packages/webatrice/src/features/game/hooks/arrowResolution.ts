@@ -1,12 +1,12 @@
 
-import { ZoneName, type ZoneNameValue } from '@cockatrice/sockatrice';
+import { ZoneName } from '@cockatrice/sockatrice';
 import { ArrowColor, type ColorRGBA } from '@app/types';
 
 import type { ArrowTarget, PlayerTargetCommands } from '../components/ui/PlayerBoard/playerBoard.types';
 
 export interface ArrowSource {
   playerId: number;
-  zone: ZoneNameValue;
+  zone: string;
   cardId: number;
 }
 

@@ -2843,7 +2843,7 @@
       "numberOfCards": "Number of cards",
       "empty": "The library is empty",
       "moveFromTopTitle": "Place card X cards from top of library",
-      "position": "Place at position (0 = top, {count} = bottom)"
+      "position": "Place at position (1 = top, {count} = bottom)"
     },
     "mulligan": {
       "title": "Draw hand",
@@ -4062,6 +4062,12 @@
     "registeredOnly": "This game is only open to registered users.",
     "ignored": "You are being ignored by the creator of this game.",
     "failed": "Unable to join the game."
+  },
+  "ReplayParseError": {
+    "invalid": "The file is not a Cockatrice replay.",
+    "tooLarge": "The replay file is too large.",
+    "tooManyContainers": "The replay has too many event containers.",
+    "tooManyEvents": "The replay has too many events."
   },
   "GameInfo": {
     "restriction": {

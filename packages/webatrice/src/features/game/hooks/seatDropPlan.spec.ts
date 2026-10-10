@@ -21,6 +21,14 @@ const battlefield = (playerId: number, row = 0, col = 2): SeatDropTarget =>
   ({ zone: 'battlefield', playerId, slot: { row, col }, grid: GRID });
 
 describe('planSeatMove', () => {
+  it('moves a custom-zone card using its exact wire zone while retaining fixed-zone mappings', () => {
+    const custom = source({ zone: { kind: 'custom', name: 'command' } });
+    expect(planSeatMove(custom, { zone: 'hand', index: 0 })).toEqual([
+      expect.objectContaining({ startZone: 'command', targetZone: ZoneName.HAND, cardsToMove: { card: [{ cardId: 30 }] } }),
+    ]);
+    expect(planSeatMove(custom, battlefield(2))[0]).toMatchObject({ startZone: 'command', targetZone: ZoneName.TABLE, targetPlayerId: 2 });
+  });
+
   it('moves a hand card onto a battlefield stack column and lets the move path pick the sub-slot', () => {
     expect(planSeatMove(source(), battlefield(1, 1, 2))).toEqual([{
       startPlayerId: 1,

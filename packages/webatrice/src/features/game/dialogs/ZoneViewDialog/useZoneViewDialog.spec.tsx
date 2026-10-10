@@ -1,4 +1,5 @@
 import { ZoneName } from '@cockatrice/sockatrice';
+import { ServerInfo_Zone_ZoneType } from '@cockatrice/sockatrice/generated';
 import { renderHook } from '@testing-library/react';
 import { combineReducers } from '@reduxjs/toolkit';
 
@@ -76,6 +77,15 @@ describe('zoneViewTitle', () => {
 });
 
 describe('useZoneViewDialog', () => {
+  it('uses the dump snapshot for a hidden custom zone', () => {
+    const { Wrapper } = setup({
+      name: 'vault', type: ServerInfo_Zone_ZoneType.HiddenZone, cardCount: 3,
+      cards: [makeCard({ id: 8, name: 'Stale card' })],
+      revealedCards: [makeCard({ id: 0, name: 'Opt' })],
+    });
+    expect(render({ playerId: 1, zoneName: 'vault' }, Wrapper, 1).cards.map((card) => card.name)).toEqual(['Opt']);
+  });
+
   it('lists a public zone bottom to top, as the seat projects it', () => {
     const { Wrapper } = setup({
       name: ZoneName.GRAVE,
@@ -112,6 +122,7 @@ describe('useZoneViewDialog', () => {
   it('lists the revealed dump snapshot of a hidden zone, not its byId cards', () => {
     const { Wrapper } = setup({
       name: ZoneName.DECK,
+      type: ServerInfo_Zone_ZoneType.HiddenZone,
       cards: [],
       cardCount: 40,
       revealedCards: [makeCard({ id: 0, name: 'Island' }), makeCard({ id: 1, name: 'Ponder' })],

@@ -130,19 +130,20 @@ export interface MoveXFromTopPromptArgs {
 
 export function moveXFromTopPrompt(t: TFunction, { cardName, deckSize, initial, onSubmit }: MoveXFromTopPromptArgs): PromptState {
   const size = Math.max(0, deckSize);
+  const maximumPosition = size + 1;
   return {
     title: t('GamePrompt.library.moveFromTopTitle'),
-    label: t('GamePrompt.library.position', { count: size }),
+    label: t('GamePrompt.library.position', { count: maximumPosition }),
     description: cardName,
-    initialValue: String(initial),
+    initialValue: String(initial + 1),
     submitLabel: t('ZoneMenu.actionMove'),
     type: 'number',
     selectOnFocus: true,
     validate: (value) => {
       const n = parseWhole(value);
-      return n == null || n < 0 ? t('GamePrompt.validation.zeroOrMore') : null;
+      return n == null || n < 1 ? t('GamePrompt.validation.oneOrMore') : null;
     },
-    onSubmit: (value) => onSubmit(Math.min(parseWhole(value)!, size)),
+    onSubmit: (value) => onSubmit(Math.min(parseWhole(value)!, maximumPosition) - 1),
   };
 }
 

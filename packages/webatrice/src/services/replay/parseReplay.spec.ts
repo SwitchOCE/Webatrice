@@ -1,5 +1,6 @@
 import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
+import i18n from 'i18next';
 
 import { create, hasExtension, toBinary } from '@bufbuild/protobuf';
 import { BinaryWriter, WireType } from '@bufbuild/protobuf/wire';
@@ -15,6 +16,15 @@ import { buildReplay, sayContainer } from './__mocks__/fixtures';
 import { ReplayParseError, parseReplay, replayFileName } from './parseReplay';
 
 describe('parseReplay', () => {
+  it('uses the current language for a parser error shown to the user', async () => {
+    await i18n.init({ lng: 'de', resources: { de: { translation: { ReplayParseError: { invalid: 'Keine Cockatrice-Aufzeichnung.' } } } } });
+    try {
+      expect(() => parseReplay(new Uint8Array())).toThrow('Keine Cockatrice-Aufzeichnung.');
+    } finally {
+      await i18n.changeLanguage('en');
+    }
+  });
+
   it('rejects oversized bytes at the decoder boundary, including server downloads', () => {
     const bytes = new Uint8Array(32 * 1024 * 1024 + 2);
     for (let i = 0; i < bytes.length; i += 2) {

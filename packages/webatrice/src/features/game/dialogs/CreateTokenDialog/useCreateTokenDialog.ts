@@ -57,7 +57,7 @@ function colorFromToken(token: TokenDTO): string {
   if (!raw) {
     return '';
   }
-  const colors = raw.split(/[\s,]+/).filter(Boolean).map((c: string) => c.toLowerCase());
+  const colors = raw.toLowerCase().split('').filter((c) => 'wubrgm'.includes(c));
   if (colors.length === 0) {
     return '';
   }
@@ -65,6 +65,9 @@ function colorFromToken(token: TokenDTO): string {
     return 'm';
   }
   const first = colors[0];
+  if (first === 'm') {
+    return 'm';
+  }
   if (first === 'w' || first === 'u' || first === 'b' || first === 'r' || first === 'g') {
     return first;
   }

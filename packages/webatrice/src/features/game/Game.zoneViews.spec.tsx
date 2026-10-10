@@ -2,7 +2,8 @@
 import { act, fireEvent, screen, within } from '@testing-library/react';
 import { ZoneName } from '@cockatrice/sockatrice';
 import { games } from '@cockatrice/datatrice';
-import { makeCard } from '@cockatrice/datatrice/testing';
+import { makeCard, makeZoneEntry } from '@cockatrice/datatrice/testing';
+import { ServerInfo_Zone_ZoneType } from '@cockatrice/sockatrice/generated';
 
 import { ShortcutProvider } from '@app/feature-widgets/shortcuts';
 
@@ -15,7 +16,7 @@ import {
   pileEl,
 } from './__test-utils__/seatFixtures';
 import Game from './Game';
-import { lookupCardsCached } from '../../services/cards/catalog/lookup';
+import { lookupCard, lookupCardsCached } from '../../services/cards/catalog/lookup';
 
 vi.mock('../../hooks/useSettings');
 
@@ -99,11 +100,86 @@ const unknownCard = (name: string) => ({ found: false, source: 'unknown', name, 
 
 afterEach(() => {
   window.localStorage.clear();
+  vi.mocked(lookupCard).mockImplementation(async (name) => unknownCard(name) as Awaited<ReturnType<typeof lookupCard>>);
   vi.mocked(lookupCardsCached).mockImplementation(async (names: string[]) =>
     new Map(names.map((n) => [n, unknownCard(n)])) as Awaited<ReturnType<typeof lookupCardsCached>>);
 });
 
 describe('seat zone views', () => {
+  it('moves a custom-zone card through the keyboard move plan', async () => {
+    const { game } = renderSeats((state) => {
+      state.games!.games![1]!.players[1].zones.command = makeZoneEntry({ name: 'command', cards: [OPT], cardCount: 1 });
+    });
+    openContextMenu(battlefieldEl(1));
+    chooseMenuPath('Custom Zones', 'View custom zone \'command\'');
+    const card = viewCard(zoneView('command'), OPT.id);
+    act(() => card.focus());
+    fireEvent.keyDown(card, { key: 'm', code: 'KeyM' });
+    const dialog = screen.getByRole('dialog', { name: 'Move Opt' });
+    fireEvent.change(within(dialog).getByLabelText('To'), { target: { value: 'hand' } });
+    fireEvent.click(within(dialog).getByRole('button', { name: 'Move' }));
+    expect(vi.mocked(game.moveCard).mock.calls[0]?.[1]).toMatchObject({
+      startZone: 'command', targetZone: ZoneName.HAND, cardsToMove: { card: [{ cardId: OPT.id }] },
+    });
+    await act(async () => {});
+  });
+
+  it('plays a custom-zone instant using its card metadata', async () => {
+    vi.mocked(lookupCard).mockImplementation(async (name) => ({
+      ...unknownCard(name), ...(name === 'Custom instant' && { found: true, source: 'scryfall', typeLine: 'Instant' }),
+    }) as Awaited<ReturnType<typeof lookupCard>>);
+    const { game } = renderSeats((state) => {
+      state.games!.games![1]!.players[1].zones.command = makeZoneEntry({
+        name: 'command', type: ServerInfo_Zone_ZoneType.PublicZone, cardCount: 1,
+        cards: [makeCard({ id: 80, name: 'Custom instant' })],
+      });
+    });
+    await act(async () => {});
+    expect(lookupCard).toHaveBeenCalledWith('Custom instant');
+    openContextMenu(battlefieldEl(1));
+    chooseMenuPath('Custom Zones', 'View custom zone \'command\'');
+    openContextMenu(viewCard(zoneView('command'), 80));
+    chooseMenuPath('Play');
+    expect(vi.mocked(game.moveCard).mock.calls[0]?.[1]).toMatchObject({ startZone: 'command', targetZone: ZoneName.STACK });
+    await act(async () => {});
+  });
+
+  it.each([ServerInfo_Zone_ZoneType.PublicZone, ServerInfo_Zone_ZoneType.HiddenZone])(
+    'moves and reveals cards from a custom zone of type %s', async (type) => {
+      const { game, store } = renderSeats((state) => {
+      state.games!.games![1]!.players[1].zones.command = makeZoneEntry({
+        name: 'command', type, cardCount: 1,
+        cards: type === ServerInfo_Zone_ZoneType.HiddenZone ? [] : [OPT],
+      });
+      });
+      openContextMenu(battlefieldEl(1));
+      chooseMenuPath('Custom Zones', 'View custom zone \'command\'');
+      if (type === ServerInfo_Zone_ZoneType.HiddenZone) {
+        expect(game.dumpZone).toHaveBeenCalledWith(1, { playerId: 1, zoneName: 'command', numberCards: -1, isReversed: false });
+        dumpArrives(store, 'command', ['Opt']);
+      } else {
+        expect(game.dumpZone).not.toHaveBeenCalled();
+      }
+      const view = zoneView('command');
+      const id = type === ServerInfo_Zone_ZoneType.HiddenZone ? 0 : OPT.id;
+      openContextMenu(viewCard(view, id));
+      chooseMenuPath('Reveal to...', 'P2');
+      expect(game.revealCards).toHaveBeenCalledWith(1, { zoneName: 'command', cardId: [id], playerId: 2 });
+      openContextMenu(viewCard(view, id));
+      chooseMenuPath('Move to', 'Hand');
+      expect(vi.mocked(game.moveCard).mock.calls[0]?.slice(0, 2)).toEqual([1, expect.objectContaining({
+        startPlayerId: 1, startZone: 'command', targetZone: ZoneName.HAND,
+        cardsToMove: { card: [{ cardId: id }] },
+      })]);
+      closeView(view);
+      expect(game.shuffle).not.toHaveBeenCalled();
+      if (type === ServerInfo_Zone_ZoneType.HiddenZone) {
+        expect(revealedIn(store, 'command')).toBeUndefined();
+      }
+      await act(async () => {});
+    },
+  );
+
   it('View library dumps the whole library and lists the snapshot', () => {
     const { game, store } = renderSeats();
 

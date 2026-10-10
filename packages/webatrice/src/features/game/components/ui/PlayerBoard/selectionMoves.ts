@@ -1,5 +1,5 @@
 
-import { ZoneName, type ZoneNameValue } from '@cockatrice/sockatrice';
+import { ZoneName } from '@cockatrice/sockatrice';
 
 import {
   resolveCardTableRow,
@@ -25,7 +25,7 @@ export function tableMove(cardId: number, meta: TableMoveMeta | undefined): { ca
 
 export function moveSelectedCards(
   moveCards: PlayerZoneCommands['moveCards'],
-  from: ZoneNameValue,
+  from: string,
   cards: readonly { id: string; name: string }[],
   to: SeatMoveDestination,
   cardMeta: (name: string) => TableMoveMeta | undefined,

@@ -1,4 +1,3 @@
-import type { ZoneNameValue } from '@cockatrice/sockatrice';
 import type { MoveCardParams } from '@cockatrice/sockatrice/generated';
 import type {
   BattlefieldCardViewModel,
@@ -66,8 +65,9 @@ describe('playerBoard.types', () => {
   it('groups commands into zone, card, counter and target ports', () => {
     expectTypeOf<keyof PlayerBoardCommands>().toEqualTypeOf<'zone' | 'card' | 'counter' | 'target'>();
     expectTypeOf<PlayerBoardCommands['zone']['move']>().parameter(0).toEqualTypeOf<MoveCardParams>();
+    expectTypeOf<PlayerBoardCommands['zone']['moveCards']>().parameter(0).toEqualTypeOf<string>();
     expectTypeOf<PlayerBoardCommands['zone']['reveal']>().parameters.toEqualTypeOf<
-      [ZoneNameValue, RevealRecipient, RevealSelection?]
+      [string, RevealRecipient, RevealSelection?]
     >();
     expectTypeOf<PlayerBoardCommands['card']['peek']>().toEqualTypeOf<
       ((cardIds: readonly number[]) => void) | undefined

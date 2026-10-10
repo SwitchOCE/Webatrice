@@ -107,7 +107,7 @@ describe.each(cases)('placement: $typeLine, database row $tableRow', (fixture) =
       t: testI18n.t,
       menu: { kind: 'hand', playerId: 1, cardId: '7', x: 0, y: 0 },
       ownerId: 1, menuShortcut: () => ({ shortcut: '', keyShortcuts: '' }), canModify: true,
-      revealTargets: [], handCards: [view], libraryViewCards: [], sideboardCards: [],
+      revealTargets: [], handCards: [view], zoneViewCards: [],
       handSelection: null, setHandSelection: vi.fn(), selectedCardKeys: new Set(),
       setSelectedCardKeys: vi.fn(), cardMeta: () => meta, deckSize: 0,
       moveCards: result().zone.moveCards, promptMoveXFromTop: vi.fn(), startArrow: vi.fn(),

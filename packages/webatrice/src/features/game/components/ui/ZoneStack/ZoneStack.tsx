@@ -10,6 +10,8 @@ import { ContextMenuPopup, contextMenuAnchor, type ContextMenuItem } from '../..
 import { useCardPreviewActions } from '../CardPreviewContext';
 import type { PlayerCardViewModel } from '../PlayerBoard/playerBoard.types';
 import { usePlayerSeatContext } from '../PlayerBoard/PlayerSeatContext';
+import { useGameReadOnly } from '../GameReadOnlyContext';
+import { useGameDialogsContext } from '../GameDialogsContext';
 import {
   CARD_BACK_URL,
   CARD_CORNER_RADIUS,
@@ -277,6 +279,8 @@ function usePile(pile: PileName, count: number, top: { name: string } | null | u
 
 export default function ZoneStack() {
   const { t } = useTranslation();
+  const readOnly = useGameReadOnly();
+  const { openZoneView } = useGameDialogsContext();
   const {
     seatDrag,
     deckTopCard,
@@ -305,9 +309,24 @@ export default function ZoneStack() {
     graveyardTopIdx >= 0 ? graveDisplayList[graveyardTopIdx] : null;
   const exileTop = exileTopIdx >= 0 ? exileDisplayList[exileTopIdx] : null;
 
-  const library = usePile('library', displayedDeckCount, deckTopCard, isSelf ? libraryMenuItems : undefined);
-  const graveyard = usePile('graveyard', displayedGraveyardCount, graveyardTop, isSelf ? graveMenuItemsSelf : graveMenuItemsOpponent);
-  const exile = usePile('exile', displayedExileCount, exileTop, isSelf ? exileMenuItemsSelf : exileMenuItemsOpponent);
+  const library = usePile('library', displayedDeckCount, deckTopCard, !readOnly && isSelf ? libraryMenuItems : undefined);
+  const graveyard = usePile('graveyard', displayedGraveyardCount, graveyardTop,
+    readOnly ? undefined : isSelf ? graveMenuItemsSelf : graveMenuItemsOpponent);
+  const exile = usePile('exile', displayedExileCount, exileTop,
+    readOnly ? undefined : isSelf ? exileMenuItemsSelf : exileMenuItemsOpponent);
+  const replayViewProps = (zoneName: string) => ({
+    'data-replay-zone-view': zoneName,
+    role: 'button',
+    tabIndex: 0,
+    onClick: () => openZoneView({ playerId, zoneName }),
+    onKeyDown: (event: KeyboardEvent<HTMLElement>) => {
+      if (event.key === 'Enter' && NO_MODIFIERS(event)) {
+        event.preventDefault();
+        event.stopPropagation();
+        openZoneView({ playerId, zoneName });
+      }
+    },
+  });
 
   return (
     <>
@@ -319,7 +338,7 @@ export default function ZoneStack() {
           pileProps={library.pileProps}
           topCard={deckTopCard ?? null}
           onPointerDown={
-            isSelf && displayedDeckCount > 0
+            !readOnly && isSelf && displayedDeckCount > 0
               ? (e) => startPileDrag(e, LIBRARY_TOP_DRAG_PAYLOAD, 'library')
               : undefined
           }
@@ -335,9 +354,9 @@ export default function ZoneStack() {
           topCard={graveyardTop}
           arrowAnchorPlayerId={playerId}
           arrowAnchorZone={ZoneName.GRAVE}
-          pileProps={graveyard.pileProps}
+          pileProps={{ ...graveyard.pileProps, ...(readOnly && replayViewProps(ZoneName.GRAVE)) }}
           onPointerDown={
-            isSelf && graveDisplayList.length > 0
+            !readOnly && isSelf && graveDisplayList.length > 0
               ? (e) => startPileDrag(e, graveDisplayList[graveDisplayList.length - 1], 'graveyard')
               : undefined
           }
@@ -353,9 +372,9 @@ export default function ZoneStack() {
           topCard={exileTop}
           arrowAnchorPlayerId={playerId}
           arrowAnchorZone={ZoneName.EXILE}
-          pileProps={exile.pileProps}
+          pileProps={{ ...exile.pileProps, ...(readOnly && replayViewProps(ZoneName.EXILE)) }}
           onPointerDown={
-            isSelf && exileDisplayList.length > 0
+            !readOnly && isSelf && exileDisplayList.length > 0
               ? (e) => startPileDrag(e, exileDisplayList[exileDisplayList.length - 1], 'exile')
               : undefined
           }

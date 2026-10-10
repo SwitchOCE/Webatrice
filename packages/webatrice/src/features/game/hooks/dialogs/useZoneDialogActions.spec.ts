@@ -1,4 +1,5 @@
 import { ZoneName } from '@cockatrice/sockatrice';
+import { ServerInfo_Zone_ZoneType } from '@cockatrice/sockatrice/generated';
 import { renderHook } from '@testing-library/react';
 import { combineReducers } from '@reduxjs/toolkit';
 import { games } from '@cockatrice/datatrice';
@@ -12,7 +13,11 @@ import { writeShuffleOnClose } from '../../dialogs/shared/zoneViewPreferences';
 
 function makeZonesGame() {
   const zones = (names: NonNullable<Parameters<typeof makeZoneEntry>[0]['name']>[]) =>
-    Object.fromEntries(names.map((name) => [name, makeZoneEntry({ name, cardCount: 0 })]));
+    Object.fromEntries(names.map((name) => [name, makeZoneEntry({
+      name, cardCount: 0,
+      type: name === ZoneName.DECK || name === ZoneName.SIDEBOARD
+        ? ServerInfo_Zone_ZoneType.HiddenZone : ServerInfo_Zone_ZoneType.PublicZone,
+    })]));
   return makeGameEntry({
     localPlayerId: 1,
     started: true,

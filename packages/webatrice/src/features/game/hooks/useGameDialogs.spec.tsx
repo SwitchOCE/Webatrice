@@ -1,4 +1,5 @@
 import { ZoneName } from '@cockatrice/sockatrice';
+import { ServerInfo_Zone_ZoneType } from '@cockatrice/sockatrice/generated';
 import { act, renderHook } from '@testing-library/react';
 import { combineReducers } from '@reduxjs/toolkit';
 
@@ -38,6 +39,7 @@ function setup(opts: SetupOpts = {}) {
       }),
       [ZoneName.DECK]: makeZoneEntry({
         name: ZoneName.DECK,
+        type: ServerInfo_Zone_ZoneType.HiddenZone,
         cardCount: 60,
       }),
       [ZoneName.TABLE]: makeZoneEntry({ name: ZoneName.TABLE }),

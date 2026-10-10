@@ -112,7 +112,7 @@ describe('seat menu moves on the wire', () => {
       Move to > Bottom of library in random order
         P1 table [10] → P1 deck {"x":0,"y":0,"isReversed":true} + [null,{}]
       Move to > X cards from the top of library... [3]
-        P1 table [10] → P1 deck {"x":3,"y":0,"isReversed":false} + [null,{}]
+        P1 table [10] → P1 deck {"x":2,"y":0,"isReversed":false} + [null,{}]
       Move to > Table
         P1 table [10] → P1 table {"x":0,"y":0,"isReversed":false} + [null,{}]
       Move to > Hand

@@ -156,11 +156,22 @@ describe('useSeatPrompts', () => {
     ]);
   });
 
+  it('defaults to the first displayed position and sends wire position zero', () => {
+    const { result, dialogs, answer, zoneCommands } = setup();
+    result.current.openMoveXFromTopPrompt({ cardIds: [10], cardName: 'Bear', deckSize: 30 });
+    const prompt = dialogs.openPrompt.mock.calls.at(-1)![0] as PromptState;
+    expect(prompt.initialValue).toBe('1');
+    answer(prompt.initialValue);
+    expect(zoneCommands.moveCards).toHaveBeenCalledExactlyOnceWith(ZoneName.TABLE, [10], {
+      zone: ZoneName.DECK, index: 0, reversed: false,
+    });
+  });
+
   it('puts a battlefield card X from the top of the library', () => {
     const { result, zoneCommands, answer } = setup();
     result.current.openMoveXFromTopPrompt({ cardIds: [10], cardName: 'Bear', deckSize: 30 });
     answer('4');
-    expect(zoneCommands.moveCards).toHaveBeenCalledWith(ZoneName.TABLE, [10], { zone: ZoneName.DECK, index: 4, reversed: false });
+    expect(zoneCommands.moveCards).toHaveBeenCalledWith(ZoneName.TABLE, [10], { zone: ZoneName.DECK, index: 3, reversed: false });
   });
 
   it('creates as many of a variable-count related token as the answer says', () => {

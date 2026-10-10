@@ -87,8 +87,7 @@ export interface HandOrZoneCardMenuDeps {
   canModify: boolean;
   revealTargets: readonly { playerId: number; name: string }[];
   handCards: readonly PlayerCardViewModel[];
-  libraryViewCards: readonly PlayerCardViewModel[];
-  sideboardCards: readonly PlayerCardViewModel[];
+  zoneViewCards: readonly PlayerCardViewModel[];
   handSelection: SeatSelection | null;
   setHandSelection: (next: SeatSelection | null) => void;
   selectedCardKeys: ReadonlySet<string>;
@@ -96,8 +95,8 @@ export interface HandOrZoneCardMenuDeps {
   cardMeta: (name: string) => PlayCardMeta | undefined;
   deckSize: number;
   playToStack?: boolean;
-  moveCards?: (from: ZoneNameValue, cards: readonly SeatMoveCard[], to: SeatMoveDestination) => void;
-  revealCards?: (zone: ZoneNameValue, targetPlayerId: number, cardIds: readonly number[]) => void;
+  moveCards?: (from: string, cards: readonly SeatMoveCard[], to: SeatMoveDestination) => void;
+  revealCards?: (zone: string, targetPlayerId: number, cardIds: readonly number[]) => void;
   cloneCard?: (source: {
     name: string;
     providerId: string;
@@ -106,8 +105,8 @@ export interface HandOrZoneCardMenuDeps {
     annotation: string;
     y: number;
   }) => void;
-  promptMoveXFromTop: (args: { cardIds: number[]; cardName: string; deckSize: number; fromZone: ZoneNameValue }) => void;
-  startArrow: (source: { sourceCardId: number; sourceCardName: string; sourceZone: ZoneNameValue }) => void;
+  promptMoveXFromTop: (args: { cardIds: number[]; cardName: string; deckSize: number; fromZone: string }) => void;
+  startArrow: (source: { sourceCardId: number; sourceCardName: string; sourceZone: string }) => void;
   relatedViewItems: (cardName: string) => ContextMenuItem[];
   tokenItems: (cardName: string) => ContextMenuItem[];
   close: () => void;
@@ -125,10 +124,8 @@ export function resolveHandOrZoneCardMenu(deps: HandOrZoneCardMenuDeps): SeatCar
     return null;
   }
   const zoneView = menu.kind === 'zoneView' ? menu : null;
-  const zone = (zoneView?.zone ?? ZoneName.HAND) as ZoneNameValue;
-  const zoneCards = !zoneView
-    ? deps.handCards
-    : zone === ZoneName.SIDEBOARD ? deps.sideboardCards : deps.libraryViewCards;
+  const zone = zoneView?.zone ?? ZoneName.HAND;
+  const zoneCards = zoneView ? deps.zoneViewCards : deps.handCards;
   const viewKey = (id: string) => makeCardKey(deps.ownerId, zone, Number(id));
 
   let targetIdStrings: string[];

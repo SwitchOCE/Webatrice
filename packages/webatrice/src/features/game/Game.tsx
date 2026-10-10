@@ -3,7 +3,7 @@ import { useTranslation } from 'react-i18next';
 import { useParams } from 'react-router-dom';
 import { DndContext } from '@dnd-kit/core';
 
-import { AuthGuard } from '@app/components';
+import { AuthGuard, isContextMenuKey } from '@app/components';
 import { usePhaseTrackPinned, usePreference } from '@app/hooks';
 import { Layout } from '@app/feature-wrappers/layout';
 import { ConfirmDialog, PromptDialog } from '@app/dialogs';
@@ -74,13 +74,28 @@ function swallowBoardInput(event: React.SyntheticEvent) {
   event.stopPropagation();
 }
 
+function guardReplayClick(event: React.MouseEvent) {
+  const target = event.target;
+  if (target instanceof Element && target.closest('[data-replay-zone-view]')) {
+    return;
+  }
+  swallowBoardInput(event);
+}
+
+function guardReplayKey(event: React.KeyboardEvent) {
+  if (isContextMenuKey(event)) {
+    swallowBoardInput(event);
+  }
+}
+
 const READ_ONLY_BOARD_GUARD = {
   onPointerDownCapture: swallowBoardInput,
   onMouseDownCapture: swallowBoardInput,
-  onClickCapture: swallowBoardInput,
+  onClickCapture: guardReplayClick,
   onDoubleClickCapture: swallowBoardInput,
   onContextMenuCapture: swallowBoardInput,
   onDragStartCapture: swallowBoardInput,
+  onKeyDownCapture: guardReplayKey,
 };
 
 const noop = () => {};

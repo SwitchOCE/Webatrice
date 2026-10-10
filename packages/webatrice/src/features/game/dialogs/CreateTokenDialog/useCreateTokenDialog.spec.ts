@@ -152,5 +152,17 @@ describe('useCreateTokenDialog', () => {
       act(() => result.current.selectPredefinedToken(treasure as never));
       expect(result.current.annotation).toBe('mine');
     });
+
+    it.each(['M', 'm', 'WU'])('recognizes the literal %s color code as multicolor', (colorCode) => {
+      const token = {
+        ...treasure,
+        prop: { value: { colors: { value: colorCode }, pt: { value: '' } } },
+      };
+      const { result } = renderHook(() => useCreateTokenDialog({ isOpen: true, onSubmit: vi.fn() }));
+
+      act(() => result.current.selectPredefinedToken(token as never));
+
+      expect(result.current.color).toBe('m');
+    });
   });
 });
