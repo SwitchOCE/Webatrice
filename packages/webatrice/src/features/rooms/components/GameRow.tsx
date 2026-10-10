@@ -26,7 +26,7 @@ export interface GameRowProps {
   watchingColumn: boolean;
   onSelect: (gameId: number) => void;
   onActivate: (gameId: number) => void;
-  onAction: (gameId: number, action: RowAction, button: HTMLElement) => void;
+  onAction: (gameId: number, action: RowAction) => void;
   onMore: (gameId: number, button: HTMLElement) => void;
 }
 
@@ -208,6 +208,7 @@ export default function GameRow({
         <Button
           size="sm"
           variant="ghost"
+          data-spectate-game={info.gameId}
           disabled={!state.canSpectate}
           title={spectateWhy}
           aria-label={spectateWhy
@@ -216,7 +217,7 @@ export default function GameRow({
           icon={state.spectateNeedsPassword ? <Lock size={13} aria-hidden /> : undefined}
           onClick={(event) => {
             event.stopPropagation();
-            onAction(info.gameId, 'spectate', event.currentTarget);
+            onAction(info.gameId, 'spectate');
           }}
         >
           {t('GamesList.action.spectate')}
@@ -234,7 +235,7 @@ export default function GameRow({
           className="border border-accent/70"
           onClick={(event) => {
             event.stopPropagation();
-            onAction(info.gameId, 'join', event.currentTarget);
+            onAction(info.gameId, 'join');
           }}
         >
           {t('Common.action.join')}

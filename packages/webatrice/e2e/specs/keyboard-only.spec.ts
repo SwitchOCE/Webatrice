@@ -58,14 +58,16 @@ test('log in, join a room and join a game with the keyboard only', async ({ newC
   const grid = page.getByRole('grid', { name: /^games in/i });
   const gameRow = grid.getByRole('row').filter({ hasText: gameDescription });
   await page.setViewportSize({ width: 1280, height: 720 });
-  const descriptionSort = grid.getByRole('button', { name: /^description$/i });
-  await tabTo(page, descriptionSort);
+  await tabTo(page, page.getByRole('button', { name: /^sort:/i }));
   await page.keyboard.press('Enter');
-  const descriptionHeader = grid.getByRole('columnheader', { name: /description/i });
-  if (await descriptionHeader.getAttribute('aria-sort') !== 'descending') {
-    await page.keyboard.press('Enter');
+  const newestFirst = page.getByRole('menuitemradio', { name: /^newest first$/i });
+  await expect(newestFirst).toBeVisible();
+  for (let step = 0; step < 5 && !(await newestFirst.evaluate((item) => item === document.activeElement)); step++) {
+    await page.keyboard.press('ArrowDown');
   }
-  await expect(descriptionHeader).toHaveAttribute('aria-sort', 'descending');
+  await expect(newestFirst).toBeFocused();
+  await page.keyboard.press('Enter');
+  await expect(grid.getByRole('columnheader', { name: /^game/i })).toHaveAttribute('aria-sort', 'descending');
   await expect(gameRow).toHaveCount(0);
   const scroller = grid.locator('.virtual-list__list');
   await expect.poll(() => scroller.evaluate((element) => element.scrollTop)).toBe(0);
@@ -84,7 +86,7 @@ test('log in, join a room and join a game with the keyboard only', async ({ newC
   await expect(gameRow).toBeFocused();
   await page.keyboard.press('Space');
   await expect(gameRow).toHaveAttribute('aria-selected', 'true');
-  await expect(page.getByRole('button', { name: /^join$/i })).toBeEnabled();
+  await expect(gameRow.getByRole('button', { name: /^join /i })).toBeEnabled();
   await page.keyboard.press('Enter');
 
   await new GamePage(page).deckSelect.waitForOpen();

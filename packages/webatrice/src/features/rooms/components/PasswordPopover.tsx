@@ -3,17 +3,27 @@ import { useTranslation } from 'react-i18next';
 
 import { Button } from '@app/components';
 
-import { AnchoredPopover } from './AnchoredPopover';
+import { AnchoredPopover, type PopoverAnchor } from './AnchoredPopover';
 
 export interface PasswordPopoverProps {
-  anchor: HTMLElement | null;
+  anchor: PopoverAnchor;
+  fallback?: HTMLElement | null;
+  layoutKey?: unknown;
   gameName: string;
   spectating: boolean;
   onSubmit: (password: string) => void;
   onCancel: () => void;
 }
 
-export default function PasswordPopover({ anchor, gameName, spectating, onSubmit, onCancel }: PasswordPopoverProps) {
+export default function PasswordPopover({
+  anchor,
+  fallback,
+  layoutKey,
+  gameName,
+  spectating,
+  onSubmit,
+  onCancel,
+}: PasswordPopoverProps) {
   const { t } = useTranslation();
   const [password, setPassword] = useState('');
   const inputId = useId();
@@ -21,6 +31,8 @@ export default function PasswordPopover({ anchor, gameName, spectating, onSubmit
   return (
     <AnchoredPopover
       anchor={anchor}
+      fallback={fallback}
+      layoutKey={layoutKey}
       label={t('PasswordPopover.label', { game: gameName })}
       onClose={onCancel}
       align="end"
@@ -48,14 +60,7 @@ export default function PasswordPopover({ anchor, gameName, spectating, onSubmit
           ].join(' ')}
         />
         <div className="mt-2.5 flex justify-end gap-2">
-          <Button
-            size="sm"
-            variant="quiet"
-            onClick={() => {
-              onCancel();
-              anchor?.focus();
-            }}
-          >
+          <Button size="sm" variant="quiet" onClick={onCancel}>
             {t('Common.action.cancel')}
           </Button>
           <Button size="sm" variant="primary" type="submit">
