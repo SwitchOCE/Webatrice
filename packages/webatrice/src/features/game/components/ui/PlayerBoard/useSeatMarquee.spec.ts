@@ -34,7 +34,6 @@ function setup() {
   const clearAllSelection = vi.fn();
   const hook = renderHook(() => useSeatMarquee({
     playerId: 1,
-    boxRef: { current: box },
     handRef: { current: hand },
     stackRef: { current: stack },
     setSelection,

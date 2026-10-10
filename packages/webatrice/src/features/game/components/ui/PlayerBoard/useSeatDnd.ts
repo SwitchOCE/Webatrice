@@ -24,7 +24,6 @@ export interface UseSeatDndArgs {
   stackDisplayList: readonly PlayerCardViewModel[];
   handDisplayList: readonly PlayerCardViewModel[];
   horizontalHand: boolean;
-  boxRef: RefObject<HTMLDivElement | null>;
   handRef: RefObject<HTMLDivElement | null>;
   stackRef: RefObject<HTMLDivElement | null>;
   libraryRef: RefObject<HTMLDivElement | null>;
@@ -46,7 +45,6 @@ export function useSeatDnd({
   stackDisplayList,
   handDisplayList,
   horizontalHand,
-  boxRef,
   handRef,
   stackRef,
   libraryRef,
@@ -221,7 +219,7 @@ export function useSeatDnd({
     resolve: ({ pointer }, source) => {
       const dragged = new Set(source.zone === 'hand' ? source.cards.map((c) => c.id) : []);
       const rects: DOMRect[] = [];
-      boxRef.current?.querySelectorAll<HTMLElement>('[data-card][data-zone="hand"]').forEach((el) => {
+      handRef.current?.querySelectorAll<HTMLElement>('[data-card][data-zone="hand"]').forEach((el) => {
         const id = el.dataset.cardId;
         if (id && !dragged.has(id)) {
           rects.push(el.getBoundingClientRect());

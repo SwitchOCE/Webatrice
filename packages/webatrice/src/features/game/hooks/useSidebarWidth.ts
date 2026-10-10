@@ -33,7 +33,7 @@ function clamp(width: number): number {
 }
 
 /**
- * Width (in px) of the BattlefieldSidebar column, with a drag-resizer
+ * Width (in px) of the GameDock column, with a drag-resizer
  * handle mounted at its left edge (see `SidebarResizer`). Persisted to
  * localStorage so the user's choice survives refresh and re-joining
  * the game. Callers set the width by setState from a pointermove

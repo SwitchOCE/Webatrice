@@ -63,8 +63,7 @@ function setup(args: Partial<UseSeatDndArgs> = {}) {
     stackDisplayList: [card(50), card(51)],
     handDisplayList: [card(30), card(31), card(32)],
     horizontalHand: true,
-    boxRef: { current: box },
-    handRef: { current: null },
+    handRef: { current: box },
     stackRef: { current: element(new DOMRect(0, 0, 100, 400)) },
     libraryRef: { current: null },
     graveyardRef: { current: null },
@@ -187,7 +186,7 @@ describe('useSeatDnd', () => {
 
   it('resolves a vertical hand drop to the nearest gap between card tops, as desktop does', () => {
     const box = seatBox([100, 150, 200].map((top, i) => new DOMRect(i % 2 ? 31 : 5, top, 72, 102)));
-    setup({ horizontalHand: false, boxRef: { current: box } });
+    setup({ horizontalHand: false, handRef: { current: box } });
     const hand = dnd.zones.get('seat-1-hand')!;
     const drop = (y: number) => ({ pointer: { x: 40, y }, cardOrigin: { x: 40, y } });
     const order = ['30', '31', '32'];

@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 
-import type { PreviewMode } from '../BattlefieldSidebar/BattlefieldSidebar';
+import type { PreviewMode } from '../CardPreviewPane/useCardPreviewPane';
 import type { PreviewCard } from '../ui/CardPreviewContext';
 import {
   postCardPreviewMessage,

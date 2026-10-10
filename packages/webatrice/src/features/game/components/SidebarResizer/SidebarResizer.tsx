@@ -14,7 +14,7 @@ interface SidebarResizerProps {
 
 /**
  * 8-px vertical drag handle sitting between the play area and the
- * BattlefieldSidebar. Grabs pointer capture on mousedown so subsequent
+ * GameDock. Grabs pointer capture on mousedown so subsequent
  * moves reach us even when the pointer crosses over other elements
  * (dragging past the play-area's edge, over the game board, etc.).
  *

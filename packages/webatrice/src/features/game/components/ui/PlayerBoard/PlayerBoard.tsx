@@ -9,6 +9,8 @@ import HandCardMenu from '../../context-menus/SeatCardMenus/HandCardMenu';
 import PileCardMenu from '../../context-menus/SeatCardMenus/PileCardMenu';
 import StackCardMenu from '../../context-menus/SeatCardMenus/StackCardMenu';
 import PlayerInfoPanel from '../../right-sidebar/PlayerInfoPanel/PlayerInfoPanel';
+import HandTray from '../../BoardTray/HandTray';
+import { useBoardTrayHost } from '../../BoardTray/BoardTrayContext';
 import HandZone from '../HandZone/HandZone';
 import { CARD_BACK_URL, CARD_CORNER_RADIUS, CARD_HEIGHT, CARD_WIDTH } from '../SeatCard/cardSize';
 import { SeatDragGhost } from '../SeatDragContext';
@@ -23,10 +25,12 @@ import { MARQUEE_BORDER, MARQUEE_FILL } from '../seatColors/seatColors';
 function PlayerBoard(props: PlayerSeatProps) {
   const controller = usePlayerSeat(props);
   const { t } = useTranslation();
+  const trayHost = useBoardTrayHost();
   const {
     DRAW_ANIMATION_MS,
     boxRef,
     flights,
+    handPlacement,
     isActive,
     marquee,
     name,
@@ -63,7 +67,9 @@ function PlayerBoard(props: PlayerSeatProps) {
 
         <Battlefield />
 
-        <HandZone />
+        {handPlacement === 'inline' && <HandZone />}
+
+        {handPlacement === 'tray' && trayHost && createPortal(<HandTray />, trayHost)}
 
         {/* Draw animations — a card back tweens from the library rect
           (rotated to match the sideways pile) to the hand rect (upright)

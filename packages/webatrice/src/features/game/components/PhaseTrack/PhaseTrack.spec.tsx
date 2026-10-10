@@ -1,15 +1,10 @@
-import { act, screen, within } from '@testing-library/react';
+import { screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { Phase } from '@cockatrice/datatrice';
 
 import { createMockWebClient, renderWithProviders } from '../../../../__test-utils__';
 import { buildSeatGameState } from '../../__test-utils__/seatFixtures';
 import PhaseTrack from './PhaseTrack';
-
-vi.mock('@app/hooks', async (importOriginal) => ({
-  ...(await importOriginal<typeof import('@app/hooks')>()),
-  usePhaseTrackPinned: () => false,
-}));
 
 function renderTrack({ activePlayerId = 1 }: { activePlayerId?: number } = {}) {
   const preloadedState = buildSeatGameState({
@@ -24,7 +19,7 @@ function renderTrack({ activePlayerId = 1 }: { activePlayerId?: number } = {}) {
 }
 
 describe('PhaseTrack', () => {
-  it('names every phase button while collapsed, and marks the current phase', () => {
+  it('names every phase button, shows its label, and marks the current phase', () => {
     const { track } = renderTrack();
     const phases = within(track).getAllByRole('button').filter((button) => button.dataset.phase !== undefined);
     expect(phases.map((button) => button.getAttribute('aria-label'))).toEqual([
@@ -40,20 +35,8 @@ describe('PhaseTrack', () => {
       'Main 2',
       'End',
     ]);
-    expect(within(track).getByRole('button', { current: 'step' })).toHaveAccessibleName('Upkeep');
-  });
-
-  it('expands while focus is inside it and collapses when focus leaves', async () => {
-    const user = userEvent.setup();
-    const { track } = renderTrack();
-    expect(within(track).queryByText('Draw')).not.toBeInTheDocument();
-    await user.tab();
-    expect(within(track).getByRole('button', { name: 'Untap' })).toHaveFocus();
     expect(within(track).getByText('Draw')).toBeInTheDocument();
-    act(() => {
-      within(track).getByRole('button', { name: 'Untap' }).blur();
-    });
-    expect(within(track).queryByText('Draw')).not.toBeInTheDocument();
+    expect(within(track).getByRole('button', { current: 'step' })).toHaveAccessibleName('Upkeep');
   });
 
   it('changes phase from the keyboard', async () => {
@@ -62,6 +45,14 @@ describe('PhaseTrack', () => {
     within(track).getByRole('button', { name: 'Main 1' }).focus();
     await user.keyboard('{Enter}');
     expect(game.setActivePhase).toHaveBeenCalledWith(1, { phase: Phase.FirstMain }, expect.anything());
+  });
+
+  it('untaps everything when the untap step is clicked', async () => {
+    const user = userEvent.setup();
+    const { game, track } = renderTrack();
+    await user.click(within(track).getByRole('button', { name: 'Untap' }));
+    expect(game.setActivePhase).toHaveBeenCalledWith(1, { phase: Phase.Untap }, expect.anything());
+    expect(game.setCardAttr).toHaveBeenCalledTimes(1);
   });
 
   it('keeps the buttons focusable but inert for a player who may not change phases', async () => {

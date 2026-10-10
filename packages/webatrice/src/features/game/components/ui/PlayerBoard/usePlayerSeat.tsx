@@ -70,6 +70,7 @@ export function usePlayerSeat({ model, commands, onOpenDeckInEditor, onSay }: Pl
     isLocal: isSelf,
     isActive,
     mirrored: handOnTop,
+    handPlacement,
     flipHandCardBacks,
     revealTargets,
     drawSeq,
@@ -119,7 +120,11 @@ export function usePlayerSeat({ model, commands, onOpenDeckInEditor, onSay }: Pl
   );
 
   const horizontalHand = usePreference('horizontalHand');
-  const seatGrid = useMemo(() => buildSeatGrid({ horizontalHand, handOnTop }), [horizontalHand, handOnTop]);
+  const inlineHand = handPlacement === 'inline';
+  const seatGrid = useMemo(
+    () => buildSeatGrid({ horizontalHand, handOnTop, inlineHand }),
+    [horizontalHand, handOnTop, inlineHand],
+  );
 
   const {
     cardMetaByName,
@@ -200,7 +205,7 @@ export function usePlayerSeat({ model, commands, onOpenDeckInEditor, onSay }: Pl
 
   const menuShortcut = useMenuShortcut();
 
-  const { marquee, onPointerDownBox } = useSeatMarquee({ playerId, boxRef, handRef, stackRef, setSelection, clearAllSelection });
+  const { marquee, onPointerDownBox } = useSeatMarquee({ playerId, handRef, stackRef, setSelection, clearAllSelection });
 
   const {
     life,
@@ -350,6 +355,8 @@ export function usePlayerSeat({ model, commands, onOpenDeckInEditor, onSay }: Pl
   const {
     handSize,
     handMenuItems,
+    sortHandItems,
+    revealHandItems,
   } = useHandMenuItems({ seatId, isSelf, hand: zones.hand, revealTargets, menuShortcut, zoneCommands });
   const {
     battlefieldMenuItems,
@@ -453,7 +460,6 @@ export function usePlayerSeat({ model, commands, onOpenDeckInEditor, onSay }: Pl
     stackDisplayList,
     handDisplayList,
     horizontalHand,
-    boxRef,
     handRef,
     stackRef,
     libraryRef,
@@ -495,6 +501,7 @@ export function usePlayerSeat({ model, commands, onOpenDeckInEditor, onSay }: Pl
     cardOps,
     closeSeatCardMenu,
     counterCommands,
+    deck: deckCards,
     deckCount,
     deckTopCard,
     displayedDeckCount,
@@ -518,6 +525,7 @@ export function usePlayerSeat({ model, commands, onOpenDeckInEditor, onSay }: Pl
     handMenuItems,
     handOnTop,
     handPileOptions,
+    handPlacement,
     handSize,
     handZoneRef,
     horizontalHand,
@@ -539,6 +547,7 @@ export function usePlayerSeat({ model, commands, onOpenDeckInEditor, onSay }: Pl
     openCardCounterPrompt,
     openCardMenuAt,
     openCountPrompt,
+    openCreateTokenDialog,
     openDrawCardsPrompt,
     openLifePrompt,
     openMoveTopUntilDialog,
@@ -553,6 +562,7 @@ export function usePlayerSeat({ model, commands, onOpenDeckInEditor, onSay }: Pl
     playerId,
     relatedViewItemsFor,
     resolveFaceImageUri,
+    revealHandItems,
     revealTargets,
     seat,
     seatDrag,
@@ -564,6 +574,7 @@ export function usePlayerSeat({ model, commands, onOpenDeckInEditor, onSay }: Pl
     setLife,
     setSelection,
     menuShortcut,
+    sortHandItems,
     stackCardMenu,
     stackDisplayList,
     stackPileOptions,

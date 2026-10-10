@@ -264,7 +264,9 @@ export function battlefieldEl(ownerId: number): HTMLElement {
 }
 
 export function pileEl(label: 'Library' | 'Graveyard' | 'Exile' | 'Hand', seatIndex = 0): HTMLElement {
-  return screen.getAllByTitle(new RegExp(`^${label}(?:, | — )`))[seatIndex];
+  const all = screen.getAllByTitle(new RegExp(`^${label}(?:, | — )`));
+  const inTray = (el: HTMLElement) => el.closest('[data-testid="board-tray"]') != null;
+  return [...all.filter(inTray), ...all.filter((el) => !inTray(el))][seatIndex];
 }
 
 export interface Box {

@@ -2259,10 +2259,25 @@
     },
     "deckSelectFailed": "The server did not accept this deck."
   },
-  "BattlefieldSidebar": {
-    "label": "Game sidebar",
-    "players": "Players",
-    "spectating": "Spectating",
+  "BoardTray": {
+    "label": "Hand tray",
+    "yourHand": "Your hand",
+    "handHeading": "Your hand · {count}",
+    "sort": "Sort",
+    "reveal": "Reveal",
+    "sideboard": "Sideboard",
+    "actions": "Quick actions",
+    "action": {
+      "untapAll": "Untap all",
+      "draw": "Draw",
+      "shuffle": "Shuffle",
+      "drawN": "Draw N",
+      "rollDie": "Roll die",
+      "createToken": "Create token"
+    }
+  },
+  "CardPreviewPane": {
+    "label": "Card preview",
     "preview": "Preview",
     "closePreview": "Close preview window",
     "openPreview": "Open preview in a separate window",
@@ -2273,15 +2288,7 @@
     "bringBack": "Click to bring back",
     "hoverToPreview": "Hover a card to preview it here",
     "backTo": "Back to {name}",
-    "loading": "Loading…",
-    "leaveTitle": "Leave the game",
-    "leave": "Leave",
-    "concedeTitle": "Concede this game",
-    "concede": "Concede",
-    "rejoinTitle": "Rejoin the game",
-    "rejoin": "Rejoin",
-    "sideboardTitle": "Open sideboard",
-    "sideboard": "Sideboard"
+    "loading": "Loading…"
   },
   "CardPreviewPopup": {
     "title": "Card Preview",
@@ -2563,6 +2570,28 @@
       "unknown": "counter"
     }
   },
+  "GameDock": {
+    "label": "Game dock",
+    "tabs": "Dock panels",
+    "tab": {
+      "log": "Chat & log",
+      "players": "Players",
+      "spectators": "Spectators"
+    },
+    "players": "Players",
+    "spectating": "Spectating",
+    "collapse": "Collapse the dock",
+    "expand": "Expand the dock",
+    "leaveTitle": "Leave the game",
+    "leave": "Leave",
+    "concedeTitle": "Concede this game",
+    "concede": "Concede",
+    "rejoinTitle": "Rejoin the game",
+    "rejoin": "Rejoin",
+    "sideboardTitle": "Open sideboard",
+    "sideboard": "Sideboard",
+    "gameInfo": "Game info"
+  },
   "GameInvite": {
     "copyLink": "Copy game link",
     "inviteToGame": "Invite to Game...",
@@ -2604,7 +2633,6 @@
   "PhaseTrack": {
     "label": "Turn phases",
     "activePlayerOnly": "Only the active player can change phases",
-    "pass": "Pass",
     "passTitle": "Pass to the next turn"
   },
   "GamePhase": {
@@ -2672,6 +2700,16 @@
   "TallyOverlay": {
     "tally": "Tally",
     "selectedCount": "{count, plural, one {# card selected} other {# cards selected}}"
+  },
+  "TurnBar": {
+    "whoseTurn": "{name}'s turn",
+    "noTurn": "No active turn",
+    "elapsedTitle": "Time since the game started",
+    "stack": "Stack",
+    "stackEmpty": "empty",
+    "stackItem": "{card} on the stack ({name})",
+    "pass": "Pass turn",
+    "passDisabled": "You cannot pass the turn right now"
   },
   "CardMenu": {
     "tapUntap": "Tap / Untap",
@@ -2800,6 +2838,7 @@
     "lifeHint": "Click or Up arrow: gain 1. Right-click or Down arrow: lose 1. Enter or Ctrl+L: set.",
     "manaPool": "Mana pool",
     "playerMenu": "{name}'s player menu",
+    "commander": "Commander: {name}",
     "mana": {
       "W": "White",
       "U": "Blue",
@@ -2812,6 +2851,7 @@
   },
   "PlayerList": {
     "empty": "no players",
+    "noSpectators": "no spectators",
     "unknown": "(unknown)",
     "host": "Host",
     "moreActions": "More actions for {name}",

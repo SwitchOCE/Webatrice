@@ -35,8 +35,7 @@ const SPEC: SeatGameSpec = {
 };
 
 function previewImages(): HTMLImageElement[] {
-  const pane = screen.getByText('Preview').closest('.shrink-0');
-  return Array.from(pane?.querySelectorAll('img') ?? []);
+  return Array.from(screen.getByTestId('card-preview-pane').querySelectorAll('img'));
 }
 
 describe('Game card preview', () => {

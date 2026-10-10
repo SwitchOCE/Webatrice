@@ -1,6 +1,6 @@
 import { useLayoutEffect, useRef, useState, type KeyboardEvent } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Heart, MoreVertical } from 'lucide-react';
+import { Hand, Heart, MoreVertical } from 'lucide-react';
 import { useAnimationPreference } from '@app/hooks';
 
 import { isContextMenuKey, ManaSymbols, type MenuAnchor } from '@app/components';
@@ -8,6 +8,10 @@ import { ContextMenuPopup } from '../../context-menus/ContextMenu/ContextMenu';
 import { usePendingTargetContext } from '../../ui/PendingTargetContext';
 import { makeCardKey, useCardRegistry } from '../../../utils/CardRegistry/CardRegistryContext';
 import { usePlayerSeatContext } from '../../ui/PlayerBoard/PlayerSeatContext';
+import { useCardPreviewActions } from '../../ui/CardPreviewContext';
+import { getScryfallUrlByIdOrExactName } from '@app/services';
+import { ScryfallImageSize } from '@cockatrice/datatrice';
+import { CARD_WIDTH } from '../../ui/SeatCard/cardSize';
 import { useValueFlash } from '../../ui/ValueFlash/useValueFlash';
 import ValueFlashOverlay from '../../ui/ValueFlash/ValueFlashOverlay';
 import ZoneBackground from '../../ui/ZoneBackground/ZoneBackground';
@@ -122,6 +126,8 @@ function ManaPip({
   );
 }
 
+const INFO_FONT_SIZE = `clamp(10px, calc(${CARD_WIDTH} * 16 / 72), 16px)`;
+
 const NO_MODIFIERS = (event: KeyboardEvent) => !event.altKey && !event.ctrlKey && !event.metaKey && !event.shiftKey;
 
 function PlayerMenuButton() {
@@ -173,6 +179,9 @@ function PlayerMenuButton() {
 export default function PlayerInfoPanel() {
   const {
     counterCommands,
+    deck,
+    handCount,
+    handPlacement,
     isSelf,
     life,
     lifeControl,
@@ -185,6 +194,11 @@ export default function PlayerInfoPanel() {
     setLife,
   } = usePlayerSeatContext();
   const { t } = useTranslation();
+  const { setHoveredCard } = useCardPreviewActions();
+  const commander = deck.find((c) => c.commander);
+  const backdrop = seat.avatarUrl
+    ?? (commander ? getScryfallUrlByIdOrExactName(commander, ScryfallImageSize.ArtCrop) : null);
+  const handCountLabel = t('HandZone.button', { count: handCount });
   const { pending, pickArrowAt } = usePendingTargetContext();
   const arrowPicking = pending?.kind === 'arrow';
   const registry = useCardRegistry();
@@ -229,7 +243,7 @@ export default function PlayerInfoPanel() {
   return (
     <div
       className="relative isolate border-r border-border-subtle bg-bg-surface/70 flex flex-col p-[0.75em] gap-[0.5em] min-h-0"
-      style={seatGrid.info}
+      style={{ ...seatGrid.info, fontSize: INFO_FONT_SIZE }}
     >
       <ZoneBackground zone="playerInfo" />
       <div className="relative" ref={blockRef}>
@@ -287,15 +301,14 @@ export default function PlayerInfoPanel() {
             isSelf ? GAME_FOCUS_RING : '',
             isSelf ? 'cursor-pointer select-none' : '',
           ].join(' ')}
+          onMouseEnter={commander && !seat.avatarUrl ? () => setHoveredCard(commander) : undefined}
           style={{
-            backgroundImage: seat.avatarUrl
-              ? `url(${seat.avatarUrl})`
-              : undefined,
+            backgroundImage: backdrop ? `url(${backdrop})` : undefined,
             backgroundSize: 'cover',
             backgroundPosition: 'center',
           }}
         >
-          {!seat.avatarUrl && (
+          {!backdrop && (
             <>
               <div
                 className="absolute inset-0 bg-gradient-to-br from-accent-secondary to-accent pointer-events-none"
@@ -339,10 +352,35 @@ export default function PlayerInfoPanel() {
               {life}
             </span>
           </div>
+          {commander && (
+            <span
+              className="relative z-10 block truncate px-[0.5em] pb-[0.3em] text-[0.7em] font-medium text-over-art-text"
+              style={{ textShadow: OVER_ART_SHADOW_NAME }}
+              title={t('PlayerInfoPanel.commander', { name: commander.name })}
+            >
+              {t('PlayerInfoPanel.commander', { name: commander.name })}
+            </span>
+          )}
           <ValueFlashOverlay flash={lifeFlash} kind="change" />
         </div>
         <PlayerMenuButton />
+        {handPlacement === 'hidden' && (
+          <button
+            type="button"
+            disabled
+            title={handCountLabel}
+            aria-label={handCountLabel}
+            className={[
+              'absolute bottom-[0.3em] right-[0.3em] z-20 flex items-center gap-[0.3em] rounded px-[0.35em] py-[0.1em]',
+              'bg-over-art-backdrop/60 text-[0.8em] font-bold tabular-nums text-over-art-text',
+            ].join(' ')}
+          >
+            <Hand size="1em" aria-hidden />
+            {handCount}
+          </button>
+        )}
       </div>
+
 
       {/* Below the life total: mana pool sits as the first item of
          the zone column — same `justify-evenly` distribution as
@@ -409,7 +447,7 @@ export default function PlayerInfoPanel() {
             return <div key={m.symbol}>{pip}</div>;
           })}
         </div>
-        <ZoneStack />
+        {handPlacement !== 'tray' && <ZoneStack />}
       </div>
     </div>
   );

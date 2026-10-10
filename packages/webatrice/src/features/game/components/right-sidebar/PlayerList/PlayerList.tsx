@@ -23,7 +23,13 @@ import PlayerListContextMenu, {
 } from './PlayerListContextMenu';
 import { UserDetailsModal } from './PlayerListDialogs';
 
-function PlayerList() {
+export type PlayerListKind = 'all' | 'players' | 'spectators';
+
+interface PlayerListProps {
+  kind?: PlayerListKind;
+}
+
+function PlayerList({ kind = 'all' }: PlayerListProps) {
   const { t } = useTranslation();
   const gameId = useGameId();
   const readOnly = useGameReadOnly();
@@ -100,7 +106,8 @@ function PlayerList() {
     onReportUser: (userName) => openReportUser({ userName, gameId: gameId ?? undefined }),
   };
 
-  const entries = players ? Object.values(players) : [];
+  const entries = (players ? Object.values(players) : []).filter((p) =>
+    kind === 'all' || (kind === 'spectators') === !!p.properties.spectator);
 
   const menuTargetLevel = menuTarget
     ? (entries.find((p) => p.properties.userInfo?.name === menuTarget.userName)?.properties.userInfo
@@ -132,7 +139,9 @@ function PlayerList() {
     <>
       <ul data-testid="player-list" className="pb-1">
         {entries.length === 0 && (
-          <li className="px-3 py-2 text-xs italic text-text-muted">{t('PlayerList.empty')}</li>
+          <li className="px-3 py-2 text-xs italic text-text-muted">
+            {t(kind === 'spectators' ? 'PlayerList.noSpectators' : 'PlayerList.empty')}
+          </li>
         )}
         {entries.map((p) => {
           const pid = p.properties.playerId;

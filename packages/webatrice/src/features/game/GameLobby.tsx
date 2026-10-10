@@ -128,7 +128,7 @@ export default function GameLobby({ gameId }: { gameId: number }) {
               {/* Players */}
               <div className="space-y-3">
                 <div className="text-xs font-semibold uppercase tracking-widest text-text-muted text-center">
-                  {t('BattlefieldSidebar.players')}
+                  {t('GameDock.players')}
                 </div>
                 {seatedPlayers.map((p) => {
                   const isLocalPlayer = p.properties.playerId === game.localPlayerId;
@@ -360,7 +360,7 @@ export default function GameLobby({ gameId }: { gameId: number }) {
                       'hover:bg-red-500/10 border border-border-subtle board-motion transition-colors',
                     ].join(' ')}
                   >
-                    <LogOut size={12} /> {t('BattlefieldSidebar.leave')}
+                    <LogOut size={12} /> {t('GameDock.leave')}
                   </button>
                 </div>
               )}

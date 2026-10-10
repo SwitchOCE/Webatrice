@@ -1,11 +1,11 @@
 import { useTranslation } from 'react-i18next';
 import { useEffect, useRef, useState, RefObject } from 'react';
+import { useGameClock } from './useGameClock';
 import { useWebClient } from '@cockatrice/datatrice/react';
 import { games, server } from '@cockatrice/datatrice';
 import { useAdminLocked } from '@app/hooks';
 import { useAppSelector } from '@app/store';
 import { GameMessage, PlayerEntry } from '@cockatrice/datatrice';
-import { useGameReadOnly } from '../ui/GameReadOnlyContext';
 const EMPTY_MESSAGES: GameMessage[] = [];
 
 export function formatElapsed(totalSeconds: number): string {
@@ -42,15 +42,11 @@ export interface UseGameLogArgs {
 export function useGameLog({ gameId, listRef }: UseGameLogArgs): GameLog {
   const { t } = useTranslation();
   const webClient = useWebClient();
-  const readOnly = useGameReadOnly();
   const messages = useAppSelector((state) =>
     gameId != null ? games.Selectors.getMessages(state, gameId) : EMPTY_MESSAGES,
   );
   const players = useAppSelector((state) =>
     gameId != null ? games.Selectors.getPlayers(state, gameId) : undefined,
-  );
-  const secondsElapsed = useAppSelector((state) =>
-    gameId != null ? games.Selectors.getSecondsElapsed(state, gameId) : 0,
   );
   const isSpectator = useAppSelector((state) =>
     gameId != null ? games.Selectors.isSpectator(state, gameId) : false,
@@ -76,22 +72,7 @@ export function useGameLog({ gameId, listRef }: UseGameLogArgs): GameLog {
     ? null
     : t('ChatLog.spectatorChatDisabled');
 
-  // 1Hz ticker; resync to redux on each server `secondsElapsed`.
-  const [displaySeconds, setDisplaySeconds] = useState(secondsElapsed);
-
-  useEffect(() => {
-    setDisplaySeconds(secondsElapsed);
-  }, [secondsElapsed]);
-
-  useEffect(() => {
-    if (gameId == null || readOnly) {
-      return undefined;
-    }
-    const id = window.setInterval(() => {
-      setDisplaySeconds((prev) => prev + 1);
-    }, 1000);
-    return () => window.clearInterval(id);
-  }, [gameId, readOnly]);
+  const displaySeconds = useGameClock(gameId);
 
   const [draft, setDraft] = useState('');
 

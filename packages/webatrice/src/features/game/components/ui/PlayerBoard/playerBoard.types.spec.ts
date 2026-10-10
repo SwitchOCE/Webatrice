@@ -16,6 +16,7 @@ const opponentSeat = {
     hydrated: true,
     isLocal: false,
     mirrored: true,
+    handPlacement: 'hidden',
     isActive: false,
     displayName: 'Opp',
     username: 'Opp',
