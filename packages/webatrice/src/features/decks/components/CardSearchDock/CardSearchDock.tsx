@@ -1,6 +1,6 @@
 import { useEffect, useId, useRef, type ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Info, Loader2, Plus, Search, X } from 'lucide-react';
+import { Info, LayoutGrid, List, Loader2, Plus, Search, X } from 'lucide-react';
 
 import { Kbd, ManaSymbols, Segmented } from '@app/components';
 import { useMenuShortcut } from '@app/feature-widgets/shortcuts';
@@ -220,6 +220,15 @@ function GameChangerLine({ note }: { note: GameChangerNote }) {
   );
 }
 
+function ViewLabel({ icon, text }: { icon: ReactNode; text: string }) {
+  return (
+    <span className="flex items-center" title={text}>
+      {icon}
+      <span className="sr-only">{text}</span>
+    </span>
+  );
+}
+
 function ListMessage({ children }: { children: ReactNode }) {
   return <div className="flex h-full items-center justify-center px-6 text-center text-[12.5px] text-text-muted">{children}</div>;
 }
@@ -252,9 +261,9 @@ export default function CardSearchDock({ onAdd, onSelect, colorIdentity, format,
         ? t('CardSearchDock.matches', { count: dock.total })
         : '';
 
-  const views: { value: DockView; label: string }[] = [
-    { value: 'list', label: t('CardSearchDock.view.list') },
-    { value: 'art', label: t('CardSearchDock.view.art') },
+  const views: { value: DockView; label: ReactNode }[] = [
+    { value: 'list', label: <ViewLabel icon={<List size={14} aria-hidden />} text={t('CardSearchDock.view.list')} /> },
+    { value: 'art', label: <ViewLabel icon={<LayoutGrid size={14} aria-hidden />} text={t('CardSearchDock.view.art')} /> },
   ];
 
   const resultsProps = {
@@ -273,7 +282,9 @@ export default function CardSearchDock({ onAdd, onSelect, colorIdentity, format,
     >
       <header className="flex flex-col gap-2.5 border-b border-border-subtle p-pad">
         <div className="flex items-center gap-2">
-          <h2 className="font-display text-[15px] font-semibold text-text-primary">{t('CardSearchDock.title')}</h2>
+          <h2 className="shrink-0 whitespace-nowrap font-display text-[15px] font-semibold text-text-primary">
+            {t('CardSearchDock.title')}
+          </h2>
           <span role="status" className={cx('min-w-0 truncate text-[12px] tabular-nums', dock.error ? 'text-danger' : 'text-text-muted')}>
             {status}
           </span>

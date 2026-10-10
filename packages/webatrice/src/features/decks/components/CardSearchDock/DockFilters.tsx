@@ -1,14 +1,13 @@
 import { useId } from 'react';
 import { useTranslation } from 'react-i18next';
-import { ChevronDown, SlidersHorizontal } from 'lucide-react';
+import { ChevronDown, FilterX, SlidersHorizontal } from 'lucide-react';
 
-import { Checkbox } from '@app/components';
+import { Checkbox, IconButton } from '@app/components';
 import { isMtgFormat, MTG_FORMAT_LABELS, normalizeFormat } from '@app/types';
 import { cx } from '@app/utils';
 
 import {
   FILTER_RARITIES,
-  FILTER_TYPES,
   hasActiveFilters,
   toggleFilter,
   type FilterCardType,
@@ -68,6 +67,8 @@ const RARITY_NAME_KEYS: Record<FilterRarity, string> = {
   mythic: 'CardSearch.rarity.mythic.name',
 };
 
+const DOCK_TYPES: FilterCardType[] = ['Creature', 'Planeswalker', 'Instant', 'Sorcery', 'Enchantment', 'Artifact', 'Land'];
+
 const FOCUS = 'focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-accent';
 const FIELD = 'rounded-ui-sm border border-border-control/70 bg-bg-sunken text-[12px] text-text-primary';
 
@@ -80,7 +81,7 @@ function FilterChip({ label, title, on, onClick }: { label: string; title?: stri
       title={title}
       onClick={onClick}
       className={cx(
-        'inline-flex h-6 items-center rounded-ui-sm border px-2 text-[11.5px] font-medium transition-colors',
+        'inline-flex h-6 items-center rounded-ui-sm border px-1.5 text-[11.5px] font-medium transition-colors',
         FOCUS,
         on ? 'border-accent bg-accent text-on-accent' : 'border-border-subtle text-text-secondary hover:bg-bg-elevated',
       )}
@@ -134,12 +135,12 @@ export function DockFilters({
             );
           })}
         </span>
-        <span className="relative ml-auto inline-flex">
+        <span className="relative ml-auto inline-flex min-w-0">
           <select
             value={value.colorMode === 'withinIdentity' && !colorIdentity ? 'includes' : value.colorMode}
             onChange={(e) => set('colorMode', e.target.value as FilterColorMode)}
             aria-label={t('CardSearchDock.filter.colourMode')}
-            className={cx('h-7 appearance-none pl-2 pr-6', FIELD, FOCUS)}
+            className={cx('h-7 min-w-0 max-w-full appearance-none truncate pl-2 pr-6', FIELD, FOCUS)}
           >
             {modes.map((m) => (
               <option key={m} value={m}>
@@ -152,7 +153,7 @@ export function DockFilters({
       </div>
 
       <div role="group" aria-label={t('CardSearchDock.filter.types')} className="flex flex-wrap gap-1">
-        {FILTER_TYPES.map((type) => (
+        {DOCK_TYPES.map((type) => (
           <FilterChip
             key={type}
             label={t(TYPE_KEYS[type])}
@@ -167,29 +168,27 @@ export function DockFilters({
           {t('CardSearchDock.filter.manaValueShort')}
         </span>
         <input
-          type="number"
-          min={0}
-          max={20}
+          type="text"
           inputMode="numeric"
+          maxLength={2}
           value={value.cmcMin}
           onChange={(e) => set('cmcMin', e.target.value)}
           placeholder={t('CardSearchDock.filter.any')}
           aria-label={t('CardSearchDock.filter.manaValueMin')}
-          className={cx('h-7 w-12 px-2 placeholder:text-text-muted', FIELD, FOCUS)}
+          className={cx('h-7 w-11 px-2 text-center placeholder:text-text-muted', FIELD, FOCUS)}
         />
         <span className="text-[12px] text-text-muted" aria-hidden>
           {t('CardSearch.filter.to')}
         </span>
         <input
-          type="number"
-          min={0}
-          max={20}
+          type="text"
           inputMode="numeric"
+          maxLength={2}
           value={value.cmcMax}
           onChange={(e) => set('cmcMax', e.target.value)}
           placeholder={t('CardSearchDock.filter.any')}
           aria-label={t('CardSearchDock.filter.manaValueMax')}
-          className={cx('h-7 w-12 px-2 placeholder:text-text-muted', FIELD, FOCUS)}
+          className={cx('h-7 w-11 px-2 text-center placeholder:text-text-muted', FIELD, FOCUS)}
         />
         <span role="group" aria-label={t('CardSearch.filter.rarity')} className="ml-auto flex gap-1">
           {FILTER_RARITIES.map((r) => (
@@ -204,7 +203,7 @@ export function DockFilters({
         </span>
       </div>
 
-      <div className="flex items-center gap-3">
+      <div className="flex items-center gap-2 whitespace-nowrap">
         {isMtgFormat(format) && formatLabel && (
           <Checkbox
             checked={value.legalOnly === true}
@@ -212,20 +211,21 @@ export function DockFilters({
             label={<span className="text-[12.5px] text-text-secondary">{t('CardSearchDock.filter.legalIn', { format: formatLabel })}</span>}
           />
         )}
-        <span className="ml-auto flex items-center gap-3">
+        <span className="ml-auto flex items-center gap-2">
           {hasActiveFilters(value) && (
-            <button
-              type="button"
+            <IconButton
+              size="sm"
+              label={t('CardSearch.filter.clear')}
               onClick={() => onChange({ ...initialDockFilters(colorIdentity, format), showAdvanced: value.showAdvanced })}
-              className={cx('rounded-ui-sm text-[12px] text-text-muted hover:text-text-primary', FOCUS)}
+              className="!h-6 !w-6"
             >
-              {t('CardSearch.filter.clear')}
-            </button>
+              <FilterX size={13} aria-hidden />
+            </IconButton>
           )}
           <button
             type="button"
             aria-expanded={value.showAdvanced}
-            aria-controls={moreId}
+            aria-controls={value.showAdvanced ? moreId : undefined}
             onClick={() => set('showAdvanced', !value.showAdvanced)}
             className={cx('inline-flex items-center gap-1 rounded-ui-sm text-[12px] font-medium text-accent hover:underline', FOCUS)}
           >
@@ -234,28 +234,30 @@ export function DockFilters({
         </span>
       </div>
 
-      <div id={moreId} hidden={!value.showAdvanced} className="flex flex-col gap-2">
-        <label className="flex flex-col gap-1">
-          <span className="text-[11px] font-semibold uppercase tracking-[0.08em] text-text-muted">{t('CardSearch.filter.subtype')}</span>
-          <input
-            type="text"
-            value={value.subtype}
-            onChange={(e) => set('subtype', e.target.value)}
-            placeholder={t('CardSearch.filter.subtypePlaceholder')}
-            className={cx('h-7 px-2 placeholder:text-text-muted', FIELD, FOCUS)}
-          />
-        </label>
-        <label className="flex flex-col gap-1">
-          <span className="text-[11px] font-semibold uppercase tracking-[0.08em] text-text-muted">{t('CardSearch.filter.oracle')}</span>
-          <input
-            type="text"
-            value={value.oracle}
-            onChange={(e) => set('oracle', e.target.value)}
-            placeholder={t('CardSearch.filter.oraclePlaceholder')}
-            className={cx('h-7 px-2 placeholder:text-text-muted', FIELD, FOCUS)}
-          />
-        </label>
-      </div>
+      {value.showAdvanced && (
+        <div id={moreId} className="flex flex-col gap-2">
+          <label className="flex flex-col gap-1">
+            <span className="text-[11px] font-semibold uppercase tracking-[0.08em] text-text-muted">{t('CardSearch.filter.subtype')}</span>
+            <input
+              type="text"
+              value={value.subtype}
+              onChange={(e) => set('subtype', e.target.value)}
+              placeholder={t('CardSearch.filter.subtypePlaceholder')}
+              className={cx('h-7 px-2 placeholder:text-text-muted', FIELD, FOCUS)}
+            />
+          </label>
+          <label className="flex flex-col gap-1">
+            <span className="text-[11px] font-semibold uppercase tracking-[0.08em] text-text-muted">{t('CardSearch.filter.oracle')}</span>
+            <input
+              type="text"
+              value={value.oracle}
+              onChange={(e) => set('oracle', e.target.value)}
+              placeholder={t('CardSearch.filter.oraclePlaceholder')}
+              className={cx('h-7 px-2 placeholder:text-text-muted', FIELD, FOCUS)}
+            />
+          </label>
+        </div>
+      )}
     </div>
   );
 }

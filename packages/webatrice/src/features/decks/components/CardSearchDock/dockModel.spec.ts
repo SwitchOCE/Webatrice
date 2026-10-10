@@ -14,7 +14,9 @@ import {
   toggleDockColour,
 } from './dockModel';
 
-const card = (name: string, quantity = 1, category: DeckCard['category'] = 'main'): DeckCard => ({ name, quantity, category, lookupSource: 'scryfall' });
+const card = (name: string, quantity = 1, category: DeckCard['category'] = 'main'): DeckCard => ({
+  name, quantity, category, lookupSource: 'scryfall',
+});
 
 function key(init: KeyboardEventInit & { code: string }): KeyboardEvent {
   return new KeyboardEvent('keydown', init);
