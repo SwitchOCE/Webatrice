@@ -1,19 +1,15 @@
 import { useRef } from 'react';
-import { useTranslation } from 'react-i18next';
-import { generatePath, matchPath, useLocation, useNavigate } from 'react-router-dom';
-import { MessageSquare } from 'lucide-react';
+import { matchPath, useLocation } from 'react-router-dom';
 import { server } from '@cockatrice/datatrice';
 import type { Event_UserMessage } from '@cockatrice/sockatrice/generated';
 
-import { useNotify } from '@app/components';
+import { afterChatRender, useNotify } from '@app/components';
 import { getPreferencesSnapshot, playSound, useActionFeed } from '@app/hooks';
 import { isPageInactive } from '@app/services';
 import { RouteEnum } from '@app/types';
 import { chatFilterVerdicts, visiblePrivateMessages } from '@app/utils';
 
 export default function PrivateMessageNotifier() {
-  const { t } = useTranslation();
-  const navigate = useNavigate();
   const location = useLocation();
   const notify = useNotify();
   const pathnameRef = useRef(location.pathname);
@@ -41,24 +37,26 @@ export default function PrivateMessageNotifier() {
     if (!entry || entry.senderName === selfName || !visible.includes(entry)) {
       return;
     }
-    const peerPath = generatePath(RouteEnum.PLAYER, { name: entry.senderName });
-    const onPeerPage = matchPath({ path: RouteEnum.PLAYER, end: true }, pathnameRef.current)
-      ?.params.name === entry.senderName;
-    if (onPeerPage && !isPageInactive()) {
-      return;
+    const sender = entry.senderName;
+    const announce = (shown: boolean) => {
+      const read = shown && !isPageInactive();
+      if (!shown) {
+        playSound('private_message');
+      }
+      notify({
+        entry: { kind: 'message', actor: sender, body: entry.message, target: { type: 'chat', userName: sender } },
+        tag: `pm:${sender}`,
+        system: prefs.showMessagePopups && !read,
+        toast: !shown,
+        read,
+      });
+    };
+    const onPeerPage = matchPath({ path: RouteEnum.PLAYER, end: true }, pathnameRef.current)?.params.name === sender;
+    if (onPeerPage) {
+      announce(true);
+    } else {
+      afterChatRender(sender, announce);
     }
-    if (!onPeerPage) {
-      playSound('private_message');
-    }
-    notify({
-      title: t('PrivateMessageNotifier.title', { sender: entry.senderName }),
-      body: entry.message,
-      tag: `pm:${entry.senderName}`,
-      system: prefs.showMessagePopups,
-      toast: !onPeerPage,
-      icon: MessageSquare,
-      onActivate: () => navigate(peerPath),
-    });
   });
 
   return null;

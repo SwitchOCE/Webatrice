@@ -376,10 +376,66 @@
   "MentionCompleter": {
     "label": "Mention suggestions"
   },
+  "Notifications": {
+    "title": {
+      "mention": "{sender} mentioned you",
+      "mentionIn": "{sender} mentioned you in {room}",
+      "buddy": "{name} is online",
+      "game": "Your game \"{game}\" is ready"
+    },
+    "body": {
+      "seats": "{taken} of {max} seats taken"
+    },
+    "system": {
+      "message": "New message from {sender}"
+    },
+    "toastTitle": "{title}:",
+    "action": {
+      "message": "Reply",
+      "mention": "Open room",
+      "buddy": "Message",
+      "game": "Go to game",
+      "report": "View report"
+    },
+    "age": {
+      "now": "just now",
+      "minutes": "{count}m ago",
+      "hours": "{count}h ago"
+    },
+    "bell": {
+      "label": "Notifications",
+      "labelUnread": "Notifications, {count} new"
+    },
+    "drawer": {
+      "title": "Notifications",
+      "new": "{count} new",
+      "markAllRead": "Mark all read",
+      "close": "Close notifications",
+      "filters": "Show",
+      "sectionNew": "New",
+      "sectionEarlier": "Earlier this session",
+      "empty": "Nothing yet this session. Messages, mentions, buddies coming online, games filling up and report updates will collect here.",
+      "emptyFiltered": "Nothing of this kind yet this session.",
+      "unread": "Unread",
+      "settings": "Notification settings"
+    },
+    "filter": {
+      "all": "All",
+      "message": "Messages",
+      "mention": "Mentions",
+      "game": "Games",
+      "buddy": "Buddies",
+      "report": "Reports"
+    },
+    "permission": {
+      "granted": "Browser notifications are on",
+      "default": "Browser notifications are off",
+      "denied": "Browser notifications are blocked",
+      "unsupported": "Browser notifications are not supported here"
+    }
+  },
   "Toast": {
-    "region": "Notifications",
-    "more": "+{count} more",
-    "showFewer": "Show fewer"
+    "region": "Notifications"
   },
   "UserBadges": {
     "admin": "Admin",
@@ -3198,9 +3254,6 @@
     "subtitle": "private chat",
     "empty": "No messages yet — say hi."
   },
-  "PrivateMessageNotifier": {
-    "title": "New message from {sender}"
-  },
   "Replays": {
     "action": {
       "watch": "Watch replay",
@@ -4083,10 +4136,6 @@
     "subtitle1": "Please update your browser and/or check your permissions.",
     "subtitle2": "Note: Private browsing causes some browsers to disable certain permissions or features.",
     "missing": "This browser does not provide:"
-  },
-  "AppAlerts": {
-    "mention": "{sender} mentioned you.",
-    "buddySignedOn": "Your buddy {name} has signed on!"
   },
   "CommandFailure": {
     "notSent": "You are not connected to the server.",

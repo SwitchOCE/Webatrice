@@ -34,8 +34,25 @@ export { default as DeveloperGuard } from './Guard/DeveloperGuard';
 
 export { default as Toast, useToast, usePushToast, ToastProvider } from './Toast';
 export { ErrorBoundary, ErrorFallback, RouteErrorBoundary } from './ErrorBoundary';
-export { NotificationToast, useNotify } from './Notifications';
-export type { NotifyOptions, NotifyResult } from './Notifications';
+export {
+  NotificationToast,
+  NotificationBell,
+  NotificationCentre,
+  useNotify,
+  useMarkRead,
+  useUnreadCounts,
+  afterChatRender,
+  detectGameReady,
+} from './Notifications';
+export type {
+  MarkRead,
+  NotifyOptions,
+  NotifyResult,
+  NotificationInput,
+  NotificationKind,
+  NotificationTarget,
+  UnreadCounts,
+} from './Notifications';
 export { default as PlaymatImage } from './PlaymatImage/PlaymatImage';
 export { GameLinkButton, GameLinkJoinHost, renderGameLinks, requestGameLinkJoin } from './GameLink';
 export { default as PlaymatCropEditor } from './PlaymatCropEditor/PlaymatCropEditor';

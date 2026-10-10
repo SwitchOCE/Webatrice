@@ -1,0 +1,113 @@
+import { endSession } from '@app/services/session';
+
+import {
+  afterChatRender,
+  initialNotificationState,
+  logNotification,
+  markChatSeen,
+  MAX_ENTRIES,
+  notificationReducer,
+  notificationStore,
+  type NotificationInput,
+  type NotificationState,
+} from './notificationStore';
+import { selectUnreadCounts } from './unreadCounts';
+import { filterCounts, groupEntries } from './notificationFilters';
+
+const mention: NotificationInput = { kind: 'mention', actor: 'bob', place: 'Magic', target: { type: 'room', roomId: 3 } };
+const message: NotificationInput = { kind: 'message', actor: 'bob', body: 'hi', target: { type: 'chat', userName: 'bob' } };
+const report: NotificationInput = { kind: 'report', title: 'Report resolved', target: { type: 'route', path: '/my-reports' } };
+
+const apply = (...actions: Parameters<typeof notificationReducer>[1][]) =>
+  actions.reduce<NotificationState>(notificationReducer, initialNotificationState);
+
+describe('notificationReducer', () => {
+  it('appends newest first with increasing ids and caps the session log', () => {
+    let state = apply({ type: 'append', entry: mention, time: 1, read: false }, { type: 'append', entry: message, time: 2, read: true });
+    expect(state.entries.map((entry) => [entry.id, entry.kind, entry.read])).toEqual([[2, 'message', true], [1, 'mention', false]]);
+
+    for (let i = 0; i < MAX_ENTRIES; i += 1) {
+      state = notificationReducer(state, { type: 'append', entry: report, time: 3, read: false });
+    }
+    expect(state.entries).toHaveLength(MAX_ENTRIES);
+  });
+
+  it('clearing a room drops its count and marks the entries that point at it read', () => {
+    const state = apply(
+      { type: 'append', entry: mention, time: 1, read: false },
+      { type: 'append', entry: message, time: 1, read: false },
+      { type: 'bump', scope: 'rooms', key: 3 },
+      { type: 'bump', scope: 'rooms', key: 3 },
+      { type: 'bump', scope: 'rooms', key: 4 },
+    );
+    expect(state.rooms).toEqual({ 3: 2, 4: 1 });
+
+    const cleared = notificationReducer(state, { type: 'clear', scope: 'rooms', key: 3 });
+    expect(cleared.rooms).toEqual({ 4: 1 });
+    expect(cleared.entries.map((entry) => [entry.kind, entry.read])).toEqual([['message', false], ['mention', true]]);
+    expect(notificationReducer(cleared, { type: 'clear', scope: 'rooms', key: 3 })).toBe(cleared);
+  });
+
+  it('marks one entry or all entries read, keeping the state when nothing changes', () => {
+    const state = apply({ type: 'append', entry: mention, time: 1, read: false }, { type: 'append', entry: report, time: 1, read: false });
+    const one = notificationReducer(state, { type: 'markEntryRead', id: 2 });
+    expect(one.entries.map((entry) => entry.read)).toEqual([true, false]);
+    const all = notificationReducer(one, { type: 'markAllRead' });
+    expect(all.entries.every((entry) => entry.read)).toBe(true);
+    expect(notificationReducer(all, { type: 'markAllRead' })).toBe(all);
+  });
+});
+
+describe('selectUnreadCounts', () => {
+  it('counts each unread thing once: sessions by id, plus log entries no session covers', () => {
+    const state = apply(
+      { type: 'append', entry: mention, time: 1, read: false },
+      { type: 'append', entry: message, time: 1, read: false },
+      { type: 'append', entry: report, time: 1, read: false },
+      { type: 'bump', scope: 'rooms', key: 3 },
+      { type: 'bump', scope: 'chats', key: 'bob' },
+      { type: 'bump', scope: 'games', key: 7 },
+    );
+    const counts = selectUnreadCounts(state);
+    expect(counts).toEqual({ rooms: { 3: 1 }, games: { 7: 1 }, chats: { bob: 1 }, notifications: 3, total: 4 });
+    expect(selectUnreadCounts(state)).toBe(counts);
+  });
+});
+
+describe('notification filters', () => {
+  it('counts per kind and splits the shown entries into new and earlier', () => {
+    const state = apply(
+      { type: 'append', entry: mention, time: 1, read: true },
+      { type: 'append', entry: message, time: 1, read: false },
+      { type: 'append', entry: message, time: 1, read: true },
+    );
+    expect(filterCounts(state.entries)).toMatchObject({ all: 3, message: 2, mention: 1, game: 0 });
+    const { fresh, earlier } = groupEntries(state.entries, 'message');
+    expect([fresh.length, earlier.length]).toEqual([1, 1]);
+  });
+});
+
+describe('notification store', () => {
+  beforeEach(() => {
+    notificationStore.reset();
+    vi.useFakeTimers();
+  });
+  afterEach(() => {
+    vi.useRealTimers();
+  });
+
+  it('tells a notifier whether the chat was marked seen while the message rendered', () => {
+    const seen = vi.fn();
+    afterChatRender('bob', seen);
+    markChatSeen('bob');
+    afterChatRender('alice', seen);
+    vi.runAllTimers();
+    expect(seen.mock.calls).toEqual([[true], [false]]);
+  });
+
+  it('forgets the log when the session ends', () => {
+    logNotification(report);
+    endSession();
+    expect(notificationStore.getState()).toBe(initialNotificationState);
+  });
+});

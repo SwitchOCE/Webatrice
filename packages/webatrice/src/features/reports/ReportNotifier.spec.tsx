@@ -8,6 +8,7 @@ import { renderWithProviders } from '../../__test-utils__';
 import { RouteEnum } from '../../types';
 import { reportsRootState } from './__mocks__/reportState';
 import ReportNotifier from './ReportNotifier';
+import { notificationStore } from '../../components/Notifications/notificationStore';
 
 const Type = Event_NotifyUser_NotificationType;
 
@@ -29,20 +30,26 @@ function notice(type: Event_NotifyUser_NotificationType, customTitle: string, cu
   return server.Actions.reportNotified({ notification: create(Event_NotifyUserSchema, { type, customTitle, customContent }) });
 }
 
+const toasts = () => screen.queryAllByTestId('toast');
+
 describe('ReportNotifier', () => {
-  it('pops up the server title and content and opens My Reports on click', () => {
+  beforeEach(() => {
+    notificationStore.reset();
+  });
+
+  it('pops up the server title and content, logs it, and opens My Reports from the action', () => {
     const { store } = renderNotifier();
     act(() => {
       store.dispatch(notice(Type.REPORT_RESOLVED, 'Report Resolved', 'Your report about mallory has been resolved.\nNote: warned'));
     });
-    const toast = screen.getByTestId('report-notice');
-    expect(toast.textContent).toContain('Report Resolved');
+    const [toast] = toasts();
     expect(toast.textContent).toContain('Note: warned');
-    fireEvent.click(toast);
+    expect(notificationStore.getState().entries[0]).toMatchObject({ kind: 'report', title: 'Report Resolved' });
+    fireEvent.click(screen.getByRole('button', { name: 'Notifications.action.report' }));
     expect(screen.getByText('my reports page')).toBeTruthy();
   });
 
-  it('keeps the notice up until it is dismissed or opened, since it leads somewhere', () => {
+  it('lets the toast leave after six seconds while the log keeps the notice', () => {
     vi.useFakeTimers();
     try {
       const { store } = renderNotifier();
@@ -51,10 +58,11 @@ describe('ReportNotifier', () => {
       });
 
       act(() => {
-        vi.advanceTimersByTime(60_000);
+        vi.advanceTimersByTime(6_000);
       });
 
-      expect(screen.getByTestId('report-notice')).toBeInTheDocument();
+      expect(toasts()).toHaveLength(0);
+      expect(notificationStore.getState().entries).toHaveLength(1);
     } finally {
       vi.useRealTimers();
     }
@@ -65,7 +73,7 @@ describe('ReportNotifier', () => {
     act(() => {
       store.dispatch(notice(Type.REPORT_COMMENT, 'New Comment on Report #3', 'alice commented:\nmore'));
     });
-    fireEvent.click(screen.getByTestId('report-notice'));
+    fireEvent.click(screen.getByRole('button', { name: 'Notifications.action.report' }));
     expect(screen.getByText('queue page')).toBeTruthy();
   });
 
@@ -80,9 +88,9 @@ describe('ReportNotifier', () => {
     act(() => {
       store.dispatch(notice(Type.REPORT_RESOLVED, 'Report Resolved', 'second session'));
     });
-    const toasts = screen.getAllByTestId('report-notice').map((toast) => toast.textContent);
-    expect(toasts).toHaveLength(2);
-    expect(toasts.join()).toContain('second session');
+    const shown = toasts().map((toast) => toast.textContent);
+    expect(shown).toHaveLength(2);
+    expect(shown.join()).toContain('second session');
   });
 
   it('skips a notice with a blank title or content, like desktop', () => {
@@ -90,6 +98,7 @@ describe('ReportNotifier', () => {
     act(() => {
       store.dispatch(notice(Type.REPORT_COMMENT, '   ', 'text'));
     });
-    expect(screen.queryByTestId('report-notice')).toBeNull();
+    expect(toasts()).toHaveLength(0);
+    expect(notificationStore.getState().entries).toHaveLength(0);
   });
 });

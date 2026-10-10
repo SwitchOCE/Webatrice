@@ -2,7 +2,7 @@ import { act, fireEvent, screen, waitFor, within } from '@testing-library/react'
 import { useEffect, useState } from 'react';
 
 import { renderWithProviders } from '../../__test-utils__';
-import Toast from './Toast';
+import Toast, { type ToastActionButton } from './Toast';
 import { ToastProvider, usePushToast, useToast } from './ToastContext';
 import { ACTIONS, initialState, reducer } from './reducer';
 
@@ -37,10 +37,10 @@ function AutoOpen({ messageKey, body }: { messageKey: string; body: string }) {
   return null;
 }
 
-function PushOnMount({ body, severity, persistent }: { body: string; severity?: 'warning' | 'error'; persistent?: boolean }) {
+function PushOnMount({ body, severity, action }: { body: string; severity?: 'warning' | 'error'; action?: ToastActionButton }) {
   const pushToast = usePushToast();
   useEffect(() => {
-    pushToast(body, { severity, persistent });
+    pushToast(body, { severity, action });
     // eslint-disable-next-line react-hooks/exhaustive-deps -- fixture pushes exactly once on mount
   }, []);
   return null;
@@ -231,75 +231,39 @@ describe('ToastProvider + usePushToast', () => {
     expect(screen.getByText('brief')).toBeInTheDocument();
 
     act(() => {
-      vi.advanceTimersByTime(10_000);
+      vi.advanceTimersByTime(5_900);
     });
+    expect(screen.getByText('brief')).toBeInTheDocument();
 
+    act(() => {
+      vi.advanceTimersByTime(100);
+    });
     expect(screen.queryByText('brief')).not.toBeInTheDocument();
     vi.useRealTimers();
   });
 
-  it('keeps a persistent toast until it is dismissed', () => {
-    vi.useFakeTimers();
+  it('shows one action that runs and closes the toast', () => {
+    const onSelect = vi.fn();
     renderWithProviders(
       <ToastProvider>
-        <PushOnMount body="go to chat" persistent />
+        <PushOnMount body="new message" action={{ label: 'Reply', onSelect }} />
       </ToastProvider>,
     );
 
-    act(() => {
-      vi.advanceTimersByTime(60_000);
-    });
-    expect(screen.getByText('go to chat')).toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: 'Reply' }));
 
-    fireEvent.click(screen.getByRole('button', { name: 'Common.action.dismiss' }));
-    expect(screen.queryByText('go to chat')).not.toBeInTheDocument();
-    vi.useRealTimers();
+    expect(onSelect).toHaveBeenCalledTimes(1);
+    expect(screen.queryByText('new message')).not.toBeInTheDocument();
   });
 
-  it('shows the newest three persistent toasts and folds the rest into "+N more"', () => {
+  it('keeps only the newest three pushed toasts on screen', () => {
     renderWithProviders(
       <ToastProvider>
-        {['one', 'two', 'three', 'four', 'five'].map((body) => <PushOnMount key={body} body={body} persistent />)}
-        <PushOnMount body="brief" />
+        {['one', 'two', 'three', 'four', 'five'].map((body) => <PushOnMount key={body} body={body} />)}
       </ToastProvider>,
     );
 
-    expect(queryAlerts().map((toast) => toast.textContent)).toEqual(['three', 'four', 'five', 'brief']);
-    const more = screen.getByRole('button', { name: 'Toast.more' });
-    expect(more).toHaveAttribute('aria-expanded', 'false');
-
-    fireEvent.click(more);
-    expect(more.closest('section')).toHaveClass('max-h-[calc(100dvh-3rem)]', 'overflow-y-auto');
-    expect(queryAlerts()).toHaveLength(6);
-    fireEvent.click(screen.getByRole('button', { name: 'Toast.showFewer' }));
-    expect(queryAlerts()).toHaveLength(4);
-
-    fireEvent.click(within(queryAlerts()[2]).getByRole('button', { name: 'Common.action.dismiss' }));
-    fireEvent.click(within(queryAlerts()[2]).getByRole('button', { name: 'Common.action.dismiss' }));
-    expect(queryAlerts().map((toast) => toast.textContent)).toEqual(['one', 'two', 'three', 'brief']);
-    expect(screen.queryByRole('button', { name: 'Toast.more' })).not.toBeInTheDocument();
-  });
-});
-
-describe('Toast folding and focus', () => {
-  it('keeps the focused persistent toast on screen when a newer one would fold it away', () => {
-    const bodies = ['one', 'two', 'three'];
-    const toasts = (extra: string[]) => (
-      <ToastProvider>
-        {[...bodies, ...extra].map((body) => <PushOnMount key={body} body={body} persistent />)}
-        <button type="button">elsewhere</button>
-      </ToastProvider>
-    );
-    const { rerender } = renderWithProviders(toasts([]));
-    const dismissOne = within(queryAlerts()[0]).getByRole('button', { name: 'Common.action.dismiss' });
-    act(() => dismissOne.focus());
-
-    rerender(toasts(['four']));
-
-    expect(queryAlerts().map((toast) => toast.textContent)).toEqual(['one', 'two', 'three', 'four']);
-    expect(dismissOne).toHaveFocus();
-    act(() => screen.getByRole('button', { name: 'elsewhere' }).focus());
-    expect(queryAlerts().map((toast) => toast.textContent)).toEqual(['two', 'three', 'four']);
+    expect(queryAlerts().map((toast) => toast.textContent)).toEqual(['three', 'four', 'five']);
   });
 });
 

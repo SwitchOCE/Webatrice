@@ -1,37 +1,13 @@
 interface NotificationToastProps {
   title: string;
   body?: string;
-  onActivate?: () => void;
 }
 
-const PREVIEW_LIMIT = 100;
-
-export default function NotificationToast({ title, body, onActivate }: NotificationToastProps) {
-  const preview = body && body.length > PREVIEW_LIMIT ? `${body.slice(0, PREVIEW_LIMIT)}…` : body;
-  const content = (
-    <>
-      <span className="text-xs font-semibold text-accent truncate">{title}</span>
-      {preview && (
-        <span className="text-sm text-text-primary whitespace-pre-wrap break-words line-clamp-3">
-          {preview}
-        </span>
-      )}
-    </>
-  );
-
-  if (!onActivate) {
-    return <div className="flex flex-col gap-0.5 min-w-0">{content}</div>;
-  }
+export default function NotificationToast({ title, body }: NotificationToastProps) {
   return (
-    <button
-      type="button"
-      onClick={onActivate}
-      className={[
-        'w-full text-left flex flex-col gap-0.5 min-w-0 rounded-sm',
-        'focus:outline-none focus-visible:ring-2 focus-visible:ring-accent',
-      ].join(' ')}
-    >
-      {content}
-    </button>
+    <p className="truncate" title={body ? `${title} ${body}` : title}>
+      <span className="font-semibold text-text-primary">{title}</span>
+      {body && <span className="text-text-secondary"> {body}</span>}
+    </p>
   );
 }

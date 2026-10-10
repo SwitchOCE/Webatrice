@@ -1,18 +1,16 @@
-import { createContext, FC, PropsWithChildren, ReactNode, useCallback, useContext, useEffect, useReducer, useRef, useState } from 'react';
+import { createContext, FC, PropsWithChildren, ReactNode, useCallback, useContext, useEffect, useReducer, useRef } from 'react';
 import { createPortal } from 'react-dom';
 import { useTranslation } from 'react-i18next';
 import type { LucideIcon } from 'lucide-react';
 
 import { ACTIONS, initialState, reducer, ToastEntry } from './reducer';
-import Toast, { type ToastSeverity } from './Toast';
+import Toast, { type ToastActionButton, type ToastSeverity } from './Toast';
 
 export interface PushToastOptions {
-  // Icon override for the toast pill. Defaults to the severity icon
-  // (CheckCircle for the default 'success' severity), which reads as
-  // an odd choice for e.g. incoming chat pings — pass MessageSquare.
   icon?: LucideIcon;
   severity?: ToastSeverity;
-  persistent?: boolean;
+  lead?: ReactNode;
+  action?: ToastActionButton;
 }
 
 interface ToastContextValue {
@@ -22,15 +20,8 @@ interface ToastContextValue {
   openToast: (key: string, children?: ReactNode) => void;
   closeToast: (key: string) => void;
   removeToast: (key: string) => void;
-  // Imperative "fire-and-forget" toast for one-off notifications (e.g.
-  // incoming private-chat messages). Generates a unique key so the
-  // caller doesn't have to coordinate, adds + opens in one step, and
-  // returns a `close()` for early dismissal. The entry is removed when
-  // the pill closes (auto-hide, Dismiss or `close()`).
   pushToast: (children: ReactNode, options?: PushToastOptions) => { key: string; close: () => void };
 }
-
-export const VISIBLE_PERSISTENT_TOASTS = 3;
 
 const ToastContext = createContext<ToastContextValue>({
   toasts: {},
@@ -44,8 +35,6 @@ const ToastContext = createContext<ToastContextValue>({
 
 export const ToastProvider: FC<PropsWithChildren> = ({ children }) => {
   const [state, dispatch] = useReducer(reducer, initialState);
-  // Monotonic counter so successive `pushToast` calls within the same
-  // millisecond don't collide on the timestamp part of the key.
   const pushCounter = useRef(0);
   const pushToast = useCallback((toastChildren: ReactNode, options?: PushToastOptions) => {
     pushCounter.current += 1;
@@ -57,7 +46,8 @@ export const ToastProvider: FC<PropsWithChildren> = ({ children }) => {
         children: toastChildren,
         icon: options?.icon,
         severity: options?.severity,
-        persistent: options?.persistent,
+        lead: options?.lead,
+        action: options?.action,
         pushed: true,
       },
     });
@@ -81,7 +71,7 @@ export const ToastProvider: FC<PropsWithChildren> = ({ children }) => {
     updateToast,
     openToast: (key, toastChildren) => {
       if (import.meta.env.DEV && toastChildren === undefined && !state.toasts[key]) {
-        console.warn(`[toast] openToast("${key}") before registration — nothing to show`);
+        console.warn(`[toast] openToast("${key}") before registration � nothing to show`);
       }
       dispatch({ type: ACTIONS.OPEN_TOAST, payload: { key, children: toastChildren } });
     },
@@ -89,29 +79,9 @@ export const ToastProvider: FC<PropsWithChildren> = ({ children }) => {
     removeToast,
     pushToast,
   };
-  // Toasts render into a single fixed portal at bottom-right of the
-  // viewport, stacked with a small gap. The portal is a persistent
-  // "Notifications" landmark holding two live regions that stay mounted
-  // for the app's lifetime, so a toast added to either is announced
-  // reliably (a live region mounted together with its text often is
-  // not): errors go to the assertive region, everything else to the
-  // polite one. Plain aria-live rather than alert/status roles, so the
-  // always-present empty regions don't read as app-wide alerts.
   const { t } = useTranslation();
   const portalTarget = typeof document !== 'undefined' ? document.body : null;
-  const [showAllPersistent, setShowAllPersistent] = useState(false);
-  const [focusedKey, setFocusedKey] = useState<string | null>(null);
-  const persistentKeys = Object.keys(state.toasts).filter((key) => state.toasts[key].isOpen && state.toasts[key].persistent);
-  const folded = persistentKeys.length - VISIBLE_PERSISTENT_TOASTS;
-  useEffect(() => {
-    if (folded <= 0) {
-      setShowAllPersistent(false);
-    }
-  }, [folded]);
-  const hidden = new Set(folded > 0 && !showAllPersistent
-    ? persistentKeys.slice(0, folded).filter((key) => key !== focusedKey)
-    : []);
-  const entries = Object.entries(state.toasts).filter(([key]) => !hidden.has(key));
+  const entries = Object.entries(state.toasts);
   const renderToast = ([key, entry]: [string, ToastEntry]) => (
     <Toast
       key={key}
@@ -119,8 +89,8 @@ export const ToastProvider: FC<PropsWithChildren> = ({ children }) => {
       onClose={() => dispatch({ type: entry.pushed ? ACTIONS.REMOVE_TOAST : ACTIONS.CLOSE_TOAST, payload: { key } })}
       icon={entry.icon}
       severity={entry.severity}
-      autoHideDuration={entry.persistent ? 0 : undefined}
-      onFocusChange={(focused) => setFocusedKey((current) => (focused ? key : current === key ? null : current))}
+      lead={entry.lead}
+      action={entry.action}
     >
       {entry.children}
     </Toast>
@@ -133,28 +103,12 @@ export const ToastProvider: FC<PropsWithChildren> = ({ children }) => {
         createPortal(
           <section
             aria-label={t('Toast.region')}
-            className={[
-              'fixed bottom-6 right-6 z-40 max-h-[calc(100dvh-3rem)] overflow-y-auto',
-              'flex flex-col gap-2 items-end pointer-events-none',
-            ].join(' ')}
+            className="pointer-events-none fixed inset-x-0 top-[52px] z-40 flex flex-col items-center gap-2 px-4"
           >
-            {folded > 0 && (
-              <button
-                type="button"
-                aria-expanded={showAllPersistent}
-                onClick={() => setShowAllPersistent((shown) => !shown)}
-                className={[
-                  'pointer-events-auto px-3 py-1 rounded-full text-xs text-text-secondary hover:text-text-primary',
-                  'bg-bg-surface border border-border-control shadow-glow transition-colors',
-                ].join(' ')}
-              >
-                {showAllPersistent ? t('Toast.showFewer') : t('Toast.more', { count: folded })}
-              </button>
-            )}
-            <div aria-live="assertive" className="flex flex-col gap-2 items-end">
+            <div aria-live="assertive" className="flex flex-col items-center gap-2">
               {entries.filter(([, entry]) => entry.severity === 'error').map(renderToast)}
             </div>
-            <div aria-live="polite" className="flex flex-col gap-2 items-end">
+            <div aria-live="polite" className="flex flex-col items-center gap-2">
               {entries.filter(([, entry]) => entry.severity !== 'error').map(renderToast)}
             </div>
           </section>,
@@ -197,12 +151,6 @@ export function useToast({ key, children }: ToastHookOptions): ToastHandle {
   };
 }
 
-// Fire-and-forget toast dispatcher. Returns a stable function that
-// creates a fresh toast per call (unique key generated internally) and
-// opens it immediately. Use for one-off notifications the caller
-// doesn't need to control after the fact (e.g. incoming private-chat
-// message pings). Prefer `useToast` when the toast is bound to a
-// specific piece of UI state that opens/closes it.
 export function usePushToast(): (children: ReactNode, options?: PushToastOptions) => { key: string; close: () => void } {
   const { pushToast } = useContext(ToastContext);
   return pushToast;

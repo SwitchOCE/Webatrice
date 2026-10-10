@@ -1,7 +1,5 @@
 {
   "Toast": {
-    "region": "Notifications",
-    "more": "+{count} more",
-    "showFewer": "Show fewer"
+    "region": "Notifications"
   }
 }

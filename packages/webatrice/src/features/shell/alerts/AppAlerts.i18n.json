@@ -1,6 +1,0 @@
-{
-  "AppAlerts": {
-    "mention": "{sender} mentioned you.",
-    "buddySignedOn": "Your buddy {name} has signed on!"
-  }
-}
