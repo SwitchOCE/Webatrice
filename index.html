@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <link rel="icon" href="/Webatrice/favicon.ico" />
+    <link rel="stylesheet" type="text/css" href="/Webatrice/reset.css">
+    <meta name="viewport" content="minimum-scale=1, initial-scale=1, width=device-width, shrink-to-fit=no" />
+    <meta name="theme-color" content="#000000" />
+    <meta
+      name="description"
+      content="Webatrice: A Cockatrice Web Client"
+    />
+    <link rel="apple-touch-icon" href="logo192.png" />
+    <link rel="manifest" href="/Webatrice/manifest.json" />
+    <title>Webatrice</title>
+
+    <!-- Runtime environment config (per-deploy). Loaded synchronously so
+         window.Cockatrice.env is set before the app module runs. The GA
+         measurement id lives here; src/services/analytics.ts reads it and
+         bootstraps Google Analytics only when a key is present. -->
+    <script src="/Webatrice/env.js"></script>
+    <script type="module" crossorigin src="/Webatrice/assets/index-By2vkUor.js"></script>
+    <link rel="modulepreload" crossorigin href="/Webatrice/assets/preload-helper-gWp2_IMd.js">
+  </head>
+  <body>
+    <noscript>You need to enable JavaScript to run this app.</noscript>
+    <div id="root"></div>
+    <!-- Capability preflight, a classic ES5 script so it also runs where the
+         bundle cannot parse. It renders the unsupported screen itself, and the
+         module entry below loads the app only when it passed. -->
+    <script src="/Webatrice/preflight.js"></script>
+  </body>
+</html>

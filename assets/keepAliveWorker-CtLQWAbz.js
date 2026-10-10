@@ -1,0 +1,1 @@
+(function(){function e(e){let t=null;return n=>{let r=n.data;r&&(r.type===`start`?(t!==null&&clearInterval(t),t=setInterval(()=>e({type:`tick`}),r.interval)):r.type===`stop`&&t!==null&&(clearInterval(t),t=null))}}var t=self;t.onmessage=e(e=>t.postMessage(e))})();
