@@ -1,5 +1,7 @@
 import { Bell } from 'lucide-react';
 
+import { RouteEnum } from '@app/types';
+
 import { buildSettingsSections, preferenceKeysOf, SettingsSectionId, type SettingsSection } from './registry';
 import { settingsSections } from './sections';
 
@@ -44,7 +46,7 @@ describe('buildSettingsSections', () => {
   });
 
   it('refuses to merge into a custom page', () => {
-    const page: SettingsSection = { id: SettingsSectionId.Shortcuts, titleKey: 't', icon: Bell, component: Custom };
+    const page: SettingsSection = { id: SettingsSectionId.Shortcuts, titleKey: 't', icon: Bell, page: RouteEnum.SHORTCUTS };
     expect(() => buildSettingsSections([page, section(SettingsSectionId.Shortcuts, ['x'])])).toThrow(/custom page/);
   });
 });

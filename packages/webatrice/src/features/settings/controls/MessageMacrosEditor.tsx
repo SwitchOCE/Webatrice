@@ -4,10 +4,13 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { useTranslation } from 'react-i18next';
 import { Pencil, Plus, Trash2 } from 'lucide-react';
 
+import { Button, IconButton, Kbd } from '@app/components';
 import { useMessageMacros, useSettings } from '@app/hooks';
+import { cx } from '@app/utils';
 
 import type { CustomControlProps } from '../registry';
 import { buildMessageMacroSchema, type MessageMacroValues } from './chatSettingsSchemas';
+import { FieldError, textField } from './fields';
 
 export default function MessageMacrosEditor({ labelId, describedBy, disabled }: CustomControlProps) {
   const { t } = useTranslation();
@@ -20,13 +23,13 @@ export default function MessageMacrosEditor({ labelId, describedBy, disabled }: 
   };
 
   return (
-    <div className="settings-macros" role="group" aria-labelledby={labelId} aria-describedby={describedBy}>
+    <div className="flex flex-col gap-3" role="group" aria-labelledby={labelId} aria-describedby={describedBy}>
       {macros.length === 0 ? (
-        <p className="settings-macros__empty">{t('SettingsChat.macros.empty')}</p>
+        <p className="text-[12px] text-text-muted">{t('SettingsChat.macros.empty')}</p>
       ) : (
-        <ol className="settings-macros__list">
+        <ol className="flex flex-col divide-y divide-border-subtle rounded-ui border border-border-subtle">
           {macros.map((macro, index) => (
-            <li key={`${index}:${macro}`} className="settings-macros__item">
+            <li key={`${index}:${macro}`} className="flex min-h-row items-center gap-2 px-2.5 py-1 text-[13px]">
               {editing === index ? (
                 <MacroForm
                   initial={macro}
@@ -41,20 +44,20 @@ export default function MessageMacrosEditor({ labelId, describedBy, disabled }: 
                 />
               ) : (
                 <>
-                  <span className="settings-macros__text">{macro}</span>
-                  <button
-                    type="button"
-                    className="settings-icon-button"
-                    aria-label={t('SettingsChat.macros.edit', { message: macro })}
+                  <Kbd>{index + 1}</Kbd>
+                  <span className="min-w-0 flex-1 break-words text-text-primary">{macro}</span>
+                  <IconButton
+                    size="sm"
+                    label={t('SettingsChat.macros.edit', { message: macro })}
                     disabled={disabled}
                     onClick={() => setEditing(index)}
                   >
                     <Pencil size={14} aria-hidden />
-                  </button>
-                  <button
-                    type="button"
-                    className="settings-icon-button"
-                    aria-label={t('SettingsChat.macros.remove', { message: macro })}
+                  </IconButton>
+                  <IconButton
+                    size="sm"
+                    className="hover:!text-danger"
+                    label={t('SettingsChat.macros.remove', { message: macro })}
                     disabled={disabled}
                     onClick={() => {
                       setEditing(null);
@@ -62,7 +65,7 @@ export default function MessageMacrosEditor({ labelId, describedBy, disabled }: 
                     }}
                   >
                     <Trash2 size={14} aria-hidden />
-                  </button>
+                  </IconButton>
                 </>
               )}
             </li>
@@ -106,16 +109,16 @@ function MacroForm({ initial = '', submitLabel, inputLabel, disabled, resetOnSub
   });
 
   return (
-    <form className="settings-macros__form" onSubmit={submit} noValidate>
+    <form className="flex flex-1 flex-wrap items-start gap-2" onSubmit={submit} noValidate>
       <Controller
         name="message"
         control={control}
         render={({ field, fieldState }) => (
-          <span className="settings-text">
+          <span className="flex min-w-[16rem] flex-1 flex-col gap-1">
             <input
               {...field}
               type="text"
-              className="settings-input"
+              className={cx(textField, 'w-full')}
               aria-label={inputLabel}
               aria-invalid={fieldState.error ? true : undefined}
               placeholder={t('SettingsChat.macros.placeholder')}
@@ -129,19 +132,23 @@ function MacroForm({ initial = '', submitLabel, inputLabel, disabled, resetOnSub
               }}
             />
             {fieldState.error && (
-              <span role="alert" className="settings-text__error">{fieldState.error.message}</span>
+              <FieldError>{fieldState.error.message}</FieldError>
             )}
           </span>
         )}
       />
-      <button type="submit" className="settings-button" disabled={disabled}>
-        {!onCancel && <Plus size={14} aria-hidden />}
+      <Button
+        type="submit"
+        variant={onCancel ? 'primary' : 'secondary'}
+        disabled={disabled}
+        icon={onCancel ? undefined : <Plus size={14} aria-hidden />}
+      >
         {submitLabel}
-      </button>
+      </Button>
       {onCancel && (
-        <button type="button" className="settings-button settings-button--quiet" onClick={onCancel}>
+        <Button variant="quiet" onClick={onCancel}>
           {t('SettingsChat.macros.cancel')}
-        </button>
+        </Button>
       )}
     </form>
   );

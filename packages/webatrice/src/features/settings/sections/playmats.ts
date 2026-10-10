@@ -1,6 +1,11 @@
 import { Palette } from 'lucide-react';
 
-import PlaymatSettingsPanel from '../playmats/PlaymatSettingsPanel';
+import {
+  PlaymatCollection,
+  PlaymatListModeSelect,
+  PlaymatModeSelect,
+  PlaymatVisibilitySelect,
+} from '../playmats/PlaymatControls';
 import { SettingsSectionId, type SettingsSection } from '../registry';
 
 export const playmatsSection: SettingsSection = {
@@ -13,9 +18,27 @@ export const playmatsSection: SettingsSection = {
       titleKey: 'PlaymatSettings.title',
       entries: [
         {
-          id: 'playmats',
-          labelKey: 'PlaymatSettings.label',
-          control: { kind: 'custom', component: PlaymatSettingsPanel, keys: ['playmatSettings'], layout: 'block' },
+          id: 'playmatVisibility',
+          labelKey: 'PlaymatSettings.visibility.label',
+          descriptionKey: 'PlaymatSettings.serverNote',
+          control: { kind: 'custom', component: PlaymatVisibilitySelect, keys: ['playmatSettings'] },
+        },
+        {
+          id: 'playmatMode',
+          labelKey: 'PlaymatSettings.mode.label',
+          descriptionKey: 'PlaymatSettings.mode.description',
+          control: { kind: 'custom', component: PlaymatModeSelect, keys: ['playmatSettings'] },
+        },
+        {
+          id: 'playmatCollection',
+          labelKey: 'PlaymatSettings.collection.title',
+          descriptionKey: 'PlaymatSettings.collection.description',
+          control: { kind: 'custom', component: PlaymatCollection, keys: ['playmatSettings'], layout: 'block' },
+        },
+        {
+          id: 'playmatListMode',
+          labelKey: 'PlaymatSettings.collection.listMode',
+          control: { kind: 'custom', component: PlaymatListModeSelect, keys: ['playmatSettings'] },
         },
       ],
     },

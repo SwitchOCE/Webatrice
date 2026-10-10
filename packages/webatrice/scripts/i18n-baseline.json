@@ -4261,7 +4261,7 @@
     {
       "file": "src/features/settings/SettingRow.tsx",
       "expression": "entry.labelKey",
-      "count": 2
+      "count": 1
     },
     {
       "file": "src/features/settings/SettingRow.tsx",
@@ -4275,28 +4275,23 @@
     },
     {
       "file": "src/features/settings/Settings.tsx",
-      "expression": "section.titleKey",
-      "count": 1
-    },
-    {
-      "file": "src/features/settings/SettingsSearchResults.tsx",
-      "expression": "boxHits[0].section.titleKey",
-      "count": 1
-    },
-    {
-      "file": "src/features/settings/SettingsSearchResults.tsx",
-      "expression": "page.titleKey",
-      "count": 1
-    },
-    {
-      "file": "src/features/settings/SettingsSectionView.tsx",
       "expression": "group.titleKey",
-      "count": 1
+      "count": 2
     },
     {
-      "file": "src/features/settings/SettingsSectionView.tsx",
+      "file": "src/features/settings/Settings.tsx",
       "expression": "section.titleKey",
       "count": 2
+    },
+    {
+      "file": "src/features/settings/ShortcutMatches.tsx",
+      "prefix": "ShortcutsTab.action.",
+      "count": 1
+    },
+    {
+      "file": "src/features/settings/ShortcutMatches.tsx",
+      "prefix": "ShortcutsTab.group.",
+      "count": 1
     },
     {
       "file": "src/features/settings/controls/NotificationPermissionControl.tsx",
@@ -4343,6 +4338,11 @@
       "count": 1
     },
     {
+      "file": "src/features/settings/playmats/PlaymatControls.tsx",
+      "expression": "option.labelKey",
+      "count": 1
+    },
+    {
       "file": "src/features/settings/searchSettings.ts",
       "expression": "entry.descriptionKey",
       "count": 1
@@ -4360,6 +4360,16 @@
     {
       "file": "src/features/settings/searchSettings.ts",
       "expression": "section.titleKey",
+      "count": 1
+    },
+    {
+      "file": "src/features/settings/searchSettings.ts",
+      "prefix": "ShortcutsTab.action.",
+      "count": 1
+    },
+    {
+      "file": "src/features/settings/searchSettings.ts",
+      "prefix": "ShortcutsTab.group.",
       "count": 1
     },
     {

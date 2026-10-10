@@ -1,15 +1,22 @@
 {
   "Settings": {
     "title": "Settings",
+    "subtitle": "Changes apply as you make them",
     "searchLabel": "Search settings",
-    "searchPlaceholder": "Search settings...",
-    "searchResults": "Search results",
-    "noResults": "No settings match \"{query}\".",
-    "openSection": "Open {section}",
+    "searchPlaceholder": "Search all {settings} settings and {shortcuts} shortcuts",
+    "clearSearch": "Clear search",
+    "matchCount": "{count, plural, one {# matching setting} other {# matching settings}}",
+    "noResults": "No settings match \"{query}\"",
+    "noResultsHint": "Try a shorter word, like \"card\" or \"sound\".",
+    "jumpTo": "Jump to section",
     "restoreDefaults": "Restore defaults",
+    "restoreSection": "Restore {section} defaults",
+    "restoreAll": "Restore all defaults",
     "restoreDefaultsConfirm": {
       "title": "Restore {section} defaults?",
-      "message": "Every setting on this page goes back to its default. This cannot be undone.",
+      "message": "Every {section} setting goes back to its default. This cannot be undone.",
+      "allTitle": "Restore all defaults?",
+      "allMessage": "Every setting goes back to its default. Picture download URLs and keyboard shortcuts stay as they are. This cannot be undone.",
       "cancel": "Cancel"
     },
     "section": {
@@ -21,6 +28,24 @@
       "general": "General",
       "cardSources": "Card Sources",
       "storage": "Storage"
+    },
+    "blurb": {
+      "general": "Language, startup and diagnostics",
+      "appearance": "Theme, playmats, how cards look, counter colours",
+      "userInterface": "Clicks, notifications and animations",
+      "cardSources": "Where card pictures come from",
+      "storage": "What this browser keeps for you",
+      "chat": "Mentions, highlights, filters and message macros",
+      "sound": "Sound effects and volume",
+      "shortcuts": "Keys for games, decks, rooms and replays"
+    },
+    "shortcuts": {
+      "title": "Keyboard shortcuts",
+      "summary": "{count} shortcuts, each with its own keys. Change them on the Shortcuts page.",
+      "open": "Open Shortcuts",
+      "matches": "{count, plural, one {# matching shortcut} other {# matching shortcuts}}",
+      "more": "and {count} more on the Shortcuts page",
+      "unbound": "No key"
     }
   }
 }

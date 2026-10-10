@@ -1,7 +1,9 @@
 import { Bell } from 'lucide-react';
 
+import { PREFERENCE_DEFAULTS, RouteEnum, StartupTab } from '@app/types';
+
 import { SettingsSectionId, type SettingsSection } from './registry';
-import { scoreEntry, searchSettings } from './searchSettings';
+import { filterSections, highlightParts, matchesQuery, searchSettings, searchShortcuts } from './searchSettings';
 
 const strings: Record<string, string> = {
   'page.sound': 'Sound',
@@ -11,7 +13,11 @@ const strings: Record<string, string> = {
   'label.enable': 'Enable sounds',
   'label.volume': 'Master volume',
   'label.theme': 'Current theme',
+  'label.room': 'Startup room',
   'desc.theme': 'Which sound pack plays',
+  'ShortcutsTab.action.game.drawCard': 'Draw a card',
+  'ShortcutsTab.action.deck.save': 'Save deck',
+  'ShortcutsTab.group.gameDrawing': 'Drawing',
 };
 const t = (key: string) => strings[key] ?? key;
 
@@ -39,48 +45,93 @@ const sections: SettingsSection[] = [
             descriptionKey: 'desc.theme',
             control: { kind: 'select', key: 'soundTheme', options: [] },
           },
+          {
+            id: 'room',
+            labelKey: 'label.room',
+            control: { kind: 'text', key: 'startupRoom' },
+            visibleWhen: ({ startupTab }) => startupTab === StartupTab.ServerRoom,
+          },
         ],
       },
     ],
   },
-  { id: SettingsSectionId.Shortcuts, titleKey: 'page.shortcuts', icon: Bell, component: () => null },
+  { id: SettingsSectionId.Shortcuts, titleKey: 'page.shortcuts', icon: Bell, page: RouteEnum.SHORTCUTS },
 ];
 
-describe('scoreEntry', () => {
-  it('ranks like desktop: label prefix, label, group prefix, group, other text', () => {
-    expect(scoreEntry('mas', 'Master volume', 'Sound', '')).toBe(100);
-    expect(scoreEntry('vol', 'Master volume', 'Sound', '')).toBe(80);
-    expect(scoreEntry('sou', 'Master volume', 'Sound settings', '')).toBe(60);
-    expect(scoreEntry('set', 'Master volume', 'Sound settings', '')).toBe(40);
-    expect(scoreEntry('pack', 'Master volume', 'Sound', 'which sound pack')).toBe(20);
-    expect(scoreEntry('zzz', 'Master volume', 'Sound', 'x')).toBe(0);
+const ids = (result: ReturnType<typeof filterSections>) =>
+  result.map(({ section, groups }) => [section.id, groups.map(({ group, entries }) => [group.id, entries.map((e) => e.id)])]);
+
+describe('matchesQuery', () => {
+  it('matches any of the texts, ignoring case and outer spaces, and everything for an empty query', () => {
+    expect(matchesQuery(' VOL ', 'Master volume')).toBe(true);
+    expect(matchesQuery('pack', 'Current theme', 'Which sound pack plays')).toBe(true);
+    expect(matchesQuery('zzz', 'Master volume')).toBe(false);
+    expect(matchesQuery('  ', 'anything')).toBe(true);
+  });
+});
+
+describe('highlightParts', () => {
+  it('splits every match out of the text, keeping the original case', () => {
+    expect(highlightParts('Card card CARD', 'card')).toEqual([
+      { text: 'Card', match: true },
+      { text: ' ', match: false },
+      { text: 'card', match: true },
+      { text: ' ', match: false },
+      { text: 'CARD', match: true },
+    ]);
+    expect(highlightParts('Master volume', ' vol')).toEqual([
+      { text: 'Master ', match: false },
+      { text: 'vol', match: true },
+      { text: 'ume', match: false },
+    ]);
+    expect(highlightParts('Master volume', '')).toEqual([{ text: 'Master volume', match: false }]);
+  });
+});
+
+describe('filterSections', () => {
+  it('keeps every section, group and row in place for an empty query', () => {
+    expect(ids(filterSections(sections, '', t))).toEqual([
+      ['sound', [['sound', ['enable', 'volume']], ['misc', ['theme', 'room']]]],
+      ['shortcuts', []],
+    ]);
   });
 
-  it('ignores case', () => {
-    expect(scoreEntry('MASTER', 'master volume', '', '')).toBe(100);
+  it('filters rows in place by label, description, group title or section title', () => {
+    expect(ids(filterSections(sections, 'volume', t))[0]).toEqual(['sound', [['sound', ['volume']]]]);
+    expect(ids(filterSections(sections, 'pack', t))[0]).toEqual(['sound', [['misc', ['theme']]]]);
+    expect(ids(filterSections(sections, 'miscell', t))[0]).toEqual(['sound', [['misc', ['theme', 'room']]]]);
+    expect(filterSections(sections, 'sound', t)[0].count).toBe(4);
+  });
+
+  it('leaves out rows hidden by their condition when the preferences are given', () => {
+    const preferences = { ...PREFERENCE_DEFAULTS, startupTab: StartupTab.Replays };
+    expect(filterSections(sections, '', t, preferences)[0].count).toBe(3);
+    expect(filterSections(sections, 'room', t, preferences)[0].count).toBe(0);
+    expect(filterSections(sections, '', t, { ...preferences, startupTab: StartupTab.ServerRoom })[0].count).toBe(4);
+  });
+});
+
+describe('searchShortcuts', () => {
+  it('finds shortcuts by action or group name with their current keys', () => {
+    const hits = searchShortcuts('draw a', t, { 'game.drawCard': ['Ctrl+KeyZ'] });
+    expect(hits).toEqual([{ actionId: 'game.drawCard', groupId: 'gameDrawing', sequences: ['Ctrl+KeyZ'] }]);
+    expect(searchShortcuts('drawing', t).map((hit) => hit.actionId)).toContain('game.drawCard');
+    expect(searchShortcuts('save deck', t)[0]).toMatchObject({ actionId: 'deck.save' });
+  });
+
+  it('returns nothing for an empty query', () => {
+    expect(searchShortcuts(' ', t)).toEqual([]);
   });
 });
 
 describe('searchSettings', () => {
-  it('returns nothing for a blank query', () => {
-    expect(searchSettings(sections, '   ', t)).toEqual({ hits: [], pages: [] });
-  });
+  it('merges the setting rows and the shortcuts and counts the matching settings', () => {
+    const result = searchSettings(sections, 'volume', t);
+    expect(result.settingCount).toBe(1);
+    expect(result.shortcuts).toEqual([]);
 
-  it('orders hits by relevance', () => {
-    const { hits } = searchSettings(sections, 'so', t);
-    expect(hits.map((h) => h.entry.id)).toEqual(['enable', 'volume', 'theme']);
-
-    const ranked = searchSettings(sections, 'en', t).hits;
-    expect(ranked[0].entry.id).toBe('enable');
-  });
-
-  it('matches descriptions and the page title', () => {
-    expect(searchSettings(sections, 'pack', t).hits.map((h) => h.entry.id)).toEqual(['theme']);
-    expect(searchSettings(sections, 'sound', t).hits).toHaveLength(3);
-  });
-
-  it('finds custom pages by title only', () => {
-    expect(searchSettings(sections, 'short', t).pages.map((p) => p.id)).toEqual([SettingsSectionId.Shortcuts]);
-    expect(searchSettings(sections, 'short', t).hits).toEqual([]);
+    const draw = searchSettings(sections, 'draw a', t);
+    expect(draw.settingCount).toBe(0);
+    expect(draw.shortcuts.map((hit) => hit.actionId)).toEqual(['game.drawCard']);
   });
 });

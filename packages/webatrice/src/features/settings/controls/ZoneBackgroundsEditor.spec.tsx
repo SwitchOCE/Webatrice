@@ -9,7 +9,7 @@ import { renderWithProviders } from '../../../__test-utils__';
 import { getPreferencesSnapshot, getSettings, settingsStore } from '../../../hooks/useSettings';
 import ZoneBackgroundsEditor from './ZoneBackgroundsEditor';
 
-const row = (zone: string) => document.querySelector<HTMLElement>(`[data-zone-background="${zone}"]`)!;
+const tile = (zone: string) => document.querySelector<HTMLElement>(`[data-zone-background="${zone}"]`)!;
 
 async function renderEditor() {
   const result = renderWithProviders(<ZoneBackgroundsEditor id="zones" labelId="zones-label" disabled={false} />);
@@ -24,26 +24,36 @@ describe('ZoneBackgroundsEditor', () => {
     settingsStore.reset();
   });
 
-  it('lists the hand, stack, table and player area, none with a background yet', async () => {
+  it('shows the hand, stack, table and player area, none with a background yet', async () => {
     await renderEditor();
     for (const zone of ['hand', 'stack', 'table', 'playerInfo']) {
-      expect(row(zone)).toHaveTextContent('SettingsAppearance.zoneBackgrounds.current');
+      expect(tile(zone)).toHaveTextContent('SettingsAppearance.zoneBackgrounds.none');
+      expect(within(tile(zone)).getByRole('button', { name: 'SettingsAppearance.zoneBackgrounds.chooseLabel' }))
+        .toHaveTextContent('SettingsAppearance.zoneBackgrounds.set');
     }
-    expect(screen.queryByText('SettingsAppearance.zoneBackgrounds.clear')).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'SettingsAppearance.zoneBackgrounds.clearLabel' })).not.toBeInTheDocument();
   });
 
   it('sets a zone\'s background to a card\'s art, cropped like a playmat, and clears it', async () => {
     await renderEditor();
-    fireEvent.change(within(row('stack')).getByRole('textbox'), { target: { value: '  Island ' } });
+    const choose = within(tile('stack')).getByRole('button', { name: 'SettingsAppearance.zoneBackgrounds.chooseLabel' });
+    fireEvent.click(choose);
+    expect(choose).toHaveAttribute('aria-expanded', 'true');
+    fireEvent.change(screen.getByRole('textbox', { name: 'SettingsAppearance.zoneBackgrounds.cardName' }), {
+      target: { value: '  Island ' },
+    });
     await act(async () => {
-      fireEvent.click(within(row('stack')).getByRole('button', { name: 'SettingsAppearance.zoneBackgrounds.setLabel' }));
+      fireEvent.click(screen.getByRole('button', { name: 'SettingsAppearance.zoneBackgrounds.setLabel' }));
     });
 
     expect(getPreferencesSnapshot().zoneBackgrounds).toEqual({
       stack: { cardName: 'Island', cardProviderId: '', params: { marginPctL: 0.07, marginPctR: 0.07, verticalOffset: 0.33, zoom: 1 } },
     });
+    expect(tile('stack')).toHaveTextContent('Island');
+    expect(within(tile('stack')).getByRole('button', { name: 'SettingsAppearance.zoneBackgrounds.chooseLabel' }))
+      .toHaveTextContent('SettingsAppearance.zoneBackgrounds.change');
 
-    const edit = within(row('stack')).getByRole('button', { name: 'SettingsAppearance.zoneBackgrounds.editLabel' });
+    const edit = within(tile('stack')).getByRole('button', { name: 'SettingsAppearance.zoneBackgrounds.editLabel' });
     expect(edit).toHaveAttribute('aria-expanded', 'false');
     fireEvent.click(edit);
     expect(edit).toHaveAttribute('aria-expanded', 'true');
@@ -51,21 +61,22 @@ describe('ZoneBackgroundsEditor', () => {
     expect(within(editor).getByRole('group', { name: 'PlaymatSettings.crop.title' })).toBeInTheDocument();
 
     await act(async () => {
-      fireEvent.click(within(row('stack')).getByRole('button', { name: 'SettingsAppearance.zoneBackgrounds.clearLabel' }));
+      fireEvent.click(within(tile('stack')).getByRole('button', { name: 'SettingsAppearance.zoneBackgrounds.clearLabel' }));
     });
     expect(getPreferencesSnapshot().zoneBackgrounds).toEqual({});
   });
 
   it('refuses a blank card name', async () => {
     await renderEditor();
+    fireEvent.click(within(tile('hand')).getByRole('button', { name: 'SettingsAppearance.zoneBackgrounds.chooseLabel' }));
     await act(async () => {
-      fireEvent.click(within(row('hand')).getByRole('button', { name: 'SettingsAppearance.zoneBackgrounds.setLabel' }));
+      fireEvent.click(screen.getByRole('button', { name: 'SettingsAppearance.zoneBackgrounds.setLabel' }));
     });
     expect(getPreferencesSnapshot().zoneBackgrounds).toEqual({});
-    expect(within(row('hand')).getByText('Common.validation.required')).toBeInTheDocument();
+    expect(screen.getByText('Common.validation.required')).toBeInTheDocument();
   });
 
-  it('names each zone\'s buttons after the zone, so assistive tech can tell the rows apart', async () => {
+  it('names each zone\'s buttons after the zone, so assistive tech can tell the tiles apart', async () => {
     const english = i18n.createInstance();
     await english.use(ICU).use(initReactI18next).init({ lng: 'en', resources: { en: { translation } } });
     settingsStore.reset();
@@ -79,7 +90,8 @@ describe('ZoneBackgroundsEditor', () => {
     );
 
     for (const name of [
-      'Set the Hand background', 'Set the Stack background', 'Set the Table background', 'Set the Player area background',
+      'Choose the Hand background', 'Choose the Stack background', 'Choose the Table background',
+      'Choose the Player area background',
       'Edit the Hand background\'s crop', 'Clear the Hand background',
       'Edit the Table background\'s crop', 'Clear the Table background',
     ]) {

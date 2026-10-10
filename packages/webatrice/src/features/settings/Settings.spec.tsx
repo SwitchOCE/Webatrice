@@ -15,24 +15,30 @@ const renderSettings = async () => {
   return result;
 };
 
-const openSection = (name: RegExp) => {
-  fireEvent.click(screen.getByRole('tab', { name }));
-};
+const nav = () => screen.getByRole('navigation', { name: 'Settings.jumpTo' });
+const section = (name: RegExp) => screen.getByRole('region', { name });
 
 const search = (value: string) => {
-  fireEvent.change(screen.getByLabelText(/Settings\.searchLabel/), { target: { value } });
+  fireEvent.change(screen.getByRole('searchbox', { name: 'Settings.searchLabel' }), { target: { value } });
 };
+
+async function confirmRestore(button: HTMLElement) {
+  fireEvent.click(button);
+  await act(async () => {
+    fireEvent.click(within(screen.getByRole('dialog')).getByRole('button', { name: /^Settings\.restoreDefaults$/ }));
+  });
+}
 
 describe('Settings', () => {
   beforeEach(() => {
     settingsStore.reset();
   });
 
-  it('lists the registered sections in desktop order and opens the first', async () => {
+  it('lists the sections in desktop order beside one page that holds them all', async () => {
     await renderSettings();
 
-    const tabs = within(screen.getByRole('tablist', { name: /Settings\.title/ })).getAllByRole('tab');
-    expect(tabs.map((tab) => tab.textContent)).toEqual([
+    const items = within(nav()).getAllByRole('button').filter((b) => /Settings\.section\./.test(b.textContent ?? ''));
+    expect(items.map((item) => item.textContent?.replace(/\d+$/, ''))).toEqual([
       'Settings.section.general',
       'Settings.section.appearance',
       'Settings.section.userInterface',
@@ -42,27 +48,61 @@ describe('Settings', () => {
       'Settings.section.sound',
       'Settings.section.shortcuts',
     ]);
-    expect(tabs[0]).toHaveAttribute('aria-selected', 'true');
-    expect(screen.getByRole('tabpanel')).toHaveTextContent('SettingsGeneral.group.language');
+    expect(items[0]).toHaveAttribute('aria-current', 'location');
+    expect(screen.getAllByRole('heading', { level: 2 }).map((h) => h.textContent)).toEqual([
+      'Settings.section.general',
+      'Settings.section.appearance',
+      'Settings.section.userInterface',
+      'Settings.section.cardSources',
+      'Settings.section.storage',
+      'Settings.section.chat',
+      'Settings.section.sound',
+      'Settings.section.shortcuts',
+    ]);
   });
 
-  it('switches section on click and with the arrow keys', async () => {
+  it('shows the groups of the section it is in and moves there when a section is picked', async () => {
     await renderSettings();
 
-    openSection(/Settings\.section\.sound/);
-    expect(screen.getByRole('tabpanel')).toHaveTextContent('SettingsSound.group.sound');
+    expect(within(nav()).getByRole('button', { name: 'SettingsGeneral.group.startup' })).toBeInTheDocument();
+    fireEvent.click(within(nav()).getByRole('button', { name: /Settings\.section\.sound/ }));
 
-    fireEvent.keyDown(screen.getByRole('tab', { name: /Settings\.section\.sound/ }), { key: 'ArrowDown' });
-    expect(screen.getByRole('tab', { name: /Settings\.section\.shortcuts/ })).toHaveAttribute('aria-selected', 'true');
-    expect(screen.getByRole('tab', { name: /Settings\.section\.shortcuts/ })).toHaveFocus();
+    expect(within(nav()).getByRole('button', { name: /Settings\.section\.sound/ })).toHaveAttribute('aria-current', 'location');
+    expect(within(nav()).queryByRole('button', { name: 'SettingsGeneral.group.startup' })).not.toBeInTheDocument();
+  });
 
-    fireEvent.keyDown(screen.getByRole('tab', { name: /Settings\.section\.shortcuts/ }), { key: 'Home' });
-    expect(screen.getByRole('tab', { name: /Settings\.section\.general/ })).toHaveAttribute('aria-selected', 'true');
+  it('flashes the group picked from the list', async () => {
+    vi.useFakeTimers({ shouldAdvanceTime: true });
+    await renderSettings();
+    fireEvent.click(within(nav()).getByRole('button', { name: /Settings\.section\.appearance/ }));
+    fireEvent.click(within(nav()).getByRole('button', { name: 'SettingsAppearance.group.cardCounters' }));
+
+    const group = section(/SettingsAppearance\.group\.cardCounters/);
+    expect(group.className).toMatch(/border-accent/);
+    act(() => {
+      vi.advanceTimersByTime(2000);
+    });
+    expect(group.className).not.toMatch(/border-accent/);
+    vi.useRealTimers();
+  });
+
+  it('focuses the search box with "/", but not while typing in a field', async () => {
+    await renderSettings();
+    const box = screen.getByRole('searchbox', { name: 'Settings.searchLabel' });
+    const room = screen.getByRole('switch', { name: /SettingsChat\.roomHistory\.label/ });
+
+    room.focus();
+    fireEvent.keyDown(room, { key: '/' });
+    expect(box).toHaveFocus();
+
+    const macro = screen.getByRole('textbox', { name: 'SettingsChat.macros.newLabel' });
+    macro.focus();
+    fireEvent.keyDown(macro, { key: '/' });
+    expect(macro).toHaveFocus();
   });
 
   it('saves a preference as soon as its control changes', async () => {
     await renderSettings();
-    openSection(/Settings\.section\.userInterface/);
 
     const toggle = screen.getByRole('switch', { name: /SettingsUserInterface\.closeEmptyCardView\.label/ });
     expect(toggle).toBeChecked();
@@ -77,7 +117,6 @@ describe('Settings', () => {
 
   it('records an animation switch as a choice for every animation', async () => {
     await renderSettings();
-    openSection(/Settings\.section\.userInterface/);
 
     const tap = screen.getByRole('switch', { name: /SettingsUserInterface\.tapAnimation\.label/ });
     expect(tap).toBeChecked();
@@ -97,7 +136,6 @@ describe('Settings', () => {
 
   it('turns every animation off and on with desktop\'s two buttons', async () => {
     await renderSettings();
-    openSection(/Settings\.section\.userInterface/);
     const switches = () => ['tapAnimation', 'arrowDrawAnimation', 'lifeCounterAnimations', 'battlefieldFlash']
       .map((key) => screen.getByRole('switch', { name: new RegExp(`SettingsUserInterface\\.${key}\\.label`) }));
 
@@ -115,7 +153,6 @@ describe('Settings', () => {
 
   it('disables a setting while the preference it depends on is off', async () => {
     await renderSettings();
-    openSection(/Settings\.section\.userInterface/);
 
     const buddies = /SettingsUserInterface\.buddyConnectNotificationsEnabled\.label/;
     expect(screen.getByRole('switch', { name: buddies })).toBeEnabled();
@@ -129,7 +166,6 @@ describe('Settings', () => {
 
   it('keeps the volume and theme editable while sound is off, as desktop does', async () => {
     await renderSettings();
-    openSection(/Settings\.section\.sound/);
 
     expect(getPreferencesSnapshot().soundEnabled).toBe(false);
     expect(screen.getByLabelText(/SettingsSound\.masterVolume\.label/)).toBeEnabled();
@@ -139,7 +175,6 @@ describe('Settings', () => {
   it('saves the volume once the slider is let go, and plays the test sound then', async () => {
     const test = vi.spyOn(soundEngine, 'test').mockImplementation(() => {});
     await renderSettings();
-    openSection(/Settings\.section\.sound/);
     const slider = screen.getByLabelText(/SettingsSound\.masterVolume\.label/);
 
     fireEvent.input(slider, { target: { value: '40' } });
@@ -158,7 +193,6 @@ describe('Settings', () => {
 
   it('saves a spin box once its number is committed, kept within its range', async () => {
     await renderSettings();
-    openSection(/Settings\.section\.appearance/);
     const box = screen.getByLabelText(/SettingsAppearance\.minPlayersForMultiColumnLayout\.label/);
     expect(box).toHaveValue(4);
     const commit = async (value: string) => {
@@ -186,7 +220,6 @@ describe('Settings', () => {
 
   it('keeps the card view\'s initial rows at most its expanded rows, as desktop\'s coupled boxes do', async () => {
     await renderSettings();
-    openSection(/Settings\.section\.appearance/);
     const initial = screen.getByLabelText(/SettingsAppearance\.cardViewInitialRowsMax\.label/);
     const expanded = screen.getByLabelText(/SettingsAppearance\.cardViewExpandedRowsMax\.label/);
     const commit = async (box: HTMLElement, value: string) => {
@@ -207,22 +240,22 @@ describe('Settings', () => {
     expect(getPreferencesSnapshot()).toMatchObject({ cardViewInitialRowsMax: 10, cardViewExpandedRowsMax: 25 });
   });
 
-  it('stores colors as desktop does, as hex without the hash', async () => {
+  it('stores colors as desktop does, as hex without the hash, and shows the hex beside the swatch', async () => {
     await renderSettings();
-    openSection(/Settings\.section\.chat/);
 
     const color = screen.getByLabelText(/SettingsChat\.chatMentionColor\.label/);
     expect(color).toHaveValue('#a6120d');
+    expect(color.parentElement).toHaveTextContent('#A6120D');
 
     await act(async () => {
       fireEvent.change(color, { target: { value: '#00ff88' } });
     });
     expect(getPreferencesSnapshot().chatMentionColor).toBe('00FF88');
+    expect(color.parentElement).toHaveTextContent('#00FF88');
   });
 
   it('offers every shipped sound theme', async () => {
     await renderSettings();
-    openSection(/Settings\.section\.sound/);
     await act(async () => {
       fireEvent.click(screen.getByRole('switch', { name: /SettingsSound\.soundEnabled\.label/ }));
     });
@@ -236,61 +269,70 @@ describe('Settings', () => {
     expect(getPreferencesSnapshot().soundTheme).toBe('Legacy');
   });
 
-  it('restores a section to its defaults once confirmed', async () => {
+  it('restores one section to its defaults once confirmed, naming the section', async () => {
     await renderSettings();
-    openSection(/Settings\.section\.chat/);
 
     await act(async () => {
       fireEvent.click(screen.getByRole('switch', { name: /SettingsChat\.roomHistory\.label/ }));
+      fireEvent.click(screen.getByRole('switch', { name: /SettingsUserInterface\.closeEmptyCardView\.label/ }));
     });
-    expect(getPreferencesSnapshot().roomHistory).toBe(false);
+    expect(getPreferencesSnapshot()).toMatchObject({ roomHistory: false, closeEmptyCardView: false });
 
-    const restore = screen.getByRole('button', { name: /Settings\.restoreDefaults/ });
+    const restore = within(section(/^Settings\.section\.chat$/)).getAllByRole('button', { name: 'Settings.restoreSection' })[0];
     fireEvent.click(restore);
     const dialog = screen.getByRole('dialog');
+    expect(dialog).toHaveTextContent('Settings.restoreDefaultsConfirm.title');
     fireEvent.click(within(dialog).getByRole('button', { name: /Settings\.restoreDefaultsConfirm\.cancel/ }));
     expect(getPreferencesSnapshot().roomHistory).toBe(false);
 
-    fireEvent.click(restore);
-    await act(async () => {
-      fireEvent.click(within(screen.getByRole('dialog')).getByRole('button', { name: /^Settings\.restoreDefaults$/ }));
-    });
-    expect(getPreferencesSnapshot().roomHistory).toBe(true);
+    await confirmRestore(restore);
+    expect(getPreferencesSnapshot()).toMatchObject({ roomHistory: true, closeEmptyCardView: false });
   });
 
-  it('saves the theme palette and the language from their sections', async () => {
+  it('restores every section at once from the header', async () => {
+    await renderSettings();
+    await act(async () => {
+      fireEvent.click(screen.getByRole('switch', { name: /SettingsChat\.roomHistory\.label/ }));
+      fireEvent.click(screen.getByRole('switch', { name: /SettingsUserInterface\.closeEmptyCardView\.label/ }));
+    });
+
+    await confirmRestore(screen.getByRole('button', { name: 'Settings.restoreAll' }));
+    expect(getPreferencesSnapshot()).toMatchObject({ roomHistory: true, closeEmptyCardView: true });
+  });
+
+  it('picks the theme from three tiles and the language from General', async () => {
     await renderSettings();
 
-    openSection(/Settings\.section\.appearance/);
+    const light = screen.getByRole('radio', { name: /SettingsAppearance\.themeMode\.light/ });
+    expect(screen.getByRole('radiogroup', { name: /SettingsAppearance\.themeMode\.label/ })).toBeInTheDocument();
+    expect(screen.getByRole('radio', { name: /SettingsAppearance\.themeMode\.system/ })).toBeChecked();
     await act(async () => {
-      fireEvent.change(screen.getByLabelText(/SettingsAppearance\.themeMode\.label/), { target: { value: 'light' } });
+      fireEvent.click(light);
     });
     expect(getPreferencesSnapshot().themeMode).toBe('light');
+    expect(light).toBeChecked();
 
-    openSection(/Settings\.section\.general/);
     await act(async () => {
       fireEvent.change(screen.getByLabelText(/SettingsGeneral\.language\.label/), { target: { value: 'de' } });
     });
     expect(getPreferencesSnapshot().language).toBe('de');
   });
 
-  it('edits the picture download URLs on the Card Sources page, outside "Restore defaults"', async () => {
+  it('edits the picture download URLs on the Card Sources section, outside "Restore defaults"', async () => {
     await renderSettings();
-    openSection(/Settings\.section\.cardSources/);
 
-    const panel = screen.getByRole('tabpanel');
-    expect(within(panel).getByText('SettingsCardSources.group.downloads')).toBeInTheDocument();
-    const editor = within(panel).getByRole('group', { name: /SettingsCardSources\.pictureUrls\.label/ });
+    const cardSources = section(/^Settings\.section\.cardSources$/);
+    expect(within(cardSources).getByText('SettingsCardSources.group.downloads')).toBeInTheDocument();
+    const editor = within(cardSources).getByRole('group', { name: /SettingsCardSources\.pictureUrls\.label/ });
     expect(editor).toHaveAccessibleDescription(/SettingsCardSources\.pictureUrls\.description/);
     expect(within(editor).getByRole('listbox', { name: /CardSourcesSettings\.label\.list/ })).toBeInTheDocument();
-    expect(within(panel).queryByRole('button', { name: /Settings\.restoreDefaults/ })).not.toBeInTheDocument();
+    expect(within(cardSources).queryByRole('button', { name: 'Settings.restoreSection' })).not.toBeInTheDocument();
   });
 
-  it('lays out the Appearance page in desktop\'s group order', async () => {
+  it('lays out the Appearance section in desktop\'s group order', async () => {
     await renderSettings();
-    openSection(/Settings\.section\.appearance/);
 
-    const groups = within(screen.getByRole('tabpanel')).getAllByRole('heading', { level: 2 }).map((h) => h.textContent);
+    const groups = within(section(/^Settings\.section\.appearance$/)).getAllByRole('heading', { level: 3 }).map((h) => h.textContent);
     expect(groups).toEqual([
       'SettingsAppearance.group.theme',
       'PlaymatSettings.title',
@@ -305,79 +347,80 @@ describe('Settings', () => {
     ]);
   });
 
-  it('shows the playmat settings as a group of the Appearance page', async () => {
+  it('shows the playmat settings as rows of the Appearance section', async () => {
     await renderSettings();
-    openSection(/Settings\.section\.appearance/);
 
-    const panel = screen.getByRole('tabpanel');
-    expect(within(panel).getByText('PlaymatSettings.title')).toBeInTheDocument();
-    expect(within(panel).getByRole('region', { name: 'PlaymatSettings.label' })).toBeInTheDocument();
+    const playmats = section(/^PlaymatSettings\.title$/);
+    expect(within(playmats).getByRole('combobox', { name: /PlaymatSettings\.visibility\.label/ }))
+      .toHaveAccessibleDescription('PlaymatSettings.serverNote');
+    expect(within(playmats).getByRole('combobox', { name: /PlaymatSettings\.mode\.label/ })).toBeInTheDocument();
+    expect(within(playmats).getByRole('group', { name: /PlaymatSettings\.collection\.title/ })).toBeInTheDocument();
+    expect(within(playmats).getByRole('combobox', { name: /PlaymatSettings\.collection\.listMode/ })).toBeInTheDocument();
   });
 
   it('finds the picture download URLs by search', async () => {
     await renderSettings();
     search('pictureUrls');
 
-    expect(
-      within(screen.getByRole('tabpanel')).getByRole('group', { name: /SettingsCardSources\.pictureUrls\.label/ }),
-    ).toBeInTheDocument();
+    expect(screen.getByRole('group', { name: /SettingsCardSources\.pictureUrls\.label/ })).toBeInTheDocument();
+    expect(screen.queryByRole('region', { name: /^Settings\.section\.chat$/ })).not.toBeInTheDocument();
   });
 
-  it('searches every section and edits results in place', async () => {
+  it('filters the page in place, highlights matches and counts them in the list', async () => {
     await renderSettings();
 
     search('roomHistory');
 
-    const panel = screen.getByRole('tabpanel');
-    expect(within(panel).getByRole('switch', { name: /SettingsChat\.roomHistory\.label/ })).toBeInTheDocument();
-    expect(within(panel).queryByText(/SettingsAppearance\.group\.tableGrid/)).not.toBeInTheDocument();
-    const tabs = within(screen.getByRole('tablist', { name: /Settings\.title/ })).getAllByRole('tab');
-    expect(tabs.every((tab) => tab.getAttribute('aria-selected') === 'false')).toBe(true);
+    expect(screen.getByRole('switch', { name: /SettingsChat\.roomHistory\.label/ })).toBeInTheDocument();
+    expect(screen.queryByText(/SettingsAppearance\.group\.tableGrid/)).not.toBeInTheDocument();
+    expect(screen.getByText('Settings.matchCount')).toBeInTheDocument();
+    expect(document.querySelector('mark')).toHaveTextContent('roomHistory');
+    const chat = within(nav()).getByRole('button', { name: /Settings\.section\.chat/ });
+    expect(chat).toHaveTextContent(/1$/);
+    expect(within(nav()).getByRole('button', { name: /Settings\.section\.sound/ })).toBeDisabled();
+    expect(within(nav()).getAllByRole('button').every((b) => !b.hasAttribute('aria-current'))).toBe(true);
+
+    fireEvent.click(screen.getByRole('button', { name: 'Settings.clearSearch' }));
+    expect(screen.getByRole('region', { name: /^Settings\.section\.sound$/ })).toBeInTheDocument();
   });
 
-  it('says so when nothing matches', async () => {
+  it('says so when nothing matches, and Escape clears the search', async () => {
     await renderSettings();
     search('___nothing___');
-    expect(screen.getByText(/Settings\.noResults/)).toBeInTheDocument();
+    expect(screen.getByText('Settings.noResults')).toBeInTheDocument();
+
+    fireEvent.keyDown(screen.getByRole('searchbox'), { key: 'Escape' });
+    expect(screen.getByRole('searchbox')).toHaveValue('');
+    expect(screen.queryByText('Settings.noResults')).not.toBeInTheDocument();
   });
 
-  it('offers custom pages found by title and opens them', async () => {
-    await renderSettings();
-    search('section.shortcuts');
+  it('lists matching shortcuts with their keys and a link to the Shortcuts page', async () => {
+    const { store } = await renderSettings();
+    act(() => {
+      store.dispatch(shortcuts.Actions.setOverride({ actionId: 'deck.save', sequences: ['Ctrl+Shift+KeyS'] }));
+    });
+    search('deck.save');
 
-    fireEvent.click(screen.getByRole('button', { name: /Settings\.openSection/ }));
-
-    expect(screen.getByRole('tab', { name: /Settings\.section\.shortcuts/ })).toHaveAttribute('aria-selected', 'true');
-    expect(screen.getByText(/ShortcutsTab\.group\.game$/)).toBeInTheDocument();
+    const list = screen.getByRole('list', { name: 'Settings.shortcuts.matches' });
+    expect(within(list).getAllByRole('listitem')[0]).toHaveTextContent('ShortcutsTab.action.deck.save');
+    expect(within(list).getByText('Ctrl+Shift+S')).toBeInTheDocument();
+    expect(within(nav()).getByRole('button', { name: /Settings\.section\.shortcuts/ })).toHaveTextContent(/1$/);
+    expect(screen.queryByText('Settings.noResults')).not.toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Settings.shortcuts.open' })).toBeInTheDocument();
   });
 
-  describe('shortcuts section', () => {
-    it('renders the shortcut groups and filters them with their own search', async () => {
-      await renderSettings();
-      openSection(/Settings\.section\.shortcuts/);
+  it('keeps shortcut overrides in the shortcuts slice', async () => {
+    const { store } = await renderSettings();
 
-      expect(screen.getByText(/ShortcutsTab\.group\.gamePhases/)).toBeInTheDocument();
-      expect(screen.getByText(/ShortcutsTab\.action\.chat\.focus/)).toBeInTheDocument();
-
-      fireEvent.change(screen.getByLabelText(/ShortcutsTab\.search/), { target: { value: 'deck.save' } });
-
-      expect(screen.getByText(/ShortcutsTab\.action\.deck\.save/)).toBeInTheDocument();
-      expect(screen.queryByText(/ShortcutsTab\.action\.chat\.focus/)).not.toBeInTheDocument();
+    act(() => {
+      store.dispatch(shortcuts.Actions.setOverride({ actionId: 'game.drawCard', sequences: ['Ctrl+KeyZ'] }));
     });
+    expect(store.getState().shortcuts.overrides['game.drawCard']).toEqual(['Ctrl+KeyZ']);
 
-    it('keeps shortcut overrides in the shortcuts slice', async () => {
-      const { store } = await renderSettings();
-
-      act(() => {
-        store.dispatch(shortcuts.Actions.setOverride({ actionId: 'game.drawCard', sequences: ['Ctrl+KeyZ'] }));
-      });
-      expect(store.getState().shortcuts.overrides['game.drawCard']).toEqual(['Ctrl+KeyZ']);
-
-      act(() => {
-        store.dispatch(shortcuts.Actions.resetAll());
-      });
-      await waitFor(() => expect(store.getState().shortcuts.overrides).toEqual({}));
+    act(() => {
+      store.dispatch(shortcuts.Actions.resetAll());
     });
+    await waitFor(() => expect(store.getState().shortcuts.overrides).toEqual({}));
   });
 });
 
@@ -387,10 +430,7 @@ it('restores the playmat preferences and collection from Appearance', async () =
     await setPlaymatSettings({ visibility: 0, mode: 2, fallbackBehavior: 1,
       fallbackList: [{ cardName: 'Island', cardProviderId: '', params: { marginPctL: 0, marginPctR: 0, verticalOffset: 0, zoom: 1 } }] });
   });
-  openSection(/Settings\.section\.appearance/);
-  fireEvent.click(screen.getByRole('button', { name: /^Settings\.restoreDefaults$/ }));
-  await act(async () => {
-    fireEvent.click(within(screen.getByRole('dialog')).getByRole('button', { name: /^Settings\.restoreDefaults$/ }));
-  });
+  const appearance = section(/^Settings\.section\.appearance$/);
+  await confirmRestore(within(appearance).getAllByRole('button', { name: 'Settings.restoreSection' })[0]);
   expect(getPreferencesSnapshot().playmatSettings).toEqual(DEFAULT_PLAYMAT_SETTINGS);
 });

@@ -1,6 +1,7 @@
 import { useTranslation } from 'react-i18next';
 import { Play } from 'lucide-react';
 
+import { Button } from '@app/components';
 import { usePreferences } from '@app/hooks';
 import { soundEngine } from '@app/services';
 
@@ -11,16 +12,14 @@ export default function SoundTestButton({ id, labelId, disabled }: CustomControl
   const { soundEnabled, soundTheme, masterVolume } = usePreferences();
 
   return (
-    <button
+    <Button
       id={id}
-      type="button"
-      className="settings-button"
       aria-labelledby={labelId}
       disabled={disabled || !soundEnabled}
       onClick={() => soundEngine.test({ enabled: soundEnabled, theme: soundTheme, volume: masterVolume })}
+      icon={<Play size={14} aria-hidden />}
     >
-      <Play size={14} aria-hidden />
       {t('SettingsSound.test.button')}
-    </button>
+    </Button>
   );
 }

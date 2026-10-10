@@ -5,6 +5,7 @@ import { LoadingState, usePreference, useSettings } from '@app/hooks';
 import { getHostKey } from '@app/utils';
 
 import type { CustomControlProps } from '../registry';
+import { SelectBox } from './fields';
 
 export default function StartupServerSelect({ id, labelId, describedBy, disabled }: CustomControlProps) {
   const { t } = useTranslation();
@@ -17,9 +18,8 @@ export default function StartupServerSelect({ id, labelId, describedBy, disabled
   const missing = stored !== '' && !options.some((option) => option.value === stored);
 
   return (
-    <select
+    <SelectBox
       id={id}
-      className="settings-input"
       value={stored}
       aria-labelledby={labelId}
       aria-describedby={describedBy}
@@ -31,6 +31,6 @@ export default function StartupServerSelect({ id, labelId, describedBy, disabled
         <option key={option.value} value={option.value}>{option.label}</option>
       ))}
       {missing && <option value={stored}>{stored}</option>}
-    </select>
+    </SelectBox>
   );
 }

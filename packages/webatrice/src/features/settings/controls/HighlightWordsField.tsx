@@ -4,6 +4,7 @@ import { useTranslation } from 'react-i18next';
 import { usePreference, useSettings } from '@app/hooks';
 
 import type { CustomControlProps } from '../registry';
+import { textField } from './fields';
 
 export default function HighlightWordsField({ id, labelId, describedBy, disabled }: CustomControlProps) {
   const { t } = useTranslation();
@@ -19,7 +20,7 @@ export default function HighlightWordsField({ id, labelId, describedBy, disabled
     <input
       id={id}
       type="text"
-      className="settings-input"
+      className={textField}
       value={words}
       placeholder={t('SettingsChat.highlightWords.placeholder')}
       aria-labelledby={labelId}

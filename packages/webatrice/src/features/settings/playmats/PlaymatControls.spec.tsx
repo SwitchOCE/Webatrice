@@ -1,0 +1,176 @@
+import { type ComponentType } from 'react';
+import { act, fireEvent, screen, within } from '@testing-library/react';
+
+import { DEFAULT_PLAYMAT_SETTINGS, getPlaymatSettings, setPlaymatSettings, settingsStore } from '@app/hooks';
+import { renderWithProviders } from '../../../__test-utils__';
+
+import { CardDTO, SettingDTO } from '@app/services';
+
+import type { CustomControlProps } from '../registry';
+import {
+  PlaymatCollection,
+  PlaymatListModeSelect,
+  PlaymatModeSelect,
+  PlaymatVisibilitySelect,
+} from './PlaymatControls';
+import { movePlaymat } from './playmatList';
+
+const PARAMS = { marginPctL: 0.07, marginPctR: 0.07, verticalOffset: 0.33, zoom: 1 };
+const mat = (cardName: string) => ({ cardName, cardProviderId: '', params: PARAMS });
+const names = () => getPlaymatSettings().fallbackList.map((entry) => entry.cardName);
+
+function renderControl(Control: ComponentType<CustomControlProps>, label: string) {
+  return renderWithProviders(
+    <>
+      <span id="label">{label}</span>
+      <Control id="control" labelId="label" disabled={false} />
+    </>,
+  );
+}
+
+const renderCollection = () => renderControl(PlaymatCollection, 'Collection');
+
+async function openAddForm() {
+  fireEvent.click(screen.getByRole('button', { name: 'PlaymatSettings.collection.addArt' }));
+  return screen.getByRole('textbox', { name: 'PlaymatSettings.collection.cardName' });
+}
+
+describe('movePlaymat', () => {
+  it('swaps neighbours and leaves the list alone for an index out of range', () => {
+    expect(movePlaymat(['A', 'B', 'C'], 2, 1)).toEqual(['A', 'C', 'B']);
+    expect(movePlaymat(['A', 'B'], 0, 2)).toEqual(['A', 'B']);
+  });
+});
+
+describe('playmat controls', () => {
+  beforeEach(async () => {
+    await settingsStore.whenReady();
+    settingsStore.setValue(new SettingDTO('*app'));
+    vi.spyOn(CardDTO, 'get').mockResolvedValue({ name: { value: 'Island' }, set: [] } as unknown as CardDTO);
+  });
+  afterEach(() => {
+    act(() => {
+      void setPlaymatSettings(DEFAULT_PLAYMAT_SETTINGS);
+    });
+  });
+
+  it('shows desktop\'s defaults and saves each choice as soon as it is made', () => {
+    renderWithProviders(
+      <>
+        <span id="v">Visibility</span>
+        <PlaymatVisibilitySelect id="vs" labelId="v" disabled={false} />
+        <span id="m">Mode</span>
+        <PlaymatModeSelect id="ms" labelId="m" disabled={false} />
+        <span id="l">List</span>
+        <PlaymatListModeSelect id="ls" labelId="l" disabled={false} />
+      </>,
+    );
+    const visibility = screen.getByRole('combobox', { name: 'Visibility' });
+    const mode = screen.getByRole('combobox', { name: 'Mode' });
+    const list = screen.getByRole('combobox', { name: 'List' });
+    expect(visibility).toHaveDisplayValue('PlaymatSettings.visibility.all');
+    expect(mode).toHaveDisplayValue('PlaymatSettings.mode.fallback');
+    expect(list).toHaveDisplayValue('PlaymatSettings.collection.fixed');
+
+    fireEvent.change(visibility, { target: { value: '1' } });
+    fireEvent.change(mode, { target: { value: '0' } });
+    fireEvent.change(list, { target: { value: '2' } });
+
+    expect(getPlaymatSettings()).toMatchObject({ visibility: 1, mode: 0, fallbackBehavior: 2 });
+  });
+
+  it('says the collection is empty and offers to add card art', () => {
+    renderCollection();
+    expect(screen.getByText('PlaymatSettings.collection.empty')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'PlaymatSettings.collection.addArt' })).toHaveAttribute('aria-expanded', 'false');
+  });
+
+  it('adds a card to the collection and opens its crop editor', async () => {
+    renderCollection();
+
+    fireEvent.change(await openAddForm(), { target: { value: '  Island ' } });
+    await act(async () => {
+      fireEvent.click(screen.getByRole('button', { name: 'PlaymatSettings.collection.add' }));
+    });
+
+    expect(getPlaymatSettings().fallbackList).toEqual([mat('Island')]);
+    expect(screen.getByRole('group', { name: 'PlaymatSettings.crop.title' })).toBeInTheDocument();
+    expect(screen.queryByRole('textbox', { name: 'PlaymatSettings.collection.cardName' })).not.toBeInTheDocument();
+  });
+
+  it.each([
+    ['Not a real card', 'PlaymatSettings.validation.unknownCard'],
+    ['x'.repeat(256), 'PlaymatSettings.validation.tooLong'],
+  ])('rejects invalid card %s', async (cardName, message) => {
+    vi.mocked(CardDTO.get).mockResolvedValue(undefined);
+    renderCollection();
+    fireEvent.change(await openAddForm(), { target: { value: cardName } });
+    await act(async () => {
+      fireEvent.submit(screen.getByRole('button', { name: 'PlaymatSettings.collection.add' }).closest('form')!);
+    });
+    expect(screen.getByText(message)).toBeInTheDocument();
+    expect(getPlaymatSettings().fallbackList).toEqual([]);
+  });
+
+  it('reports lookup failure without losing the entered name', async () => {
+    vi.mocked(CardDTO.get).mockRejectedValue(new Error('database unavailable'));
+    renderCollection();
+    const input = await openAddForm();
+    fireEvent.change(input, { target: { value: 'Island' } });
+    await act(async () => {
+      fireEvent.submit(screen.getByRole('button', { name: 'PlaymatSettings.collection.add' }).closest('form')!);
+    });
+    expect(screen.getByText('PlaymatSettings.validation.lookupFailed')).toBeInTheDocument();
+    expect(input).toHaveValue('Island');
+    expect(getPlaymatSettings().fallbackList).toEqual([]);
+  });
+
+  it('requires a card name, and Cancel closes the form', async () => {
+    renderCollection();
+    await openAddForm();
+
+    await act(async () => {
+      fireEvent.click(screen.getByRole('button', { name: 'PlaymatSettings.collection.add' }));
+    });
+    expect(screen.getByText('Common.validation.required')).toBeInTheDocument();
+    expect(getPlaymatSettings().fallbackList).toEqual([]);
+
+    fireEvent.click(screen.getByRole('button', { name: 'PlaymatSettings.collection.cancel' }));
+    expect(screen.queryByRole('textbox')).not.toBeInTheDocument();
+  });
+
+  it('reorders and removes entries, naming the card on each button', () => {
+    act(() => {
+      void setPlaymatSettings({ fallbackList: [mat('A'), mat('B'), mat('C')] });
+    });
+    renderCollection();
+    const tiles = () => within(screen.getByRole('group', { name: 'Collection' })).getAllByRole('listitem');
+    expect(within(tiles()[0]).getByRole('button', { name: 'PlaymatSettings.collection.moveEarlier' })).toBeDisabled();
+    expect(within(tiles()[2]).getByRole('button', { name: 'PlaymatSettings.collection.moveLater' })).toBeDisabled();
+
+    fireEvent.click(within(tiles()[2]).getByRole('button', { name: 'PlaymatSettings.collection.moveEarlier' }));
+    expect(names()).toEqual(['A', 'C', 'B']);
+
+    fireEvent.click(within(tiles()[0]).getByRole('button', { name: 'PlaymatSettings.collection.moveLater' }));
+    expect(names()).toEqual(['C', 'A', 'B']);
+
+    fireEvent.click(within(tiles()[1]).getByRole('button', { name: 'PlaymatSettings.collection.removeCard' }));
+    expect(names()).toEqual(['C', 'B']);
+  });
+
+  it('edits an entry\'s crop and closes the editor with Done', () => {
+    act(() => {
+      void setPlaymatSettings({ fallbackList: [mat('A')] });
+    });
+    renderCollection();
+
+    const edit = screen.getByRole('button', { name: 'PlaymatSettings.collection.editCrop' });
+    fireEvent.click(edit);
+    expect(edit).toHaveAttribute('aria-pressed', 'true');
+    fireEvent.change(screen.getByRole('slider', { name: 'PlaymatSettings.crop.zoom' }), { target: { value: 2.5 } });
+    expect(getPlaymatSettings().fallbackList[0].params).toEqual({ ...PARAMS, zoom: 2.5 });
+
+    fireEvent.click(screen.getByRole('button', { name: 'PlaymatSettings.collection.done' }));
+    expect(screen.queryByRole('group', { name: 'PlaymatSettings.crop.title' })).not.toBeInTheDocument();
+  });
+});

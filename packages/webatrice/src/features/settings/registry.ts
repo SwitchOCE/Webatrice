@@ -1,12 +1,14 @@
 import type { ComponentType } from 'react';
 import type { LucideIcon } from 'lucide-react';
 
-import type {
-  BooleanPreferenceKey,
-  NumberPreferenceKey,
-  PreferenceKey,
-  Preferences,
-  StringPreferenceKey,
+import {
+  PREFERENCE_DEFAULTS,
+  type BooleanPreferenceKey,
+  type NumberPreferenceKey,
+  type PreferenceKey,
+  type Preferences,
+  type RouteEnum,
+  type StringPreferenceKey,
 } from '@app/types';
 
 export enum SettingsSectionId {
@@ -92,7 +94,7 @@ export interface SettingsSection {
   titleKey: string;
   icon: LucideIcon;
   groups?: readonly SettingsGroup[];
-  component?: ComponentType;
+  page?: RouteEnum;
 }
 
 export function preferenceKeysOf(section: SettingsSection): PreferenceKey[] {
@@ -109,6 +111,14 @@ export function preferenceKeysOf(section: SettingsSection): PreferenceKey[] {
   return [...keys];
 }
 
+export function preferenceKeysOfAll(sections: readonly SettingsSection[]): PreferenceKey[] {
+  return [...new Set(sections.flatMap(preferenceKeysOf))];
+}
+
+export function defaultsPatch(keys: readonly PreferenceKey[]): Partial<Preferences> {
+  return Object.fromEntries(keys.map((key) => [key, structuredClone(PREFERENCE_DEFAULTS[key])])) as Partial<Preferences>;
+}
+
 export function buildSettingsSections(registrations: readonly SettingsSection[]): SettingsSection[] {
   const byId = new Map<SettingsSectionId, SettingsSection>();
   for (const registration of registrations) {
@@ -117,13 +127,13 @@ export function buildSettingsSections(registrations: readonly SettingsSection[])
       byId.set(registration.id, { ...registration });
       continue;
     }
-    if (existing.component || registration.component) {
+    if (existing.page || registration.page) {
       throw new Error(`Settings section "${registration.id}" is a custom page and cannot be shared`);
     }
     existing.groups = [...(existing.groups ?? []), ...(registration.groups ?? [])];
   }
   return SECTION_ORDER.flatMap((id) => {
     const section = byId.get(id);
-    return section && (section.component || section.groups?.length) ? [section] : [];
+    return section && (section.page || section.groups?.length) ? [section] : [];
   });
 }
