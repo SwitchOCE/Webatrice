@@ -87,9 +87,10 @@ export interface TabListProps {
   activeKey: string;
   onClose: (tab: Tab) => void;
   unreadOf?: (tab: Tab) => number;
+  onLastClosed?: () => void;
 }
 
-export default function TabList({ groups, activeKey, onClose, unreadOf = () => 0 }: TabListProps) {
+export default function TabList({ groups, activeKey, onClose, unreadOf = () => 0, onLastClosed }: TabListProps) {
   const { t } = useTranslation();
   const id = useId();
   const links = useRef(new Map<string, HTMLAnchorElement>());
@@ -105,6 +106,8 @@ export default function TabList({ groups, activeKey, onClose, unreadOf = () => 0
     const successor = tabs[index + 1] ?? tabs[index - 1];
     if (successor) {
       links.current.get(successor.key)?.focus();
+    } else {
+      onLastClosed?.();
     }
     onClose(tab);
   };
