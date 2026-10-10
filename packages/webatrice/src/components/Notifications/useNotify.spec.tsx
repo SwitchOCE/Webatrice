@@ -7,6 +7,7 @@ vi.mock('@app/services', async (importOriginal) => ({ ...await importOriginal<ob
 
 import { ToastProvider } from '../Toast';
 import { notificationStore, type NotificationInput } from '../../services/notifications/notificationStore';
+import { getChatDockState } from '../../hooks/useChatDock';
 import { useNotify } from './useNotify';
 
 const wrapper = ({ children }: { children: ReactNode }) => (
@@ -45,7 +46,7 @@ describe('useNotify', () => {
     expect(notificationStore.getState().entries).toEqual([expect.objectContaining({ kind: 'message', actor: 'bob', read: false })]);
   });
 
-  it('falls back to a toast whose action opens the target and marks the entry read', () => {
+  it('falls back to a toast whose action opens the chat in the dock and marks the entry read', () => {
     showSystemNotification.mockReturnValue(false);
     const { result } = renderHook(() => useNotify(), { wrapper });
 
@@ -55,7 +56,10 @@ describe('useNotify', () => {
 
     expect(screen.getByTestId('toast')).toHaveTextContent('hi');
     fireEvent.click(screen.getByRole('button', { name: 'Notifications.action.message' }));
-    expect(screen.getByText('chat page')).toBeInTheDocument();
+    expect(getChatDockState()).toEqual(expect.objectContaining({
+      chats: expect.arrayContaining([expect.objectContaining({ name: 'bob' })]),
+    }));
+    expect(screen.queryByText('chat page')).not.toBeInTheDocument();
     expect(notificationStore.getState().entries[0].read).toBe(true);
   });
 
