@@ -37,9 +37,10 @@ export interface GameLog {
 export interface UseGameLogArgs {
   gameId: number | undefined;
   listRef: RefObject<HTMLDivElement | null>;
+  visible?: boolean;
 }
 
-export function useGameLog({ gameId, listRef }: UseGameLogArgs): GameLog {
+export function useGameLog({ gameId, listRef, visible = true }: UseGameLogArgs): GameLog {
   const { t } = useTranslation();
   const webClient = useWebClient();
   const messages = useAppSelector((state) =>
@@ -80,13 +81,13 @@ export function useGameLog({ gameId, listRef }: UseGameLogArgs): GameLog {
   const wasPinnedRef = useRef(true);
   useEffect(() => {
     const el = listRef.current;
-    if (!el) {
+    if (!el || !visible) {
       return;
     }
     if (wasPinnedRef.current) {
       el.scrollTop = el.scrollHeight;
     }
-  }, [messages.length, listRef]);
+  }, [messages.length, listRef, visible]);
 
   const handleMessagesScroll = () => {
     const el = listRef.current;

@@ -5,7 +5,7 @@ import { PREFERENCE_DEFAULTS } from '@app/types';
 import { createMockWebClient, renderWithProviders } from '../../__test-utils__';
 import { usePreferences } from '../../hooks/useSettings';
 import Game from './Game';
-import { buildSeatGameState, type SeatGameSpec } from './__test-utils__/seatFixtures';
+import { buildSeatGameState, cardEl, layoutBoxes, pointerDrag, type SeatGameSpec } from './__test-utils__/seatFixtures';
 
 vi.mock('../../components/Layout/Layout', () => ({
   default: ({ children }: { children: React.ReactNode }) => <>{children}</>,
@@ -80,16 +80,26 @@ describe('Game board arrangement', () => {
     expect(within(bar).getByRole('button', { name: /^Pass turn/ })).toBeEnabled();
   });
 
-  it('keeps the tray hand horizontal when the vertical-hand preference is on', () => {
+  it('drops into the tray hand by pointer x even when the vertical-hand preference is on', () => {
     vi.mocked(usePreferences).mockReturnValue({ ...PREFERENCE_DEFAULTS, horizontalHand: false });
+    let boxes: ReturnType<typeof layoutBoxes> | undefined;
     try {
-      renderBoard();
+      const { game } = renderBoard();
       const hand = within(screen.getByTestId('board-tray')).getByTestId('hand-zone-1');
       expect(hand).toHaveAttribute('aria-orientation', 'horizontal');
-      const [first, second] = within(hand).getAllByTitle(/^(Forest|Shock)$/);
-      expect(first.compareDocumentPosition(second) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+      const forest = cardEl(30, 'hand');
+      const shock = cardEl(31, 'hand');
+      boxes = layoutBoxes([
+        [(el) => el === hand, { left: 0, top: 500, width: 800, height: 120 }],
+        [(el) => el === forest, { left: 0, top: 500, width: 72, height: 100 }],
+        [(el) => el === shock, { left: 80, top: 500, width: 72, height: 100 }],
+      ]);
+      pointerDrag(forest, { x: 10, y: 505 }, { x: 200, y: 505 });
+      expect(game.moveCard).toHaveBeenCalledTimes(1);
+      expect(vi.mocked(game.moveCard).mock.calls[0][1]).toMatchObject({ x: 1, cardsToMove: { card: [{ cardId: 30 }] } });
     } finally {
       vi.mocked(usePreferences).mockReturnValue(PREFERENCE_DEFAULTS);
+      boxes?.mockRestore();
     }
   });
 
