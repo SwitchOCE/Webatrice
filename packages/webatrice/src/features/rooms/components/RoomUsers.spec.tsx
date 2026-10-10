@@ -1,5 +1,6 @@
-import { fireEvent, screen, within } from '@testing-library/react';
+import { act, fireEvent, screen, within } from '@testing-library/react';
 import { create } from '@bufbuild/protobuf';
+import { rooms } from '@cockatrice/datatrice';
 import { ServerInfo_GameSchema, ServerInfo_User_UserLevelFlag as Level } from '@cockatrice/sockatrice/generated';
 
 import { connectedWithRoomsState, makeUser, renderWithProviders } from '../../../__test-utils__';
@@ -99,5 +100,19 @@ describe('RoomUsers', () => {
     const list = screen.getByRole('list', { name: 'RoomUsers.list' });
 
     expect(within(list).getAllByRole('link').map((l) => l.textContent)).toEqual(['stranger']);
+  });
+
+  it('closes a person menu when membership shifts the rows, so it never acts on someone else', () => {
+    const { store } = renderUsers();
+    const list = screen.getByRole('list', { name: 'RoomUsers.list' });
+    fireEvent.click(within(list).getByRole('button', { name: 'RoomUsers.preview' }));
+    fireEvent.contextMenu(within(list).getByRole('link', { name: 'stranger' }));
+    expect(screen.getByRole('menu', { name: 'UserActionsMenu.label' })).toBeInTheDocument();
+
+    act(() => {
+      store.dispatch(rooms.Actions.userJoined({ roomId: 1, user: makeUser({ name: 'aaron' }) }));
+    });
+
+    expect(screen.queryByRole('menu', { name: 'UserActionsMenu.label' })).not.toBeInTheDocument();
   });
 });
