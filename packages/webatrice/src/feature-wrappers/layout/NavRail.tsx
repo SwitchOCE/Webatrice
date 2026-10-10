@@ -5,12 +5,11 @@ import { useTranslation } from 'react-i18next';
 import { server } from '@cockatrice/datatrice';
 import { useWebClient } from '@cockatrice/datatrice/react';
 import { useAppSelector } from '@app/store';
-import { usePhaseTrackPinnedSetting, useSnapGridSetting } from '@app/hooks';
+import { usePhaseTrackPinnedSetting, useSnapGridSetting, useUnreadCounts } from '@app/hooks';
 import { Images } from '@app/images';
 import { DebugLogDialog } from '@app/dialogs';
 import { RouteEnum } from '@app/types';
 import { CardImportDialog } from '@app/feature-widgets/card-import';
-import { useUnreadCounts } from '@app/features/notifications';
 
 import LatencyStatus from './LatencyStatus';
 import UnreadBadge from './UnreadBadge';

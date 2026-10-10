@@ -7,10 +7,10 @@ import { rooms, games } from '@cockatrice/datatrice';
 import { useAppSelector } from '@app/store';
 import { useWebClient } from '@cockatrice/datatrice/react';
 import { IconButton } from '@app/components';
-import { useDocumentTitle, useLeaveGame, useOpenedReplays } from '@app/hooks';
+import { useDocumentTitle, useLeaveGame, useOpenedReplays, useUnreadCounts } from '@app/hooks';
 import { closeReplay } from '@app/services';
 import { RouteEnum, type DeckRouteState } from '@app/types';
-import { NotificationBell, useUnreadCounts } from '@app/features/notifications';
+import { NotificationBell } from '@app/feature-widgets/notifications';
 
 import TabList from './TabList';
 import { useBackendDeckNames } from './hooks/useBackendDeckNames';

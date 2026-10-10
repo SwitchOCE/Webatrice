@@ -16,7 +16,10 @@ const unread = vi.hoisted(() => ({
   },
 }));
 
-vi.mock('@app/features/notifications', () => ({ useUnreadCounts: () => unread.counts }));
+vi.mock('@app/hooks', async (importOriginal) => ({
+  ...(await importOriginal<typeof import('@app/hooks')>()),
+  useUnreadCounts: () => unread.counts,
+}));
 
 function LocationProbe() {
   return <div data-testid="location">{useLocation().pathname}</div>;
