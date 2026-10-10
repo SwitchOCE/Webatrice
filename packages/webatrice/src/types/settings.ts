@@ -246,7 +246,7 @@ export const PREFERENCE_DEFAULTS: Readonly<Preferences> = Object.freeze({
 
   soundEnabled: false,
   soundTheme: DEFAULT_SOUND_THEME,
-  masterVolume: 100,
+  masterVolume: 50,
 });
 
 export const SETTINGS_VERSION = 4;

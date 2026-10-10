@@ -18,6 +18,9 @@
   --bg-sunken: 16 12 25;            /* #100C19 */
   --accent-soft: 54 40 92;          /* #36285C */
   --status-info: 96 165 250;        /* #60A5FA */
+  /* Links in chat and server text: blue so they read as links, AA on every surface and on the
+     accent-tinted chat bubbles. */
+  --text-link: 138 180 248;         /* #8AB4F8 */
   --table-felt: 27 21 43;           /* #1B152B */
   --table-rim: 46 36 72;            /* #2E2448 */
   --border-subtle: 58 46 90;        /* #3A2E5A */
@@ -78,6 +81,7 @@
   --bg-sunken: 236 231 244;         /* #ECE7F4 */
   --accent-soft: 233 224 250;       /* #E9E0FA */
   --status-info: 29 78 216;         /* #1D4ED8 */
+  --text-link: 30 64 175;           /* #1E40AF */
   --table-felt: 236 231 244;        /* #ECE7F4 */
   --table-rim: 214 204 232;         /* #D6CCE8 */
   --border-subtle: 220 211 233;     /* #DCD3E9 */

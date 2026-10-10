@@ -147,6 +147,16 @@ describe.each(Object.keys(PALETTES) as ColorScheme[])('the %s palette', (scheme)
     expect(contrast(palette['border-control'], palette[surface])).toBeGreaterThanOrEqual(3);
   });
 
+  test('keeps chat and server links at AA contrast on every surface and on the accent-tinted chat bubbles', () => {
+    const backgrounds = [
+      ...SURFACES, 'bg-sunken', 'accent-soft',
+    ].map((token) => palette[token as PaletteToken]);
+    backgrounds.push(composite(palette['accent-primary'], 0.2, palette['bg-elevated']));
+    for (const background of backgrounds) {
+      expect(contrast(palette['text-link'], background), background).toBeGreaterThanOrEqual(4.5);
+    }
+  });
+
   test('keeps the danger colour readable as error text on every surface', () => {
     for (const surface of SURFACES) {
       expect(contrast(palette['status-danger'], palette[surface]), surface).toBeGreaterThanOrEqual(4.5);

@@ -27,7 +27,8 @@ export function GameLinkButton({ url }: GameLinkButtonProps) {
       title={url}
       className={[
         'inline-flex items-center gap-1 px-1.5 rounded align-baseline font-semibold',
-        'text-accent bg-accent/10 hover:bg-accent/20 transition-colors',
+        'text-text-link bg-text-link/10 hover:bg-text-link/20 transition-colors',
+        'focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent',
       ].join(' ')}
     >
       <Swords size={12} className="shrink-0" />

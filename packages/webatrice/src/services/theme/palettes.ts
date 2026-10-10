@@ -37,6 +37,7 @@ export type PaletteToken =
   | 'bg-sunken'
   | 'accent-soft'
   | 'status-info'
+  | 'text-link'
   | 'table-felt'
   | 'table-rim';
 
@@ -80,6 +81,7 @@ export const PALETTES: Readonly<Record<ColorScheme, Palette>> = {
     'bg-sunken': '#100C19',
     'accent-soft': '#36285C',
     'status-info': '#60A5FA',
+    'text-link': '#8AB4F8',
     'table-felt': '#1B152B',
     'table-rim': '#2E2448',
   },
@@ -120,6 +122,7 @@ export const PALETTES: Readonly<Record<ColorScheme, Palette>> = {
     'bg-sunken': '#ECE7F4',
     'accent-soft': '#E9E0FA',
     'status-info': '#1D4ED8',
+    'text-link': '#1E40AF',
     'table-felt': '#ECE7F4',
     'table-rim': '#D6CCE8',
   },
