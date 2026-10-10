@@ -11,9 +11,10 @@
   --row-h: 40px;
   --pad: 16px;
   --gap: 12px;
-  --fs-ui: 14px;
+  --fs-scale: 1.0715;
+  --fs-ui: calc(14px * var(--fs-scale));
   --lh-ui: 1.45;
-  --fs-ui-sm: 12px;
+  --fs-ui-sm: calc(12px * var(--fs-scale));
   --shadow-pop: 0 12px 32px -8px rgb(0 0 0 / 0.55);
   --shadow-panel: none;
 }
