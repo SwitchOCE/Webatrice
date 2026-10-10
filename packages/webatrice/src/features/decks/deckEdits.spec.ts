@@ -7,6 +7,7 @@ import {
   normalizeAddedCardName,
   patchCard,
   removeCard,
+  mergeDuplicateRows,
   renameDeck,
   setCardCategory,
   setCardCommander,
@@ -147,6 +148,33 @@ describe('card edits', () => {
 
     const refreshed = setCardPrinting(reprinted, 1, { set: 'lea', imageUris: ['replacement'] });
     expect(refreshed.cards[1]).toMatchObject({ imageUri: 'replacement', imageUris: ['replacement'] });
+  });
+
+  it('merges a row into its twin when a printing change makes them the same card', () => {
+    const twins = deck([card('A', { scryfallId: 'a1' }), card('A', { quantity: 2, scryfallId: 'a2' }), card('B')]);
+    const merged = setCardPrinting(twins, 1, { scryfallId: 'a1', set: 'lea' });
+    expect(merged.cards.map((c) => [c.name, c.quantity, c.scryfallId])).toEqual([['A', 3, 'a1'], ['B', 1, undefined]]);
+  });
+
+  it('merges a row into its twin when a zone move lands on the same card and printing', () => {
+    const twins = deck([
+      card('A', { scryfallId: 'a1', isCommander: true }),
+      card('A', { quantity: 2, scryfallId: 'a1', category: 'sideboard' }),
+      card('a', { quantity: 1, scryfallId: 'a1', category: 'sideboard' }),
+    ]);
+    const moved = setCardCategory(twins, 1, 'main');
+    expect(moved.cards.map((c) => [c.quantity, c.category, !!c.isCommander])).toEqual([[3, 'main', true], [1, 'sideboard', false]]);
+    expect(setCardCategory(moved, 0, 'sideboard').cards.map((c) => [c.quantity, c.category, !!c.isCommander]))
+      .toEqual([[4, 'sideboard', true]]);
+  });
+
+  it('folds loaded duplicate rows together and leaves a clean list alone', () => {
+    const rows = [
+      card('A', { scryfallId: 'a1' }), card('B'), card('A', { quantity: 3, scryfallId: 'a1' }), card('A', { scryfallId: 'a2' }),
+    ];
+    expect(mergeDuplicateRows(rows).map((c) => [c.name, c.quantity, c.scryfallId]))
+      .toEqual([['A', 4, 'a1'], ['B', 1, undefined], ['A', 1, 'a2']]);
+    expect(mergeDuplicateRows(rows.slice(0, 2))).toEqual(rows.slice(0, 2));
   });
 
   it('appends a new row', () => {

@@ -23,8 +23,10 @@ export function resolveInspectedRow(cards: readonly DeckCard[], selected: Inspec
   if (!selected.preview) {
     return cards.findIndex((c) => c.category === selected.category && sameName(c) && samePrinting(c));
   }
+  if (selected.scryfallId) {
+    return cards.findIndex((c) => sameName(c) && samePrinting(c));
+  }
   const candidates = [
-    (c: DeckCard) => c.category === selected.category && sameName(c) && (!selected.scryfallId || samePrinting(c)),
     (c: DeckCard) => c.category === selected.category && sameName(c),
     sameName,
   ];
@@ -37,14 +39,11 @@ export function resolveInspectedRow(cards: readonly DeckCard[], selected: Inspec
   return -1;
 }
 
-export function dockColorIdentity(cards: readonly DeckCard[], isCommander: boolean): string[] {
+export function dockColorIdentity(cards: readonly DeckCard[], isCommander: boolean): string[] | undefined {
   const commanders = cards.filter((c) => c.isCommander);
-  const source = isCommander && commanders.length > 0 ? commanders : cards;
-  const colors = new Set<string>();
-  for (const card of source) {
-    for (const color of card.colorIdentity ?? card.colors ?? []) {
-      colors.add(color.toUpperCase());
-    }
+  if (!isCommander || commanders.length === 0 || commanders.some((c) => c.colorIdentity == null)) {
+    return undefined;
   }
+  const colors = new Set(commanders.flatMap((c) => c.colorIdentity ?? []).map((color) => color.toUpperCase()));
   return WUBRG.filter((c) => colors.has(c));
 }
