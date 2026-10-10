@@ -1,7 +1,7 @@
 import { render, screen } from '@testing-library/react';
 
 import { SectionHeader, StatCard } from './BreakdownBlocks';
-import { ColorPie } from './ColorPie';
+import { ColorBar } from './ColorBar';
 import { ManaCurve } from './ManaCurve';
 import { TypeBreakdown } from './TypeBreakdown';
 
@@ -17,23 +17,27 @@ describe('breakdown building blocks', () => {
     expect(screen.getByText('36').nextSibling).toHaveTextContent('Lands');
   });
 
-  it('ManaCurve scales every bucket against the tallest', () => {
+  it('ManaCurve scales every bucket against the tallest and keeps empty buckets visible', () => {
     render(<ManaCurve curve={{ 1: 2, 3: 4 }} />);
     const bars = screen.getAllByTitle('DeckBreakdown.curve.barTitle');
     expect(bars[3]).toHaveStyle({ height: '100%' });
     expect(bars[1]).toHaveStyle({ height: '50%' });
-    expect(bars[0]).toHaveStyle({ height: '0%' });
+    expect(bars[0]).toHaveStyle({ height: '2px' });
     expect(screen.getByText('DeckBreakdown.curve.sevenPlus')).toBeInTheDocument();
+    expect(screen.getByRole('img', { name: 'DeckBreakdown.curve.label' })).toBeInTheDocument();
   });
 
-  it('ColorPie shows an empty disc without cards, else slices and a legend', () => {
-    const { rerender, container } = render(<ColorPie pips={{ W: 0, U: 0, B: 0, R: 0, G: 0, C: 0 }} />);
-    expect(container.querySelector('svg')).toBeNull();
+  it('ColorBar shows an empty track without pips, else proportional segments and a legend', () => {
+    const { rerender, container } = render(<ColorBar pips={{ W: 0, U: 0, B: 0, R: 0, G: 0, C: 0 }} />);
+    expect(screen.queryByRole('img')).toBeNull();
+    expect(screen.queryByRole('list')).toBeNull();
 
-    rerender(<ColorPie pips={{ W: 1, U: 0, B: 0, R: 3, G: 0, C: 0 }} />);
-    expect(container.querySelectorAll('path')).toHaveLength(2);
-    expect(screen.getByTitle('CardSearch.color.R')).toHaveTextContent('375%');
-    expect(screen.getByRole('img', { name: 'CardSearch.color.W' })).toHaveAttribute('src', 'https://svgs.scryfall.io/card-symbols/W.svg');
+    rerender(<ColorBar pips={{ W: 1, U: 0, B: 0, R: 3, G: 0, C: 0 }} />);
+    const bar = screen.getByRole('img', { name: 'DeckBreakdown.colorBar' });
+    expect(bar.children).toHaveLength(2);
+    expect(bar.children[1]).toHaveStyle({ width: '75%' });
+    expect(screen.getByTitle('CardSearch.color.R')).toHaveTextContent('75%');
+    expect(container.querySelectorAll('li')).toHaveLength(2);
   });
 
   it('TypeBreakdown lists the most common types first', () => {

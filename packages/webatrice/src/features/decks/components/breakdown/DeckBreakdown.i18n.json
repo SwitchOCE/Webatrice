@@ -1,19 +1,19 @@
 {
   "DeckBreakdown": {
-    "overview": "Overview",
     "stat": {
       "total": "Total",
       "nonland": "Nonland",
       "lands": "Lands",
-      "avgCmc": "Avg CMC"
+      "avgCmc": "Avg MV"
     },
     "bracketEstimate": "Bracket estimate",
     "manaCurve": "Mana curve",
-    "colorDistribution": "Color distribution",
+    "colorDistribution": "Colours",
     "cardTypes": "Card types",
-    "pieLabel": "Color distribution pie",
+    "colorBar": "Colour distribution: {summary}",
     "curve": {
-      "barTitle": "{count, plural, one {# card} other {# cards}} at CMC {cmc}",
+      "label": "Mana curve: {summary}",
+      "barTitle": "{count, plural, one {# card} other {# cards}} at mana value {cmc}",
       "sevenPlus": "7+"
     },
     "noCards": "No cards yet."

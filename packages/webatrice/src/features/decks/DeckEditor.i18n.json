@@ -8,32 +8,36 @@
       "notFoundTitle": "Deck not found",
       "notFoundBody": "Servatrice didn''t return this deck. Might have been deleted.",
       "backToDecks": "Back to My Decks",
-      "emptyMtg": "Empty deck. Use <hl>Quick add</hl> above to start adding, or import a list from My Decks.",
-      "emptyPlain": "Empty deck. Type a card name in <hl>Add a card</hl> above to start.",
+      "emptyMtg": "Empty deck. Use <hl>Find cards</hl> on the left to start adding, or import a list from My Decks.",
+      "emptyPlain": "Empty deck. Type a card name in <hl>Add a card</hl> on the left to start.",
       "noCards": "No cards in this deck yet."
     },
-    "main": {
-      "advancedSearch": "Advanced search",
-      "backToList": "Back to deck list",
-      "backToDeck": "Back to deck"
+    "dock": {
+      "label": "Find cards"
+    },
+    "inspector": {
+      "label": "Card and stats",
+      "toggle": "Show the selected card and deck stats",
+      "close": "Hide the selected card and deck stats",
+      "stats": "Deck stats"
     },
     "section": {
-      "commander": "Commander",
-      "creature": "Creature",
-      "planeswalker": "Planeswalker",
-      "battle": "Battle",
-      "instant": "Instant",
-      "sorcery": "Sorcery",
-      "enchantment": "Enchantment",
-      "artifact": "Artifact",
-      "land": "Land",
+      "commander": "{count, plural, one {Commander} other {Commanders}}",
+      "creature": "Creatures",
+      "planeswalker": "Planeswalkers",
+      "battle": "Battles",
+      "instant": "Instants",
+      "sorcery": "Sorceries",
+      "enchantment": "Enchantments",
+      "artifact": "Artifacts",
+      "land": "Lands",
       "other": "Other",
       "sideboard": "Sideboard"
     },
     "row": {
-      "details": "Click for details",
       "unknown": "Not in your card DB and Scryfall couldn''t find it. The card is saved but details/images can''t be shown.",
-      "label": "{count} × {card}"
+      "label": "{count} × {card}",
+      "commander": "Commander"
     },
     "rowActions": {
       "trigger": "Actions for {card}",
@@ -68,19 +72,12 @@
       "suggestions": "{count, plural, one {# suggestion} other {# suggestions}}"
     },
     "buy": {
-      "deck": "Buy deck @ TCGplayer",
-      "card": "Buy @ TCGplayer",
+      "deck": "Buy · ${total}",
       "disabled": "Add cards to enable",
       "openDeck": "Open the full deck in TCGplayer''s mass-entry cart (opens in a new tab)",
-      "openCard": "Buy on TCGplayer (opens in a new tab)",
       "pricing": "Pricing {count, plural, one {# card} other {# cards}}… ({priced}/{total})",
-      "missingHint": "Click to see which cards Scryfall couldn''t price",
-      "missingShow": "Price missing for {count, plural, one {# card} other {# cards}} — show",
-      "missingHide": "Price missing for {count, plural, one {# card} other {# cards}} — hide"
-    },
-    "preview": {
-      "noImage": "No image available",
-      "hover": "Hover a card to preview"
+      "missing": "{count, plural, one {# card has} other {# cards have}} no price on Scryfall",
+      "missingShort": "{count, plural, one {# unpriced} other {# unpriced}}"
     }
   }
 }

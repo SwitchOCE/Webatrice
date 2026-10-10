@@ -1,4 +1,4 @@
-import { fireEvent, render, screen } from '@testing-library/react';
+import { render, screen } from '@testing-library/react';
 
 import { emptyPriceLookup } from '../../pricing';
 import type { DeckCard } from '../../types';
@@ -18,25 +18,26 @@ describe('DeckBuyButton', () => {
   it('is disabled for an empty deck', () => {
     render(<DeckBuyButton cards={[]} prices={emptyPriceLookup()} loading={false} />);
     expect(screen.queryByRole('link')).toBeNull();
-    expect(screen.getByTitle('DeckEditor.buy.disabled')).toHaveTextContent('$0.00');
+    expect(screen.getByRole('button', { name: 'DeckEditor.buy.deck' })).toBeDisabled();
   });
 
   it('links the whole deck to TCGplayer mass entry with its total', () => {
     render(<DeckBuyButton cards={[card('Lightning Bolt', 4)]} prices={prices()} loading={false} />);
     const link = screen.getByRole('link');
-    expect(link).toHaveTextContent('$8.00');
     expect(link).toHaveAttribute('href', expect.stringContaining('massentry?c=4%20Lightning%20Bolt'));
+    expect(link).toHaveAttribute('title', 'DeckEditor.buy.openDeck');
+    expect(link).not.toHaveTextContent('DeckEditor.buy.missingShort');
   });
 
   it('shows pricing progress while loading', () => {
     render(<DeckBuyButton cards={[card('Lightning Bolt'), card('Mystery')]} prices={prices()} loading />);
-    expect(screen.getByText('DeckEditor.buy.pricing')).toBeInTheDocument();
+    expect(screen.getByRole('link')).toHaveAttribute('title', 'DeckEditor.buy.pricing');
   });
 
-  it('lists the cards that have no price once loaded', () => {
+  it('names the cards that have no price once loaded', () => {
     render(<DeckBuyButton cards={[card('Lightning Bolt'), card('Mystery', 2)]} prices={prices()} loading={false} />);
-    fireEvent.click(screen.getByRole('button', { name: 'DeckEditor.buy.missingShow' }));
-    expect(screen.getByText('Mystery')).toBeInTheDocument();
-    expect(screen.getByText('2×')).toBeInTheDocument();
+    const link = screen.getByRole('link');
+    expect(link).toHaveAttribute('title', 'DeckEditor.buy.missing: 2× Mystery');
+    expect(link).toHaveTextContent('DeckEditor.buy.missingShort');
   });
 });

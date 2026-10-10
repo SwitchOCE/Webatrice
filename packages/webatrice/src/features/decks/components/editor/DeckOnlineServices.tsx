@@ -1,6 +1,7 @@
-import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { ChevronDown, ChevronRight, ExternalLink, Printer } from 'lucide-react';
+import { ExternalLink, Printer, Send } from 'lucide-react';
+
+import { MenuItem, MenuSubmenu } from '@app/components';
 
 import { openInNewTab, printHtml, submitFormInNewTab } from '../../browserHandoff';
 import {
@@ -12,19 +13,14 @@ import {
 } from '../../deckServices';
 import type { HydratedDeck } from '../../types';
 
-export interface DeckOnlineServicesProps {
+export interface DeckOnlineServiceItemsProps {
   deck: HydratedDeck;
 }
 
-const ITEM_CLASS = [
-  'w-full text-left inline-flex items-center gap-1.5 px-2 py-1 rounded-md text-sm text-text-secondary',
-  'hover:bg-bg-elevated hover:text-text-primary disabled:opacity-40 disabled:pointer-events-none',
-].join(' ');
-
-export function DeckOnlineServices({ deck }: DeckOnlineServicesProps) {
+export function DeckOnlineServiceItems({ deck }: DeckOnlineServiceItemsProps) {
   const { t } = useTranslation();
-  const [open, setOpen] = useState(false);
   const empty = deck.cards.length === 0;
+  const emptyReason = empty ? t('DeckTools.empty') : undefined;
 
   const exportDecklist = (site: DecklistSite) => {
     const url = decklistExportUrl(deck, site);
@@ -34,47 +30,50 @@ export function DeckOnlineServices({ deck }: DeckOnlineServicesProps) {
   };
 
   return (
-    <div className="space-y-1">
-      <button
-        type="button"
-        className={ITEM_CLASS}
-        onClick={() => printHtml(deckPrintHtml(deck, {
+    <>
+      <MenuItem
+        icon={<Printer size={13} />}
+        onSelect={() => printHtml(deckPrintHtml(deck, {
           main: t('DeckTools.zone.main'),
           sideboard: t('DeckTools.zone.sideboard'),
         }))}
       >
-        <Printer size={13} /> {t('DeckTools.print')}
-      </button>
-      <button type="button" className={ITEM_CLASS} aria-expanded={open} onClick={() => setOpen((o) => !o)}>
-        {open ? <ChevronDown size={13} /> : <ChevronRight size={13} />} {t('DeckTools.sendTo')}
-      </button>
-      {open && (
-        <div className="pl-4 space-y-1">
-          {empty && <p className="px-2 text-xs text-text-muted">{t('DeckTools.empty')}</p>}
-          <button type="button" className={ITEM_CLASS} disabled={empty} onClick={() => exportDecklist('decklist.org')}>
-            <ExternalLink size={12} /> {t('DeckTools.decklistOrg')}
-          </button>
-          <button type="button" className={ITEM_CLASS} disabled={empty} onClick={() => exportDecklist('decklist.xyz')}>
-            <ExternalLink size={12} /> {t('DeckTools.decklistXyz')}
-          </button>
-          <button
-            type="button"
-            className={ITEM_CLASS}
-            disabled={empty}
-            onClick={() => submitFormInNewTab(deckstatsAnalyzeForm(deck))}
-          >
-            <ExternalLink size={12} /> {t('DeckTools.deckstats')}
-          </button>
-          <button
-            type="button"
-            className={ITEM_CLASS}
-            disabled={empty}
-            onClick={() => submitFormInNewTab(tappedOutAnalyzeForm(deck))}
-          >
-            <ExternalLink size={12} /> {t('DeckTools.tappedout')}
-          </button>
-        </div>
-      )}
-    </div>
+        {t('DeckTools.print')}
+      </MenuItem>
+      <MenuSubmenu label={t('DeckTools.sendTo')} icon={<Send size={13} />} className="w-[220px]">
+        <MenuItem
+          icon={<ExternalLink size={12} />}
+          disabled={empty}
+          disabledReason={emptyReason}
+          onSelect={() => exportDecklist('decklist.org')}
+        >
+          {t('DeckTools.decklistOrg')}
+        </MenuItem>
+        <MenuItem
+          icon={<ExternalLink size={12} />}
+          disabled={empty}
+          disabledReason={emptyReason}
+          onSelect={() => exportDecklist('decklist.xyz')}
+        >
+          {t('DeckTools.decklistXyz')}
+        </MenuItem>
+        <MenuItem
+          icon={<ExternalLink size={12} />}
+          disabled={empty}
+          disabledReason={emptyReason}
+          onSelect={() => submitFormInNewTab(deckstatsAnalyzeForm(deck))}
+        >
+          {t('DeckTools.deckstats')}
+        </MenuItem>
+        <MenuItem
+          icon={<ExternalLink size={12} />}
+          disabled={empty}
+          disabledReason={emptyReason}
+          onSelect={() => submitFormInNewTab(tappedOutAnalyzeForm(deck))}
+        >
+          {t('DeckTools.tappedout')}
+        </MenuItem>
+      </MenuSubmenu>
+    </>
   );
 }

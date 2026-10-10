@@ -1,27 +1,25 @@
 import { useRef, useState, type KeyboardEvent, type MouseEvent } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Ban, ChevronDown, CircleAlert } from 'lucide-react';
+import { Ban, ChevronDown, CircleAlert, Crown } from 'lucide-react';
 
-import { isContextMenuKey, type MenuAnchor } from '@app/components';
+import { isContextMenuKey, ManaSymbols, type MenuAnchor } from '@app/components';
 import type { DeckCategory } from '@app/types';
 
 import type { CardLegality } from '../../deckLegality';
 import type { DeckCardRowProps as GridRowProps } from '../../hooks/useDeckCardGrid';
 import type { DeckCard } from '../../types';
-import { ManaSymbols } from '@app/components';
 import { DeckRowActionsMenu } from './DeckRowActionsMenu';
 
 export interface DeckCardRowProps {
   card: DeckCard;
+  selected?: boolean;
+  onSelect: () => void;
   onInc: (delta: number) => void;
   onDelete: () => void;
   onSetCategory: (category: DeckCategory) => void;
   onSetCommander: (isCommander: boolean) => void;
   onChangePrinting: () => void;
-  onHover: () => void;
-  /** Optional — when set, the card name renders as a button that
-   *  opens the detail modal. Undefined for non-MTG decks. */
-  onCardClick?: () => void;
+  onShowDetails?: () => void;
   isMtg: boolean;
   isCommander: boolean;
   legality?: CardLegality;
@@ -30,13 +28,14 @@ export interface DeckCardRowProps {
 
 export function DeckCardRow({
   card,
+  selected = false,
+  onSelect,
   onInc,
   onDelete,
   onSetCategory,
   onSetCommander,
-  onHover,
   onChangePrinting,
-  onCardClick,
+  onShowDetails,
   isMtg,
   isCommander,
   legality,
@@ -88,54 +87,53 @@ export function DeckCardRow({
       role="row"
       aria-label={t('DeckEditor.row.label', { count: card.quantity, card: card.name })}
       aria-description={description || undefined}
+      aria-selected={selected}
       className={[
-        'group flex items-center gap-1.5 px-1 py-0.5 rounded transition-colors',
+        'group flex h-7 items-center gap-2 rounded-ui-sm pl-2 pr-1 text-[13px] transition-colors',
         'focus:outline-none focus-visible:ring-2 focus-visible:ring-accent',
-        illegal ? 'bg-red-500/15 hover:bg-red-500/25' : 'hover:bg-bg-elevated',
+        selected ? 'bg-accent/15 text-accent' : illegal ? 'bg-danger/10 hover:bg-danger/15' : 'text-text-primary hover:bg-bg-elevated',
       ].join(' ')}
-      onMouseEnter={onHover}
-      onFocus={onHover}
+      onClick={onSelect}
+      onFocus={(event) => {
+        if (event.target === event.currentTarget) {
+          onSelect();
+        }
+      }}
       onKeyDown={onKeyDown}
       onContextMenu={onContextMenu}
       title={illegalText}
     >
-      <span role="gridcell" className="text-xs tabular-nums text-text-muted w-5 text-right shrink-0">
+      <span role="gridcell" className={['w-5 shrink-0 text-right tabular-nums', selected ? 'text-accent' : 'text-text-muted'].join(' ')}>
         {card.quantity}
       </span>
-      <span role="gridcell" className="flex-1 min-w-0 flex">
-        {onCardClick ? (
-          <button
-            type="button"
-            tabIndex={-1}
-            onClick={onCardClick}
-            className="flex-1 min-w-0 truncate text-sm text-text-primary text-left hover:text-accent transition-colors cursor-pointer"
-            title={t('DeckEditor.row.details')}
-          >
-            {card.name}
-          </button>
-        ) : (
-          <span className="flex-1 min-w-0 truncate text-sm text-text-primary">
-            {card.name}
-          </span>
+      <span role="gridcell" className="flex min-w-0 flex-1 items-center gap-1.5">
+        <button
+          type="button"
+          tabIndex={-1}
+          onClick={(event) => {
+            event.stopPropagation();
+            onSelect();
+          }}
+          className={['min-w-0 flex-1 truncate text-left', illegal ? 'text-danger' : ''].join(' ')}
+        >
+          {card.name}
+        </button>
+        {card.isCommander && (
+          <Crown size={12} className="shrink-0 text-warning" role="img" aria-label={t('DeckEditor.row.commander')} />
         )}
       </span>
-      <span role="gridcell" className="shrink-0 flex items-center gap-1.5">
+      <span role="gridcell" className="flex shrink-0 items-center gap-1.5">
         {card.lookupSource === 'unknown' && (
-          <span
-            className="shrink-0 text-warning"
-            title={unknownText}
-            role="img"
-            aria-label={unknownText}
-          >
-            <CircleAlert size={10} />
+          <span className="shrink-0 text-warning" title={unknownText} role="img" aria-label={unknownText}>
+            <CircleAlert size={12} />
           </span>
         )}
         {illegalText && (
           <span className="shrink-0 text-danger" role="img" aria-label={illegalText}>
-            <Ban size={10} />
+            <Ban size={12} />
           </span>
         )}
-        <ManaSymbols cost={card.manaCost ?? ''} size={11} className="shrink-0 opacity-90" />
+        <ManaSymbols cost={card.manaCost ?? ''} size={12} className="shrink-0 opacity-90" />
       </span>
       <span role="gridcell" className="shrink-0">
         <button
@@ -149,7 +147,10 @@ export function DeckCardRow({
               openBelow(e.currentTarget);
             }
           }}
-          className="p-1 rounded hover:bg-bg-base text-text-muted hover:text-text-primary transition-colors"
+          className={[
+            'inline-flex h-6 w-6 items-center justify-center rounded-ui-sm text-text-muted transition-colors',
+            'hover:bg-bg-elevated hover:text-text-primary focus-visible:outline focus-visible:outline-2 focus-visible:outline-accent',
+          ].join(' ')}
           aria-label={t('DeckEditor.rowActions.trigger', { card: card.name })}
           title={t('DeckEditor.rowActions.trigger', { card: card.name })}
           aria-haspopup="menu"
@@ -175,7 +176,7 @@ export function DeckCardRow({
           onSetCategory={onSetCategory}
           onSetCommander={onSetCommander}
           onChangePrinting={onChangePrinting}
-          onShowDetails={onCardClick}
+          onShowDetails={onShowDetails}
           isMtg={isMtg}
           isCommander={isCommander}
         />

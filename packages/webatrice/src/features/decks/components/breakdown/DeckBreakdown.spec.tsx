@@ -31,8 +31,9 @@ describe('DeckBreakdown', () => {
     expect(bars).toHaveLength(8);
     expect(bars[1]).toHaveStyle({ height: '100%' });
     expect(bars[7]).toHaveStyle({ height: '25%' });
+    expect(bars[0]).toHaveStyle({ height: '2px' });
     expect(screen.getByText('DeckBreakdown.curve.sevenPlus')).toBeInTheDocument();
-    expect(screen.getByRole('img', { name: 'DeckBreakdown.pieLabel' })).toBeInTheDocument();
+    expect(screen.getByRole('img', { name: 'DeckBreakdown.colorBar' })).toBeInTheDocument();
     expect(screen.getByText('80%')).toBeInTheDocument();
     expect(screen.getByText('CardSearch.cardType.Planeswalker')).toBeInTheDocument();
   });

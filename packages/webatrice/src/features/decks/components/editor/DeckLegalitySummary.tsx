@@ -1,6 +1,8 @@
 import { useTranslation } from 'react-i18next';
 import { Ban, CircleCheck, CircleHelp, Loader2 } from 'lucide-react';
 
+import { Chip } from '@app/components';
+
 import { formatDisplayLabel } from '../../deckSummary';
 import type { DeckLegalityStatus } from '../../deckLegality';
 
@@ -18,40 +20,33 @@ export function DeckLegalitySummary({ format, status, illegalCount, unknownCount
     return null;
   }
   const formatLabel = formatDisplayLabel(format, t);
+  const unchecked = !loading && status !== 'unavailable' && unknownCount > 0
+    ? t('DeckLegality.unchecked', { count: unknownCount })
+    : undefined;
 
-  let line;
+  let chip;
   if (loading) {
-    line = (
-      <span className="inline-flex items-center gap-1 text-text-muted">
-        <Loader2 size={11} className="animate-spin" /> {t('DeckLegality.checking')}
-      </span>
-    );
+    chip = <Chip icon={<Loader2 size={12} className="animate-spin" />}>{t('DeckLegality.checking')}</Chip>;
   } else if (status === 'unavailable') {
-    line = (
-      <span className="inline-flex items-center gap-1 text-text-muted">
-        <CircleHelp size={11} /> {t('DeckLegality.unavailable', { format: formatLabel })}
-      </span>
-    );
+    chip = <Chip icon={<CircleHelp size={12} />}>{t('DeckLegality.unavailable', { format: formatLabel })}</Chip>;
   } else if (status === 'illegal') {
-    line = (
-      <span className="inline-flex items-center gap-1 text-danger">
-        <Ban size={11} /> {t('DeckLegality.illegal', { count: illegalCount, format: formatLabel })}
-      </span>
+    chip = (
+      <Chip tone="danger" icon={<Ban size={12} />} title={unchecked}>
+        {t('DeckLegality.illegal', { count: illegalCount, format: formatLabel })}
+      </Chip>
     );
   } else {
-    line = (
-      <span className="inline-flex items-center gap-1 text-success">
-        <CircleCheck size={11} /> {t('DeckLegality.legal', { format: formatLabel })}
-      </span>
+    chip = (
+      <Chip tone="success" icon={<CircleCheck size={12} />} title={unchecked}>
+        {t('DeckLegality.legal', { format: formatLabel })}
+      </Chip>
     );
   }
 
   return (
-    <div className="text-xs" role="status">
-      {line}
-      {!loading && status !== 'unavailable' && unknownCount > 0 && (
-        <div className="mt-0.5 text-text-muted">{t('DeckLegality.unchecked', { count: unknownCount })}</div>
-      )}
-    </div>
+    <span role="status" className="inline-flex items-center gap-1.5">
+      {chip}
+      {unchecked && <span className="text-[11px] text-text-muted">{unchecked}</span>}
+    </span>
   );
 }

@@ -69,6 +69,7 @@ describe('BracketSection', () => {
     render(<BracketSection cards={[]} />);
     expect(lookupsAllowed()).toBe(true);
 
+    fireEvent.click(screen.getByRole('button', { name: 'DeckBracket.why' }));
     fireEvent.click(screen.getByRole('button', { name: 'DeckBracket.consent.revoke' }));
     await waitFor(() => expect(lookupsAllowed()).toBe(false));
     expect((await getSettings()).commanderSpellbookIntegration).toBe(CommanderSpellbookIntegration.Unprompted);
@@ -80,17 +81,20 @@ describe('BracketSection', () => {
     expect(screen.getByText('DeckBracket.assessing')).toBeInTheDocument();
   });
 
-  it('shows a complete assessment with its provenance and signal badges', () => {
+  it('shows a complete assessment with its signals, and the provenance on request', () => {
     vi.mocked(useBracketAssessment).mockReturnValue({
       status: 'complete',
       report: { level: 2, signals },
       retry: vi.fn(),
     });
     render(<BracketSection cards={[]} />);
-    expect(screen.getByText('DeckBracket.title')).toBeInTheDocument();
-    expect(screen.getByText('DeckBracket.provenance')).toBeInTheDocument();
-    expect(screen.getByText('DeckBracket.signal.turns')).toBeInTheDocument();
+    expect(screen.getByTitle('DeckBracket.title')).toHaveTextContent('DeckBracket.bracket 2 · DeckBracket.level.2');
+    expect(screen.getByText('DeckBracket.signal.turns').parentElement).toHaveTextContent('1DeckBracket.signal.turns· Time Warp');
     expect(screen.queryByText('DeckBracket.partialNotice')).toBeNull();
+    expect(screen.queryByText('DeckBracket.provenance')).toBeNull();
+
+    fireEvent.click(screen.getByRole('button', { name: 'DeckBracket.why' }));
+    expect(screen.getByText('DeckBracket.provenance')).toBeInTheDocument();
   });
 
   it('marks a degraded assessment as a floor, lists the failed sources and offers a retry', () => {
@@ -106,7 +110,7 @@ describe('BracketSection', () => {
     });
     render(<BracketSection cards={[]} />);
 
-    expect(screen.getByText('DeckBracket.partialTitle')).toBeInTheDocument();
+    expect(screen.getByTitle('DeckBracket.partialTitle')).toBeInTheDocument();
     expect(screen.getByText('2+')).toBeInTheDocument();
     expect(screen.getByText('DeckBracket.partialNotice')).toBeInTheDocument();
     expect(screen.getByText('DeckBracket.sourceUnavailable')).toBeInTheDocument();

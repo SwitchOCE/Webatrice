@@ -6,49 +6,42 @@ import { AuthGuard } from '@app/components';
 import { Layout } from '@app/feature-wrappers/layout';
 import { RouteEnum } from '@app/types';
 
-/**
- * Placeholder UI shown while the deck is hydrating and while its card
- * images preload. Mirrors the real DeckEditor's 360px sidebar + main
- * grid so the layout doesn't jump when the real content lands. Progress
- * line only renders once the preload total is known (>0) — the initial
- * hydration phase has nothing to count yet.
- */
 export function DeckEditorSkeleton({ loaded, total }: { loaded: number; total: number }) {
   const { t } = useTranslation();
   return (
     <Layout>
       <AuthGuard />
-      <div
-        className="h-full grid bg-bg-base bg-purple-radial"
-        style={{ gridTemplateColumns: '360px 1fr' }}
-      >
-        {/* Sidebar skeleton */}
-        <div className="border-r border-border-subtle bg-bg-surface p-4 flex flex-col gap-4">
-          <div className="h-7 w-3/4 rounded bg-bg-elevated animate-pulse" />
-          <div className="h-4 w-1/3 rounded bg-bg-elevated animate-pulse" />
-          <div className="w-full max-w-[300px] mx-auto aspect-[5/7] rounded-xl bg-bg-elevated animate-pulse" />
-          <div className="h-4 w-1/2 mx-auto rounded bg-bg-elevated animate-pulse" />
-          <div className="h-9 w-full rounded-md bg-bg-elevated animate-pulse" />
-          <div className="mt-auto flex items-center justify-center gap-2 text-xs text-text-muted italic">
+      <div className="grid h-full min-h-0 bg-bg-base" style={{ gridTemplateColumns: '300px minmax(0,1fr) 316px' }}>
+        <div className="flex flex-col gap-3 border-r border-border-subtle bg-bg-surface p-pad">
+          <div className="h-9 w-full animate-pulse rounded-ui bg-bg-elevated" />
+          {Array.from({ length: 8 }).map((_, i) => (
+            <div key={i} className="h-10 w-full animate-pulse rounded-ui bg-bg-elevated" />
+          ))}
+        </div>
+        <div className="flex flex-col gap-4 px-5 py-4">
+          <div className="h-4 w-40 animate-pulse rounded bg-bg-elevated" />
+          <div className="h-7 w-3/5 animate-pulse rounded bg-bg-elevated" />
+          <div className="mt-2 flex flex-col gap-3">
+            {Array.from({ length: 14 }).map((_, i) => (
+              <div key={i} className="flex items-center gap-3">
+                <div className="h-4 w-6 animate-pulse rounded bg-bg-elevated" />
+                <div
+                  className="h-4 animate-pulse rounded bg-bg-elevated"
+                  style={{ width: `${35 + ((i * 7) % 25)}%` }}
+                />
+              </div>
+            ))}
+          </div>
+        </div>
+        <div className="flex flex-col gap-4 border-l border-border-subtle bg-bg-surface p-pad">
+          <div className="aspect-[5/7] w-[132px] animate-pulse rounded-[8px] bg-bg-elevated" />
+          <div className="h-4 w-1/2 animate-pulse rounded bg-bg-elevated" />
+          <div className="h-20 w-full animate-pulse rounded-ui bg-bg-elevated" />
+          <div className="mt-auto flex items-center justify-center gap-2 text-xs italic text-text-muted">
             <Loader2 size={12} className="animate-spin text-accent" />
             {total > 0
               ? t('DeckEditor.shell.preloading', { loaded: String(loaded), total: String(total) })
               : t('DeckEditor.shell.loadingDeck')}
-          </div>
-        </div>
-        {/* Main pane skeleton */}
-        <div className="p-6 flex flex-col gap-4">
-          <div className="h-10 w-full max-w-md rounded-md bg-bg-elevated animate-pulse" />
-          <div className="flex flex-col gap-3 mt-2">
-            {Array.from({ length: 14 }).map((_, i) => (
-              <div key={i} className="flex items-center gap-3">
-                <div className="h-4 w-6 rounded bg-bg-elevated animate-pulse" />
-                <div
-                  className="h-4 rounded bg-bg-elevated animate-pulse"
-                  style={{ width: `${55 + ((i * 7) % 35)}%` }}
-                />
-              </div>
-            ))}
           </div>
         </div>
       </div>
@@ -74,8 +67,8 @@ export function DeckNotFound({ reason }: { reason: string | null }) {
           type="button"
           onClick={() => navigate(RouteEnum.DECKS)}
           className={[
-            'mt-3 inline-flex items-center gap-1.5 px-4 py-2 rounded-md text-sm',
-            'font-semibold bg-accent text-white hover:bg-accent-hover shadow-glow transition-colors',
+            'mt-3 inline-flex h-9 items-center gap-1.5 rounded-ui bg-accent px-4 text-[13px] font-medium text-on-accent',
+            'transition-colors hover:bg-accent-hover focus-visible:outline focus-visible:outline-2 focus-visible:outline-accent',
           ].join(' ')}
         >
           <ArrowLeft size={14} /> {t('DeckEditor.shell.backToDecks')}
