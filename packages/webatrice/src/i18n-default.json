@@ -1041,6 +1041,8 @@
       "deck.removeCard": "Remove card",
       "deck.undo": "Undo deck edit",
       "deck.redo": "Redo deck edit",
+      "deck.addSearchResult": "Add highlighted search result",
+      "deck.addSearchResultToSideboard": "Add highlighted search result to sideboard",
       "room.sendMessage": "Send message",
       "replays.playPause": "Play/Pause",
       "replays.skipForward": "Skip forward",
@@ -1356,32 +1358,36 @@
       "notFoundTitle": "Deck not found",
       "notFoundBody": "Servatrice didn''t return this deck. Might have been deleted.",
       "backToDecks": "Back to My Decks",
-      "emptyMtg": "Empty deck. Use <hl>Quick add</hl> above to start adding, or import a list from My Decks.",
-      "emptyPlain": "Empty deck. Type a card name in <hl>Add a card</hl> above to start.",
+      "emptyMtg": "Empty deck. Use <hl>Find cards</hl> on the left to start adding, or import a list from My Decks.",
+      "emptyPlain": "Empty deck. Type a card name in <hl>Add a card</hl> on the left to start.",
       "noCards": "No cards in this deck yet."
     },
-    "main": {
-      "advancedSearch": "Advanced search",
-      "backToList": "Back to deck list",
-      "backToDeck": "Back to deck"
+    "dock": {
+      "label": "Find cards"
+    },
+    "inspector": {
+      "label": "Card and stats",
+      "toggle": "Show the selected card and deck stats",
+      "close": "Hide the selected card and deck stats",
+      "stats": "Deck stats"
     },
     "section": {
-      "commander": "Commander",
-      "creature": "Creature",
-      "planeswalker": "Planeswalker",
-      "battle": "Battle",
-      "instant": "Instant",
-      "sorcery": "Sorcery",
-      "enchantment": "Enchantment",
-      "artifact": "Artifact",
-      "land": "Land",
+      "commander": "{count, plural, one {Commander} other {Commanders}}",
+      "creature": "Creatures",
+      "planeswalker": "Planeswalkers",
+      "battle": "Battles",
+      "instant": "Instants",
+      "sorcery": "Sorceries",
+      "enchantment": "Enchantments",
+      "artifact": "Artifacts",
+      "land": "Lands",
       "other": "Other",
       "sideboard": "Sideboard"
     },
     "row": {
-      "details": "Click for details",
       "unknown": "Not in your card DB and Scryfall couldn''t find it. The card is saved but details/images can''t be shown.",
-      "label": "{count} × {card}"
+      "label": "{count} × {card}",
+      "commander": "Commander"
     },
     "rowActions": {
       "trigger": "Actions for {card}",
@@ -1416,19 +1422,12 @@
       "suggestions": "{count, plural, one {# suggestion} other {# suggestions}}"
     },
     "buy": {
-      "deck": "Buy deck @ TCGplayer",
-      "card": "Buy @ TCGplayer",
+      "deck": "Buy · ${total}",
       "disabled": "Add cards to enable",
       "openDeck": "Open the full deck in TCGplayer''s mass-entry cart (opens in a new tab)",
-      "openCard": "Buy on TCGplayer (opens in a new tab)",
       "pricing": "Pricing {count, plural, one {# card} other {# cards}}… ({priced}/{total})",
-      "missingHint": "Click to see which cards Scryfall couldn''t price",
-      "missingShow": "Price missing for {count, plural, one {# card} other {# cards}} — show",
-      "missingHide": "Price missing for {count, plural, one {# card} other {# cards}} — hide"
-    },
-    "preview": {
-      "noImage": "No image available",
-      "hover": "Hover a card to preview"
+      "missing": "{count, plural, one {# card has} other {# cards have}} no price on Scryfall",
+      "missingShort": "{count, plural, one {# unpriced} other {# unpriced}}"
     }
   },
   "DeckSharing": {
@@ -1566,6 +1565,65 @@
       "noMatches": "No decks match these filters."
     }
   },
+  "CardSearchDock": {
+    "label": "Card database",
+    "title": "Find cards",
+    "matches": "{count, plural, one {# match} other {# matches}}",
+    "placeholder": "Card name or Scryfall syntax",
+    "clear": "Clear search",
+    "results": "Search results",
+    "empty": "Type a card name or pick a filter. Scryfall syntax works too.",
+    "loadMore": "Show more ({shown} of {total})",
+    "highlighted": "{name} highlighted",
+    "addMain": "Add {name} to the deck",
+    "addSide": "Add {name} to the sideboard",
+    "sideShort": "SB",
+    "addedMain": "Added {name} to the deck",
+    "addedSide": "Added {name} to the sideboard",
+    "inDeck": "{count} in deck",
+    "noPrice": "No price",
+    "view": {
+      "label": "Results view",
+      "list": "List",
+      "art": "Art"
+    },
+    "keys": {
+      "adds": "adds",
+      "side": "to sideboard"
+    },
+    "filter": {
+      "colours": "Colours",
+      "colourMode": "Colour match",
+      "mode": {
+        "withinIdentity": "Within commander",
+        "includes": "Includes",
+        "exactly": "Exactly",
+        "atMost": "At most"
+      },
+      "types": "Card types",
+      "manaValueShort": "MV",
+      "manaValueMin": "Lowest mana value",
+      "manaValueMax": "Highest mana value",
+      "any": "any",
+      "legalIn": "Legal in {format}",
+      "more": "More filters"
+    },
+    "printings": {
+      "label": "Printings of {name}",
+      "title": "Printing",
+      "count": "{count, plural, one {# printing} other {# printings}}",
+      "loading": "Loading printings…",
+      "empty": "No printings found.",
+      "choose": "{set} #{number}: add this printing",
+      "chosen": "Chosen"
+    },
+    "gameChanger": {
+      "present": "Game Changer: it counts toward the deck’s bracket.",
+      "under": "Game Changer. Adding it makes {count}; Bracket 3 allows {limit}.",
+      "atLimit": "Game Changer. Adding it makes {count}, the most Bracket 3 allows.",
+      "over": "Game Changer. Adding it makes {count}, more than Bracket 3 allows."
+    }
+  },
   "DeckLink": {
     "label": "Load deck from online service",
     "placeholder": "Paste a link to a deck on Archidekt, Deckstats, Moxfield or TappedOut",
@@ -1630,29 +1688,52 @@
       "earlyCombos": "Early combos",
       "lateCombos": "Late combos"
     },
-    "chainable": "— chain-able:"
+    "chainable": "— chain-able:",
+    "bracket": "Bracket",
+    "estimateNote": "estimate",
+    "partialEstimate": "partial estimate",
+    "why": "Why this bracket?"
   },
   "DeckBreakdown": {
-    "overview": "Overview",
     "stat": {
       "total": "Total",
       "nonland": "Nonland",
       "lands": "Lands",
-      "avgCmc": "Avg CMC"
+      "avgCmc": "Avg MV"
     },
     "bracketEstimate": "Bracket estimate",
     "manaCurve": "Mana curve",
-    "colorDistribution": "Color distribution",
+    "colorDistribution": "Colours",
     "cardTypes": "Card types",
-    "pieLabel": "Color distribution pie",
+    "colorBar": "Colour distribution: {summary}",
     "curve": {
-      "barTitle": "{count, plural, one {# card} other {# cards}} at CMC {cmc}",
+      "label": "Mana curve: {summary}",
+      "barTitle": "{count, plural, one {# card} other {# cards}} at mana value {cmc}",
       "sevenPlus": "7+"
     },
     "noCards": "No cards yet."
   },
   "DeckBanner": {
     "label": "Banner Card"
+  },
+  "DeckHeader": {
+    "myDecks": "My decks",
+    "name": "Deck name",
+    "namePlaceholder": "Untitled deck",
+    "cardCount": "{count, plural, one {# card} other {# cards}}",
+    "sideboardCount": "{count} sideboard",
+    "saving": "Saving…",
+    "dirty": "Unsaved changes",
+    "saved": "Saved",
+    "saveFailed": "The deck could not be saved.",
+    "retrySave": "Retry",
+    "saveFailedHint": "Your last change was not saved. It will be sent again with your next change, or now with Retry.",
+    "export": "Export deck",
+    "more": "More: open deck, print, send to an online service",
+    "editTags": "Edit tags",
+    "bannerCard": "Banner card…",
+    "playmat": "Playmat…",
+    "bracketHint": "Last bracket estimate; see Deck stats"
   },
   "DeckHistory": {
     "undo": "Undo",
@@ -1683,6 +1764,23 @@
       "changePrinting": "Changed printing of \"{name}\" to {set}"
     }
   },
+  "DeckInspector": {
+    "title": "Selected card",
+    "empty": "Pick a card in the deck or in the search to see it here.",
+    "noImage": "No image available",
+    "price": "${price}",
+    "quantity": "Quantity",
+    "decrease": "Remove one {card}",
+    "increase": "Add one {card}",
+    "add": "Add to deck",
+    "addToSideboard": "Add to sideboard",
+    "changePrinting": "Change printing",
+    "toSideboard": "To sideboard",
+    "toMain": "To main deck",
+    "details": "Details",
+    "remove": "Remove",
+    "removeCommander": "Remove commander"
+  },
   "DeckLegality": {
     "checking": "Checking legality…",
     "legal": "Legal in {format}",
@@ -1707,20 +1805,6 @@
       "main": "Mainboard",
       "sideboard": "Sideboard"
     }
-  },
-  "DeckSidebar": {
-    "saveFailed": "The deck could not be saved.",
-    "retrySave": "Retry",
-    "saveFailedHint": "Your last change was not saved. It will be sent again with your next change, or now with Retry.",
-    "namePlaceholder": "Untitled Deck",
-    "cardCount": "{count, plural, one {# card} other {# cards}}",
-    "sideboardCount": "{count} sideboard",
-    "format": "Format",
-    "export": "Export deck",
-    "exportHint": "Export deck (plain text, Arena, Cockatrice)",
-    "saving": "Saving…",
-    "dirty": "Unsaved changes",
-    "saved": "Saved"
   },
   "DeckTags": {
     "label": "Tags",
@@ -1945,8 +2029,6 @@
     "numeric": "Show numeric controls",
     "invalidParams": "Enter crop values within the displayed limits.",
     "nameTooLong": "Card names must contain at most {max} characters.",
-    "edit": "Edit Playmat...",
-    "editNamed": "Edit Playmat ({name})",
     "card": "Card name",
     "printing": "Printing",
     "defaultPrinting": "Default printing",

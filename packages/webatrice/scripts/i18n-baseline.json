@@ -3962,9 +3962,9 @@
       "count": 1
     },
     {
-      "file": "src/features/decks/components/breakdown/ColorPie.tsx",
+      "file": "src/features/decks/components/breakdown/ColorBar.tsx",
       "prefix": "CardSearch.color.",
-      "count": 2
+      "count": 3
     },
     {
       "file": "src/features/decks/components/breakdown/TypeBreakdown.tsx",
@@ -3974,6 +3974,11 @@
     {
       "file": "src/features/decks/components/editor/DeckCardGroup.tsx",
       "prefix": "DeckEditor.section.",
+      "count": 1
+    },
+    {
+      "file": "src/features/decks/components/editor/DeckEditorHeader.tsx",
+      "prefix": "DeckBracket.level.",
       "count": 1
     },
     {

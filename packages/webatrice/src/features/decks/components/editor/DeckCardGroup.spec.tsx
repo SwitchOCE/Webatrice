@@ -15,13 +15,14 @@ function renderGroup(overrides: Partial<DeckCardGroupProps> = {}) {
     label: 'Land',
     indices: [2, 0],
     deck: cards,
+    selected: null,
+    onSelect: vi.fn(),
     onInc: vi.fn(),
     onDelete: vi.fn(),
     onSetCategory: vi.fn(),
     onSetCommander: vi.fn(),
-    onPreview: vi.fn(),
     onChangePrinting: vi.fn(),
-    onCardClick: vi.fn(),
+    onShowDetails: vi.fn(),
     isMtg: true,
     isCommander: false,
     ...overrides,
@@ -39,21 +40,19 @@ describe('DeckCardGroup', () => {
 
   it('wires each row to its deck index', () => {
     const props = renderGroup();
-    fireEvent.mouseEnter(screen.getByText('Forest').parentElement!);
     fireEvent.click(screen.getByRole('button', { name: 'Bayou' }));
-    expect(props.onPreview).toHaveBeenCalledWith(cards[0]);
-    expect(props.onCardClick).toHaveBeenCalledWith(cards[2]);
+    expect(props.onSelect).toHaveBeenCalledWith(cards[2]);
+  });
+
+  it('marks the selected row', () => {
+    renderGroup({ selected: { name: 'forest', category: 'main' } });
+    const rows = screen.getAllByRole('row');
+    expect(rows.map((row) => row.getAttribute('aria-selected'))).toEqual(['false', 'true']);
   });
 
   it('flags cards the catalog could not find and draws mana costs', () => {
     renderGroup({ label: 'Other', indices: [1] });
     expect(screen.getByRole('img', { name: 'DeckEditor.row.unknown' })).toHaveAttribute('title', 'DeckEditor.row.unknown');
     expect(screen.getAllByRole('img').flatMap((img) => img.getAttribute('alt') ?? [])).toEqual(['{2}', '{G}']);
-  });
-
-  it('renders names as plain text when cards have no detail view', () => {
-    renderGroup({ onCardClick: undefined });
-    expect(screen.queryByRole('button', { name: 'Bayou' })).toBeNull();
-    expect(screen.getByText('Bayou')).toBeInTheDocument();
   });
 });

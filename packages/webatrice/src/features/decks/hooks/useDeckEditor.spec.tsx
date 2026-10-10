@@ -235,6 +235,23 @@ describe('useDeckEditor', () => {
     expect(latest.deck?.cards.map((c) => c.name)).toEqual(['Sol Ring', 'Mox']);
   });
 
+  it('adds to the sideboard as its own row, with the printing the search picked', async () => {
+    setCachedDeck(5, { deck: hydrated(), savedSignature: deckSaveSignature(hydrated()) });
+    vi.mocked(lookupCard).mockResolvedValue({ found: false, source: 'unknown', name: 'Sol Ring', printings: [] });
+    setup();
+
+    await act(() => latest.addCard('Sol Ring', { zone: 'side', scryfallId: 'print-1' }));
+    expect(latest.deck?.cards.map((c) => [c.name, c.category, c.quantity, c.scryfallId])).toEqual([
+      ['Sol Ring', 'main', 1, undefined],
+      ['Sol Ring', 'sideboard', 1, 'print-1'],
+    ]);
+    expect(latest.history.undo.at(-1)?.reason).toEqual({ kind: 'addCard', zone: 'sideboard', name: 'Sol Ring' });
+
+    await act(() => latest.addCard('sol ring', { zone: 'side' }));
+    expect(latest.deck?.cards[1].quantity).toBe(2);
+    expect(latest.totalSideboardCount).toBe(2);
+  });
+
   it('undoes and redoes edits in order, and a new edit clears redo', () => {
     setCachedDeck(5, { deck: hydrated(), savedSignature: deckSaveSignature(hydrated()) });
     setup();

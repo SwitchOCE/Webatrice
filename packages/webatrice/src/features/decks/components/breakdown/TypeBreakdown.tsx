@@ -12,20 +12,17 @@ export function TypeBreakdown({
   const entries = sortedTypeCounts(counts);
 
   if (entries.length === 0) {
-    return <div className="text-sm text-text-muted italic">{t('DeckBreakdown.noCards')}</div>;
+    return <div className="text-[12px] italic text-text-muted">{t('DeckBreakdown.noCards')}</div>;
   }
 
   return (
-    <div className="grid grid-cols-2 gap-2">
+    <ul className="grid grid-cols-2 gap-x-3 gap-y-1">
       {entries.map(([type, count]) => (
-        <div
-          key={type}
-          className="flex items-center justify-between px-3 py-1.5 rounded-md bg-bg-elevated border border-border-subtle text-sm"
-        >
-          <span className="text-text-primary">{t(`CardSearch.cardType.${type}`)}</span>
-          <span className="text-text-muted tabular-nums">{count}</span>
-        </div>
+        <li key={type} className="flex items-center justify-between text-[12px]">
+          <span className="truncate text-text-secondary">{t(`CardSearch.cardType.${type}`)}</span>
+          <span className="tabular-nums text-text-primary">{count}</span>
+        </li>
       ))}
-    </div>
+    </ul>
   );
 }

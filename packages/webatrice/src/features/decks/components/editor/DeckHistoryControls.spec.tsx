@@ -47,8 +47,8 @@ describe('DeckHistoryControls', () => {
     const props = renderControls();
     fireEvent.click(screen.getByRole('button', { name: 'DeckHistory.history' }));
 
-    const list = screen.getByRole('list', { name: 'DeckHistory.history' });
-    const entries = within(list).getAllByRole('button');
+    const list = screen.getByRole('menu', { name: 'DeckHistory.history' });
+    const entries = within(list).getAllByRole('menuitem');
     expect(entries.map((e) => e.textContent)).toEqual([
       'DeckHistory.redoEntry',
       'DeckHistory.undoEntry',
@@ -58,7 +58,10 @@ describe('DeckHistoryControls', () => {
 
     fireEvent.click(entries[2]);
     expect(props.onUndo).toHaveBeenCalledWith(2);
-    fireEvent.click(entries[0]);
+    expect(screen.queryByRole('menu')).toBeNull();
+
+    fireEvent.click(screen.getByRole('button', { name: 'DeckHistory.history' }));
+    fireEvent.click(within(screen.getByRole('menu')).getAllByRole('menuitem')[0]);
     expect(props.onRedo).toHaveBeenCalledWith(1);
   });
 });

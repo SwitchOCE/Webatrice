@@ -5,8 +5,6 @@
     "numeric": "Show numeric controls",
     "invalidParams": "Enter crop values within the displayed limits.",
     "nameTooLong": "Card names must contain at most {max} characters.",
-    "edit": "Edit Playmat...",
-    "editNamed": "Edit Playmat ({name})",
     "card": "Card name",
     "printing": "Printing",
     "defaultPrinting": "Default printing",

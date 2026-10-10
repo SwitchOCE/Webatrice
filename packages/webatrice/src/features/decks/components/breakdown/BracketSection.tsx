@@ -2,16 +2,15 @@ import { useMemo, useRef, useState } from 'react';
 import { Trans, useTranslation } from 'react-i18next';
 import { CircleAlert, Globe, Loader2, RefreshCw } from 'lucide-react';
 
+import { Button, Chip, type ChipTone } from '@app/components';
 import { CommanderSpellbookIntegration, type BracketAssessment } from '@app/types';
-import { BRACKET_TONE } from '@app/utils';
 
 import { deckFingerprint, type UnavailableSource } from '../../bracket';
-import { bracketSignalBadges } from '../../bracketBadges';
+import { bracketSignalBadges, type SignalTone } from '../../bracketBadges';
 import { lookupsAllowedFor, useBracketLookupsMode } from '../../bracketConsent';
 import type { SourceFailure } from '../../bracketSources';
 import { useBracketAssessment, type BracketAssessmentState } from '../../hooks/useBracketAssessment';
 import type { DeckCard } from '../../types';
-import { SignalBadge } from './SignalBadge';
 
 export interface BracketSectionProps {
   cards: DeckCard[];
@@ -32,14 +31,18 @@ export function BracketSection({ cards, cachedAssessment, onAssessmentComputed }
     <div ref={sectionRef} tabIndex={-1} aria-busy={assessment.status === 'loading'} className="outline-none">
       {assessment.status === 'consentRequired' ? (
         mode === CommanderSpellbookIntegration.Enabled
-          ? <EstimateBracketButton onClick={() => setRequested(fingerprint)} />
+          ? (
+            <Button size="sm" icon={<Globe size={13} />} onClick={() => setRequested(fingerprint)}>
+              {t('DeckBracket.estimate')}
+            </Button>
+          )
           : <BracketConsentPrompt onChoose={setMode} />
       ) : assessment.status === 'loading' ? (
-        <div className="flex items-center gap-2 text-sm text-text-muted">
+        <div className="flex items-center gap-2 text-[12px] text-text-muted">
           <Loader2 size={14} className="animate-spin" /> {t('DeckBracket.assessing')}
         </div>
       ) : assessment.status === 'error' ? (
-        <div className="text-sm text-text-muted">
+        <div className="text-[12px] text-text-muted">
           {t('DeckBracket.failed', { message: assessment.message || t('DeckBracket.unknownError') })}
         </div>
       ) : (
@@ -58,33 +61,85 @@ export function BracketSection({ cards, cachedAssessment, onAssessmentComputed }
   );
 }
 
+export const BRACKET_CHIP_TONE: Record<number, ChipTone> = { 1: 'success', 2: 'success', 3: 'warning', 4: 'danger', 5: 'danger' };
+
+const SIGNAL_PILL: Record<SignalTone, string> = {
+  muted: 'bg-bg-elevated text-text-muted',
+  warn: 'bg-warning/15 text-warning',
+  hot: 'bg-danger/15 text-danger',
+};
+
 function BracketResult({ assessment, onRetry, onRevokeLookups }: {
   assessment: Extract<BracketAssessmentState, { report: unknown }>;
   onRetry: () => void;
   onRevokeLookups?: () => void;
 }) {
   const { t } = useTranslation();
+  const [explain, setExplain] = useState(false);
   const { report } = assessment;
   const degraded = assessment.status === 'degraded';
-  const tone = BRACKET_TONE[report.level];
   const badges = bracketSignalBadges(report.signals);
-  const titleParams = { level: report.level, label: t(`DeckBracket.level.${report.level}`) };
+  const label = t(`DeckBracket.level.${report.level}`);
 
   return (
-    <div className="space-y-3">
-      <div className="flex items-center gap-4">
-        <div
-          className={`h-16 w-16 rounded-lg border ${tone.bg} ${tone.border} flex items-center justify-center`}
+    <div className="flex flex-col gap-1.5">
+      <div className="flex flex-wrap items-center gap-2">
+        <Chip
+          tone={BRACKET_CHIP_TONE[report.level] ?? 'neutral'}
+          title={t(degraded ? 'DeckBracket.partialTitle' : 'DeckBracket.title', { level: report.level, label })}
         >
-          <span className={`text-3xl font-modern font-bold tabular-nums ${tone.text}`}>
-            {report.level}{degraded && '+'}
-          </span>
-        </div>
-        <div>
-          <div className={`text-sm font-semibold ${tone.text}`}>
-            {t(degraded ? 'DeckBracket.partialTitle' : 'DeckBracket.title', titleParams)}
-          </div>
-          <div className="text-xs text-text-muted mt-1">
+          {t('DeckBracket.bracket')} <span className="tabular-nums">{degraded ? `${report.level}+` : report.level}</span> · {label}
+        </Chip>
+        <span className="text-[11.5px] text-text-muted">
+          {t(degraded ? 'DeckBracket.partialEstimate' : 'DeckBracket.estimateNote')}
+        </span>
+      </div>
+
+      {degraded && <BracketDegradedNotice unavailable={assessment.unavailable} onRetry={onRetry} />}
+
+      <ul className="flex flex-col gap-y-1">
+        {badges.map((badge) => {
+          const items = badge.chainable?.length
+            ? [...badge.items, t('DeckBracket.chainable'), ...badge.chainable]
+            : badge.items;
+          return (
+            <li
+              key={badge.id}
+              className="flex min-w-0 items-center gap-2 text-[12px]"
+              title={items.join(', ') || undefined}
+            >
+              <span
+                className={[
+                  'inline-flex h-[18px] min-w-[18px] items-center justify-center rounded-full px-1',
+                  'text-[10.5px] font-semibold tabular-nums',
+                  SIGNAL_PILL[badge.tone],
+                ].join(' ')}
+              >
+                {badge.count}
+              </span>
+              <span className={badge.count ? 'shrink-0 text-text-primary' : 'shrink-0 text-text-muted'}>
+                {t(`DeckBracket.signal.${badge.id}`)}
+              </span>
+              {items.length > 0 && <span className="truncate text-text-muted">· {items.join(', ')}</span>}
+            </li>
+          );
+        })}
+      </ul>
+
+      <button
+        type="button"
+        aria-expanded={explain}
+        onClick={() => setExplain((open) => !open)}
+        className={[
+          'w-fit text-[12px] font-medium text-accent hover:underline',
+          'focus-visible:outline focus-visible:outline-2 focus-visible:outline-accent',
+        ].join(' ')}
+      >
+        {t('DeckBracket.why')}
+      </button>
+      {explain && (
+        <div className="flex flex-col gap-1 text-[11.5px] leading-snug text-text-muted">
+          <p>
             <Trans
               i18nKey="DeckBracket.methodology"
               components={[
@@ -97,77 +152,41 @@ function BracketResult({ assessment, onRetry, onRevokeLookups }: {
                 />,
               ]}
             />
-          </div>
-          <div className="text-xs text-text-muted mt-1">
+          </p>
+          <p>
             {t('DeckBracket.provenance')}
             {onRevokeLookups && (
               <>
                 {' '}
-                <button
-                  type="button"
-                  onClick={onRevokeLookups}
-                  className="underline hover:text-text-primary"
-                >
+                <button type="button" onClick={onRevokeLookups} className="underline hover:text-text-primary">
                   {t('DeckBracket.consent.revoke')}
                 </button>
               </>
             )}
-          </div>
+          </p>
         </div>
-      </div>
-
-      {assessment.status === 'degraded' && (
-        <BracketDegradedNotice unavailable={assessment.unavailable} onRetry={onRetry} />
       )}
-
-      <div className="grid grid-cols-5 gap-2">
-        {badges.map((badge) => (
-          <SignalBadge
-            key={badge.id}
-            label={t(`DeckBracket.signal.${badge.id}`)}
-            count={badge.count}
-            tone={badge.tone}
-            items={badge.chainable?.length
-              ? [...badge.items, t('DeckBracket.chainable'), ...badge.chainable]
-              : badge.items}
-          />
-        ))}
-      </div>
     </div>
   );
 }
-
-const ACTION_BUTTON_CLASS = [
-  'inline-flex items-center gap-1.5 px-3 py-1 rounded-md border border-border-strong bg-bg-elevated',
-  'text-sm text-text-primary hover:bg-border-subtle',
-].join(' ');
 
 function BracketConsentPrompt({ onChoose }: { onChoose: (mode: CommanderSpellbookIntegration) => void }) {
   const { t } = useTranslation();
   return (
-    <div className="space-y-2">
-      <p className="text-sm text-text-muted">{t('DeckBracket.consent.prompt')}</p>
-      <div className="flex flex-wrap gap-2">
-        <button type="button" onClick={() => onChoose(CommanderSpellbookIntegration.Enabled)} className={ACTION_BUTTON_CLASS}>
-          <Globe size={13} /> {t('DeckBracket.consent.enable')}
-        </button>
-        <button type="button" onClick={() => onChoose(CommanderSpellbookIntegration.Automatic)} className={ACTION_BUTTON_CLASS}>
+    <div className="flex flex-col gap-2">
+      <p className="text-[12px] leading-snug text-text-muted">{t('DeckBracket.consent.prompt')}</p>
+      <div className="flex flex-wrap gap-1.5">
+        <Button size="sm" icon={<Globe size={13} />} onClick={() => onChoose(CommanderSpellbookIntegration.Enabled)}>
+          {t('DeckBracket.consent.enable')}
+        </Button>
+        <Button size="sm" onClick={() => onChoose(CommanderSpellbookIntegration.Automatic)}>
           {t('DeckBracket.consent.automatic')}
-        </button>
-        <button type="button" onClick={() => onChoose(CommanderSpellbookIntegration.Disabled)} className={ACTION_BUTTON_CLASS}>
+        </Button>
+        <Button size="sm" onClick={() => onChoose(CommanderSpellbookIntegration.Disabled)}>
           {t('DeckBracket.consent.disable')}
-        </button>
+        </Button>
       </div>
     </div>
-  );
-}
-
-function EstimateBracketButton({ onClick }: { onClick: () => void }) {
-  const { t } = useTranslation();
-  return (
-    <button type="button" onClick={onClick} className={ACTION_BUTTON_CLASS}>
-      <Globe size={13} /> {t('DeckBracket.estimate')}
-    </button>
   );
 }
 
@@ -186,10 +205,10 @@ function BracketDegradedNotice({ unavailable, onRetry }: {
   return (
     <div
       role="status"
-      className="flex items-start gap-2 text-xs text-warning bg-yellow-500/10 border border-yellow-500/30 rounded-md px-3 py-2"
+      className="flex items-start gap-2 rounded-ui border border-warning/30 bg-warning/10 px-2.5 py-2 text-[11.5px] text-warning"
     >
-      <CircleAlert size={14} className="shrink-0 mt-0.5 text-warning" />
-      <div className="flex-1 min-w-0">
+      <CircleAlert size={14} className="mt-0.5 shrink-0" />
+      <div className="min-w-0 flex-1">
         <div>{t('DeckBracket.partialNotice')}</div>
         <ul className="mt-1 text-text-muted">
           {unavailable.map(({ source, failure, missing, total }) => {
@@ -207,16 +226,9 @@ function BracketDegradedNotice({ unavailable, onRetry }: {
           })}
         </ul>
       </div>
-      <button
-        type="button"
-        onClick={onRetry}
-        className={[
-          'shrink-0 inline-flex items-center gap-1 px-2 py-1 rounded-md border border-yellow-500/40',
-          'text-warning hover:bg-yellow-500/15 transition-colors',
-        ].join(' ')}
-      >
-        <RefreshCw size={11} /> {t('DeckBracket.retry')}
-      </button>
+      <Button size="sm" variant="ghost" className="!text-warning hover:!bg-warning/10" icon={<RefreshCw size={11} />} onClick={onRetry}>
+        {t('DeckBracket.retry')}
+      </Button>
     </div>
   );
 }

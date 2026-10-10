@@ -1,6 +1,8 @@
+import { isMtgFormat, normalizeFormat } from '@app/types';
+
 import type { ManaColor } from './manaSymbols';
 
-export type FilterColorMode = 'includes' | 'exactly' | 'atMost';
+export type FilterColorMode = 'includes' | 'exactly' | 'atMost' | 'withinIdentity';
 export type FilterCardType =
   | 'Creature'
   | 'Instant'
@@ -21,6 +23,12 @@ export interface SearchFiltersState {
   cmcMax: string;
   oracle: string;
   rarities: FilterRarity[];
+  legalOnly?: boolean;
+}
+
+export interface SearchScope {
+  identity?: readonly string[];
+  format?: string;
 }
 
 export const EMPTY_FILTERS: SearchFiltersState = {
@@ -41,16 +49,19 @@ export const FILTER_TYPES: FilterCardType[] = [
 
 export const FILTER_RARITIES: FilterRarity[] = ['common', 'uncommon', 'rare', 'mythic'];
 
-export function buildScryfallQuery(typed: string, f: SearchFiltersState): string {
+export function buildScryfallQuery(typed: string, f: SearchFiltersState, scope: SearchScope = {}): string {
   const parts: string[] = [];
   const text = typed.trim();
   if (text) {
     parts.push(text);
   }
 
-  if (f.colors.length > 0) {
+  if (f.colorMode === 'withinIdentity' && scope.identity) {
+    const letters = scope.identity.filter((c) => c !== 'C').map((c) => c.toLowerCase()).join('');
+    parts.push(letters ? `id<=${letters}` : 'id:c');
+  } else if (f.colors.length > 0) {
     const letters = f.colors.map((c) => c.toLowerCase()).join('');
-    const op = f.colorMode === 'exactly' ? '=' : f.colorMode === 'atMost' ? '<=' : ':';
+    const op = f.colorMode === 'exactly' ? '=' : f.colorMode === 'atMost' || f.colorMode === 'withinIdentity' ? '<=' : ':';
     parts.push(`c${op}${letters}`);
   }
 
@@ -92,6 +103,10 @@ export function buildScryfallQuery(typed: string, f: SearchFiltersState): string
   if (f.rarities.length > 0 && f.rarities.length < 4) {
     const clauses = f.rarities.map((r) => `r:${r}`);
     parts.push(clauses.length > 1 ? `(${clauses.join(' or ')})` : clauses[0]);
+  }
+
+  if (f.legalOnly && isMtgFormat(scope.format)) {
+    parts.push(`f:${normalizeFormat(scope.format)}`);
   }
 
   return parts.join(' ');

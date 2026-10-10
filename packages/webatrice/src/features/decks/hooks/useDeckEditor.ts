@@ -54,6 +54,21 @@ import { useDeckHistory } from './useDeckHistory';
 
 export type { SaveState } from './useDeckAutosave';
 
+export type AddCardZone = 'main' | 'side';
+
+export interface AddCardOptions {
+  zone?: AddCardZone;
+  scryfallId?: string;
+}
+
+const ZONE_CATEGORY: Record<AddCardZone, DeckCard['category']> = { main: 'main', side: 'sideboard' };
+
+function findZoneRow(deck: HydratedDeck, name: string, category: DeckCard['category']): number {
+  return category === 'main'
+    ? findMainboardRow(deck, name)
+    : deck.cards.findIndex((c) => c.category === category && c.name.toLowerCase() === name.toLowerCase());
+}
+
 export interface UseDeckEditor {
   deck: HydratedDeck | null;
   loading: boolean;
@@ -80,7 +95,7 @@ export interface UseDeckEditor {
   /** Toggle the commander marker on a card. Independent of category.
    *  See DeckCard.isCommander for the full rationale. */
   setCommander: (index: number, isCommander: boolean) => void;
-  addCard: (name: string) => Promise<void>;
+  addCard: (name: string, options?: AddCardOptions) => Promise<void>;
   flushSave: () => void;
   retrySave: () => void;
   isModified: boolean;
@@ -448,26 +463,28 @@ export function useDeckEditor(deckId: number | null, draftToken: string | null =
   );
 
   const addCard = useCallback(
-    async (name: string) => {
+    async (name: string, options: AddCardOptions = {}) => {
       const trimmed = normalizeAddedCardName(name);
       if (!trimmed) {
         return;
       }
+      const zone = options.zone ?? 'main';
+      const category = ZONE_CATEGORY[zone];
       const current = deckRef.current;
       if (current) {
-        const existingIdx = findMainboardRow(current, trimmed);
+        const existingIdx = findZoneRow(current, trimmed, category);
         if (existingIdx >= 0) {
           editCard(
             existingIdx,
             (d) => adjustCardQuantity(d, existingIdx, 1),
-            (card) => ({ kind: 'addCard', zone: 'main', name: card.name }),
+            (card) => ({ kind: 'addCard', zone: category, name: card.name }),
           );
           return;
         }
       }
       const lookup = await lookupCard(trimmed);
-      const newCard = assembleDeckCard({ name: trimmed, quantity: 1, category: 'main' }, lookup);
-      applyEdit((d) => appendCard(d, newCard), { kind: 'addCard', zone: 'main', name: newCard.name });
+      const newCard = assembleDeckCard({ name: trimmed, quantity: 1, category, scryfallId: options.scryfallId }, lookup);
+      applyEdit((d) => appendCard(d, newCard), { kind: 'addCard', zone: category, name: newCard.name });
     },
     [applyEdit, editCard],
   );

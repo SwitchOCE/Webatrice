@@ -309,6 +309,10 @@ export const defaults: Record<ActionId, ShortcutDef> = {
   'deck.removeCard': { scope: ShortcutScope.DECK_EDITOR, group: 'deckEditor', sequences: ['Minus', 'NumpadSubtract'] },
   'deck.undo': { scope: ShortcutScope.DECK_EDITOR, group: 'deckEditor', sequences: ['Ctrl+KeyZ'] },
   'deck.redo': { scope: ShortcutScope.DECK_EDITOR, group: 'deckEditor', sequences: ['Ctrl+KeyY', 'Ctrl+Shift+KeyZ'] },
+  'deck.addSearchResult': { scope: ShortcutScope.DECK_EDITOR, group: 'deckEditor', sequences: ['Enter', 'NumpadEnter'] },
+  'deck.addSearchResultToSideboard': {
+    scope: ShortcutScope.DECK_EDITOR, group: 'deckEditor', sequences: ['Ctrl+Enter', 'Ctrl+NumpadEnter'],
+  },
 
   'room.sendMessage': { scope: ShortcutScope.ROOM, group: 'room', sequences: ['Enter'] },
 

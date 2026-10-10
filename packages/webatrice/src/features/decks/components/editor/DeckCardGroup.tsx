@@ -22,18 +22,20 @@ import type { CardLegality } from '../../deckLegality';
 import type { DeckCard } from '../../types';
 import { deckRowKey, type DeckCardGrid } from '../../hooks/useDeckCardGrid';
 import { DeckCardRow } from './DeckCardRow';
+import { isInspectedRow, type InspectedCard } from './editorSelection';
 
 export interface DeckCardGroupProps {
   label: string;
   indices: number[];
   deck: DeckCard[];
+  selected: InspectedCard | null;
+  onSelect: (card: DeckCard) => void;
   onInc: (index: number, delta: number) => void;
   onDelete: (index: number) => void;
   onSetCategory: (index: number, category: DeckCategory) => void;
   onSetCommander: (index: number, isCommander: boolean) => void;
-  onPreview: (card: DeckCard | null) => void;
   onChangePrinting: (index: number, card: DeckCard) => void;
-  onCardClick?: (card: DeckCard) => void;
+  onShowDetails?: (card: DeckCard) => void;
   isMtg: boolean;
   isCommander: boolean;
   legality?: readonly CardLegality[];
@@ -58,13 +60,14 @@ export function DeckCardGroup({
   label,
   indices,
   deck,
+  selected,
+  onSelect,
   onInc,
   onDelete,
   onSetCategory,
   onSetCommander,
-  onPreview,
   onChangePrinting,
-  onCardClick,
+  onShowDetails,
   isMtg,
   isCommander,
   legality,
@@ -75,27 +78,29 @@ export function DeckCardGroup({
   const totalQty = indices.reduce((sum, i) => sum + deck[i].quantity, 0);
   const Icon = SECTION_ICON[label] ?? MoreHorizontal;
   return (
-    <section className="min-w-0 mb-6 break-inside-avoid">
-      <h3 id={headingId} className="flex items-center gap-2 mb-2 pb-1.5 border-b border-border-subtle">
-        <Icon size={14} className="text-text-secondary shrink-0" />
-        <span className="text-sm font-semibold uppercase tracking-wider text-text-secondary">
-          {t(`DeckEditor.section.${label.toLowerCase()}`)}
-        </span>
-        <span className="text-sm tabular-nums text-text-muted">{totalQty}</span>
+    <section className="mb-4 min-w-0 break-inside-avoid">
+      <h3
+        id={headingId}
+        className="flex items-center gap-2 border-b border-border-subtle pb-1.5 font-display text-[13px] font-semibold text-text-primary"
+      >
+        <Icon size={14} className="shrink-0 text-text-muted" />
+        {t(`DeckEditor.section.${label.toLowerCase()}`, { count: totalQty })}
+        <span className="font-sans font-normal tabular-nums text-text-muted">{totalQty}</span>
       </h3>
-      <div role="grid" aria-labelledby={headingId}>
+      <div role="grid" aria-labelledby={headingId} className="mt-1 flex flex-col">
         {indices.map((i) => (
           <DeckCardRow
             key={deckRowKey(deck[i])}
             card={deck[i]}
+            selected={isInspectedRow(deck[i], selected)}
+            onSelect={() => onSelect(deck[i])}
             rowProps={grid?.getDeckRowProps(i)}
             onInc={(delta) => (delta < 0 && grid ? grid.decrementRow(i) : onInc(i, delta))}
             onDelete={() => (grid ? grid.removeRow(i) : onDelete(i))}
             onSetCategory={(c) => (grid ? grid.moveRow(i, c) : onSetCategory(i, c))}
             onSetCommander={(v) => onSetCommander(i, v)}
-            onHover={() => onPreview(deck[i])}
             onChangePrinting={() => onChangePrinting(i, deck[i])}
-            onCardClick={onCardClick ? () => onCardClick(deck[i]) : undefined}
+            onShowDetails={onShowDetails ? () => onShowDetails(deck[i]) : undefined}
             isMtg={isMtg}
             isCommander={isCommander}
             legality={legality?.[i]}

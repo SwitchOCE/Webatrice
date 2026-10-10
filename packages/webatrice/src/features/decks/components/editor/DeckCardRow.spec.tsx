@@ -10,13 +10,13 @@ const bolt: DeckCard = { name: 'Lightning Bolt', quantity: 4, category: 'main', 
 function renderRow(overrides: Partial<DeckCardRowProps> = {}) {
   const props: DeckCardRowProps = {
     card: bolt,
+    onSelect: vi.fn(),
     onInc: vi.fn(),
     onDelete: vi.fn(),
     onSetCategory: vi.fn(),
     onSetCommander: vi.fn(),
     onChangePrinting: vi.fn(),
-    onHover: vi.fn(),
-    onCardClick: vi.fn(),
+    onShowDetails: vi.fn(),
     isMtg: true,
     isCommander: false,
     ...overrides,
@@ -26,20 +26,20 @@ function renderRow(overrides: Partial<DeckCardRowProps> = {}) {
 }
 
 describe('DeckCardRow', () => {
-  it('shows quantity, name and cost, and previews on hover or focus', () => {
+  it('shows quantity, name and cost, and selects on click or focus', () => {
     const props = renderRow();
-    const row = screen.getByText('4').parentElement!;
+    const row = screen.getByRole('row');
     expect(within(row).getByRole('img', { name: '{R}' })).toBeInTheDocument();
+    expect(within(row).getByText('4')).toBeInTheDocument();
 
-    fireEvent.mouseEnter(row);
-    fireEvent.focus(screen.getByRole('button', { name: 'Lightning Bolt' }));
-    expect(props.onHover).toHaveBeenCalledTimes(2);
+    fireEvent.click(screen.getByRole('button', { name: 'Lightning Bolt' }));
+    fireEvent.focus(row);
+    expect(props.onSelect).toHaveBeenCalledTimes(2);
   });
 
-  it('opens the detail view from the name', () => {
-    const props = renderRow();
-    fireEvent.click(screen.getByRole('button', { name: 'Lightning Bolt' }));
-    expect(props.onCardClick).toHaveBeenCalled();
+  it('marks the selected row for assistive technology', () => {
+    renderRow({ selected: true });
+    expect(screen.getByRole('row')).toHaveAttribute('aria-selected', 'true');
   });
 
   it('routes the row menu to the row callbacks', () => {
@@ -72,13 +72,13 @@ describe('DeckCardRow', () => {
     const props = renderRow();
     fireEvent.contextMenu(screen.getByRole('row'), { clientX: 40, clientY: 50 });
     await user.click(screen.getByRole('menuitem', { name: 'DeckEditor.rowActions.details' }));
-    expect(props.onCardClick).toHaveBeenCalled();
+    expect(props.onShowDetails).toHaveBeenCalled();
   });
 
   it('announces a quantity change made from the open menu', () => {
     const props: DeckCardRowProps = {
-      card: bolt, onInc: vi.fn(), onDelete: vi.fn(), onSetCategory: vi.fn(), onSetCommander: vi.fn(),
-      onChangePrinting: vi.fn(), onHover: vi.fn(), isMtg: true, isCommander: false,
+      card: bolt, onSelect: vi.fn(), onInc: vi.fn(), onDelete: vi.fn(), onSetCategory: vi.fn(), onSetCommander: vi.fn(),
+      onChangePrinting: vi.fn(), isMtg: true, isCommander: false,
     };
     const { rerender } = renderWithProviders(<DeckCardRow {...props} />);
     fireEvent.click(screen.getByRole('button', { name: 'DeckEditor.rowActions.trigger' }));
@@ -92,10 +92,10 @@ describe('DeckCardRow', () => {
     expect(status).toHaveTextContent('DeckEditor.rowActions.quantityNow');
   });
 
-  it('paints an illegal row red and names the reason', () => {
+  it('paints an illegal row and names the reason', () => {
     renderRow({ legality: { status: 'illegal', reason: 'tooMany', max: 4 } });
-    const row = screen.getByText('4').parentElement!;
-    expect(row.className).toContain('bg-red-500/15');
+    const row = screen.getByRole('row');
+    expect(row.className).toContain('bg-danger/10');
     expect(row).toHaveAttribute('title', 'DeckLegality.reason.tooMany');
     expect(within(row).getByRole('img', { name: 'DeckLegality.reason.tooMany' })).toBeInTheDocument();
   });
@@ -107,10 +107,11 @@ describe('DeckCardRow', () => {
     expect(within(row).getByRole('img', { name: 'DeckEditor.row.unknown' })).toBeInTheDocument();
   });
 
-  it('leaves legal and unchecked rows unmarked', () => {
-    renderRow({ legality: { status: 'unknown' } });
-    const row = screen.getByText('4').parentElement!;
-    expect(row.className).not.toContain('bg-red');
+  it('shows the commander crown and leaves legal rows unmarked', () => {
+    renderRow({ card: { ...bolt, isCommander: true }, legality: { status: 'unknown' } });
+    const row = screen.getByRole('row');
+    expect(row.className).not.toContain('bg-danger');
+    expect(within(row).getByRole('img', { name: 'DeckEditor.row.commander' })).toBeInTheDocument();
     expect(within(row).queryByRole('img', { name: /DeckLegality/ })).toBeNull();
   });
 });

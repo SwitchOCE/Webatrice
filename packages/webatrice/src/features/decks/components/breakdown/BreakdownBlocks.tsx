@@ -2,19 +2,18 @@ import type { ReactNode } from 'react';
 
 export function StatCard({ label, value }: { label: string; value: string | number }) {
   return (
-    <div className="rounded-lg bg-bg-elevated border border-border-subtle p-3">
-      <div className="text-2xl font-modern font-bold text-text-primary tabular-nums">
-        {value}
-      </div>
-      <div className="text-xs uppercase tracking-widest text-text-muted mt-1">{label}</div>
+    <div className="flex min-w-0 flex-col rounded-ui border border-border-subtle bg-bg-base/40 px-2 py-1.5">
+      <span className="font-display text-[16px] font-semibold leading-tight tabular-nums text-text-primary">{value}</span>
+      <span className="truncate text-[11px] text-text-muted">{label}</span>
     </div>
   );
 }
 
-export function SectionHeader({ children }: { children: ReactNode }) {
+export function SectionHeader({ children, actions }: { children: ReactNode; actions?: ReactNode }) {
   return (
-    <h3 className="text-xs font-semibold uppercase tracking-widest text-text-muted mb-2">
-      {children}
-    </h3>
+    <div className="mb-2 flex items-center">
+      <h3 className="text-[11px] font-semibold uppercase tracking-[0.08em] text-text-muted">{children}</h3>
+      {actions && <div className="ml-auto">{actions}</div>}
+    </div>
   );
 }

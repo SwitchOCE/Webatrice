@@ -44,6 +44,10 @@
       "earlyCombos": "Early combos",
       "lateCombos": "Late combos"
     },
-    "chainable": "— chain-able:"
+    "chainable": "— chain-able:",
+    "bracket": "Bracket",
+    "estimateNote": "estimate",
+    "partialEstimate": "partial estimate",
+    "why": "Why this bracket?"
   }
 }
