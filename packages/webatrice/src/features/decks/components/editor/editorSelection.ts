@@ -1,3 +1,8 @@
+import { ScryfallImageSize } from '@cockatrice/datatrice';
+
+import { getScryfallUrlById } from '@app/services';
+
+import { searchCardAsPreview, type ScryfallSearchCard } from '../../search';
 import type { DeckCard } from '../../types';
 
 const WUBRG = ['W', 'U', 'B', 'R', 'G'] as const;
@@ -37,6 +42,37 @@ export function resolveInspectedRow(cards: readonly DeckCard[], selected: Inspec
     }
   }
   return -1;
+}
+
+export function searchCardInspection(card: ScryfallSearchCard, providerId?: string): InspectedCard {
+  const preview = searchCardAsPreview(card);
+  return {
+    name: card.name,
+    category: 'main',
+    scryfallId: providerId,
+    preview: providerId && providerId !== card.id
+      ? { ...preview, scryfallId: providerId, imageUri: getScryfallUrlById(providerId, ScryfallImageSize.Normal), imageUris: undefined }
+      : preview,
+  };
+}
+
+export interface PreviewTarget {
+  card: InspectedCard | null;
+  index: number;
+}
+
+export function resolvePreviewTarget(
+  cards: readonly DeckCard[],
+  hovered: InspectedCard | null,
+  selected: InspectedCard | null,
+): PreviewTarget {
+  if (hovered) {
+    const index = resolveInspectedRow(cards, hovered);
+    if (index >= 0 || hovered.preview) {
+      return { card: hovered, index };
+    }
+  }
+  return { card: selected, index: resolveInspectedRow(cards, selected) };
 }
 
 export function dockColorIdentity(cards: readonly DeckCard[], isCommander: boolean): string[] | undefined {

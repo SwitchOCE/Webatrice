@@ -13,14 +13,20 @@ import {
   type ScryfallDetail,
 } from '@app/services';
 
-import { useBigPreviewCard, useCardPreviewActions } from '../CardPreviewContext';
+import { useBigPreviewAnchor, useBigPreviewCard, useCardPreviewActions } from '../CardPreviewContext';
 
 import { CARD_CORNER_RADIUS } from '../SeatCard/cardSize';
 import PreviewCardImage from '../PreviewCardImage/PreviewCardImage';
+import { HoverCardZoom } from './HoverCardZoom';
+import { useFloatingPreviewLayout } from './useFloatingPreview';
+
+export const ZOOM_CHROME = { x: 24, y: 24, textWidth: 292 } as const;
 
 export function BigCardPreview() {
   const { t } = useTranslation();
   const card = useBigPreviewCard();
+  const anchor = useBigPreviewAnchor();
+  const layout = useFloatingPreviewLayout(anchor, ZOOM_CHROME);
   const { openBigPreview } = useCardPreviewActions();
   const [detail, setDetail] = useState<ScryfallDetail | null>(null);
 
@@ -74,111 +80,73 @@ export function BigCardPreview() {
       : undefined;
   const displayLoyalty = face?.loyalty ?? detail?.loyalty;
 
-  return (
-    <>
-      {card &&
-        createPortal(
-          // Non-interactive overlay — no dimming, no click handlers.
-          // The popup is dismissed by releasing the middle mouse
-          // button (see Card.tsx), so the overlay just centers the
-          // modal and floats it above the play area / context menus
-          // (z-[1200]) / pile-view dialogs. `pointer-events-none`
-          // keeps middle-button events from being intercepted before
-          // they reach the underlying card's mouseup — otherwise
-          // dragging the pointer off the card and releasing over the
-          // overlay would swallow the release and leave the popup
-          // stuck open.
-          <div
-            className="fixed inset-0 z-[1400] flex items-center justify-center p-6 pointer-events-none"
-          >
-            <div
-              className={[
-                'relative bg-bg-surface border border-border-subtle',
-                'rounded-lg shadow-2xl flex flex-col max-w-[340px] w-full max-h-[90vh]',
-              ].join(' ')}
-            >
-              {/* Image row — full modal width, natural 5:7 aspect.
-                  Cockatrice stacks image over text so the card art
-                  stays large and the description gets full width to
-                  breathe. Uses Scryfall's `large` version (~672×936)
-                  which looks sharp at this size. */}
-              <div className="shrink-0 p-4 bg-bg-base/40 rounded-t-lg">
-                {imageUrl && (
-                  <PreviewCardImage
-                    src={imageUrl}
-                    name={displayName}
-                    className="block w-full shadow-lg"
-                    style={{
-                      borderRadius: CARD_CORNER_RADIUS,
-                      imageRendering: '-webkit-optimize-contrast',
-                    }}
-                  />
-                )}
-              </div>
+  if (!card) {
+    return <HoverCardZoom />;
+  }
 
-              {/* Text row — Cockatrice's card info panel, stacked
-                  below the art. Scrolls independently so a wall-of-
-                  text oracle (Kozilek etc.) doesn't push the modal
-                  past the viewport. */}
-              <div className="flex-1 min-h-0 p-4 flex flex-col gap-3 text-sm text-text-primary overflow-y-auto">
-                <div className="flex items-start justify-between gap-3">
-                  <div className="flex-1 min-w-0">
-                    <div className="font-semibold text-lg leading-tight">
-                      {displayName}
-                    </div>
-                    {displayType && (
-                      <div className="italic text-text-secondary text-sm mt-1">
-                        {displayType}
-                      </div>
-                    )}
-                  </div>
-                  {displayMana && (
-                    <div className="shrink-0">
-                      <ManaSymbols cost={displayMana} size={18} />
-                    </div>
-                  )}
-                </div>
-
-                {displayOracle && (
-                  <div className="whitespace-pre-line leading-relaxed border-t border-border-subtle pt-3">
-                    <SymbolText text={displayOracle} size={14} />
-                  </div>
-                )}
-
-                {displayFlavor && (
-                  <div className="whitespace-pre-line italic text-text-muted leading-snug border-t border-border-subtle pt-3">
-                    {displayFlavor}
-                  </div>
-                )}
-
-                {(displayPT || displayLoyalty) && (
-                  <div className="text-right font-semibold text-base tabular-nums mt-auto pt-3 border-t border-border-subtle">
-                    {displayPT ?? displayLoyalty}
-                  </div>
-                )}
-
-                {!detail && (
-                  <div className="text-text-muted italic">{t('CardPreviewPane.loading')}</div>
-                )}
-
-                {detail && (
-                  <CardRelatedLinks
-                    faces={detail.card_faces}
-                    allParts={detail.all_parts}
-                    parentName={detail.name}
-                    // Face-level type wins so a transformed DFC's back
-                    // face detects as its actual type (matters for
-                    // rare cases like a token that transforms).
-                    parentTypeLine={displayType || detail.type_line}
-                    currentFaceName={displayName}
-                    onNavigate={openBigPreview}
-                  />
-                )}
-              </div>
+  return createPortal(
+    <div
+      data-testid="big-card-preview"
+      className="pointer-events-none fixed z-[1400] flex rounded-lg border border-border-subtle bg-bg-surface p-3 shadow-2xl"
+      style={{ left: layout.left, top: layout.top }}
+    >
+      {imageUrl && (
+        <PreviewCardImage
+          src={imageUrl}
+          name={displayName}
+          className="block shrink-0 shadow-lg"
+          style={{
+            width: layout.imageWidth,
+            borderRadius: CARD_CORNER_RADIUS,
+            imageRendering: '-webkit-optimize-contrast',
+          }}
+        />
+      )}
+      {layout.textWidth > 0 && (
+        <div
+          className="flex min-h-0 flex-col gap-3 overflow-y-auto pl-3 text-sm text-text-primary"
+          style={{ width: layout.textWidth, maxHeight: layout.imageHeight }}
+        >
+          <div className="flex items-start justify-between gap-3">
+            <div className="min-w-0 flex-1">
+              <div className="text-lg font-semibold leading-tight">{displayName}</div>
+              {displayType && <div className="mt-1 text-sm italic text-text-secondary">{displayType}</div>}
             </div>
-          </div>,
-          document.body,
-        )}
-    </>
+            {displayMana && (
+              <div className="shrink-0">
+                <ManaSymbols cost={displayMana} size={18} />
+              </div>
+            )}
+          </div>
+          {displayOracle && (
+            <div className="whitespace-pre-line border-t border-border-subtle pt-3 leading-relaxed">
+              <SymbolText text={displayOracle} size={14} />
+            </div>
+          )}
+          {displayFlavor && (
+            <div className="whitespace-pre-line border-t border-border-subtle pt-3 italic leading-snug text-text-muted">
+              {displayFlavor}
+            </div>
+          )}
+          {(displayPT || displayLoyalty) && (
+            <div className="mt-auto border-t border-border-subtle pt-3 text-right text-base font-semibold tabular-nums">
+              {displayPT ?? displayLoyalty}
+            </div>
+          )}
+          {!detail && <div className="italic text-text-muted">{t('CardPreviewPane.loading')}</div>}
+          {detail && (
+            <CardRelatedLinks
+              faces={detail.card_faces}
+              allParts={detail.all_parts}
+              parentName={detail.name}
+              parentTypeLine={displayType || detail.type_line}
+              currentFaceName={displayName}
+              onNavigate={openBigPreview}
+            />
+          )}
+        </div>
+      )}
+    </div>,
+    document.body,
   );
 }

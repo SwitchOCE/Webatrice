@@ -52,6 +52,31 @@ describe('createCardPreviewStore', () => {
     expect(listener).toHaveBeenCalledTimes(3);
   });
 
+  it('keeps the hovered card for the pane when the pointer leaves, but drops its zoom anchor', () => {
+    const store = createCardPreviewStore();
+    const anchor = { left: 10, top: 20, right: 82, bottom: 122 };
+    store.setHoveredCard(BOLT, anchor);
+    expect(store.getHoverZoom()).toEqual({ card: BOLT, anchor });
+
+    store.endHover();
+    expect(store.getHoverZoom()).toBeNull();
+    expect(store.getPreviewCard()).toBe(BOLT);
+
+    store.setHoveredCard(OGRE);
+    expect(store.getHoverZoom()).toBeNull();
+  });
+
+  it('remembers where a zoom was opened from until it closes', () => {
+    const store = createCardPreviewStore();
+    const anchor = { left: 10, top: 20, right: 82, bottom: 122 };
+    store.openBigPreview(BOLT, anchor);
+    expect(store.getBigPreviewAnchor()).toBe(anchor);
+    store.closeBigPreview();
+    expect(store.getBigPreviewAnchor()).toBeNull();
+    store.openBigPreview(OGRE);
+    expect(store.getBigPreviewAnchor()).toBeNull();
+  });
+
   it('publishes each showCardInfo call as a new request', () => {
     const store = createCardPreviewStore();
     const listener = vi.fn();
@@ -186,5 +211,18 @@ describe('BigCardPreview', () => {
 
     act(() => store.closeBigPreview());
     expect(screen.queryByText('Lightning Bolt')).not.toBeInTheDocument();
+  });
+
+  it('opens the zoom beside the card it came from rather than over it', () => {
+    const store = createCardPreviewStore();
+    render(
+      <CardPreviewProvider store={store}>
+        <BigCardPreview />
+      </CardPreviewProvider>,
+    );
+    const anchor = { left: 40, top: 300, right: 112, bottom: 402 };
+    act(() => store.openBigPreview(BOLT, anchor));
+    const zoom = screen.getByTestId('big-card-preview');
+    expect(parseFloat(zoom.style.left)).toBeGreaterThan(anchor.right);
   });
 });

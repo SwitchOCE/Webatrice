@@ -37,6 +37,17 @@ describe('DeckCardRow', () => {
     expect(props.onSelect).toHaveBeenCalledTimes(2);
   });
 
+  it('previews itself while the pointer is over it', () => {
+    const onPreview = vi.fn();
+    const props = renderRow({ onPreview });
+    const row = screen.getByRole('row');
+    fireEvent.pointerEnter(row);
+    expect(onPreview).toHaveBeenLastCalledWith(true);
+    fireEvent.pointerLeave(row);
+    expect(onPreview).toHaveBeenLastCalledWith(false);
+    expect(props.onSelect).not.toHaveBeenCalled();
+  });
+
   it('marks the selected row for assistive technology', () => {
     renderRow({ selected: true });
     expect(screen.getByRole('row')).toHaveAttribute('aria-selected', 'true');

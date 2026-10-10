@@ -3,11 +3,11 @@ import { useNavigate, useParams } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { PanelRight, X } from 'lucide-react';
 
-import { server, ScryfallImageSize } from '@cockatrice/datatrice';
+import { server } from '@cockatrice/datatrice';
 
 import { AuthGuard, IconButton, SectionLabel } from '@app/components';
 import { useRecordRecentDeck } from '@app/hooks';
-import { getScryfallUrlById, readDeckPlaymat } from '@app/services';
+import { readDeckPlaymat } from '@app/services';
 import { AlertDialog } from '@app/dialogs';
 import { ShortcutScope, useShortcut } from '@app/feature-widgets/shortcuts';
 import { Layout } from '@app/feature-wrappers/layout';
@@ -22,7 +22,14 @@ import { DeckHistoryControls } from './components/editor/DeckHistoryControls';
 import { DeckInspector } from './components/editor/DeckInspector';
 import { DeckLegalitySummary } from './components/editor/DeckLegalitySummary';
 import { DeckMainPane } from './components/editor/DeckMainPane';
-import { dockColorIdentity, inspectedRow, resolveInspectedRow, type InspectedCard } from './components/editor/editorSelection';
+import { deckEditorGridStyle, WIDE_EDITOR_QUERY } from './components/editor/editorLayout';
+import {
+  dockColorIdentity,
+  inspectedRow,
+  resolveInspectedRow,
+  searchCardInspection,
+  type InspectedCard,
+} from './components/editor/editorSelection';
 import { PlainAddCard } from './components/editor/PlainCardList';
 import { SampleHandPanel } from './components/editor/SampleHandPanel';
 import { groupDeckCards } from './deckGrouping';
@@ -30,7 +37,7 @@ import { deckColorIdentity, serializeDeckForSave } from './deckPersistence';
 import { isBlankDeck } from './deckSharing';
 import type { DecksLocationState } from './deckShortcuts';
 import { readDeckTags } from './deckTags';
-import { searchCardAsPreview } from './search';
+import type { ScryfallSearchCard } from './search';
 import { CardDetailDialog } from './dialogs/CardDetailDialog';
 import { ExportDeckDialog } from './dialogs/ExportDeckDialog';
 import { DeckPlaymatDialog } from './dialogs/DeckPlaymatDialog';
@@ -42,10 +49,9 @@ import { useDeckLegality } from './hooks/useDeckLegality';
 import { useDeckPricing } from './hooks/useDeckPricing';
 import { useDeckShareCreate, useDeckSharingSupported } from './hooks/useDeckSharing';
 import { useBracketCache } from './hooks/useBracketCache';
+import { useInspectorPreview } from './hooks/useInspectorPreview';
 import { useMediaQuery } from './hooks/useMediaQuery';
 import type { DeckCard } from './types';
-
-export const WIDE_EDITOR_QUERY = '(min-width: 1340px)';
 
 const NO_CARDS: DeckCard[] = [];
 
@@ -106,6 +112,7 @@ const DeckEditor = () => {
   const colorIdentity = useMemo(() => dockColorIdentity(cards, isCommander), [cards, isCommander]);
   const bracketLevel = useBracketCache(cards, editor.deck?.bracketAssessment, editor.setBracketAssessment, isCommander);
   const selectedIndex = useMemo(() => resolveInspectedRow(cards, selected), [cards, selected]);
+  const preview = useInspectorPreview(cards, selected);
   useEffect(() => {
     if (selected && !selected.preview && selectedIndex < 0) {
       setSelected(null);
@@ -154,17 +161,10 @@ const DeckEditor = () => {
       ? { ...current, category, scryfallId }
       : { name, category, scryfallId, preview: { name, quantity: 1, category, scryfallId, lookupSource: 'unknown' } }));
   };
-  const previewSearchCard = (card: Parameters<typeof searchCardAsPreview>[0], providerId?: string) => {
-    const preview = searchCardAsPreview(card);
-    setSelected({
-      name: card.name,
-      category: 'main',
-      scryfallId: providerId,
-      preview: providerId && providerId !== card.id
-        ? { ...preview, scryfallId: providerId, imageUri: getScryfallUrlById(providerId, ScryfallImageSize.Normal), imageUris: undefined }
-        : preview,
-    });
-  };
+  const previewSearchCard = (card: ScryfallSearchCard, providerId?: string) => setSelected(searchCardInspection(card, providerId));
+  const hoverSearchCard = (card: ScryfallSearchCard | null, providerId?: string) =>
+    (card ? preview.enter(searchCardInspection(card, providerId)) : preview.leave());
+  const hoverDeckCard = (card: DeckCard | null) => (card ? preview.enter(inspectedRow(card)) : preview.leave());
 
   if (editor.loading) {
     return <DeckEditorSkeleton loaded={0} total={0} />;
@@ -181,9 +181,10 @@ const DeckEditor = () => {
     <aside
       aria-label={t('DeckEditor.inspector.label')}
       className={[
-        'flex min-h-0 w-[316px] flex-col gap-4 overflow-y-auto border-l border-border-subtle bg-bg-surface p-pad',
+        'flex min-h-0 w-[var(--deck-inspector-w)] flex-col gap-4 overflow-y-auto border-l border-border-subtle bg-bg-surface p-pad',
         wide ? '' : 'absolute inset-y-0 right-0 z-20 shadow-pop',
       ].join(' ')}
+      onPointerEnter={preview.clear}
     >
       {!wide && (
         <div className="flex items-center">
@@ -196,8 +197,8 @@ const DeckEditor = () => {
       {isMtg && (
         <>
           <DeckInspector
-            selected={selected}
-            index={selectedIndex}
+            selected={preview.card}
+            index={preview.index}
             deckCards={editor.deck.cards}
             prices={pricing.prices}
             isCommanderDeck={isCommander}
@@ -228,7 +229,7 @@ const DeckEditor = () => {
       <AuthGuard />
       <div
         className="relative grid h-full min-h-0 bg-bg-base"
-        style={{ gridTemplateColumns: showInspector && wide ? '300px minmax(0,1fr) 316px' : '300px minmax(0,1fr)' }}
+        style={deckEditorGridStyle(showInspector && wide)}
       >
         <aside
           aria-label={t('DeckEditor.dock.label')}
@@ -238,6 +239,7 @@ const DeckEditor = () => {
             <CardSearchDock
               onAdd={addCard}
               onPreview={previewSearchCard}
+              onHoverPreview={hoverSearchCard}
               onReady={onDockReady}
               colorIdentity={colorIdentity}
               format={editor.deck.format}
@@ -313,6 +315,7 @@ const DeckEditor = () => {
             groups={groups}
             selectedIndex={selectedIndex}
             onSelect={selectCard}
+            onPreview={isMtg ? hoverDeckCard : undefined}
             onInc={(i, d) => editor.incQuantity(i, d)}
             onDelete={(i) => editor.deleteCard(i)}
             onSetCategory={moveCard}

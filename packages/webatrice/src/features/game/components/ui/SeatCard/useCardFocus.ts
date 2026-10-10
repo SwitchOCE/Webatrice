@@ -4,7 +4,7 @@ import { matchesEvent, useResolvedBinding } from '@app/feature-widgets/shortcuts
 import { tabbableElements, useGridRows, type ListOrientation } from '@app/hooks';
 
 import { makeCardKey, useCardRegistry } from '../../../utils/CardRegistry/CardRegistryContext';
-import { useCardPreviewActions, type PreviewCard } from '../CardPreviewContext';
+import { anchorOf, useCardPreviewActions, type PreviewCard } from '../CardPreviewContext';
 
 export interface CardFocusOptions<C extends { id: string }> {
   zone: string;
@@ -175,7 +175,7 @@ export function useCardFocus<C extends { id: string }>({
           const preview = previewOf(card);
           if (preview && !event.repeat) {
             zooming.current = true;
-            openBigPreview(preview);
+            openBigPreview(preview, anchorOf(event.currentTarget));
           }
           event.preventDefault();
           return;
