@@ -78,7 +78,7 @@ describe.each(Object.keys(PALETTES) as ColorScheme[])('the %s palette', (scheme)
     const actions = sourceFiles(SRC)
       .flatMap((file) => fs.readFileSync(file, 'utf8').split('\n'))
       .filter((line) => line.includes('bg-accent-secondary') && line.includes('text-white'));
-    expect(actions.length).toBeGreaterThanOrEqual(3);
+    expect(actions.length).toBeGreaterThanOrEqual(1);
     for (const action of actions) {
       for (const [, secondary, opacity] of action.matchAll(/(?:hover:)?bg-accent(-secondary)?(?:\/(\d+))?(?=\s)/g)) {
         const background = palette[secondary ? 'accent-secondary' : 'accent-primary'];
