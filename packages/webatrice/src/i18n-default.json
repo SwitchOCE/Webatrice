@@ -4128,7 +4128,8 @@
         "name": "Friends only",
         "line": "Buddies only · no watchers",
         "needsAccount": "Needs a registered account"
-      }
+      },
+      "customised": "Customised"
     },
     "label": {
       "description": "Description",
@@ -4170,6 +4171,9 @@
       "table": "Table",
       "whoCanJoin": "Who can join",
       "spectators": "Spectators"
+    },
+    "error": {
+      "range": "Enter a whole number from {min} to {max}"
     },
     "action": {
       "create": "Create game"

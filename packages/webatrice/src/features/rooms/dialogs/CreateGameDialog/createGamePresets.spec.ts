@@ -3,6 +3,7 @@ import {
   applyPreset,
   defaultCreateGameForm,
   findCommanderGameType,
+  invalidCreateGameField,
   matchingPreset,
   summarizeCreateGame,
   toCreateGameParams,
@@ -50,20 +51,48 @@ describe('applyPreset', () => {
 });
 
 describe('matchingPreset', () => {
+  const reg = { gametypeMap: {}, isRegistered: true };
+
   it('matches the desktop defaults to 1v1', () => {
-    expect(matchingPreset(defaultCreateGameForm(true), true)).toBe('oneVsOne');
-    expect(matchingPreset(defaultCreateGameForm(false), false)).toBe('oneVsOne');
+    expect(matchingPreset(defaultCreateGameForm(true), reg)).toBe('oneVsOne');
+    expect(matchingPreset(defaultCreateGameForm(false), { gametypeMap: {}, isRegistered: false })).toBe('oneVsOne');
   });
 
   it('matches each preset after it is applied', () => {
     const ctx = { gametypeMap: {}, isRegistered: true };
     for (const preset of CREATE_GAME_PRESETS) {
-      expect(matchingPreset(applyPreset(defaultCreateGameForm(true), preset, ctx), true)).toBe(preset.id);
+      expect(matchingPreset(applyPreset(defaultCreateGameForm(true), preset, ctx), ctx)).toBe(preset.id);
     }
   });
 
   it('returns null once a preset field is changed', () => {
-    expect(matchingPreset({ ...defaultCreateGameForm(true), maxPlayers: 3 }, true)).toBeNull();
+    expect(matchingPreset({ ...defaultCreateGameForm(true), maxPlayers: 3 }, reg)).toBeNull();
+  });
+});
+
+describe('matchingPreset with formats', () => {
+  const ctx = { gametypeMap: { 3: 'Commander', 4: 'Modern' }, isRegistered: true };
+
+  it('stops matching Commander pod once another format is chosen', () => {
+    const pod = applyPreset(defaultCreateGameForm(true), presetById('commanderPod'), ctx);
+    expect(matchingPreset(pod, ctx)).toBe('commanderPod');
+    expect(matchingPreset({ ...pod, gameTypeId: 4 }, ctx)).toBeNull();
+  });
+
+  it('requires Any for the 1v1 preset', () => {
+    expect(matchingPreset({ ...defaultCreateGameForm(true), gameTypeId: 4 }, ctx)).toBeNull();
+  });
+});
+
+describe('invalidCreateGameField', () => {
+  it('accepts whole numbers in range and rejects the rest', () => {
+    const base = defaultCreateGameForm(true);
+    expect(invalidCreateGameField(base)).toBeNull();
+    expect(invalidCreateGameField({ ...base, maxPlayers: 0 })).toBe('maxPlayers');
+    expect(invalidCreateGameField({ ...base, maxPlayers: 101 })).toBe('maxPlayers');
+    expect(invalidCreateGameField({ ...base, maxPlayers: 2.5 })).toBe('maxPlayers');
+    expect(invalidCreateGameField({ ...base, startingLifeTotal: 0 })).toBe('startingLifeTotal');
+    expect(invalidCreateGameField({ ...base, startingLifeTotal: Number.NaN })).toBe('startingLifeTotal');
   });
 });
 

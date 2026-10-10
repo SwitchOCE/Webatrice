@@ -19,6 +19,7 @@ import {
   isPresetAvailable,
   type CreateGamePreset,
   type CreateGameSummary,
+  type InvalidField,
   type PresetId,
 } from './createGamePresets';
 import { useCreateGameForm } from './useCreateGameForm';
@@ -107,6 +108,7 @@ function PresetCard({
   line,
   group,
   checked,
+  customised,
   disabled,
   onPick,
 }: {
@@ -115,9 +117,11 @@ function PresetCard({
   line: string;
   group: string;
   checked: boolean;
+  customised: boolean;
   disabled: boolean;
   onPick: (preset: CreateGamePreset) => void;
 }) {
+  const { t } = useTranslation();
   const id = useId();
   return (
     <label
@@ -136,12 +140,18 @@ function PresetCard({
         checked={checked}
         disabled={disabled}
         onChange={() => onPick(preset)}
+        onClick={() => onPick(preset)}
         aria-labelledby={`${id}-name`}
-        aria-describedby={`${id}-line`}
+        aria-describedby={customised ? `${id}-line ${id}-customised` : `${id}-line`}
       />
       <span className={cx('flex items-center gap-2', checked ? 'text-accent' : 'text-text-secondary')}>
         {PRESET_ICONS[preset.id]}
-        {checked && <Check size={14} className="ml-auto" aria-hidden />}
+        {customised && (
+          <span id={`${id}-customised`} className="ml-auto text-[11px] font-medium text-text-secondary">
+            {t('CreateGameDialog.preset.customised')}
+          </span>
+        )}
+        {checked && <Check size={14} className={customised ? undefined : 'ml-auto'} aria-hidden />}
       </span>
       <span id={`${id}-name`} className="text-[13.5px] font-semibold text-text-primary">{name}</span>
       <span id={`${id}-line`} className="text-[12px] leading-snug text-text-muted">{line}</span>
@@ -158,12 +168,21 @@ function CreateGameDialog({ isOpen, roomName, gametypeMap, onCancel, onSubmit }:
   const isJudge = useAppSelector(server.Selectors.getIsUserJudge);
   const [advancedOpen, setAdvancedOpen] = useState(false);
   const advancedRef = useRef<HTMLDivElement>(null);
-  const { form, update, pickPreset, selectedPreset, summary, remember, setRemember, submit } = useCreateGameForm({
-    isOpen,
-    gametypeMap,
-    isRegistered,
-    isJudge,
-  });
+  const maxPlayersRef = useRef<HTMLInputElement>(null);
+  const lifeRef = useRef<HTMLInputElement>(null);
+  const [focusField, setFocusField] = useState<InvalidField | null>(null);
+  const {
+    form,
+    update,
+    pickPreset,
+    pickedPreset,
+    customised,
+    invalidField,
+    summary,
+    remember,
+    setRemember,
+    submit,
+  } = useCreateGameForm({ isOpen, gametypeMap, isRegistered, isJudge });
 
   const gameTypes = useMemo(
     () => Object.entries(gametypeMap).map(([id, name]) => ({ id: Number(id), name })),
@@ -176,8 +195,22 @@ function CreateGameDialog({ isOpen, roomName, gametypeMap, onCancel, onSubmit }:
 
   const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-    onSubmit(submit());
+    const result = submit();
+    if ('params' in result) {
+      onSubmit(result.params);
+    } else {
+      setAdvancedOpen(true);
+      setFocusField(result.field);
+    }
   };
+
+  useEffect(() => {
+    if (!focusField || !advancedOpen) {
+      return;
+    }
+    (focusField === 'maxPlayers' ? maxPlayersRef : lifeRef).current?.focus();
+    setFocusField(null);
+  }, [focusField, advancedOpen]);
 
   useEffect(() => {
     if (advancedOpen) {
@@ -206,7 +239,7 @@ function CreateGameDialog({ isOpen, roomName, gametypeMap, onCancel, onSubmit }:
         </>
       }
     >
-      <form id={formId} onSubmit={handleSubmit} className="flex flex-col gap-4">
+      <form id={formId} noValidate onSubmit={handleSubmit} className="flex flex-col gap-4">
         <fieldset>
           <legend>
             <SectionLabel>{t('CreateGameDialog.startFrom')}</SectionLabel>
@@ -221,7 +254,8 @@ function CreateGameDialog({ isOpen, roomName, gametypeMap, onCancel, onSubmit }:
                   name={presetName(t, preset.id)}
                   line={presetLine(t, preset.id, commanderFormat, available)}
                   group={presetGroup}
-                  checked={selectedPreset === preset.id}
+                  checked={pickedPreset === preset.id}
+                  customised={pickedPreset === preset.id && customised}
                   disabled={!available}
                   onPick={pickPreset}
                 />
@@ -313,19 +347,35 @@ function CreateGameDialog({ isOpen, roomName, gametypeMap, onCancel, onSubmit }:
                   type="number"
                   min={MAX_PLAYERS_RANGE.min}
                   max={MAX_PLAYERS_RANGE.max}
+                  ref={maxPlayersRef}
                   label={t('CreateGameDialog.label.maxPlayers')}
                   value={form.maxPlayers}
+                  aria-invalid={invalidField === 'maxPlayers' || undefined}
+                  aria-describedby={invalidField === 'maxPlayers' ? `${formId}-error` : undefined}
                   onChange={(e) => update('maxPlayers', Number(e.target.value))}
                 />
+                {invalidField === 'maxPlayers' && (
+                  <span id={`${formId}-error`} role="alert" className="text-[12px] text-danger">
+                    {t('CreateGameDialog.error.range', MAX_PLAYERS_RANGE)}
+                  </span>
+                )}
                 <TextInput
                   icon={null}
                   type="number"
                   min={STARTING_LIFE_RANGE.min}
                   max={STARTING_LIFE_RANGE.max}
+                  ref={lifeRef}
                   label={t('CreateGameDialog.label.startingLifeTotal')}
                   value={form.startingLifeTotal}
+                  aria-invalid={invalidField === 'startingLifeTotal' || undefined}
+                  aria-describedby={invalidField === 'startingLifeTotal' ? `${formId}-error` : undefined}
                   onChange={(e) => update('startingLifeTotal', Number(e.target.value))}
                 />
+                {invalidField === 'startingLifeTotal' && (
+                  <span id={`${formId}-error`} role="alert" className="text-[12px] text-danger">
+                    {t('CreateGameDialog.error.range', STARTING_LIFE_RANGE)}
+                  </span>
+                )}
               </div>
               <div role="group" aria-label={t('CreateGameDialog.section.whoCanJoin')} className="flex flex-col gap-2.5">
                 <SectionLabel>{t('CreateGameDialog.section.whoCanJoin')}</SectionLabel>

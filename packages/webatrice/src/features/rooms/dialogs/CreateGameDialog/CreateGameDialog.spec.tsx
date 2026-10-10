@@ -83,11 +83,38 @@ describe('CreateGameDialog', () => {
     expect(preset('friendsOnly')).toBeDisabled();
   });
 
-  it('deselects the preset once a field no longer matches it', () => {
+  it('marks the picked preset as customised once a field no longer matches it', () => {
     renderDialog({ isRegistered: true });
     openAdvanced();
     fireEvent.change(screen.getByLabelText('CreateGameDialog.label.maxPlayers'), { target: { value: '3' } });
-    expect(screen.getAllByRole('radio').every((radio) => !(radio as HTMLInputElement).checked)).toBe(true);
+    expect(preset('oneVsOne')).toBeChecked();
+    expect(preset('oneVsOne')).toHaveAccessibleDescription(expect.stringContaining('CreateGameDialog.preset.customised'));
+  });
+
+  it('clicking a customised preset restores its fields and format', () => {
+    const { onSubmit } = renderDialog({ isRegistered: true, gametypeMap: { 3: 'Commander', 4: 'Modern' } });
+    fireEvent.click(preset('commanderPod'));
+    fireEvent.change(screen.getByLabelText('CreateGameDialog.label.format'), { target: { value: '4' } });
+    expect(preset('commanderPod')).toHaveAccessibleDescription(expect.stringContaining('CreateGameDialog.preset.customised'));
+    fireEvent.click(preset('commanderPod'));
+    expect(preset('commanderPod')).not.toHaveAccessibleDescription(expect.stringContaining('CreateGameDialog.preset.customised'));
+    create();
+    expect(onSubmit.mock.calls[0][0]).toMatchObject({ maxPlayers: 4, startingLifeTotal: 40, gameTypeIds: [3] });
+  });
+
+  it('blocks an out-of-range seat count even with Advanced collapsed, then reveals and focuses it', () => {
+    const { onSubmit } = renderDialog({ isRegistered: true });
+    openAdvanced();
+    fireEvent.change(screen.getByLabelText('CreateGameDialog.label.maxPlayers'), { target: { value: '0' } });
+    openAdvanced();
+    expect(screen.queryByLabelText('CreateGameDialog.label.maxPlayers')).not.toBeInTheDocument();
+    create();
+    expect(onSubmit).not.toHaveBeenCalled();
+    const seats = screen.getByLabelText('CreateGameDialog.label.maxPlayers');
+    expect(seats).toHaveFocus();
+    expect(seats).toHaveAttribute('aria-invalid', 'true');
+    expect(screen.getByRole('alert')).toHaveTextContent('CreateGameDialog.error.range');
+    expect(window.localStorage.getItem(CREATE_GAME_DEFAULTS_KEY)).toBeNull();
   });
 
   it('keeps every field under Advanced, collapsed by default', () => {
@@ -156,7 +183,7 @@ describe('CreateGameDialog', () => {
     create();
     expect(onSubmit).toHaveBeenCalled();
     const stored = JSON.parse(window.localStorage.getItem(CREATE_GAME_DEFAULTS_KEY) ?? '{}');
-    expect(stored).toMatchObject({ remember: true, gameTypeName: 'Commander', fields: { maxPlayers: 4 } });
+    expect(stored).toMatchObject({ remember: true, gameTypeName: 'Commander', presetId: 'commanderPod', fields: { maxPlayers: 4 } });
     expect(JSON.stringify(stored)).not.toContain('secret');
   });
 
