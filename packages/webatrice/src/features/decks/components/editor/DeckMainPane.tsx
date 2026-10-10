@@ -2,9 +2,18 @@ import { useMemo } from 'react';
 
 import type { DeckCategory } from '@app/types';
 
+import {
+  DECK_COLUMN_GAP,
+  DECK_COLUMN_MAX_WIDTH,
+  deckColumnCount,
+  deckGroupWeight,
+  partitionIntoColumns,
+} from '../../deckColumns';
+import type { DeckRowDensity } from '../../deckEditorLayout';
 import { sortIndicesByName, type DeckCardGroup as DeckCardGroupData } from '../../deckGrouping';
 import type { CardLegality } from '../../deckLegality';
 import { useDeckCardGrid } from '../../hooks/useDeckCardGrid';
+import { useElementWidth } from '../../hooks/useElementWidth';
 import type { DeckCard, HydratedDeck } from '../../types';
 import { DeckCardGroup } from './DeckCardGroup';
 import { EmptyCardsHint } from './DeckEditorShells';
@@ -26,7 +35,12 @@ export interface DeckMainPaneProps {
   isMtg: boolean;
   isCommander: boolean;
   legality?: readonly CardLegality[];
+  density?: DeckRowDensity;
+  collapsedGroups?: ReadonlySet<string>;
+  onToggleGroup?: (label: string) => void;
 }
+
+const NO_GROUPS: ReadonlySet<string> = new Set();
 
 export function DeckMainPane({
   deck,
@@ -44,13 +58,22 @@ export function DeckMainPane({
   isMtg,
   isCommander,
   legality,
+  density = 'comfortable',
+  collapsedGroups = NO_GROUPS,
+  onToggleGroup,
 }: DeckMainPaneProps) {
+  const [measureRef, width] = useElementWidth<HTMLDivElement>();
   const rowOrder = useMemo(
     () => (isMtg
-      ? groups.flatMap(({ indices }) => indices)
+      ? groups.flatMap(({ label, indices }) => (collapsedGroups.has(label) ? [] : indices))
       : sortIndicesByName(deck.cards, deck.cards.map((_, i) => i))),
-    [isMtg, groups, deck.cards],
+    [isMtg, groups, deck.cards, collapsedGroups],
   );
+  const columns = useMemo(() => {
+    const count = deckColumnCount(width, density, groups.length);
+    const weights = groups.map(({ label, indices }) => deckGroupWeight(indices.length, collapsedGroups.has(label)));
+    return partitionIntoColumns(weights, count).map((column) => column.map((g) => groups[g]));
+  }, [width, density, groups, collapsedGroups]);
   const grid = useDeckCardGrid({
     cards: deck.cards,
     order: rowOrder,
@@ -62,30 +85,44 @@ export function DeckMainPane({
 
   return (
     <div className="relative min-h-0 flex-1 overflow-y-auto px-5 pb-10 pt-4">
+      <div ref={measureRef} aria-hidden className="h-0" />
       {deck.cards.length === 0 ? (
         <EmptyCardsHint isMtg={isMtg} />
       ) : isMtg ? (
-        <div style={{ columns: '230px', columnGap: 24 }}>
-          {groups.map(({ label, indices }) => (
-            <DeckCardGroup
-              key={label}
-              label={label}
-              indices={indices}
-              deck={deck.cards}
-              selectedIndex={selectedIndex}
-              onSelect={onSelect}
-              onPreview={onPreview}
-              onInc={onInc}
-              onDelete={onDelete}
-              onSetCategory={onSetCategory}
-              onSetCommander={onSetCommander}
-              onChangePrinting={onChangePrinting}
-              onShowDetails={onShowDetails}
-              isMtg={isMtg}
-              isCommander={isCommander}
-              legality={legality}
-              grid={grid}
-            />
+        <div
+          className="grid items-start"
+          style={{
+            columnGap: DECK_COLUMN_GAP,
+            gridTemplateColumns: `repeat(${Math.max(1, columns.length)}, minmax(0, ${DECK_COLUMN_MAX_WIDTH}px))`,
+          }}
+        >
+          {columns.map((column) => (
+            <div key={column[0]?.label} className="min-w-0">
+              {column.map(({ label, indices }) => (
+                <DeckCardGroup
+                  key={label}
+                  label={label}
+                  indices={indices}
+                  deck={deck.cards}
+                  selectedIndex={selectedIndex}
+                  onSelect={onSelect}
+                  onPreview={onPreview}
+                  onInc={onInc}
+                  onDelete={onDelete}
+                  onSetCategory={onSetCategory}
+                  onSetCommander={onSetCommander}
+                  onChangePrinting={onChangePrinting}
+                  onShowDetails={onShowDetails}
+                  isMtg={isMtg}
+                  isCommander={isCommander}
+                  legality={legality}
+                  grid={grid}
+                  density={density}
+                  collapsed={collapsedGroups.has(label)}
+                  onToggleCollapsed={onToggleGroup && (() => onToggleGroup(label))}
+                />
+              ))}
+            </div>
           ))}
         </div>
       ) : (
