@@ -3106,34 +3106,38 @@
       "investigate": "Investigate"
     },
     "action": {
-      "resetPassword": "Reset Password",
-      "removeAvatar": "Remove Avatar"
+      "resetPassword": "Reset password",
+      "removeAvatar": "Remove avatar"
     },
     "info": {
-      "title": "User Info",
-      "name": "Name:",
-      "registered": "Registered:",
-      "lastLogin": "Last login:",
-      "status": "Status:",
-      "counts": "Counts:",
-      "adminNotes": "Admin notes:",
+      "title": "User info",
+      "registered": "Registered",
+      "lastLogin": "Last login",
+      "status": "Status",
+      "adminNotes": "Admin notes",
       "active": "active",
       "inactive": "inactive",
       "admin": "admin",
-      "countsValue": "Reports: {reports}   Bans: {bans}   Warnings: {warnings}",
-      "noNotes": "(none)",
-      "loadError": "Error loading user info."
+      "noNotes": "No notes.",
+      "loadError": "Error loading user info.",
+      "drawer": "User details",
+      "noUser": "No user",
+      "hint": "Search for a user name to see their account, alts and sessions.",
+      "reports": "Reports",
+      "warnings": "Warnings",
+      "bans": "Bans"
     },
     "alts": {
       "title": "Alts",
       "user": "User",
-      "email": "eMail",
+      "email": "Email",
       "clientId": "Client ID",
       "registered": "Registered",
       "lastLogin": "Last login",
       "warns": "Warns",
       "bans": "Bans",
-      "active": "Active"
+      "active": "Active",
+      "empty": "No alts found."
     },
     "sessions": {
       "title": "Sessions",
@@ -3141,14 +3145,16 @@
       "clientId": "Client ID",
       "start": "Start",
       "end": "End",
-      "type": "Type"
+      "type": "Type",
+      "empty": "No sessions found."
     },
     "staff": {
-      "title": "Staff Last Logins",
+      "title": "Staff last logins",
       "user": "User",
       "level": "Level",
       "lastLogin": "Last login",
-      "refresh": "Refresh"
+      "refresh": "Refresh",
+      "empty": "No staff logins to show."
     },
     "level": {
       "admin": "Admin",
@@ -3161,7 +3167,8 @@
       "loading": "Loading...",
       "yes": "yes",
       "no": "no",
-      "activeSession": "Active"
+      "activeSession": "Active",
+      "noUser": "Search for a user to fill this table."
     },
     "confirm": {
       "resetTitle": "Reset Password",
@@ -3185,7 +3192,9 @@
     "button": {
       "ok": "OK",
       "cancel": "Cancel"
-    }
+    },
+    "title": "Moderation",
+    "subtitle": "Look up a user's account, alts and sessions."
   },
   "People": {
     "title": "People"

@@ -1,73 +1,69 @@
-import { useEffect, useMemo } from 'react';
-import { Controller, useForm } from 'react-hook-form';
-import { zodResolver } from '@hookform/resolvers/zod';
+import { useEffect, useState, type FormEvent, type ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
-import { z } from 'zod';
+import { ImageOff, KeyRound, RefreshCw, Search } from 'lucide-react';
 
-import Button from '@mui/material/Button';
-import Paper from '@mui/material/Paper';
-import TextField from '@mui/material/TextField';
-
-import { AuthGuard, CapabilityGuard, ModGuard } from '@app/components';
+import { Button, CapabilityGuard, IconButton, ModGuard, TextInput } from '@app/components';
 import { AlertDialog, ConfirmDialog } from '@app/dialogs';
-import { Layout } from '@app/feature-wrappers/layout';
+import {
+  sectionLabelClass,
+  StaffConsole,
+  StaffDrawer,
+  StaffHeader,
+  StaffTable,
+  UserSanctionButtons,
+} from '@app/feature-wrappers/staff';
 import { ServerCapability } from '@cockatrice/datatrice';
 
-import { formatEpoch, formatStaffLevel } from './moderationFormat';
-import StaffTable from './StaffTable';
+import { useModerationColumns } from './moderationColumns';
 import TemporaryPasswordDialog from './TemporaryPasswordDialog';
 import UserInfoPanel from './UserInfoPanel';
 import { useModeration } from './useModeration';
 
-import './Moderation.css';
-
-const searchSchema = z.object({ userName: z.string() });
-type SearchFormValues = z.infer<typeof searchSchema>;
+function Section({ title, count, children, actions }: {
+  title: string;
+  count?: number;
+  children: ReactNode;
+  actions?: ReactNode;
+}) {
+  return (
+    <section aria-label={title} className="flex shrink-0 flex-col border-b border-border-subtle">
+      <div className="flex h-10 items-center gap-2 px-5">
+        <h2 className={sectionLabelClass}>{title}</h2>
+        {count !== undefined && <span className="font-mono text-[11px] tabular-nums text-text-muted">{count}</span>}
+        {actions && <div className="ml-auto flex items-center gap-1">{actions}</div>}
+      </div>
+      {children}
+    </section>
+  );
+}
 
 const ModerationContent = () => {
   const { t } = useTranslation();
   const moderation = useModeration();
   const { currentUser, investigation, pending } = moderation;
-
-  const resolver = useMemo(() => zodResolver(searchSchema), []);
-  const { control, handleSubmit, setValue } = useForm<SearchFormValues>({ defaultValues: { userName: '' }, resolver });
+  const columns = useModerationColumns();
+  const [search, setSearch] = useState('');
 
   useEffect(() => {
     if (currentUser) {
-      setValue('userName', currentUser);
+      setSearch(currentUser);
     }
-  }, [currentUser, setValue]);
+  }, [currentUser]);
 
-  const altsColumns = [
-    t('ModerationPage.alts.user'), t('ModerationPage.alts.email'), t('ModerationPage.alts.clientId'), t('ModerationPage.alts.registered'),
-    t('ModerationPage.alts.lastLogin'), t('ModerationPage.alts.warns'), t('ModerationPage.alts.bans'), t('ModerationPage.alts.active'),
-  ];
-  const altsRows = (investigation.alts ?? []).map((alt) => ({
-    key: alt.userName,
-    cells: [
-      alt.userName, alt.email, alt.clientid, formatEpoch(alt.registrationTime, t), formatEpoch(alt.lastLogin, t),
-      String(alt.warnCount), String(alt.banCount), alt.isActive ? t('ModerationPage.value.yes') : t('ModerationPage.value.no'),
-    ],
-  }));
+  const submit = (event: FormEvent) => {
+    event.preventDefault();
+    moderation.investigate(search);
+  };
 
-  const sessionsColumns = [
-    t('ModerationPage.sessions.ip'), t('ModerationPage.sessions.clientId'), t('ModerationPage.sessions.start'),
-    t('ModerationPage.sessions.end'), t('ModerationPage.sessions.type'),
-  ];
-  const sessionsRows = (investigation.sessions ?? []).map((session, index) => ({
-    key: `${session.startTime}-${index}`,
-    cells: [
-      session.ipAddress, session.clientid, formatEpoch(session.startTime, t),
-      Number(session.endTime) === 0 ? t('ModerationPage.value.activeSession') : formatEpoch(session.endTime, t),
-      session.connectionType,
-    ],
-  }));
-
-  const staffColumns = [t('ModerationPage.staff.user'), t('ModerationPage.staff.level'), t('ModerationPage.staff.lastLogin')];
-  const staffRows = (moderation.staffLogins ?? []).map((login) => ({
-    key: login.userName,
-    cells: [login.userName, formatStaffLevel(login.userLevel, t), formatEpoch(login.lastLogin, t)],
-  }));
+  const lookupStatus = (loading: boolean, rows: readonly unknown[] | undefined, emptyText: string) => {
+    if (!currentUser) {
+      return t('ModerationPage.value.noUser');
+    }
+    if (loading) {
+      return t('ModerationPage.value.loading');
+    }
+    return rows && rows.length > 0 ? undefined : emptyText;
+  };
 
   const confirmText = moderation.confirm === 'resetPassword'
     ? { title: t('ModerationPage.confirm.resetTitle'), message: t('ModerationPage.confirm.reset', { userName: currentUser }) }
@@ -75,73 +71,103 @@ const ModerationContent = () => {
 
   return (
     <>
-      <div className="moderation__top">
-        <form
-          className="moderation__search"
-          role="search"
-          onSubmit={handleSubmit(({ userName }) => moderation.investigate(userName))}
-        >
-          <Controller
-            name="userName"
-            control={control}
-            render={({ field }) => (
-              <TextField
-                {...field}
-                size="small"
-                type="search"
-                placeholder={t('ModerationPage.search.placeholder')}
-                slotProps={{ htmlInput: { 'aria-label': t('ModerationPage.search.placeholder') } }}
-              />
-            )}
-          />
-          <Button type="submit" variant="contained">{t('ModerationPage.search.investigate')}</Button>
-        </form>
-        <div className="moderation__actions">
-          {moderation.canResetPassword && (
-            <Button variant="outlined" disabled={!currentUser} onClick={() => moderation.requestConfirm('resetPassword')}>
-              {t('ModerationPage.action.resetPassword')}
-            </Button>
-          )}
-          <Button variant="outlined" disabled={!currentUser} onClick={() => moderation.requestConfirm('removeAvatar')}>
-            {t('ModerationPage.action.removeAvatar')}
-          </Button>
-        </div>
-      </div>
-
-      <UserInfoPanel
-        userName={currentUser}
-        info={investigation.info}
-        loading={pending.info}
-        error={moderation.infoError}
+      <StaffHeader
+        title={t('ModerationPage.title')}
+        subtitle={t('ModerationPage.subtitle')}
+        actions={(
+          <form role="search" className="flex items-center gap-2" onSubmit={submit}>
+            <TextInput
+              type="search"
+              aria-label={t('ModerationPage.search.placeholder')}
+              placeholder={t('ModerationPage.search.placeholder')}
+              icon={<Search size={14} aria-hidden />}
+              wrapperClassName="w-[220px]"
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+            />
+            <Button type="submit" variant="primary">{t('ModerationPage.search.investigate')}</Button>
+          </form>
+        )}
       />
-
-      <Paper component="section" className="moderation__group" aria-label={t('ModerationPage.alts.title')}>
-        <h2 className="moderation__title">{t('ModerationPage.alts.title')}</h2>
-        <StaffTable
-          label={t('ModerationPage.alts.title')}
-          columns={altsColumns}
-          rows={altsRows}
-          loading={Boolean(currentUser) && pending.alts}
-        />
-      </Paper>
-
-      <Paper component="section" className="moderation__group" aria-label={t('ModerationPage.sessions.title')}>
-        <h2 className="moderation__title">{t('ModerationPage.sessions.title')}</h2>
-        <StaffTable
-          label={t('ModerationPage.sessions.title')}
-          columns={sessionsColumns}
-          rows={sessionsRows}
-          loading={Boolean(currentUser) && pending.sessions}
-        />
-      </Paper>
-
-      <Paper component="section" className="moderation__group" aria-label={t('ModerationPage.staff.title')}>
-        <h2 className="moderation__title">{t('ModerationPage.staff.title')}</h2>
-        <StaffTable label={t('ModerationPage.staff.title')} columns={staffColumns} rows={staffRows} />
-        <div className="moderation__refresh">
-          <Button size="small" onClick={moderation.refreshStaffLogins}>{t('ModerationPage.staff.refresh')}</Button>
+      <div className="flex min-h-0 flex-1 border-t border-border-subtle">
+        <div className="flex min-w-0 flex-1 flex-col overflow-y-auto">
+          <Section title={t('ModerationPage.alts.title')} count={currentUser ? investigation.alts?.length : undefined}>
+            <StaffTable
+              label={t('ModerationPage.alts.title')}
+              columns={columns.alts}
+              tableClassName="min-w-[760px]"
+              rows={investigation.alts ?? []}
+              rowKey={(a) => a.userName}
+              status={lookupStatus(pending.alts, investigation.alts, t('ModerationPage.alts.empty'))}
+            />
+          </Section>
+          <Section title={t('ModerationPage.sessions.title')} count={currentUser ? investigation.sessions?.length : undefined}>
+            <StaffTable
+              label={t('ModerationPage.sessions.title')}
+              columns={columns.sessions}
+              rows={investigation.sessions ?? []}
+              rowKey={(s) => `${s.startTime}-${s.ipAddress}-${s.clientid}`}
+              status={lookupStatus(pending.sessions, investigation.sessions, t('ModerationPage.sessions.empty'))}
+            />
+          </Section>
+          <Section
+            title={t('ModerationPage.staff.title')}
+            count={moderation.staffLogins?.length}
+            actions={(
+              <IconButton size="sm" label={t('ModerationPage.staff.refresh')} onClick={moderation.refreshStaffLogins}>
+                <RefreshCw size={13} aria-hidden />
+              </IconButton>
+            )}
+          >
+            <StaffTable
+              label={t('ModerationPage.staff.title')}
+              columns={columns.staff}
+              rows={moderation.staffLogins ?? []}
+              rowKey={(l) => l.userName}
+              status={moderation.staffLogins?.length ? undefined : t('ModerationPage.staff.empty')}
+            />
+          </Section>
         </div>
-      </Paper>
+        <StaffDrawer
+          label={t('ModerationPage.info.drawer')}
+          title={(
+            <span className="font-display text-[17px] font-semibold text-text-primary">
+              {currentUser || t('ModerationPage.info.noUser')}
+            </span>
+          )}
+          subtitle={t('ModerationPage.info.title')}
+          actions={(
+            <>
+              {moderation.canResetPassword && (
+                <Button
+                  size="sm"
+                  icon={<KeyRound size={13} aria-hidden />}
+                  disabled={!currentUser}
+                  onClick={() => moderation.requestConfirm('resetPassword')}
+                >
+                  {t('ModerationPage.action.resetPassword')}
+                </Button>
+              )}
+              <Button
+                size="sm"
+                icon={<ImageOff size={13} aria-hidden />}
+                disabled={!currentUser}
+                onClick={() => moderation.requestConfirm('removeAvatar')}
+              >
+                {t('ModerationPage.action.removeAvatar')}
+              </Button>
+            </>
+          )}
+        >
+          <UserInfoPanel
+            userName={currentUser}
+            info={investigation.info}
+            loading={pending.info}
+            error={moderation.infoError}
+          />
+          {currentUser && <UserSanctionButtons userName={currentUser} />}
+        </StaffDrawer>
+      </div>
 
       <ConfirmDialog
         isOpen={moderation.confirm !== null}
@@ -168,14 +194,13 @@ const ModerationContent = () => {
 };
 
 const Moderation = () => (
-  <Layout className="moderation scrollable">
-    <AuthGuard />
+  <StaffConsole>
     <ModGuard>
       <CapabilityGuard capability={ServerCapability.MODERATION_TOOLS}>
         <ModerationContent />
       </CapabilityGuard>
     </ModGuard>
-  </Layout>
+  </StaffConsole>
 );
 
 export default Moderation;

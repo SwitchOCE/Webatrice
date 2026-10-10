@@ -193,7 +193,8 @@ describe('Moderation remediation', () => {
     expect((password as HTMLInputElement).selectionEnd).toBe('s3cr3t-temp'.length);
     expect(JSON.stringify(store.getState())).not.toContain('s3cr3t-temp');
 
-    fireEvent.click(within(screen.getByRole('dialog')).getByRole('button', { name: /button\.ok/ }));
+    const passwordDialog = screen.getByRole('dialog', { name: 'ModerationPage.password.title' });
+    fireEvent.click(within(passwordDialog).getByRole('button', { name: /button\.ok/ }));
     expect(screen.queryByDisplayValue('s3cr3t-temp')).not.toBeInTheDocument();
   });
 

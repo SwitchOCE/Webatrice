@@ -27,6 +27,7 @@ interface StaffTableProps<T> {
   status?: ReactNode;
   footer?: ReactNode;
   className?: string;
+  tableClassName?: string;
 }
 
 const rowFocus = 'focus-visible:outline focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-accent';
@@ -44,6 +45,7 @@ export default function StaffTable<T>({
   status,
   footer,
   className,
+  tableClassName,
 }: StaffTableProps<T>) {
   const [sort, setSort] = useState<TableSort | null>(null);
   const sorted = useMemo(() => {
@@ -65,7 +67,11 @@ export default function StaffTable<T>({
   return (
     <div className={cx('flex min-h-0 min-w-0 flex-1 flex-col', className)}>
       <div className="min-h-0 overflow-auto">
-        <table className="w-full table-fixed border-collapse text-left" role={selectable ? 'grid' : undefined} aria-label={label}>
+        <table
+          className={cx('w-full table-fixed border-collapse text-left', tableClassName)}
+          role={selectable ? 'grid' : undefined}
+          aria-label={label}
+        >
           <colgroup>
             {columns.map((column) => <col key={column.id} className={column.width} />)}
           </colgroup>
