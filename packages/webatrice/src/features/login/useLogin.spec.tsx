@@ -25,6 +25,7 @@ vi.mock('react-i18next', async (orig) => {
 
 import { useKnownHosts } from '../../feature-widgets/known-hosts/useKnownHosts';
 import { useLogin } from './useLogin';
+import { loginAttempt } from './loginAttempt';
 
 const reducer = combineReducers(rootReducerMap);
 
@@ -47,8 +48,8 @@ function setup(preloadedState: Partial<RootState>) {
       </Provider>
     );
   }
-  const { result } = renderHook(() => useLogin(), { wrapper: Wrapper });
-  return { result, webClient, store, hostsUpdate };
+  const { result, rerender } = renderHook(() => useLogin(), { wrapper: Wrapper });
+  return { result, rerender, webClient, store, hostsUpdate };
 }
 
 const makeLoginValues = (overrides: any = {}) => ({
@@ -60,6 +61,76 @@ const makeLoginValues = (overrides: any = {}) => ({
 });
 
 describe('useLogin', () => {
+  beforeEach(() => {
+    loginAttempt.reset();
+  });
+
+  describe('loginFailed', () => {
+    const attempt = (result: { current: ReturnType<typeof useLogin> }) => {
+      act(() => {
+        result.current.handleLogin(makeLoginValues({ selectedHost: makeHost() }));
+      });
+    };
+
+    it('is set by a rejection that carries no response code (salt timeout, registration required)', () => {
+      const { result, store } = setup(disconnectedState);
+      attempt(result);
+      expect(result.current.loginFailed).toBe(false);
+
+      act(() => {
+        store.dispatch(server.Actions.loginFailed(undefined));
+      });
+
+      expect(store.getState().server.loginFailureCode).toBeNull();
+      expect(result.current.loginFailed).toBe(true);
+    });
+
+    it('is set when the connection fails or the server is unreachable', () => {
+      const { result, store } = setup(disconnectedState);
+      attempt(result);
+      act(() => {
+        store.dispatch(server.Actions.connectUnreachable());
+      });
+      expect(result.current.loginFailed).toBe(true);
+    });
+
+    it('is cleared by a new attempt', () => {
+      const { result, store } = setup(disconnectedState);
+      attempt(result);
+      act(() => {
+        store.dispatch(server.Actions.loginFailed({ responseCode: Response_ResponseCode.RespWrongPassword }));
+      });
+      expect(result.current.loginFailed).toBe(true);
+
+      attempt(result);
+      expect(result.current.loginFailed).toBe(false);
+    });
+
+    it('is cleared when another server is selected', () => {
+      const { result, rerender, store } = setup(disconnectedState);
+      attempt(result);
+      act(() => {
+        store.dispatch(server.Actions.loginFailed(undefined));
+      });
+      expect(result.current.loginFailed).toBe(true);
+
+      const other = makeHost({ id: 2, host: 'other.example', port: '443' } as any);
+      vi.mocked(useKnownHosts).mockReturnValue(
+        makeKnownHostsHook({ value: { hosts: [other], selectedHost: other } }),
+      );
+      rerender();
+      expect(result.current.loginFailed).toBe(false);
+    });
+
+    it('ignores failures outside a sign-in attempt, such as a registration', () => {
+      const { result, store } = setup(disconnectedState);
+      act(() => {
+        store.dispatch(server.Actions.connectionFailed());
+      });
+      expect(result.current.loginFailed).toBe(false);
+    });
+  });
+
   it('sends lowercase country codes during registration', () => {
     const { result, webClient } = setup(disconnectedState);
     act(() => result.current.handleRegistrationDialogSubmit({

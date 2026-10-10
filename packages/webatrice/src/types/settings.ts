@@ -21,6 +21,7 @@ export class Setting {
   clearDebugLogOnClose: boolean;
 
   themeMode: ThemeMode;
+  signInCardArt: boolean;
   playmatSettings: PlaymatSettings;
 
   showShortcutsInMenus: boolean;
@@ -167,6 +168,8 @@ export const PREFERENCE_DEFAULTS: Readonly<Preferences> = Object.freeze({
   clearDebugLogOnClose: false,
 
   themeMode: ThemeMode.System,
+
+  signInCardArt: true,
 
   showShortcutsInMenus: true,
 

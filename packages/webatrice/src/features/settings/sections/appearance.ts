@@ -182,5 +182,17 @@ export const appearanceSection: SettingsSection = {
         },
       ],
     },
+    {
+      id: 'appearance.signIn',
+      titleKey: 'SettingsAppearance.group.signIn',
+      entries: [
+        {
+          id: 'signInCardArt',
+          labelKey: 'SettingsAppearance.signInCardArt.label',
+          descriptionKey: 'SettingsAppearance.signInCardArt.description',
+          control: { kind: 'toggle', key: 'signInCardArt' },
+        },
+      ],
+    },
   ],
 };

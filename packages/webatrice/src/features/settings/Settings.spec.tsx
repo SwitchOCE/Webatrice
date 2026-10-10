@@ -344,6 +344,7 @@ describe('Settings', () => {
       'SettingsAppearance.group.cardCounters',
       'SettingsAppearance.group.handLayout',
       'SettingsAppearance.group.tableGrid',
+      'SettingsAppearance.group.signIn',
     ]);
   });
 
