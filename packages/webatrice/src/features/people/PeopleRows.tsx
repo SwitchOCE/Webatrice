@@ -3,7 +3,7 @@ import { Gamepad2, MessageSquare, UserRoundMinus, Volume2 } from 'lucide-react';
 
 import { Avatar, IconButton, UserBadges } from '@app/components';
 import { useUserGames } from '@app/feature-widgets/user-games';
-import { Images } from '@app/images';
+import { CountryFlag } from '@app/feature-widgets/private-chat';
 import { cx } from '@app/utils';
 
 import type { ConversationSummary } from './conversationSummaries';
@@ -24,13 +24,6 @@ function PresenceAvatar({ name, online, size, ring }: { name: string; online: bo
       />
     </span>
   );
-}
-
-function CountryFlag({ cc }: { cc: string | undefined }) {
-  if (!cc || !Images.Countries[cc]) {
-    return null;
-  }
-  return <img src={Images.Countries[cc]} alt={cc.toUpperCase()} title={cc.toUpperCase()} className="h-3 w-auto shrink-0 rounded-[2px]" />;
 }
 
 export function ConversationRow({

@@ -1,17 +1,14 @@
-import { forwardRef, useMemo } from 'react';
+import { forwardRef } from 'react';
 import { useTranslation } from 'react-i18next';
 import { generatePath, useNavigate } from 'react-router-dom';
 import { Flag, Gamepad2, UserCircle, UserRoundMinus, UserRoundPlus, Volume2, VolumeX } from 'lucide-react';
 
 import { Avatar, Button, UserBadges } from '@app/components';
 import { useReportUser } from '@app/dialogs';
-import { type PeerViewModel } from '@app/feature-widgets/private-chat';
+import { CountryFlag, type PeerViewModel } from '@app/feature-widgets/private-chat';
 import { useUserGames } from '@app/feature-widgets/user-games';
-import { Images } from '@app/images';
 import { RouteEnum } from '@app/types';
 import { formatAccountAge, formatUserLevel } from '@app/utils';
-
-import { countryName } from './countryName';
 
 interface ProfileCardProps {
   name: string;
@@ -25,8 +22,6 @@ const ProfileCard = forwardRef<HTMLDivElement, ProfileCardProps>(function Profil
   const userGames = useUserGames();
   const { canReportUser, openReportUser } = useReportUser();
   const info = peer.userInfo;
-  const cc = info?.country ?? '';
-  const country = useMemo(() => countryName(cc, i18n.language), [cc, i18n.language]);
   const act = (fn: () => void) => () => {
     fn();
     onDone();
@@ -44,17 +39,15 @@ const ProfileCard = forwardRef<HTMLDivElement, ProfileCardProps>(function Profil
         <div className="min-w-0">
           <p className="flex items-center gap-1.5 text-[15px] font-semibold text-text-primary">
             <span className="truncate">{name}</span>
-            {cc && Images.Countries[cc] && (
-              <img src={Images.Countries[cc]} alt={country} title={country} className="h-3 w-auto shrink-0 rounded-[2px]" />
-            )}
+            <CountryFlag cc={info?.country} />
             {info && <UserBadges userLevel={info.userLevel} size={13} />}
           </p>
           <p className="text-[12px] text-text-muted">
             {info
-              ? [
+              ? [...new Set([
                 formatUserLevel(t, info.userLevel, info.privlevel),
                 formatAccountAge(t, info.accountageSecs, info.userLevel, i18n.language),
-              ].join(' · ')
+              ])].join(' · ')
               : t('ChatDock.profile.loading')}
           </p>
         </div>

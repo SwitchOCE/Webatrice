@@ -4,7 +4,7 @@ import { ChevronDown, Minus, X } from 'lucide-react';
 
 import { Avatar, IconButton } from '@app/components';
 import { ReportChatScope } from '@app/dialogs';
-import { PrivateChat, usePeer } from '@app/feature-widgets/private-chat';
+import { CountryFlag, PrivateChat, usePeer } from '@app/feature-widgets/private-chat';
 import { dispatchChatDock } from '@app/hooks';
 import { useMarkRead } from '@app/features/notifications';
 import { cx } from '@app/utils';
@@ -77,7 +77,10 @@ export default function ChatWindow({ name, focusSeq, above }: ChatWindowProps) {
               />
             </span>
             <span className="min-w-0">
-              <span className="block truncate text-[13px] font-semibold text-text-primary">{name}</span>
+              <span className="flex items-center gap-1.5 text-[13px] font-semibold text-text-primary">
+                <span className="truncate">{name}</span>
+                <CountryFlag cc={peer.userInfo?.country} />
+              </span>
               <span className="block truncate text-[11px] text-text-muted">
                 {peer.isABuddy ? `${status} · ${t('ChatDock.buddy')}` : status}
               </span>
