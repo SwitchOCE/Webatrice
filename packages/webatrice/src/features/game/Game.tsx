@@ -21,7 +21,7 @@ import { useDockState } from './hooks/useDockState';
 import GameBoardCell from './components/ui/GameBoardCell/GameBoardCell';
 import { BigCardPreview } from './components/ui/BigCardPreview/BigCardPreview';
 import { BoardMotionConfig } from './components/ui/BoardMotionConfig/BoardMotionConfig';
-import { CardScaleProvider } from './components/ui/CardScaleContext';
+import { CardScaleProvider, REFERENCE_CELL_HEIGHT_NO_HAND_PX, REFERENCE_CELL_HEIGHT_PX } from './components/ui/CardScaleContext';
 import IncomingRevealDialog from './dialogs/IncomingRevealDialog/IncomingRevealDialog';
 import TallyOverlay from './components/TallyOverlay/TallyOverlay';
 import CreateTokenDialog from './dialogs/CreateTokenDialog/CreateTokenDialog';
@@ -195,7 +195,11 @@ export function GameBoard({ gameId: boardGameId, footer, onLeave }: GameBoardPro
             <CardPreviewProvider store={previewStore}>
               <SeatShortcutsProvider registry={seatShortcuts}>
                 <GameSelectionProvider selectedCardKeys={selectedCardKeys} setSelectedCardKeys={setSelectedCardKeys}>
-                  <CardScaleProvider containerRef={boardRef} rows={layout.rows}>
+                  <CardScaleProvider
+                    containerRef={boardRef}
+                    rows={layout.rows}
+                    referenceCellHeight={layout.handMode === 'bar' ? REFERENCE_CELL_HEIGHT_NO_HAND_PX : REFERENCE_CELL_HEIGHT_PX}
+                  >
                     <DndContext
                       sensors={sensors}
                       collisionDetection={dnd.collisionDetection}

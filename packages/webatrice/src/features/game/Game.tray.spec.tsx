@@ -1,7 +1,9 @@
 import { fireEvent, screen, within } from '@testing-library/react';
 import { makeCard } from '@cockatrice/datatrice/testing';
 
+import { PREFERENCE_DEFAULTS } from '@app/types';
 import { createMockWebClient, renderWithProviders } from '../../__test-utils__';
+import { usePreferences } from '../../hooks/useSettings';
 import Game from './Game';
 import { buildSeatGameState, type SeatGameSpec } from './__test-utils__/seatFixtures';
 
@@ -76,6 +78,19 @@ describe('Game board arrangement', () => {
     const stack = within(bar).getByRole('group', { name: 'Stack' });
     expect(within(stack).getAllByRole('button').map((b) => b.textContent)).toEqual(['AliceCounterspell', 'BobLightning Bolt']);
     expect(within(bar).getByRole('button', { name: /^Pass turn/ })).toBeEnabled();
+  });
+
+  it('keeps the tray hand horizontal when the vertical-hand preference is on', () => {
+    vi.mocked(usePreferences).mockReturnValue({ ...PREFERENCE_DEFAULTS, horizontalHand: false });
+    try {
+      renderBoard();
+      const hand = within(screen.getByTestId('board-tray')).getByTestId('hand-zone-1');
+      expect(hand).toHaveAttribute('aria-orientation', 'horizontal');
+      const [first, second] = within(hand).getAllByTitle(/^(Forest|Shock)$/);
+      expect(first.compareDocumentPosition(second) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    } finally {
+      vi.mocked(usePreferences).mockReturnValue(PREFERENCE_DEFAULTS);
+    }
   });
 
   it('shows the hand inline again when every hand is visible', () => {

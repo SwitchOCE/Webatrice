@@ -62,21 +62,22 @@ describe('GameDock', () => {
   it('shows only seated players on the Players tab and only watchers on the Spectators tab', () => {
     const { onSelectTab } = renderDock({ tab: 'players' });
     expect(screen.getByRole('heading', { name: 'Players' })).toBeInTheDocument();
-    expect(screen.getByText('Alice')).toBeInTheDocument();
-    expect(screen.queryByText('Watcher')).not.toBeInTheDocument();
+    expect(screen.getByText('Alice')).toBeVisible();
+    expect(screen.getByText('Watcher')).not.toBeVisible();
     fireEvent.click(screen.getByRole('tab', { name: /^Spectators/ }));
     expect(onSelectTab).toHaveBeenCalledWith('spectators');
   });
 
   it('lists watchers on the Spectators tab', () => {
     renderDock({ tab: 'spectators' });
-    expect(screen.getByText('Watcher')).toBeInTheDocument();
-    expect(screen.queryByText('Alice')).not.toBeInTheDocument();
+    expect(screen.getByText('Watcher')).toBeVisible();
+    expect(screen.getByText('Alice')).not.toBeVisible();
   });
 
   it('collapses to a rail whose buttons reopen the dock on a tab', () => {
     const { onCollapse, onSelectTab } = renderDock({ collapsed: true });
     expect(screen.queryByRole('tablist')).not.toBeInTheDocument();
+    expect(screen.getByTestId('chat-log-stub')).not.toBeVisible();
     fireEvent.click(screen.getByRole('button', { name: 'Expand the dock' }));
     expect(onCollapse).toHaveBeenCalledWith(false);
     fireEvent.click(screen.getByRole('button', { name: 'Players (2)' }));

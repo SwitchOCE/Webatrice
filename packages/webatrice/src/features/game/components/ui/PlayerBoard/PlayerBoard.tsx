@@ -11,6 +11,7 @@ import StackCardMenu from '../../context-menus/SeatCardMenus/StackCardMenu';
 import PlayerInfoPanel from '../../right-sidebar/PlayerInfoPanel/PlayerInfoPanel';
 import HandTray from '../../BoardTray/HandTray';
 import { useBoardTrayHost } from '../../BoardTray/BoardTrayContext';
+import { TRAY_CARD_HEIGHT_VAR, TRAY_CARD_WIDTH_VAR } from '../../BoardTray/BoardTray';
 import HandZone from '../HandZone/HandZone';
 import { CARD_BACK_URL, CARD_CORNER_RADIUS, CARD_HEIGHT, CARD_WIDTH } from '../SeatCard/cardSize';
 import { SeatDragGhost } from '../SeatDragContext';
@@ -86,7 +87,7 @@ function PlayerBoard(props: PlayerSeatProps) {
                   alt=""
                   draggable={false}
                   className="shadow-glow"
-                  style={drawFlightStyle(f, DRAW_ANIMATION_MS)}
+                  style={drawFlightStyle(f, DRAW_ANIMATION_MS, handPlacement === 'tray')}
                 />
               );
             })}
@@ -139,15 +140,17 @@ function PlayerBoard(props: PlayerSeatProps) {
           back instead, matching the pile visualization. */}
         {seatDrag &&
         createPortal(
-          <SeatDragGhost>
-            {(origin) =>
-              <SeatDragGhostCards
-                cards={seatDrag.cards as readonly PlayerCardViewModel[]}
-                zone={seatDrag.zone}
-                lent={seatDrag.lenderPlayerId !== undefined}
-                origin={origin}
-              />}
-          </SeatDragGhost>,
+          <div style={handPlacement === 'tray' && seatDrag.zone === 'hand' ? TRAY_CARD_SIZE_VARS : undefined}>
+            <SeatDragGhost>
+              {(origin) =>
+                <SeatDragGhostCards
+                  cards={seatDrag.cards as readonly PlayerCardViewModel[]}
+                  zone={seatDrag.zone}
+                  lent={seatDrag.lenderPlayerId !== undefined}
+                  origin={origin}
+                />}
+            </SeatDragGhost>
+          </div>,
           document.body,
         )}
       </div>
@@ -157,11 +160,16 @@ function PlayerBoard(props: PlayerSeatProps) {
 
 export default PlayerBoard;
 
-function drawFlightStyle(f: DrawFlight, DRAW_ANIMATION_MS: number): React.CSSProperties {
+const TRAY_CARD_SIZE_VARS = {
+  '--card-width': `var(${TRAY_CARD_WIDTH_VAR}, ${CARD_WIDTH})`,
+  '--card-height': `var(${TRAY_CARD_HEIGHT_VAR}, ${CARD_HEIGHT})`,
+} as React.CSSProperties;
+
+function drawFlightStyle(f: DrawFlight, DRAW_ANIMATION_MS: number, traySized: boolean): React.CSSProperties {
   const style: React.CSSProperties = {
     position: 'fixed',
-    width: CARD_WIDTH,
-    height: CARD_HEIGHT,
+    width: traySized ? `var(${TRAY_CARD_WIDTH_VAR}, ${CARD_WIDTH})` : CARD_WIDTH,
+    height: traySized ? `var(${TRAY_CARD_HEIGHT_VAR}, ${CARD_HEIGHT})` : CARD_HEIGHT,
     borderRadius: CARD_CORNER_RADIUS,
     transition:
       `left ${DRAW_ANIMATION_MS}ms ease-out, top ${DRAW_ANIMATION_MS}ms ease-out, `

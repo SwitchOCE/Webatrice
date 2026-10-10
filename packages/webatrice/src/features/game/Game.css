@@ -30,10 +30,10 @@
   grid-column: 1;
   grid-row: 3;
   min-width: 0;
-  --tray-h: clamp(150px, 22vh, 200px);
+  --tray-h: clamp(140px, 18vh, 190px);
   height: var(--tray-h);
-  --card-height: calc(var(--tray-h) - 46px);
-  --card-width: calc(var(--card-height) * 72 / 102);
+  --card-height: var(--tray-card-height, calc(var(--tray-h) - 46px));
+  --card-width: var(--tray-card-width, calc(var(--card-height) * 72 / 102));
 }
 
 .game__resizer {

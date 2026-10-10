@@ -8,6 +8,7 @@ import { usePreference } from '@app/hooks';
 
 import ContextMenuEntries from '../../context-menus/ContextMenu/ContextMenuEntries';
 import { usePlayerSeatContext } from '../PlayerBoard/PlayerSeatContext';
+import { useHorizontalWheelScroll } from '../../../hooks/useHorizontalWheelScroll';
 import { useSeatCardFocus } from '../PlayerBoard/useSeatCardFocus';
 import { cardLabel } from '../SeatCard/cardLabel';
 import { CARD_BACK_URL, CARD_CORNER_RADIUS, CARD_HEIGHT, CARD_WIDTH } from '../SeatCard/cardSize';
@@ -29,6 +30,7 @@ export default function HandZone() {
     handMenuItems,
     handOnTop,
     handPileOptions,
+    handRef,
     handSize,
     handZoneRef,
     horizontalHand,
@@ -44,6 +46,7 @@ export default function HandZone() {
     startSeatCardDrag,
   } = usePlayerSeatContext();
   const keysHintId = useId();
+  useHorizontalWheelScroll(handRef);
   const { t } = useTranslation();
   const [handMenuAnchor, setHandMenuAnchor] = useState<MenuAnchor | null>(null);
   const handButtonRef = useRef<HTMLButtonElement>(null);

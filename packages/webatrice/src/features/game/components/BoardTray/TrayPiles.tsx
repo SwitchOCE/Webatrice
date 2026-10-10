@@ -59,7 +59,7 @@ export default function TrayPiles() {
   const sideboardLabel = t('ZoneStack.pile', { zone: t('BoardTray.sideboard'), count: sideboardCount });
 
   return (
-    <div className="flex w-[124px] shrink-0 flex-col gap-1">
+    <div className="flex w-[clamp(104px,9vw,124px)] shrink-0 flex-col gap-1">
       <PileRow pile={library} playerId={playerId} />
       <PileRow pile={graveyard} playerId={playerId} />
       <PileRow pile={exile} playerId={playerId} />

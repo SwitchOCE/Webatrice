@@ -8,6 +8,7 @@ import { cx } from '@app/utils';
 import { ContextMenuPopup, type ContextMenuItem } from '../context-menus/ContextMenu/ContextMenu';
 import { usePlayerSeatContext } from '../ui/PlayerBoard/PlayerSeatContext';
 import { useSeatCardFocus } from '../ui/PlayerBoard/useSeatCardFocus';
+import { useHorizontalWheelScroll } from '../../hooks/useHorizontalWheelScroll';
 import HandCardTile from '../ui/HandZone/HandCardTile';
 import { cardLabel } from '../ui/SeatCard/cardLabel';
 import ZoneBackground from '../ui/ZoneBackground/ZoneBackground';
@@ -85,6 +86,7 @@ export default function HandTray() {
     cardMetaByName,
     handDisplayList,
     handMenuItems,
+    handRef,
     handSize,
     handZoneRef,
     isDragging,
@@ -100,6 +102,7 @@ export default function HandTray() {
     startSeatCardDrag,
   } = usePlayerSeatContext();
   const keysHintId = useId();
+  useHorizontalWheelScroll(handRef);
   const { cardProps } = useSeatCardFocus('hand', {
     cards: handDisplayList,
     orientation: 'horizontal',
