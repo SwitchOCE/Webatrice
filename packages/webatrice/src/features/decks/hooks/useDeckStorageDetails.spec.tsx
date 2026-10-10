@@ -296,3 +296,44 @@ it('cancels the download when the row unmounts', async () => {
   expect(await saved()).toBe(false);
   expect(ctx.client.request.session.deckUpdate).not.toHaveBeenCalled();
 });
+
+it('drops the clean editor copy when it adopts a newer stored file, but keeps unsaved editor work', async () => {
+  const ctx = setup();
+  await ctx.ready();
+  setCachedDeck(7, { deck: hydrated(), savedSignature: deckSaveSignature(hydrated()) });
+  const unsaved = { ...hydrated(), name: 'Unsaved' };
+  setCachedDeck(8, { deck: unsaved, savedSignature: deckSaveSignature(hydrated()) });
+  const saved = start(ctx, { name: 'Renamed' });
+  await ctx.serve(xml.replace('number="04"', 'number="09"'));
+  await act(async () => expect(await saved()).toBe(false));
+  expect(getCachedDeck(7)).toBeUndefined();
+  expect(getCachedDeck(8)?.deck).toBe(unsaved);
+});
+
+it('keeps unsaved work in the editor copy of the same deck when it adopts a newer stored file', async () => {
+  const ctx = setup();
+  await ctx.ready();
+  const unsaved = { ...hydrated(), name: 'Unsaved' };
+  setCachedDeck(7, { deck: unsaved, savedSignature: deckSaveSignature(hydrated()) });
+  const saved = start(ctx, { name: 'Renamed' });
+  await ctx.serve(xml.replace('number="04"', 'number="09"'));
+  await act(async () => expect(await saved()).toBe(false));
+  expect(getCachedDeck(7)?.deck).toBe(unsaved);
+});
+
+it('makes the adopted file the save baseline, so retrying the old value still uploads', async () => {
+  const ctx = setup();
+  await ctx.ready();
+  const theirs = xml.replace('<deckname>Deck</deckname>', '<deckname>Theirs</deckname>');
+  const refused = start(ctx, { name: 'Mine' });
+  await ctx.serve(theirs);
+  await act(async () => expect(await refused()).toBe(false));
+  expect(getDeckSaveRegistry(ctx.store, ctx.client).getSnapshot(7).savedSignature)
+    .toBe(deckSaveSignature({ ...hydrated(), name: 'Theirs' }));
+
+  const retried = start(ctx, { name: 'Deck' });
+  await ctx.serve(theirs);
+  expect(ctx.client.request.session.deckUpdate).toHaveBeenCalledWith(7, xml, undefined, 'UB', expect.any(Function));
+  ctx.respond();
+  await act(async () => expect(await retried()).toBe(true));
+});
