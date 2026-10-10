@@ -1,120 +1,26 @@
-import { useId, useMemo, useState } from 'react';
-import { Controller, useForm } from 'react-hook-form';
-import { zodResolver } from '@hookform/resolvers/zod';
+import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { z } from 'zod';
-import type { TFunction } from 'i18next';
-import Button from '@mui/material/Button';
-import TextField from '@mui/material/TextField';
+import { Crop, X } from 'lucide-react';
 
 import { games } from '@cockatrice/datatrice';
+import { Button, IconButton, PlaymatCropEditor } from '@app/components';
 import { usePreference, useSettings } from '@app/hooks';
 import type { ZoneBackground, ZoneBackgroundZone } from '@app/types';
 
-import { PlaymatCropEditor } from '@app/components';
+import { ArtPreview, CardNameForm } from '../playmats/ArtParts';
 import type { CustomControlProps } from '../registry';
 
-import '../playmats/PlaymatSettingsPanel.css';
-
 const ZONES: readonly ZoneBackgroundZone[] = ['hand', 'stack', 'table', 'playerInfo'];
+const TILE = { width: 188, height: 58 };
 
-const buildSchema = (t: TFunction) =>
-  z.object({ cardName: z.string().trim().min(1, t('Common.validation.required')) });
-
-type FormValues = z.infer<ReturnType<typeof buildSchema>>;
-
-interface ZoneRowProps {
-  zone: ZoneBackgroundZone;
-  background: ZoneBackground | undefined;
-  disabled: boolean;
-  onChange: (background: ZoneBackground | undefined) => void;
-}
-
-function ZoneRow({ zone, background, disabled, onChange }: ZoneRowProps) {
-  const { t } = useTranslation();
-  const [editing, setEditing] = useState(false);
-  const resolver = useMemo(() => zodResolver(buildSchema(t)), [t]);
-  const { control, handleSubmit, reset } = useForm<FormValues>({ defaultValues: { cardName: '' }, resolver });
-  const zoneLabel = t(`SettingsAppearance.zoneBackgrounds.zone.${zone}`);
-  const editorId = useId();
-
-  const set = ({ cardName }: FormValues) => {
-    onChange({ cardName: cardName.trim(), cardProviderId: '', params: games.DEFAULT_PLAYMAT_PARAMS });
-    reset();
-  };
-
-  return (
-    <li className="playmat-settings__entry" data-zone-background={zone}>
-      <div className="playmat-settings__entry-row">
-        <span className="playmat-settings__entry-name">
-          {t('SettingsAppearance.zoneBackgrounds.current', {
-            zone: zoneLabel,
-            card: background ? background.cardName : t('SettingsAppearance.zoneBackgrounds.none'),
-          })}
-        </span>
-        {background && (
-          <>
-            <Button
-              size="small"
-              disabled={disabled}
-              aria-label={t('SettingsAppearance.zoneBackgrounds.editLabel', { zone: zoneLabel })}
-              aria-expanded={editing}
-              aria-controls={editing ? editorId : undefined}
-              onClick={() => setEditing(!editing)}
-            >
-              {editing ? t('PlaymatSettings.collection.done') : t('PlaymatSettings.collection.edit')}
-            </Button>
-            <Button
-              size="small"
-              disabled={disabled}
-              aria-label={t('SettingsAppearance.zoneBackgrounds.clearLabel', { zone: zoneLabel })}
-              onClick={() => {
-                onChange(undefined);
-                setEditing(false);
-              }}
-            >
-              {t('SettingsAppearance.zoneBackgrounds.clear')}
-            </Button>
-          </>
-        )}
-      </div>
-      {background && editing && (
-        <div id={editorId}>
-          <PlaymatCropEditor playmat={background} onChange={(params) => onChange({ ...background, params })} />
-        </div>
-      )}
-      <form className="playmat-settings__add" onSubmit={handleSubmit(set)} noValidate>
-        <Controller
-          name="cardName"
-          control={control}
-          render={({ field, fieldState }) => (
-            <TextField
-              {...field}
-              size="small"
-              disabled={disabled}
-              label={t('SettingsAppearance.zoneBackgrounds.cardName', { zone: zoneLabel })}
-              placeholder={t('PlaymatSettings.collection.cardNamePlaceholder')}
-              error={Boolean(fieldState.error)}
-              helperText={fieldState.error?.message}
-            />
-          )}
-        />
-        <Button
-          type="submit"
-          variant="outlined"
-          disabled={disabled}
-          aria-label={t('SettingsAppearance.zoneBackgrounds.setLabel', { zone: zoneLabel })}
-        >
-          {t('SettingsAppearance.zoneBackgrounds.set')}
-        </Button>
-      </form>
-    </li>
-  );
-}
+type Panel = { zone: ZoneBackgroundZone; kind: 'set' | 'crop' } | null;
 
 export default function ZoneBackgroundsEditor({ labelId, disabled }: CustomControlProps) {
+  const { t } = useTranslation();
   const settings = useSettings();
   const backgrounds = usePreference('zoneBackgrounds') ?? {};
+  const [panel, setPanel] = useState<Panel>(null);
+  const zoneLabel = (zone: ZoneBackgroundZone) => t(`SettingsAppearance.zoneBackgrounds.zone.${zone}`);
 
   const setZone = (zone: ZoneBackgroundZone, background: ZoneBackground | undefined) => {
     const next = { ...backgrounds };
@@ -126,17 +32,98 @@ export default function ZoneBackgroundsEditor({ labelId, disabled }: CustomContr
     void settings.update({ zoneBackgrounds: next });
   };
 
+  const toggle = (zone: ZoneBackgroundZone, kind: 'set' | 'crop') =>
+    setPanel(panel?.zone === zone && panel.kind === kind ? null : { zone, kind });
+  const open = panel ? backgrounds[panel.zone] : undefined;
+  const panelId = panel ? `zone-background-${panel.zone}-${panel.kind}` : undefined;
+
   return (
-    <ul className="playmat-settings__list" aria-labelledby={labelId}>
-      {ZONES.map((zone) => (
-        <ZoneRow
-          key={zone}
-          zone={zone}
-          background={backgrounds[zone]}
-          disabled={disabled}
-          onChange={(background) => setZone(zone, background)}
-        />
-      ))}
-    </ul>
+    <div className="flex flex-col gap-3">
+      <ul className="flex flex-wrap gap-gap" aria-labelledby={labelId}>
+        {ZONES.map((zone) => {
+          const background = backgrounds[zone];
+          const label = zoneLabel(zone);
+          const isOpen = (kind: 'set' | 'crop') => panel?.zone === zone && panel.kind === kind;
+          return (
+            <li key={zone} className="flex flex-col gap-1" style={{ width: TILE.width }} data-zone-background={zone}>
+              <ArtPreview playmat={background} {...TILE} empty={t('SettingsAppearance.zoneBackgrounds.none')} />
+              <span className="flex items-center gap-1 text-[12px]">
+                <span className="font-medium text-text-primary">{label}</span>
+                <span className="min-w-0 flex-1 truncate text-text-muted" title={background?.cardName}>
+                  {background?.cardName ?? ''}
+                </span>
+                {background && (
+                  <>
+                    <IconButton
+                      size="sm"
+                      className="!h-6 !w-6"
+                      label={t('SettingsAppearance.zoneBackgrounds.editLabel', { zone: label })}
+                      disabled={disabled}
+                      aria-expanded={isOpen('crop')}
+                      aria-controls={isOpen('crop') ? panelId : undefined}
+                      onClick={() => toggle(zone, 'crop')}
+                    >
+                      <Crop size={13} aria-hidden />
+                    </IconButton>
+                    <IconButton
+                      size="sm"
+                      className="!h-6 !w-6 hover:!text-danger"
+                      label={t('SettingsAppearance.zoneBackgrounds.clearLabel', { zone: label })}
+                      disabled={disabled}
+                      onClick={() => {
+                        setZone(zone, undefined);
+                        setPanel(null);
+                      }}
+                    >
+                      <X size={13} aria-hidden />
+                    </IconButton>
+                  </>
+                )}
+                <Button
+                  size="sm"
+                  variant="ghost"
+                  className="!h-6 !px-1.5"
+                  disabled={disabled}
+                  aria-label={t('SettingsAppearance.zoneBackgrounds.chooseLabel', { zone: label })}
+                  aria-expanded={isOpen('set')}
+                  aria-controls={isOpen('set') ? panelId : undefined}
+                  onClick={() => toggle(zone, 'set')}
+                >
+                  {background ? t('SettingsAppearance.zoneBackgrounds.change') : t('SettingsAppearance.zoneBackgrounds.set')}
+                </Button>
+              </span>
+            </li>
+          );
+        })}
+      </ul>
+      {panel?.kind === 'set' && (
+        <div id={panelId}>
+          <CardNameForm
+            key={panel.zone}
+            label={t('SettingsAppearance.zoneBackgrounds.cardName', { zone: zoneLabel(panel.zone) })}
+            submitLabel={t('SettingsAppearance.zoneBackgrounds.set')}
+            submitAriaLabel={t('SettingsAppearance.zoneBackgrounds.setLabel', { zone: zoneLabel(panel.zone) })}
+            disabled={disabled}
+            onSubmit={(cardName) => {
+              setZone(panel.zone, { cardName, cardProviderId: '', params: games.DEFAULT_PLAYMAT_PARAMS });
+              setPanel(null);
+              return undefined;
+            }}
+            onCancel={() => setPanel(null)}
+          />
+        </div>
+      )}
+      {panel?.kind === 'crop' && open && (
+        <div id={panelId} className="flex flex-col gap-2 rounded-ui border border-border-subtle bg-bg-sunken p-3">
+          <span className="flex items-center gap-2 text-[12px] font-medium text-text-primary">
+            {t('PlaymatSettings.collection.cropOf', { card: open.cardName })}
+            <Button size="sm" variant="quiet" className="ml-auto" onClick={() => setPanel(null)}>
+              {t('PlaymatSettings.collection.done')}
+            </Button>
+          </span>
+          <PlaymatCropEditor playmat={open} onChange={(params) => setZone(panel.zone, { ...open, params })} />
+        </div>
+      )}
+    </div>
   );
 }

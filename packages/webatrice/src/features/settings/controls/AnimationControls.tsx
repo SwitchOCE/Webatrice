@@ -11,7 +11,10 @@ import {
   type AnimationPreferenceKey,
 } from '@app/hooks';
 
+import { Button } from '@app/components';
+
 import type { CustomControlProps } from '../registry';
+import { Switch } from './fields';
 
 function useChooseAnimations() {
   const settings = useSettings();
@@ -30,16 +33,13 @@ export function animationToggle(key: AnimationPreferenceKey): ComponentType<Cust
   function AnimationToggle({ id, labelId, describedBy, disabled }: CustomControlProps) {
     const { preferences, reducedMotion, choose } = useChooseAnimations();
     return (
-      <input
+      <Switch
         id={id}
-        type="checkbox"
-        role="switch"
-        className="settings-switch"
         checked={resolveAnimation(preferences, key, reducedMotion)}
         disabled={disabled}
         aria-labelledby={labelId}
         aria-describedby={describedBy}
-        onChange={(e) => choose({ [key]: e.target.checked })}
+        onChange={(checked) => choose({ [key]: checked })}
       />
     );
   }
@@ -53,13 +53,13 @@ export function AnimationButtons({ labelId, disabled }: CustomControlProps) {
   const setAll = (enabled: boolean) => choose(Object.fromEntries(ANIMATION_PREFERENCE_KEYS.map((key) => [key, enabled])));
 
   return (
-    <span className="settings-buttons" role="group" aria-labelledby={labelId}>
-      <button type="button" className="settings-button" disabled={disabled} onClick={() => setAll(true)}>
+    <span className="inline-flex flex-wrap gap-2" role="group" aria-labelledby={labelId}>
+      <Button size="sm" disabled={disabled} onClick={() => setAll(true)}>
         {t('SettingsUserInterface.animations.enableAll')}
-      </button>
-      <button type="button" className="settings-button" disabled={disabled} onClick={() => setAll(false)}>
+      </Button>
+      <Button size="sm" disabled={disabled} onClick={() => setAll(false)}>
         {t('SettingsUserInterface.animations.disableAll')}
-      </button>
+      </Button>
     </span>
   );
 }

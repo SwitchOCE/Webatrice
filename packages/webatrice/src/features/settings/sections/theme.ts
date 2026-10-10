@@ -1,7 +1,6 @@
 import { Palette } from 'lucide-react';
 
-import { ThemeMode } from '@app/types';
-
+import ThemeTiles from '../controls/ThemeTiles';
 import { SettingsSectionId, type SettingsSection } from '../registry';
 
 export const themeSection: SettingsSection = {
@@ -17,15 +16,7 @@ export const themeSection: SettingsSection = {
           id: 'themeMode',
           labelKey: 'SettingsAppearance.themeMode.label',
           descriptionKey: 'SettingsAppearance.themeMode.description',
-          control: {
-            kind: 'select',
-            key: 'themeMode',
-            options: [
-              { value: ThemeMode.Light, labelKey: 'SettingsAppearance.themeMode.light' },
-              { value: ThemeMode.Dark, labelKey: 'SettingsAppearance.themeMode.dark' },
-              { value: ThemeMode.System, labelKey: 'SettingsAppearance.themeMode.system' },
-            ],
-          },
+          control: { kind: 'custom', component: ThemeTiles, keys: ['themeMode'], layout: 'block' },
         },
       ],
     },

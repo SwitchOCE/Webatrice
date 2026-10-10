@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { ShieldCheck, Trash2 } from 'lucide-react';
 
+import { Button } from '@app/components';
 import { ConfirmDialog } from '@app/dialogs';
 import { refreshCardDataPreferences } from '@app/hooks';
 import {
@@ -14,7 +15,7 @@ import {
   SCRYFALL_CACHE_STORES,
   type Stores,
 } from '@app/services';
-import { toBcp47 } from '@app/utils';
+import { cx, toBcp47 } from '@app/utils';
 
 import type { CustomControlProps } from '../registry';
 import { refreshStorageStatus, useStorageStatus, type StorageStatus } from './useStorageStatus';
@@ -45,28 +46,43 @@ export function StorageUsageControl({ labelId, describedBy }: CustomControlProps
   const percent = usage && usage.quota > 0 ? Math.min(100, (usage.usage / usage.quota) * 100) : 0;
 
   return (
-    <div className="settings-storage" role="group" aria-labelledby={labelId} aria-describedby={describedBy}>
+    <div
+      className="flex flex-col gap-2 text-[13px] text-text-secondary"
+      role="group"
+      aria-labelledby={labelId}
+      aria-describedby={describedBy}
+    >
       {!status.loaded ? (
-        <span className="settings-storage__note">{t('SettingsStorage.loading')}</span>
+        <span className="text-text-muted">{t('SettingsStorage.loading')}</span>
       ) : usage ? (
         <>
-          <span>
+          <span className="font-medium text-text-primary">
             {t('SettingsStorage.usage.value', {
               used: formatBytes(usage.usage, i18n.language),
               quota: formatBytes(usage.quota, i18n.language),
             })}
           </span>
-          <progress className="settings-storage__meter" max={100} value={percent} aria-labelledby={labelId} />
+          <progress
+            className={cx(
+              'h-2.5 w-full appearance-none overflow-hidden rounded-full bg-bg-elevated',
+              '[&::-webkit-progress-bar]:bg-bg-elevated [&::-webkit-progress-value]:bg-accent [&::-moz-progress-bar]:bg-accent',
+            )}
+            max={100}
+            value={percent}
+            aria-labelledby={labelId}
+          />
         </>
       ) : (
-        <span className="settings-storage__note">{t('SettingsStorage.usage.unavailable')}</span>
+        <span className="text-text-muted">{t('SettingsStorage.usage.unavailable')}</span>
       )}
       {status.loaded && (
-        <dl className="settings-storage__tables">
+        <dl className="m-0 grid grid-cols-[repeat(auto-fill,minmax(11rem,1fr))] gap-x-4 gap-y-1 text-[12px]">
           {ALL_STORES.map((store) => (
-            <div key={store} className="settings-storage__table">
-              <dt>{t(`SettingsStorage.table.${store}`)}</dt>
-              <dd>{(status.counts[store] ?? 0).toLocaleString(toBcp47(i18n.language) || undefined)}</dd>
+            <div key={store} className="flex justify-between gap-2">
+              <dt className="text-text-muted">{t(`SettingsStorage.table.${store}`)}</dt>
+              <dd className="m-0 font-mono tabular-nums">
+                {(status.counts[store] ?? 0).toLocaleString(toBcp47(i18n.language) || undefined)}
+              </dd>
             </div>
           ))}
         </dl>
@@ -89,15 +105,17 @@ export function PersistentStorageControl({ id, labelId, describedBy, disabled }:
   const state = persisted ? 'granted' : refused ? 'refused' : 'default';
 
   return (
-    <span className="settings-permission" role="group" aria-labelledby={labelId} aria-describedby={describedBy}>
-      <span className="settings-permission__status" data-permission={state === 'refused' ? 'denied' : state}>
+    <span className="inline-flex flex-wrap items-center gap-3" role="group" aria-labelledby={labelId} aria-describedby={describedBy}>
+      <span
+        className={state === 'refused' ? 'text-[12px] text-danger' : 'text-[12px] text-text-muted'}
+        data-permission={state === 'refused' ? 'denied' : state}
+      >
         {t(`SettingsStorage.persistent.status.${state}`)}
       </span>
       {!persisted && isPersistentStorageSupported() && (
-        <button id={id} type="button" className="settings-button" disabled={disabled} onClick={request}>
-          <ShieldCheck size={14} aria-hidden />
+        <Button id={id} disabled={disabled} onClick={request} icon={<ShieldCheck size={14} aria-hidden />}>
           {t('SettingsStorage.persistent.request')}
-        </button>
+        </Button>
       )}
     </span>
   );
@@ -132,20 +150,22 @@ function ClearStoresControl({ id, labelId, describedBy, disabled, stores, clear,
   };
 
   return (
-    <span className="settings-permission" role="group" aria-labelledby={labelId} aria-describedby={describedBy}>
-      <span className="settings-permission__status" data-permission={failed ? 'denied' : undefined}>
+    <span className="inline-flex flex-wrap items-center gap-3" role="group" aria-labelledby={labelId} aria-describedby={describedBy}>
+      <span
+        className={failed ? 'text-[12px] text-danger' : 'text-[12px] text-text-muted'}
+        data-permission={failed ? 'denied' : undefined}
+      >
         {failed ? t('SettingsStorage.clearFailed') : t(`${keyPrefix}.count`, { count })}
       </span>
-      <button
+      <Button
         id={id}
-        type="button"
-        className="settings-button"
+        variant={confirm ? 'danger' : 'secondary'}
+        icon={<Trash2 size={14} aria-hidden />}
         disabled={disabled || busy || !status.loaded || count === 0}
         onClick={() => (confirm ? setConfirming(true) : void run())}
       >
-        <Trash2 size={14} aria-hidden />
         {t(`${keyPrefix}.button`)}
-      </button>
+      </Button>
       {confirm && (
         <ConfirmDialog
           isOpen={confirming}

@@ -3,16 +3,20 @@ import { useTranslation } from 'react-i18next';
 
 import { LoadingState, usePreferences, useSettings } from '@app/hooks';
 import type { Preferences } from '@app/types';
+import { cx } from '@app/utils';
 
+import { SelectBox, Switch, fieldBox, focusRing, textField } from './controls/fields';
+import Highlight from './Highlight';
 import type { SettingControl, SettingEntry } from './registry';
 
 interface SettingRowProps {
   entry: SettingEntry;
+  query?: string;
 }
 
 export const settingControlId = (entry: SettingEntry) => `setting-${entry.id}`;
 
-export default function SettingRow({ entry }: SettingRowProps) {
+export default function SettingRow({ entry, query }: SettingRowProps) {
   const { t } = useTranslation();
   const settings = useSettings();
   const preferences = usePreferences();
@@ -26,7 +30,9 @@ export default function SettingRow({ entry }: SettingRowProps) {
   };
 
   const custom = entry.control.kind === 'custom' ? entry.control : null;
+  const block = custom?.layout === 'block';
   const labelId = `${id}-label`;
+  const label = <Highlight text={t(entry.labelKey)} query={query} />;
 
   if (entry.visibleWhen && !entry.visibleWhen(preferences)) {
     return null;
@@ -34,22 +40,25 @@ export default function SettingRow({ entry }: SettingRowProps) {
 
   return (
     <div
-      className={custom?.layout === 'block' ? 'settings-row settings-row--block' : 'settings-row'}
+      className={cx(
+        'px-pad py-[calc(var(--pad)*0.75)]',
+        block ? 'flex flex-col gap-3' : 'flex flex-wrap items-center gap-x-6 gap-y-2',
+      )}
       data-setting={entry.id}
     >
-      <div className="settings-row__text">
+      <div className="flex min-w-[min(100%,16rem)] flex-1 flex-col gap-0.5">
         {custom ? (
-          <span id={labelId} className="settings-row__label">{t(entry.labelKey)}</span>
+          <span id={labelId} className="text-[13px] font-medium text-text-primary">{label}</span>
         ) : (
-          <label id={labelId} htmlFor={id} className="settings-row__label">{t(entry.labelKey)}</label>
+          <label id={labelId} htmlFor={id} className="text-[13px] font-medium text-text-primary">{label}</label>
         )}
         {entry.descriptionKey && (
-          <p id={descriptionId} className="settings-row__description">
-            {t(entry.descriptionKey)}
+          <p id={descriptionId} className="text-[12px] leading-snug text-text-muted">
+            <Highlight text={t(entry.descriptionKey)} query={query} />
           </p>
         )}
       </div>
-      <div className="settings-row__control">
+      <div className={block ? 'w-full min-w-0' : 'flex shrink-0 items-center'}>
         {custom ? (
           <custom.component id={id} labelId={labelId} describedBy={descriptionId} disabled={disabled} />
         ) : (
@@ -82,22 +91,18 @@ function BuiltInControl({ id, control, preferences, disabled, describedBy, onCha
   switch (control.kind) {
     case 'toggle':
       return (
-        <input
+        <Switch
           id={id}
-          type="checkbox"
-          role="switch"
-          className="settings-switch"
           checked={preferences[control.key]}
           disabled={disabled}
           aria-describedby={describedBy}
-          onChange={(e) => onChange({ [control.key]: e.target.checked })}
+          onChange={(checked) => onChange({ [control.key]: checked })}
         />
       );
     case 'select':
       return (
-        <select
+        <SelectBox
           id={id}
-          className="settings-input"
           value={preferences[control.key]}
           disabled={disabled}
           aria-describedby={describedBy}
@@ -108,7 +113,7 @@ function BuiltInControl({ id, control, preferences, disabled, describedBy, onCha
               {option.labelKey ? t(option.labelKey) : (option.label ?? option.value)}
             </option>
           ))}
-        </select>
+        </SelectBox>
       );
     case 'range':
       return (
@@ -126,7 +131,7 @@ function BuiltInControl({ id, control, preferences, disabled, describedBy, onCha
         <CommittedInput
           id={id}
           type="text"
-          className="settings-input"
+          className={textField}
           value={preferences[control.key]}
           placeholder={control.placeholderKey ? t(control.placeholderKey) : undefined}
           disabled={disabled}
@@ -147,14 +152,12 @@ function BuiltInControl({ id, control, preferences, disabled, describedBy, onCha
       );
     case 'color':
       return (
-        <CommittedInput
+        <ColorControl
           id={id}
-          type="color"
-          className="settings-color"
-          value={`#${preferences[control.key]}`}
+          value={preferences[control.key]}
           disabled={disabled}
-          aria-describedby={describedBy}
-          onCommit={(value) => onChange({ [control.key]: value.replace(/^#/, '').toUpperCase() })}
+          describedBy={describedBy}
+          onCommit={(hex) => onChange({ [control.key]: hex })}
         />
       );
   }
@@ -196,10 +199,11 @@ function RangeControl({ id, control, preferences, disabled, describedBy, onChang
   };
 
   return (
-    <span className="settings-range">
+    <span className="inline-flex items-center gap-3">
       <CommittedInput
         id={id}
         type="range"
+        className={cx('h-1.5 w-44 cursor-pointer accent-accent disabled:cursor-not-allowed disabled:opacity-45', focusRing)}
         min={control.min}
         max={control.max}
         step={control.step ?? 1}
@@ -209,7 +213,7 @@ function RangeControl({ id, control, preferences, disabled, describedBy, onChang
         onDraft={setShown}
         onCommit={commit}
       />
-      <output htmlFor={id} className="settings-range__value">
+      <output htmlFor={id} className="w-12 text-right font-mono text-[12px] tabular-nums text-text-secondary">
         {shown ?? preferences[control.key]}
       </output>
     </span>
@@ -232,12 +236,12 @@ function NumberControl({ id, control, preferences, disabled, describedBy, onChan
   };
 
   return (
-    <span className="settings-number">
+    <span className="inline-flex items-center gap-2">
       <CommittedInput
         id={id}
         type="number"
         inputMode="numeric"
-        className="settings-input settings-number__input"
+        className={cx(fieldBox, 'w-20 px-2.5 text-right font-mono tabular-nums')}
         min={control.min}
         max={control.max}
         step={1}
@@ -246,7 +250,49 @@ function NumberControl({ id, control, preferences, disabled, describedBy, onChan
         aria-describedby={[describedBy, unitId].filter(Boolean).join(' ') || undefined}
         onCommit={commit}
       />
-      {unitKey && <span id={unitId} className="settings-number__unit">{t(unitKey)}</span>}
+      {unitKey && <span id={unitId} className="text-[12px] text-text-muted">{t(unitKey)}</span>}
+    </span>
+  );
+}
+
+interface ColorControlProps {
+  id: string;
+  value: string;
+  disabled: boolean;
+  describedBy?: string;
+  onCommit: (hex: string) => void;
+}
+
+function ColorControl({ id, value, disabled, describedBy, onCommit }: ColorControlProps) {
+  const [shown, setShown] = useState<string | null>(null);
+  return (
+    <span
+      className={cx(
+        'inline-flex h-9 items-center gap-2 rounded-ui border border-border-control/70 bg-bg-sunken pl-1.5 pr-2.5',
+        'focus-within:outline focus-within:outline-2 focus-within:outline-offset-2 focus-within:outline-accent',
+        disabled && 'opacity-45',
+      )}
+    >
+      <CommittedInput
+        id={id}
+        type="color"
+        className={cx(
+          'h-6 w-6 cursor-pointer appearance-none rounded-ui-sm border-0 bg-transparent p-0 focus:outline-none',
+          '[&::-moz-color-swatch]:rounded-ui-sm [&::-moz-color-swatch]:border-0',
+          '[&::-webkit-color-swatch-wrapper]:p-0 [&::-webkit-color-swatch]:rounded-ui-sm [&::-webkit-color-swatch]:border-0',
+        )}
+        value={`#${value}`}
+        disabled={disabled}
+        aria-describedby={describedBy}
+        onDraft={(draft) => setShown(draft)}
+        onCommit={(raw) => {
+          setShown(null);
+          onCommit(raw.replace(/^#/, '').toUpperCase());
+        }}
+      />
+      <span aria-hidden className="font-mono text-[12px] uppercase text-text-secondary">
+        {shown ?? `#${value}`}
+      </span>
     </span>
   );
 }

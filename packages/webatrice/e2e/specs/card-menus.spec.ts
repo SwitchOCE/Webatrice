@@ -79,7 +79,7 @@ test('Alt+1 sends the first message macro to the game chat', async ({ newContext
 
   await page.getByRole('button', { name: session.user.username }).click();
   await page.getByRole('menuitem', { name: t('UserMenu.settings'), exact: true }).click();
-  await page.getByRole('tab', { name: t('Settings.section.chat'), exact: true }).click();
+  await page.getByRole('navigation', { name: t('Settings.jumpTo') }).getByRole('button', { name: t('Settings.section.chat') }).click();
   await page.getByRole('textbox', { name: t('SettingsChat.macros.newLabel'), exact: true }).fill('e2e macro says hi');
   await page.getByRole('button', { name: t('SettingsChat.macros.add'), exact: true }).click();
   await expect(page.getByText('e2e macro says hi')).toBeVisible();
