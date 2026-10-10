@@ -3,11 +3,10 @@ import { useTranslation } from 'react-i18next';
 
 import { type games } from '@cockatrice/datatrice';
 import { PlaymatImage } from '@app/components';
-import { cx, type Size } from '@app/utils';
+import { CROP_LABEL_KEYS, CROP_SLIDERS, cx, type Size } from '@app/utils';
 
 import CommittedInput from '../controls/CommittedInput';
 import { focusRing } from '../controls/fields';
-import { CROP_LABEL_KEYS, CROP_SLIDERS } from './playmatList';
 
 const PREVIEW: Size = { width: 320, height: 120 };
 

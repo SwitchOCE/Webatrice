@@ -51,9 +51,8 @@ export function recentDeckScope(endpoint: string | null | undefined): string | n
     if (url.protocol !== 'ws:' && url.protocol !== 'wss:') {
       return null;
     }
-    const port = url.port || (url.protocol === 'wss:' ? '443' : '80');
     const path = url.pathname.replace(/\/+$/, '');
-    return `${url.hostname}:${port}${path}`.toLowerCase();
+    return `${url.protocol}//${url.host}${path}`;
   } catch {
     return null;
   }
@@ -173,14 +172,44 @@ export function withRecentDeck(list: readonly RecentDeck[], entry: RecentDeck, l
   return [...mine.slice(0, limit), ...others];
 }
 
+function deckKey(deck: RecentDeck): string {
+  return JSON.stringify([deck.scope, deck.owner, deck.deckId]);
+}
+
+function mergeRecentDecks(
+  stored: readonly RecentDeck[],
+  pending: readonly RecentDeck[],
+  limit = RECENT_DECKS_LIMIT,
+): RecentDeck[] {
+  const newest = new Map<string, RecentDeck>();
+  for (const deck of [...pending, ...stored]) {
+    const seen = newest.get(deckKey(deck));
+    if (!seen || deck.openedAt > seen.openedAt) {
+      newest.set(deckKey(deck), deck);
+    }
+  }
+  const perScope = new Map<string, number>();
+  return [...newest.values()]
+    .sort((a, b) => b.openedAt - a.openedAt)
+    .filter((deck) => {
+      const scope = JSON.stringify([deck.scope, deck.owner]);
+      const count = (perScope.get(scope) ?? 0) + 1;
+      perScope.set(scope, count);
+      return count <= limit;
+    });
+}
+
+const LOCK_NAME = RECENT_DECKS_STORAGE_KEY;
 const EMPTY: RecentDeck[] = [];
 const listeners = new Set<() => void>();
-let fallbackRaw: string | null = null;
-let lastRaw: string | null = null;
+let unsaved: RecentDeck[] | null = null;
+let lastStored: string | null = null;
+let lastUnsaved: RecentDeck[] | null = null;
 let lastParsed: RecentDeck[] = EMPTY;
 
-function readRaw(): string | null {
-  return readLocalStorage(RECENT_DECKS_STORAGE_KEY) ?? fallbackRaw;
+function currentRecentDecks(stored: string | null): RecentDeck[] {
+  const saved = stored ? parseRecentDecks(stored) : EMPTY;
+  return unsaved ? mergeRecentDecks(saved, unsaved) : saved;
 }
 
 function notify(): void {
@@ -194,10 +223,11 @@ function onStorage(event: StorageEvent): void {
 }
 
 export function getRecentDecks(): RecentDeck[] {
-  const raw = readRaw();
-  if (raw !== lastRaw) {
-    lastRaw = raw;
-    lastParsed = raw ? parseRecentDecks(raw) : EMPTY;
+  const stored = readLocalStorage(RECENT_DECKS_STORAGE_KEY);
+  if (stored !== lastStored || unsaved !== lastUnsaved) {
+    lastStored = stored;
+    lastUnsaved = unsaved;
+    lastParsed = currentRecentDecks(stored);
   }
   return lastParsed;
 }
@@ -215,20 +245,47 @@ export function subscribeRecentDecks(listener: () => void): () => void {
   };
 }
 
-export function recordRecentDeck(entry: RecentDeck): void {
-  const current = parseRecentDecks(readRaw());
+function writeRecentDeck(entry: RecentDeck): void {
+  const current = currentRecentDecks(readLocalStorage(RECENT_DECKS_STORAGE_KEY));
   const first = recentDecksIn(current, entry.scope, entry.owner)[0];
   if (first && sameDeck(first, entry) && sameContent(first, entry)) {
     return;
   }
-  const raw = JSON.stringify(withRecentDeck(current, entry));
+  const next = withRecentDeck(current, entry);
+  const raw = JSON.stringify(next);
   writeLocalStorage(RECENT_DECKS_STORAGE_KEY, raw);
-  fallbackRaw = readLocalStorage(RECENT_DECKS_STORAGE_KEY) === raw ? null : raw;
+  unsaved = readLocalStorage(RECENT_DECKS_STORAGE_KEY) === raw ? null : next;
   notify();
 }
 
+function lockManager(): LockManager | null {
+  return typeof navigator !== 'undefined' && typeof navigator.locks?.request === 'function' ? navigator.locks : null;
+}
+
+export function recordRecentDeck(entry: RecentDeck): Promise<void> {
+  const locks = lockManager();
+  if (!locks) {
+    writeRecentDeck(entry);
+    return Promise.resolve();
+  }
+  let written = false;
+  const write = () => {
+    written = true;
+    writeRecentDeck(entry);
+  };
+  return locks.request(LOCK_NAME, write).then(
+    () => undefined,
+    () => {
+      if (!written) {
+        writeRecentDeck(entry);
+      }
+    },
+  );
+}
+
 export function resetRecentDecksCache(): void {
-  fallbackRaw = null;
-  lastRaw = null;
+  unsaved = null;
+  lastStored = null;
+  lastUnsaved = null;
   lastParsed = EMPTY;
 }
