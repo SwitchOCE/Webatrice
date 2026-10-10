@@ -19,6 +19,7 @@
       "@app/services/session": ["./src/services/session/index.ts"],
       "@app/services": ["./src/services/index.ts"],
       "@app/feature-wrappers/layout": ["./src/feature-wrappers/layout/index.ts"],
+      "@app/feature-wrappers/staff": ["./src/feature-wrappers/staff/index.ts"],
       "@app/features/account": ["./src/features/account/index.ts"],
       "@app/features/administration": ["./src/features/administration/index.ts"],
       "@app/features/card-art-rules": ["./src/features/card-art-rules/index.ts"],

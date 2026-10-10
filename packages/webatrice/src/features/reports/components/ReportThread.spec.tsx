@@ -47,18 +47,20 @@ describe('ReportThread', () => {
     renderThread({
       details: makeReport({
         reportId: 1,
-        chatLog: '[10:00:00] mallory: hi',
+        reportedUserName: 'mallory',
+        chatLog: '[10:00:00] mallory: hi\n[10:00:05] alice: stop',
         comments: [
           create(ServerInfo_ReportCommentSchema, { authorName: 'modA', commentText: 'Looking', isModerator: true, commentTime: at }),
           create(ServerInfo_ReportCommentSchema, { authorName: 'alice', commentText: 'Thanks', commentTime: at }),
         ],
       }),
     });
-    expect(screen.getByTestId('report-chat-log').textContent).toBe('[10:00:00] mallory: hi');
+    const lines = screen.getByTestId('report-chat-log').querySelectorAll('li');
+    expect([...lines].map((line) => line.textContent)).toEqual(['10:00:00mallory:hi', '10:00:05alice:stop']);
     const comments = screen.getAllByTestId('report-comment').map((c) => c.textContent);
     expect(comments).toEqual([
-      '[2026-01-02 03:04] Reports.thread.moderatorPrefix modA:Looking',
-      '[2026-01-02 03:04] [You] alice:Thanks',
+      'MmodAReports.thread.moderatorPrefix2026-01-02 03:04Looking',
+      'Aalice[You]2026-01-02 03:04Thanks',
     ]);
   });
 

@@ -1115,6 +1115,37 @@
     "importCards": "Import cards",
     "debugLog": "View debug log"
   },
+  "Staff": {
+    "nav": "Staff tools",
+    "tool": {
+      "reports": "Reports",
+      "moderation": "Moderation",
+      "logs": "Logs",
+      "administration": "Administration",
+      "cardArtRules": "Card art rules",
+      "developer": "Developer"
+    },
+    "unresolvedBadge": "{count, plural, one {# unresolved report} other {# unresolved reports}}",
+    "lock": {
+      "region": "Administration lock",
+      "locked": "Functions locked",
+      "unlocked": "Functions unlocked",
+      "lockedIcon": "Locked",
+      "lockedHint": "Administration functions (server message, shut down, reload config, force-activate, grant replay access) and moderator actions on users stay greyed out until you unlock.",
+      "unlockedHint": "Administration functions and moderator actions on users are live. Lock again when you are done.",
+      "unlock": "Unlock functions",
+      "lock": "Lock functions"
+    },
+    "drawer": {
+      "close": "Close details"
+    },
+    "sanctions": {
+      "warn": "Warn...",
+      "ban": "Ban...",
+      "hint": "Both ask to confirm, with a reason",
+      "lockedHint": "Unlock functions to warn or ban."
+    }
+  },
   "Account": {
     "action": {
       "edit": "Edit",
@@ -3298,61 +3329,70 @@
   "Reports": {
     "loading": "Loading...",
     "loadFailed": "Failed to load reports.",
-    "count": "{count} report(s)",
+    "count": "{count, plural, one {# report} other {# reports}}",
     "refresh": "Refresh",
     "column": {
-      "id": "#",
-      "time": "Time",
-      "reporter": "Reporter",
-      "reportedUser": "Reported User",
+      "id": "ID",
+      "age": "Age",
+      "reportedUser": "Reported user",
       "category": "Category",
-      "gameId": "Game ID",
       "status": "Status",
-      "assignedTo": "Assigned To",
-      "replay": "Replay",
-      "room": "Room",
-      "yes": "Yes",
-      "no": "No"
+      "assignedTo": "Assigned",
+      "nobody": "Nobody"
+    },
+    "age": {
+      "minutes": "{count} min",
+      "hours": "{count} h",
+      "days": "{count} d"
+    },
+    "view": {
+      "unresolved": "Unresolved",
+      "open": "Open",
+      "assigned": "Assigned",
+      "resolved": "Resolved",
+      "dismissed": "Dismissed",
+      "all": "All"
+    },
+    "drawer": {
+      "label": "Report {id}",
+      "subtitle": "{reporter} reported {reported} · {time}",
+      "game": "Game #{gameId}",
+      "mineSubtitle": "You reported {reported} · {time}"
     },
     "thread": {
-      "detailsGroup": "Report Details",
-      "description": "Description",
       "noDescription": "No description.",
-      "chatGroup": "Chat Log Context",
-      "chatTooltip": "Chat log attached by the reporter. It is captured from their client and may be incomplete or edited.",
+      "chatGroup": "Chat log",
+      "chatCaveat": "Captured from {name}'s client. It may be incomplete or edited; check it against the server log or replay.",
       "noChatLog": "No chat log attached.",
-      "comments": "Comments:",
-      "commentsThread": "Comments / Thread",
+      "comments": "Replies",
+      "threadWith": "Thread with {name}",
       "noComments": "No comments yet.",
       "detailsFailed": "Failed to load report details.",
-      "addComment": "Add a comment:",
-      "commentPlaceholder": "Type your comment here...",
-      "replyPlaceholder": "Type a reply...",
+      "addComment": "Add a comment",
+      "commentPlaceholder": "Add to your report (moderators will see it)",
+      "replyPlaceholder": "Comment to {name} (they will see it)",
       "closedPlaceholder": "This report is closed.",
       "send": "Send",
       "commentFailed": "Failed to send comment.",
-      "moderatorPrefix": "[Moderator]",
-      "youPrefix": "[You]",
-      "reporterPrefix": "[Reporter]",
-      "resolution": "Resolution note:",
-      "selectReport": "Select a report to see its details."
+      "moderatorPrefix": "Moderator",
+      "youPrefix": "You",
+      "reporterPrefix": "Reporter",
+      "resolution": "Resolution note:"
     },
     "mine": {
-      "title": "My Reports"
+      "title": "My reports",
+      "subtitle": "Reports you filed, and what moderators said about them."
     },
     "queue": {
-      "title": "Report Queue",
-      "searchPlaceholder": "Search by username, category...",
-      "allStatuses": "All Statuses",
-      "unresolvedOnly": "Unresolved only",
-      "statusCounts": "{open} open  |  {assigned} assigned  |  {resolved} resolved  |  {dismissed} dismissed",
-      "shownOfTotal": "Showing the newest {shown} of {total} reports.",
-      "assign": "Assign to Me",
-      "resolve": "Resolve",
-      "resolveWithNote": "Resolve with note...",
+      "title": "Reports",
+      "searchPlaceholder": "Search reports",
+      "filter": "Report status",
+      "shownOfTotal": "{shown} of {total, plural, one {# report} other {# reports}}",
+      "assign": "Assign to me",
+      "resolveWithNote": "Resolve...",
       "dismiss": "Dismiss...",
-      "viewReplay": "View Replay",
-      "joinGame": "Join Game",
+      "viewReplay": "Replay",
+      "joinGame": "Join",
       "assigning": "Assigning...",
       "assignedDone": "Assigned.",
       "assignFailed": "Assignment failed.",
@@ -3367,8 +3407,8 @@
       "replayTitle": "Report game #{gameId}",
       "noRoom": "No room recorded for this report, use the replay instead.",
       "joining": "Attempting to join game...",
-      "resolveTitle": "Resolve Report",
-      "dismissTitle": "Dismiss Report",
+      "resolveTitle": "Resolve report",
+      "dismissTitle": "Dismiss report",
       "resolveNoteLabel": "Resolution note (optional):",
       "dismissNoteLabel": "Optional note:",
       "ok": "OK",
@@ -3381,34 +3421,33 @@
       "dismissed": "Dismissed"
     },
     "userContext": {
-      "title": "Reported User Context",
-      "user": "User:",
-      "accountAge": "Account Age:",
-      "reports": "Reports:",
-      "bans": "Bans:",
-      "warns": "Warns:",
-      "adminNotes": "Admin Notes:",
-      "recentReports": "Recent Reports Against User:",
-      "ageValue": "{days} days (since {date})",
-      "none": "(none)",
+      "title": "Reported user",
+      "reports": "reports",
+      "warns": "warnings",
+      "bans": "bans",
+      "adminNotes": "Admin notes",
+      "recentReports": "Recent reports against this user",
+      "ageValue": "{days} days old · since {date}",
+      "none": "No notes.",
       "noRecent": "No previous reports against this user.",
       "loadFailed": "Error loading user info.",
-      "recentLine": "[{date}] #{id} by {reporter} [{status}]: {category}"
+      "recentLine": "[{date}] #{id} by {reporter} [{status}]: {category}",
+      "openProfile": "Open profile",
+      "newAccount": "New account"
     },
     "stats": {
-      "title": "Report Statistics",
+      "title": "Report statistics",
       "loading": "Loading statistics...",
       "failed": "Error loading statistics.",
-      "total": "Total: {total} reports ({open} open, {assigned} assigned, {resolved} resolved/dismissed)",
-      "trend": "Last 24h: {day}  |  Last 7d: {week}  |  Last 30d: {month}  |  Avg resolution: {hours}h",
-      "weekCompare": "This week: {thisWeek} vs last week: {lastWeek} ({change})",
+      "line": "Last 24 h {day} · 7 days {week} · average time to resolve {hours} h",
+      "total": "Total: {total} reports ({open} open, {assigned} assigned, {resolved} resolved or dismissed)",
+      "month": "Last 30 days: {month}",
+      "weekCompare": "This week {thisWeek}, last week {lastWeek} ({change})",
       "weekChangeNew": "new",
-      "byCategory": "By category:",
-      "topCategories": "=== Top Categories ===",
-      "mostReported": "=== Most Reported Users ===",
-      "topReporters": "=== Top Reporters ===",
-      "reportedCount": "{user}: {count} reports",
-      "filedCount": "{user}: {count} reports filed"
+      "topCategories": "Top categories",
+      "mostReported": "Most reported users",
+      "topReporters": "Top reporters",
+      "none": "None yet."
     }
   },
   "GamesList": {

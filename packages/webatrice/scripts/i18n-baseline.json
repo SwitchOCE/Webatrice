@@ -3984,6 +3984,11 @@
       "count": 1
     },
     {
+      "file": "src/feature-wrappers/staff/StaffConsole.tsx",
+      "prefix": "Staff.tool.",
+      "count": 1
+    },
+    {
       "file": "src/features/account/dialogs/ChangePasswordDialog/ChangePasswordDialog.tsx",
       "expression": "label",
       "count": 1
@@ -4225,17 +4230,27 @@
     },
     {
       "file": "src/features/reports/ReportQueue.tsx",
+      "prefix": "Reports.view.",
+      "count": 1
+    },
+    {
+      "file": "src/features/reports/components/ReportBadges.tsx",
+      "prefix": "ReportUserDialog.categoryLabel.",
+      "count": 1
+    },
+    {
+      "file": "src/features/reports/components/ReportBadges.tsx",
       "prefix": "Reports.status.",
       "count": 1
     },
     {
       "file": "src/features/reports/components/ReportTable.tsx",
-      "prefix": "Reports.column.",
+      "prefix": "Reports.age.",
       "count": 1
     },
     {
-      "file": "src/features/reports/components/ReportUserContextPanel.tsx",
-      "expression": "key",
+      "file": "src/features/reports/components/ReportTable.tsx",
+      "prefix": "Reports.column.",
       "count": 1
     },
     {

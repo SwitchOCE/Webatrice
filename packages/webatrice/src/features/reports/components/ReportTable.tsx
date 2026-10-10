@@ -1,34 +1,25 @@
-import { useMemo, useState } from 'react';
+import type { ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
-import { ArrowDown, ArrowUp } from 'lucide-react';
 
 import type { ServerInfo_Report } from '@cockatrice/sockatrice/generated';
-import { useGridRows } from '@app/hooks';
+import { StaffTable, type StaffColumn } from '@app/feature-wrappers/staff';
 
-import { formatReportCategory, formatReportTime, reportStatusClass } from '../reportFormat';
+import { useMinuteClock } from '../hooks/useMinuteClock';
+import { formatReportTime, reportAge } from '../reportFormat';
+import { ReportCategoryTag, ReportStatusBadge } from './ReportBadges';
 
-export type ReportColumn =
-  | 'id' | 'time' | 'reporter' | 'reportedUser' | 'category' | 'gameId' | 'status' | 'assignedTo' | 'replay' | 'room';
+export type ReportColumn = 'id' | 'age' | 'reportedUser' | 'category' | 'status' | 'assignedTo';
 
-export const MY_REPORT_COLUMNS: ReportColumn[] = ['id', 'time', 'reportedUser', 'category', 'gameId', 'status', 'assignedTo'];
+export const MY_REPORT_COLUMNS: ReportColumn[] = ['id', 'age', 'reportedUser', 'category', 'assignedTo', 'status'];
 
-export const QUEUE_COLUMNS: ReportColumn[] = [
-  'id', 'time', 'reporter', 'reportedUser', 'category', 'gameId', 'status', 'assignedTo', 'replay', 'room',
-];
+export const QUEUE_COLUMNS: ReportColumn[] = ['id', 'age', 'category', 'reportedUser', 'assignedTo', 'status'];
 
-type SortValue = number | string;
-
-const SORT_VALUE: Record<ReportColumn, (r: ServerInfo_Report) => SortValue> = {
-  id: (r) => r.reportId,
-  time: (r) => Number(r.reportTime),
-  reporter: (r) => r.reporterName.toLowerCase(),
-  reportedUser: (r) => r.reportedUserName.toLowerCase(),
-  category: (r) => r.category,
-  gameId: (r) => r.gameId,
-  status: (r) => r.status,
-  assignedTo: (r) => r.assignedModName.toLowerCase(),
-  replay: (r) => (r.replayId > 0 ? 1 : 0),
-  room: (r) => r.roomId,
+const WIDTH: Partial<Record<ReportColumn, string>> = {
+  id: 'w-[64px]',
+  age: 'w-[84px]',
+  category: 'w-[164px]',
+  assignedTo: 'w-[108px]',
+  status: 'w-[108px]',
 };
 
 interface ReportTableProps {
@@ -37,106 +28,63 @@ interface ReportTableProps {
   selectedId: number | null;
   onSelect: (reportId: number) => void;
   label: string;
+  status?: ReactNode;
+  footer?: ReactNode;
 }
 
-export default function ReportTable({ reports, columns, selectedId, onSelect, label }: ReportTableProps) {
+export default function ReportTable({ reports, columns, selectedId, onSelect, label, status, footer }: ReportTableProps) {
   const { t } = useTranslation();
-  const [sort, setSort] = useState<{ column: ReportColumn; ascending: boolean } | null>(null);
+  const now = useMinuteClock();
 
-  const rows = useMemo(() => {
-    if (!sort) {
-      return reports;
-    }
-    const value = SORT_VALUE[sort.column];
-    return [...reports].sort((a, b) => {
-      const av = value(a);
-      const bv = value(b);
-      const cmp = av < bv ? -1 : av > bv ? 1 : 0;
-      return sort.ascending ? cmp : -cmp;
-    });
-  }, [reports, sort]);
-
-  const grid = useGridRows({
-    keys: rows.map((r) => String(r.reportId)),
-    selectedKey: selectedId != null ? String(selectedId) : null,
-    onSelect: (key) => onSelect(Number(key)),
-    onActivate: (key) => onSelect(Number(key)),
-  });
-
-  const toggleSort = (column: ReportColumn) => {
-    setSort((prev) => (prev?.column === column ? { column, ascending: !prev.ascending } : { column, ascending: true }));
+  const definitions: Record<ReportColumn, Omit<StaffColumn<ServerInfo_Report>, 'id' | 'header' | 'width'>> = {
+    id: {
+      render: (r) => <span className="font-mono text-[12px] text-text-muted">#{r.reportId}</span>,
+      sortValue: (r) => r.reportId,
+    },
+    age: {
+      render: (r) => {
+        const age = reportAge(r.reportTime, now);
+        return (
+          <time className="tabular-nums text-text-secondary" dateTime={new Date(Number(r.reportTime) * 1000).toISOString()}>
+            <span className="sr-only">{formatReportTime(r.reportTime)} </span>
+            <span aria-hidden>{t(`Reports.age.${age.unit}`, { count: age.count })}</span>
+          </time>
+        );
+      },
+      sortValue: (r) => -Number(r.reportTime),
+    },
+    reportedUser: {
+      render: (r) => <span className="font-medium">{r.reportedUserName}</span>,
+      sortValue: (r) => r.reportedUserName.toLowerCase(),
+    },
+    category: { render: (r) => <ReportCategoryTag category={r.category} />, sortValue: (r) => r.category },
+    status: { render: (r) => <ReportStatusBadge status={r.status} />, sortValue: (r) => r.status },
+    assignedTo: {
+      render: (r) => r.assignedModName
+        ? <span className="text-text-secondary">{r.assignedModName}</span>
+        : <span className="text-text-muted">{t('Reports.column.nobody')}</span>,
+      sortValue: (r) => r.assignedModName.toLowerCase(),
+    },
   };
 
-  const cell = (r: ServerInfo_Report, column: ReportColumn) => {
-    switch (column) {
-      case 'id':
-        return r.reportId;
-      case 'time':
-        return formatReportTime(r.reportTime);
-      case 'reporter':
-        return r.reporterName;
-      case 'reportedUser':
-        return r.reportedUserName;
-      case 'category':
-        return formatReportCategory(r.category);
-      case 'gameId':
-        return r.gameId > 0 ? r.gameId : '';
-      case 'status':
-        return <span className={reportStatusClass(r.status)}>{r.status}</span>;
-      case 'assignedTo':
-        return r.assignedModName;
-      case 'replay':
-        return r.replayId > 0 ? t('Reports.column.yes') : t('Reports.column.no');
-      case 'room':
-        return r.roomId > 0 ? r.roomId : '';
-    }
-  };
+  const staffColumns: StaffColumn<ServerInfo_Report>[] = columns.map((column) => ({
+    id: column,
+    header: t(`Reports.column.${column}`),
+    width: WIDTH[column],
+    ...definitions[column],
+  }));
 
   return (
-    <div className="flex-1 min-h-0 overflow-auto rounded-md border border-border-subtle">
-      <table className="w-full text-sm text-left" role="grid" aria-label={label}>
-        <thead className="sticky top-0 bg-bg-elevated text-xs uppercase text-text-muted">
-          <tr>
-            {columns.map((column) => (
-              <th
-                key={column}
-                scope="col"
-                className="px-2 py-1.5 font-semibold whitespace-nowrap"
-                aria-sort={sort?.column === column ? (sort.ascending ? 'ascending' : 'descending') : undefined}
-              >
-                <button type="button" className="flex items-center gap-1" onClick={() => toggleSort(column)}>
-                  {t(`Reports.column.${column}`)}
-                  {sort?.column === column && (sort.ascending ? <ArrowUp size={12} /> : <ArrowDown size={12} />)}
-                </button>
-              </th>
-            ))}
-          </tr>
-        </thead>
-        <tbody>
-          {rows.map((r, index) => {
-            const selected = r.reportId === selectedId;
-            return (
-              <tr
-                key={r.reportId}
-                {...grid.getRowProps(String(r.reportId))}
-                aria-selected={selected}
-                data-testid={`report-row-${r.reportId}`}
-                onClick={() => onSelect(r.reportId)}
-                className={[
-                  'cursor-pointer',
-                  selected ? 'bg-accent/25' : index % 2 ? 'bg-bg-base/40' : '',
-                  'hover:bg-bg-elevated',
-                  'focus-visible:outline focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-accent',
-                ].join(' ')}
-              >
-                {columns.map((column) => (
-                  <td key={column} className="px-2 py-1 whitespace-nowrap text-text-primary">{cell(r, column)}</td>
-                ))}
-              </tr>
-            );
-          })}
-        </tbody>
-      </table>
-    </div>
+    <StaffTable
+      label={label}
+      columns={staffColumns}
+      rows={reports}
+      rowKey={(r) => String(r.reportId)}
+      rowTestId={(r) => `report-row-${r.reportId}`}
+      selectedKey={selectedId != null ? String(selectedId) : null}
+      onSelect={(key) => onSelect(Number(key))}
+      status={status}
+      footer={footer}
+    />
   );
 }

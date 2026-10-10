@@ -11,6 +11,7 @@ import { useAppDispatch, useAppSelector } from '@app/store';
 import { useJoinReportGame } from './useJoinReportGame';
 import { useReportListLoad, type ReportListLoadState } from './useReportListLoad';
 import { useReportThread, type ReportThread } from './useReportThread';
+import { reportQueueQuery, reportQueueViewCounts, type ReportQueueView } from './reportQueueView';
 
 export const REPORT_QUEUE_REFRESH_MS = 300_000;
 
@@ -34,10 +35,9 @@ export interface ReportQueueActions {
 export interface ReportQueue {
   search: string;
   setSearch: (value: string) => void;
-  statusFilter: string;
-  setStatusFilter: (value: string) => void;
-  unresolvedOnly: boolean;
-  setUnresolvedOnly: (value: boolean) => void;
+  view: ReportQueueView;
+  setView: (view: ReportQueueView) => void;
+  viewCounts: Record<ReportQueueView, number | null>;
   reports: ServerInfo_Report[];
   totalCount: number;
   loadedCount: number;
@@ -45,12 +45,11 @@ export interface ReportQueue {
   refresh: () => void;
   selectedId: number | null;
   selected: ServerInfo_Report | undefined;
-  select: (reportId: number) => void;
+  select: (reportId: number | null) => void;
   thread: ReportThread;
   actions: ReportQueueActions;
   actionMessage: QueueActionMessage | null;
   assign: () => void;
-  resolve: () => void;
   promptResolve: (dismissed: boolean) => void;
   resolvePrompt: ResolvePrompt | null;
   submitResolvePrompt: (note: string) => void;
@@ -58,8 +57,6 @@ export interface ReportQueue {
   viewReplay: () => void;
   joinGame: () => void;
   userInfoFailed: boolean;
-  statsOpen: boolean;
-  setStatsOpen: (open: boolean) => void;
   statsState: ReportListLoadState;
 }
 
@@ -80,19 +77,19 @@ export function useReportQueue(): ReportQueue {
   const { t } = useTranslation();
   const watchReplay = useWatchReplay();
   const [search, setSearch] = useState('');
-  const [statusFilter, setStatusFilter] = useState('');
-  const [unresolvedOnly, setUnresolvedOnly] = useState(true);
+  const [view, setView] = useState<ReportQueueView>('unresolved');
+  const { unresolvedOnly, status: statusFilter } = reportQueueQuery(view);
   const [selectedId, setSelectedId] = useState<number | null>(null);
   const [actionMessage, setActionMessage] = useState<QueueActionMessage | null>(null);
   const [actionBusy, setActionBusy] = useState(false);
   const [resolvePrompt, setResolvePrompt] = useState<ResolvePrompt | null>(null);
   const pendingReplayGameId = useRef<number | null>(null);
   const [userInfoFailedFor, setUserInfoFailedFor] = useState<string | null>(null);
-  const [statsOpen, setStatsOpen] = useState(true);
   const [statsState, setStatsState] = useState<ReportListLoadState>('loading');
 
   const queue = useAppSelector(server.Selectors.getReportQueue);
   const totalCount = useAppSelector(server.Selectors.getReportQueueTotalCount);
+  const statusCounts = useAppSelector(server.Selectors.getReportQueueStatusCounts);
   const lastNotice = useAppSelector(server.Selectors.getLastReportNotice);
   const joinReportGame = useJoinReportGame();
 
@@ -139,11 +136,6 @@ export function useReportQueue(): ReportQueue {
     cancelAction();
   }, [selectedReportId, cancelAction]);
 
-  const statsOpenRef = useRef(statsOpen);
-  useEffect(() => {
-    statsOpenRef.current = statsOpen;
-  }, [statsOpen]);
-
   const thread = useReportThread(selected ? selectedId : null, () => refresh());
   const { reloadDetails } = thread;
 
@@ -153,9 +145,7 @@ export function useReportQueue(): ReportQueue {
     setUserInfoFailedFor(null);
     refreshList();
     reloadDetails();
-    if (statsOpenRef.current) {
-      requestStats();
-    }
+    requestStats();
   }, [refreshList, reloadDetails, requestStats, cancelAction, userInfoRequest]);
 
   useEffect(() => {
@@ -163,19 +153,8 @@ export function useReportQueue(): ReportQueue {
     userInfoRequest.cancel();
     setUserInfoFailedFor(null);
     refreshList();
-    if (statsOpenRef.current) {
-      requestStats();
-    }
+    requestStats();
   }, [refreshList, requestStats, cancelAction, userInfoRequest]);
-
-  const setStatsOpenAndLoad = useCallback((open: boolean) => {
-    setStatsOpen(open);
-    if (open) {
-      requestStats();
-    } else {
-      statsRequest.cancel();
-    }
-  }, [requestStats, statsRequest]);
 
   useEffect(() => {
     const timer = window.setInterval(() => {
@@ -342,10 +321,9 @@ export function useReportQueue(): ReportQueue {
   return {
     search,
     setSearch,
-    statusFilter,
-    setStatusFilter,
-    unresolvedOnly,
-    setUnresolvedOnly,
+    view,
+    setView,
+    viewCounts: reportQueueViewCounts(view, statusCounts),
     reports,
     totalCount,
     loadedCount: queue.length,
@@ -358,7 +336,6 @@ export function useReportQueue(): ReportQueue {
     actions,
     actionMessage,
     assign,
-    resolve: () => sendResolve(false, ''),
     promptResolve: (dismissed) => setResolvePrompt({ dismissed }),
     resolvePrompt,
     submitResolvePrompt: (note) => {
@@ -372,8 +349,6 @@ export function useReportQueue(): ReportQueue {
     viewReplay,
     joinGame,
     userInfoFailed: userInfoFailedFor !== null && userInfoFailedFor === reportedUser,
-    statsOpen,
-    setStatsOpen: setStatsOpenAndLoad,
     statsState,
   };
 }

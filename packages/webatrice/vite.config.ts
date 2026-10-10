@@ -45,6 +45,7 @@ export default defineConfig({
       '@app/services/session': srcPath('services/session/index.ts'),
       '@app/services': srcPath('services/index.ts'),
       '@app/feature-wrappers/layout': srcPath('feature-wrappers/layout/index.ts'),
+      '@app/feature-wrappers/staff': srcPath('feature-wrappers/staff/index.ts'),
       '@app/features/account': srcPath('features/account/index.ts'),
       '@app/features/administration': srcPath('features/administration/index.ts'),
       '@app/features/card-art-rules': srcPath('features/card-art-rules/index.ts'),
