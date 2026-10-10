@@ -117,7 +117,7 @@ async function fetchChunk(chunk: PendingCard[]): Promise<void> {
       const exact = hint.scryfallId ? cards.find((card) => card.id === hint.scryfallId)
         : hint.set ? cards.find((card) => card.set?.toLowerCase() === hint.set!.toLowerCase()
           && (!hint.collectorNumber || card.collector_number === hint.collectorNumber)
-          && (hint.collectorNumber || matchesName(card))) : undefined;
+          && matchesName(card)) : undefined;
       const byName = hint.scryfallId || hint.set ? undefined : cards.find(matchesName);
       resolve(exact ?? byName ?? null);
     }

@@ -255,6 +255,16 @@ export function serializeCod(deck: {
 /** Empty deck XML — used when creating a new deck. Optional `format`
  *  seeds the `<format>` element so New Deck can persist the user's
  *  format choice from the create modal. */
+export function zoneXml(name: string, cards: readonly Pick<ParsedCard, 'name' | 'quantity' | 'set' | 'collectorNumber'>[]): string {
+  const doc = document.implementation.createDocument(null, 'zone', null);
+  const zone = doc.documentElement;
+  zone.setAttribute('name', name);
+  for (const card of cards) {
+    zone.appendChild(writeCardElement(doc, { ...card, category: 'main' }));
+  }
+  return new XMLSerializer().serializeToString(zone);
+}
+
 export function emptyCod(name = 'New Deck', format = 'commander'): string {
   return serializeCod({ name, meta: defaultMeta(), cards: [], format });
 }

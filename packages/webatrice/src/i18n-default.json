@@ -2127,6 +2127,31 @@
     "copyFromPage": "Browsers can't read decks from {provider} directly. Open the deck, use its Export option to copy the list, and paste it below.",
     "open": "Open on {provider}"
   },
+  "ExportHelp": {
+    "title": "How to copy a deck from another site or app",
+    "source": {
+      "moxfield": {
+        "name": "Moxfield",
+        "steps": "Open the deck, choose Export, copy the list as text (the Arena or plain-text option), and paste it below."
+      },
+      "archidekt": {
+        "name": "Archidekt",
+        "steps": "Open the deck, choose Export from the deck menu, copy the text, and paste it below. Categories and tags are fine."
+      },
+      "arena": {
+        "name": "MTG Arena",
+        "steps": "In Decks, select the deck and click Export. It is copied to your clipboard; paste it below."
+      },
+      "mtgo": {
+        "name": "MTGO",
+        "steps": "Save the deck as a .dek or .txt file and open it here, or paste its text below."
+      },
+      "cockatrice": {
+        "name": "Cockatrice",
+        "steps": "Open a .cod or .txt file from your Cockatrice decks folder. To bring over every deck at once, use Import from Cockatrice on the Decks page."
+      }
+    }
+  },
   "FormatPicker": {
     "label": "Format",
     "other": {
@@ -2136,7 +2161,8 @@
     "placeholder": {
       "dialog": "e.g. Netrunner, Playtest, Cube",
       "sidebar": "e.g. Netrunner, Playtest"
-    }
+    },
+    "unset": "Not set"
   },
   "DeckBracket": {
     "assessing": "Assessing bracket…",
@@ -2403,11 +2429,12 @@
   "DeckImport": {
     "defaultName": "Imported deck",
     "error": {
-      "invalidCodReason": "Not a valid Cockatrice .cod: {reason}",
-      "invalidCod": "Not a valid Cockatrice .cod file",
       "readFailed": "Could not read the selected file",
       "noCards": "No cards recognised. Check the format — one line per card, like `1 Sol Ring`.",
-      "resolveFailed": "Failed to resolve cards"
+      "resolveFailed": "Failed to resolve cards",
+      "notDeckFile": "{name} is not a deck file. Open a .cod, .txt, .dec, .dek or .mwDeck file.",
+      "noCardsInFile": "No cards found in {name}.",
+      "notConnected": "Not connected to the server. Reconnect, then import again."
     }
   },
   "DeckSummary": {
@@ -2510,34 +2537,31 @@
   },
   "ImportDeckDialog": {
     "title": "Import a deck",
-    "subtitle": "Paste a list from Moxfield, Arena, MTGO, Cockatrice — most formats work.",
+    "subtitle": "Paste a list or open a deck file. Cockatrice .cod and .txt, Moxfield, Archidekt, Arena and MTGO lists all work.",
     "resolving": "Looking up cards…",
-    "resolveFailed": "Failed to resolve cards",
     "importing": "Creating deck…",
-    "importFile": "Import file",
-    "importFileHint": ".cod files are pre-structured — no card review needed",
     "next": "Next: check cards",
     "importCards": "Import {count, plural, one {# card} other {# cards}}",
     "deckName": "Deck name",
     "format": "Format",
     "decklist": "Decklist",
-    "clearFile": "Clear file",
-    "uploadFile": "Upload .cod file",
-    "uploadFileHint": "Import from a Cockatrice .cod file (preserves all metadata)",
+    "uploadFile": "Open a deck file",
+    "uploadFileHint": "Cockatrice .cod, or a .txt, .dec, .dek or .mwDeck list",
     "placeholder": "Paste your deck list (Arena / MTGO / Moxfield export). Example:\n\nCommander\n1 Atraxa, Grand Unifier\n\nDeck\n1 Sol Ring\n1 Cultivate\n1 Swords to Plowshares\n...",
     "review": {
       "matched": "{count, plural, other {# matched}}",
       "missing": "{count, plural, other {# unknown (imported with warning)}}",
       "ignored": "{count, plural, one {# unrecognised line} other {# unrecognised lines}}",
-      "unknown": "unknown"
+      "unknown": "unknown",
+      "kept": "Kept as in the file: {zones}",
+      "showIgnored": "Show unrecognised lines",
+      "main": "Main",
+      "sideboard": "Sideboard",
+      "commander": "Commander"
     },
-    "file": {
-      "deckName": "Deck name in file: <name>{name}</name>",
-      "cards": "{count, plural, one {# card} other {# cards}}",
-      "main": "{count, plural, other {# main}}",
-      "sideboard": "{count, plural, other {# sideboard}}",
-      "cachedPrice": "${price} cached from source",
-      "hint": ".cod files are pre-structured — importing skips the card review step and preserves any embedded metadata."
+    "zone": {
+      "tokens": "Tokens",
+      "maybeboard": "Maybeboard"
     }
   },
   "MoveDeck": {

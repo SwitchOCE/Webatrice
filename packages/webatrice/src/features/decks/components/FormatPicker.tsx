@@ -50,7 +50,8 @@ export function FormatPicker({ value, onChange, variant }: FormatPickerProps) {
   const [otherMode, setOtherMode] = useState(() => !isKnown && normalized !== '');
 
   const inOtherMode = otherMode || (!isKnown && normalized !== '');
-  const dropdownValue = inOtherMode ? 'other' : (isKnown ? normalized : 'commander');
+  const unset = !inOtherMode && normalized === '';
+  const dropdownValue = inOtherMode ? 'other' : (isKnown || unset ? normalized : 'commander');
 
   return (
     <div className={styles.root}>
@@ -74,6 +75,7 @@ export function FormatPicker({ value, onChange, variant }: FormatPickerProps) {
           backgroundPosition: styles.chevronPosition,
         }}
       >
+        {unset && <option value="">{t('FormatPicker.unset')}</option>}
         {MTG_FORMAT_LABELS.map((o) => (
           <option key={o.value} value={o.value}>{o.label(t)}</option>
         ))}

@@ -272,7 +272,7 @@ export function useDeckEditor(deckId: number | null, draftToken: string | null =
           }
           requests.cancel();
           const hasLegacyCommanderZone = payload.deck.includes('<zone name="commander"');
-          const needsMigration = !parsed.format.trim() || hasLegacyCommanderZone;
+          const needsMigration = (!parsed.format.trim() && hydrated.format !== '') || hasLegacyCommanderZone;
           const signature = needsMigration ? null : deckSaveSignature(hydrated);
           deckRef.current = hydrated;
           setDeck(hydrated);

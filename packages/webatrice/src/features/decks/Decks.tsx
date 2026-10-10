@@ -114,10 +114,12 @@ function Decks() {
     }
   };
 
-  const handleImport = (xml: string, colorIdentity: string) => {
-    if (list.importDeck(xml, colorIdentity)) {
+  const handleImport = (xml: string, colorIdentity: string): boolean => {
+    const sent = list.importDeck(xml, colorIdentity);
+    if (sent) {
       setImportOpen(false);
     }
+    return sent;
   };
 
   const listRef = useRef<HTMLDivElement>(null);
