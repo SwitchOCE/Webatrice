@@ -44,7 +44,7 @@ export const EMPTY_FILTERS: SearchFiltersState = {
 };
 
 export const FILTER_TYPES: FilterCardType[] = [
-  'Creature', 'Instant', 'Sorcery', 'Enchantment', 'Artifact', 'Planeswalker', 'Land',
+  'Creature', 'Planeswalker', 'Instant', 'Sorcery', 'Enchantment', 'Artifact', 'Land',
 ];
 
 export const FILTER_RARITIES: FilterRarity[] = ['common', 'uncommon', 'rare', 'mythic'];

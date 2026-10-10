@@ -1,4 +1,4 @@
-import { fireEvent, screen, within } from '@testing-library/react';
+import { act, fireEvent, screen, within } from '@testing-library/react';
 import { I18nextProvider } from 'react-i18next';
 import i18n, { type i18n as I18n } from 'i18next';
 import ICU from 'i18next-icu';
@@ -6,8 +6,8 @@ import ICU from 'i18next-icu';
 import { renderWithProviders } from '../../../../__test-utils__';
 import { emptyPriceLookup } from '../../pricing';
 import type { ScryfallSearchCard } from '../../search';
-import searchText from '../search/AdvancedCardSearch.i18n.json';
-import CardSearchDock, { type CardSearchDockProps } from './CardSearchDock';
+import searchText from './CardSearch.i18n.json';
+import CardSearchDock, { type CardSearchDockApi, type CardSearchDockProps } from './CardSearchDock';
 import dockText from './CardSearchDock.i18n.json';
 import { useCardDatabase, type CardDatabase } from './useCardDatabase';
 import { useGameChangerList } from './useGameChangerList';
@@ -31,6 +31,7 @@ function database(overrides: Partial<CardDatabase> = {}): CardDatabase {
   return {
     results: [bowmasters, esper],
     total: 2,
+    fresh: true,
     loading: false,
     loadingMore: false,
     error: null,
@@ -163,5 +164,33 @@ describe('CardSearchDock', () => {
     expect(screen.getByText('412 matches')).toBeInTheDocument();
     fireEvent.click(screen.getByRole('button', { name: 'Show more (2 of 412)' }));
     expect(loadMore).toHaveBeenCalled();
+  });
+
+  it('keeps the previous results visible but not addable while the next search loads', () => {
+    vi.mocked(useCardDatabase).mockReturnValue(database({ fresh: false, loading: true }));
+    const { input, onAdd } = renderDock();
+    expect(screen.getByRole('region', { name: 'Search results' })).toHaveAttribute('aria-busy', 'true');
+    expect(screen.getByRole('button', { name: 'Add Orcish Bowmasters to the deck' })).toBeDisabled();
+    fireEvent.keyDown(input, { key: 'Enter', code: 'Enter' });
+    fireEvent.keyDown(input, { key: 'Enter', code: 'Enter', ctrlKey: true });
+    expect(onAdd).not.toHaveBeenCalled();
+  });
+
+  it('leaves Enter and the arrows to an input method while it is composing', () => {
+    const { input, onAdd, onSelect } = renderDock();
+    fireEvent.keyDown(input, { key: 'Enter', code: 'Enter', isComposing: true });
+    fireEvent.keyDown(input, { key: 'Process', code: 'Enter', keyCode: 229 });
+    fireEvent.keyDown(input, { key: 'ArrowDown', code: 'ArrowDown', isComposing: true });
+    expect(onAdd).not.toHaveBeenCalled();
+    expect(onSelect).not.toHaveBeenCalledWith('Esper Sentinel');
+  });
+
+  it('hands the editor a way to focus the search field', () => {
+    let api: CardSearchDockApi | undefined;
+    const { input } = renderDock({ onReady: (a) => {
+      api = a;
+    } });
+    act(() => api!.focusSearch());
+    expect(input).toHaveFocus();
   });
 });

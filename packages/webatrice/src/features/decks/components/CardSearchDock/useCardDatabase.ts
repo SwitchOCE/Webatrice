@@ -1,6 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 
-import { SEARCH_DEBOUNCE_MS } from '../../hooks/useScryfallCardSearch';
 import {
   ScryfallSearchError,
   scryfallSearchUrl,
@@ -10,15 +9,27 @@ import {
 } from '../../search';
 import { isScryfallPageUrl } from './dockModel';
 
+export const SEARCH_DEBOUNCE_MS = 300;
+
 export interface CardDatabase {
   results: ScryfallSearchCard[];
   total: number;
+  fresh: boolean;
   loading: boolean;
   loadingMore: boolean;
   error: ScryfallSearchFailure | null;
   hasMore: boolean;
   loadMore: () => void;
 }
+
+interface Page {
+  query: string;
+  cards: ScryfallSearchCard[];
+  total: number;
+  nextPage: string | null;
+}
+
+const EMPTY_PAGE: Page = { query: '', cards: [], total: 0, nextPage: null };
 
 function failureOf(e: unknown): ScryfallSearchFailure {
   return e instanceof ScryfallSearchError ? e.failure : { kind: 'failed' };
@@ -29,21 +40,17 @@ function isAbort(e: unknown): boolean {
 }
 
 export function useCardDatabase(query: string): CardDatabase {
-  const [results, setResults] = useState<ScryfallSearchCard[]>([]);
-  const [total, setTotal] = useState(0);
-  const [nextPage, setNextPage] = useState<string | null>(null);
+  const q = query.trim();
+  const [page, setPage] = useState<Page>(EMPTY_PAGE);
   const [loading, setLoading] = useState(false);
   const [loadingMore, setLoadingMore] = useState(false);
   const [error, setError] = useState<ScryfallSearchFailure | null>(null);
   const controllerRef = useRef<AbortController | null>(null);
 
   useEffect(() => {
-    const q = query.trim();
-    setNextPage(null);
     setLoadingMore(false);
     if (!q) {
-      setResults([]);
-      setTotal(0);
+      setPage(EMPTY_PAGE);
       setError(null);
       setLoading(false);
       return;
@@ -54,18 +61,15 @@ export function useCardDatabase(query: string): CardDatabase {
     setError(null);
     const timer = window.setTimeout(async () => {
       try {
-        const page = await searchScryfallPage(scryfallSearchUrl(q), controller.signal);
+        const next = await searchScryfallPage(scryfallSearchUrl(q), controller.signal);
         if (!controller.signal.aborted) {
-          setResults(page.cards);
-          setTotal(page.total);
-          setNextPage(page.nextPage);
+          setPage({ query: q, cards: next.cards, total: next.total, nextPage: next.nextPage });
         }
       } catch (e) {
         if (controller.signal.aborted || isAbort(e)) {
           return;
         }
-        setResults([]);
-        setTotal(0);
+        setPage({ ...EMPTY_PAGE, query: q });
         setError(failureOf(e));
       } finally {
         if (!controller.signal.aborted) {
@@ -77,21 +81,25 @@ export function useCardDatabase(query: string): CardDatabase {
       window.clearTimeout(timer);
       controller.abort();
     };
-  }, [query]);
+  }, [q]);
+
+  const fresh = page.query === q;
 
   const loadMore = useCallback(() => {
     const controller = controllerRef.current;
-    if (!controller || controller.signal.aborted || loadingMore || !isScryfallPageUrl(nextPage)) {
+    const pageQuery = page.query;
+    if (!fresh || !controller || controller.signal.aborted || loadingMore || !isScryfallPageUrl(page.nextPage)) {
       return;
     }
     setLoadingMore(true);
-    void searchScryfallPage(nextPage, controller.signal)
-      .then((page) => {
+    void searchScryfallPage(page.nextPage, controller.signal)
+      .then((next) => {
         if (controller.signal.aborted) {
           return;
         }
-        setResults((prev) => [...prev, ...page.cards]);
-        setNextPage(page.nextPage);
+        setPage((prev) => (prev.query === pageQuery
+          ? { ...prev, cards: [...prev.cards, ...next.cards], nextPage: next.nextPage }
+          : prev));
       })
       .catch((e: unknown) => {
         if (!controller.signal.aborted && !isAbort(e)) {
@@ -103,7 +111,16 @@ export function useCardDatabase(query: string): CardDatabase {
           setLoadingMore(false);
         }
       });
-  }, [loadingMore, nextPage]);
+  }, [fresh, loadingMore, page.nextPage, page.query]);
 
-  return { results, total, loading, loadingMore, error, hasMore: isScryfallPageUrl(nextPage), loadMore };
+  return {
+    results: page.cards,
+    total: page.total,
+    fresh,
+    loading,
+    loadingMore,
+    error,
+    hasMore: fresh && isScryfallPageUrl(page.nextPage),
+    loadMore,
+  };
 }

@@ -14,6 +14,7 @@ import type { DeckCard } from '../../types';
 import {
   clampHighlight,
   deckQuantities,
+  isImeComposition,
   dockKeyZone,
   gameChangerNote,
   initialDockFilters,
@@ -45,6 +46,7 @@ export interface CardSearchDockState {
   composedQuery: string;
   results: ScryfallSearchCard[];
   total: number;
+  stale: boolean;
   loading: boolean;
   loadingMore: boolean;
   error: ScryfallSearchFailure | null;
@@ -142,7 +144,7 @@ export function useCardSearchDock({
 
   const add = useCallback(
     (index: number, zone: DockZone) => {
-      const card = db.results[index];
+      const card = db.fresh ? db.results[index] : undefined;
       if (!card) {
         return;
       }
@@ -150,7 +152,7 @@ export function useCardSearchDock({
       onAdd(card.name, zone, choices[card.name]);
       setLastAdded({ name: card.name, zone });
     },
-    [choices, db.results, onAdd, setHighlight],
+    [choices, db.fresh, db.results, onAdd, setHighlight],
   );
 
   const keys = {
@@ -159,6 +161,9 @@ export function useCardSearchDock({
   };
 
   const onKeyDown = (event: KeyboardEvent<HTMLElement>) => {
+    if (isImeComposition(event.nativeEvent)) {
+      return;
+    }
     if (event.key === 'ArrowDown' || event.key === 'ArrowUp') {
       event.preventDefault();
       setHighlight(moveHighlight(highlight, event.key === 'ArrowDown' ? 1 : -1, db.results.length));
@@ -211,6 +216,7 @@ export function useCardSearchDock({
     composedQuery,
     results: db.results,
     total: db.total,
+    stale: !db.fresh,
     loading: db.loading,
     loadingMore: db.loadingMore,
     error: db.error,

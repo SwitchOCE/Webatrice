@@ -1,5 +1,5 @@
 import { clearBracketSourceCaches, fetchGameChangers } from '../../features/decks/bracketSources';
-import { searchCards, searchScryfallCards } from '../../features/decks/search';
+import { scryfallSearchUrl, searchCards, searchScryfallPage } from '../../features/decks/search';
 import { fetchPricesForCards } from '../../features/decks/pricing';
 import { fetchScryfallDetail } from './cardDetail';
 import { fetchCollection, fetchNamedCard, fetchPrintings, SCRYFALL_API } from './client';
@@ -29,7 +29,7 @@ it('uses one queue for catalogue, collection, metadata, printings, both searches
     fetchCollection([{ name: 'Collected' }]),
     fetchScryfallDetail('detail', 'Detail'),
     fetchPrintings('Printed'),
-    searchScryfallCards('advanced'),
+    searchScryfallPage(scryfallSearchUrl('advanced')),
     searchCards('auto'),
     fetchGameChangers(),
   ];

@@ -30,7 +30,7 @@ export async function searchCards(query: string, limit = 20, signal?: AbortSigna
 }
 
 /**
- * Rich Scryfall card shape used by the advanced-search results grid.
+ * Rich Scryfall card shape used by the card database dock.
  * Superset of what the printings picker needs — we surface image_uris,
  * type_line, mana_cost, set, and collector so the tile can render a
  * card image with proper labels without a second fetch.
@@ -65,24 +65,6 @@ export class ScryfallSearchError extends Error {
     super();
     this.name = 'ScryfallSearchError';
   }
-}
-
-/**
- * Full-fat Scryfall search (as opposed to `/cards/autocomplete` used by
- * QuickAdd). Accepts Scryfall's full query syntax so filter clauses
- * like `c:wu`, `t:creature`, `cmc<=3`, `o:"draw a card"` all compose
- * into the same request. Aborts cleanly via AbortController so the
- * caller can cancel in-flight requests when the user keeps typing.
- */
-export async function searchScryfallCards(
-  query: string,
-  signal?: AbortSignal,
-): Promise<ScryfallSearchCard[]> {
-  const q = query.trim();
-  if (!q) {
-    return [];
-  }
-  return (await searchScryfallPage(scryfallSearchUrl(q), signal)).cards;
 }
 
 export function scryfallSearchUrl(query: string): string {
