@@ -1,6 +1,14 @@
 import type { TFunction } from 'i18next';
 import { ServerInfo_User_UserLevelFlag as Level } from '@cockatrice/sockatrice/generated';
 
+const ROLE_KEYS = {
+  administrator: 'Account.level.administrator',
+  developer: 'Account.level.developer',
+  moderator: 'Account.level.moderator',
+  registered: 'Account.level.registered',
+  unregistered: 'Account.level.unregistered',
+} as const;
+
 export function formatUserLevel(t: TFunction, level = 0, privilege = ''): string {
   const roles = [
     [Level.IsAdmin, 'administrator'],
@@ -9,7 +17,7 @@ export function formatUserLevel(t: TFunction, level = 0, privilege = ''): string
     [Level.IsRegistered, 'registered'],
   ] as const;
   const role = roles.find(([flag]) => (level & flag) !== 0)?.[1] ?? 'unregistered';
-  const parts = [t(`Account.level.${role}`)];
+  const parts = [t(ROLE_KEYS[role])];
   if (level & Level.IsJudge) {
     parts.push(t('Account.level.judge'));
   }

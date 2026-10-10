@@ -129,7 +129,7 @@ describe('moveXFromTopPrompt', () => {
 describe('tokenCountPrompt', () => {
   it('takes 1 to 99, seeded with the default count', () => {
     const onSubmit = vi.fn();
-    const prompt = tokenCountPrompt({ tokenName: 'Treasure', initial: 3, onSubmit });
+    const prompt = tokenCountPrompt(t, { tokenName: 'Treasure', initial: 3, onSubmit });
 
     expect(prompt).toMatchObject({ title: 'Create tokens', description: 'Treasure', initialValue: '3' });
     expect(['0', '1', '99', '100', 'x'].map((v) => prompt.validate?.(v))).toEqual([
@@ -137,5 +137,15 @@ describe('tokenCountPrompt', () => {
     ]);
     prompt.onSubmit('5');
     expect(onSubmit).toHaveBeenCalledWith(5);
+  });
+
+  it('uses the current translator for all token prompt text', () => {
+    const translate = vi.fn(t);
+    const prompt = tokenCountPrompt(translate, { tokenName: 'Treasure', initial: 1, onSubmit: vi.fn() });
+    prompt.validate?.('100');
+    expect(translate).toHaveBeenCalledWith('GamePrompt.token.title');
+    expect(translate).toHaveBeenCalledWith('GamePrompt.token.label');
+    expect(translate).toHaveBeenCalledWith('GamePrompt.token.create');
+    expect(translate).toHaveBeenCalledWith('GamePrompt.token.invalid', { max: 99 });
   });
 });

@@ -17,7 +17,7 @@ describe('DeckRow', () => {
       />,
     );
     expect(screen.getByText('Superfriends')).toBeInTheDocument();
-    expect(screen.getByText('Commander')).toBeInTheDocument();
+    expect(screen.getByText('DeckFormat.commander')).toBeInTheDocument();
     expect(screen.getByText('Decks.list.created')).toBeInTheDocument();
     expect(screen.queryByText('Cube/Old')).toBeNull();
     expect(screen.getByText('Decks.badge.bracketShort')).toHaveAttribute('title', 'Decks.badge.bracket');

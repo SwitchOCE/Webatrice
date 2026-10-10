@@ -1,5 +1,11 @@
 {
   "GamePrompt": {
+    "token": {
+      "title": "Create tokens",
+      "label": "Number",
+      "create": "Create",
+      "invalid": "Enter 1 to {max}"
+    },
     "action": {
       "save": "Save",
       "set": "Set"

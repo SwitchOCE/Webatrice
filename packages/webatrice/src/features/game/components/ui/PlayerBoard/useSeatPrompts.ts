@@ -203,7 +203,7 @@ export function useSeatPrompts({
     providerId?: string;
   } | null>(null);
   const openTokenCountPrompt = useCallback(({ request, initial }: { request: CreateTokenRequest; initial: number }) =>
-    openPrompt(tokenCountPrompt({
+    openPrompt(tokenCountPrompt(t, {
       tokenName: request.name,
       initial,
       onSubmit: (count) => {
@@ -211,7 +211,7 @@ export function useSeatPrompts({
           cardCommands.createToken(request);
         }
       },
-    })), [openPrompt, cardCommands]);
+    })), [openPrompt, cardCommands, t]);
   const openCreateTokenDialog = () => openCreateToken({
     initial: lastToken,
     onSubmit: (token) => {

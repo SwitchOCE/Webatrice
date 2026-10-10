@@ -17,7 +17,7 @@ export function DeckLegalitySummary({ format, status, illegalCount, unknownCount
   if (status === 'none' && !loading) {
     return null;
   }
-  const formatLabel = formatDisplayLabel(format);
+  const formatLabel = formatDisplayLabel(format, t);
 
   let line;
   if (loading) {

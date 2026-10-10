@@ -25,7 +25,7 @@ export function ReadOnlyDeck({ deck, onImport, onClose }: ReadOnlyDeckProps) {
           <h2 className="font-modern text-lg font-semibold text-text-primary truncate">{deck.name}</h2>
           <p className="text-xs text-text-muted flex items-center gap-1.5">
             <Lock size={11} /> {t('ReadOnlyDeck.readOnly')}
-            {deck.format && <span>· {formatDisplayLabel(deck.format)}</span>}
+            {deck.format && <span>· {formatDisplayLabel(deck.format, t)}</span>}
           </p>
         </div>
         {onImport && (

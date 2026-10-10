@@ -155,18 +155,18 @@ export interface TokenCountPromptArgs {
   onSubmit: (count: number) => void;
 }
 
-export function tokenCountPrompt({ tokenName, initial, onSubmit }: TokenCountPromptArgs): PromptState {
+export function tokenCountPrompt(t: TFunction, { tokenName, initial, onSubmit }: TokenCountPromptArgs): PromptState {
   return {
-    title: 'Create tokens',
-    label: 'Number',
+    title: t('GamePrompt.token.title'),
+    label: t('GamePrompt.token.label'),
     description: tokenName,
     initialValue: String(initial),
-    submitLabel: 'Create',
+    submitLabel: t('GamePrompt.token.create'),
     type: 'number',
     selectOnFocus: true,
     validate: (value) => {
       const n = parseWhole(value);
-      return n == null || n < 1 || n > MAX_TOKENS_PER_PROMPT ? `Enter 1 to ${MAX_TOKENS_PER_PROMPT}` : null;
+      return n == null || n < 1 || n > MAX_TOKENS_PER_PROMPT ? t('GamePrompt.token.invalid', { max: MAX_TOKENS_PER_PROMPT }) : null;
     },
     onSubmit: (value) => onSubmit(parseWhole(value)!),
   };

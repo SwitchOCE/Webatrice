@@ -3,16 +3,23 @@ import { BinaryReader, WireType } from '@bufbuild/protobuf/wire';
 import { GameEventContainerSchema, GameReplaySchema, type GameReplay } from '@cockatrice/sockatrice/generated';
 import i18n from 'i18next';
 
-import messages from './parseReplay.i18n.json';
+import type messages from './parseReplay.i18n.json';
 
 export const REPLAY_FILE_EXTENSION = '.cor';
 export const MAX_REPLAY_FILE_BYTES = 32 * 1024 * 1024;
 export const MAX_REPLAY_EVENT_CONTAINERS = 100_000;
 export const MAX_REPLAY_EVENTS = 100_000;
 
+const REASON_KEYS = {
+  invalid: 'ReplayParseError.invalid',
+  tooLarge: 'ReplayParseError.tooLarge',
+  tooManyContainers: 'ReplayParseError.tooManyContainers',
+  tooManyEvents: 'ReplayParseError.tooManyEvents',
+} as const satisfies Record<keyof typeof messages.ReplayParseError, string>;
+
 export class ReplayParseError extends Error {
   constructor(reason: keyof typeof messages.ReplayParseError, options?: { cause?: unknown }) {
-    super(i18n.t(`ReplayParseError.${reason}`, { defaultValue: messages.ReplayParseError[reason] }), options);
+    super(i18n.t(REASON_KEYS[reason]), options);
     this.name = 'ReplayParseError';
   }
 }

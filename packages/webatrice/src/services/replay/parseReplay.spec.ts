@@ -31,7 +31,7 @@ describe('parseReplay', () => {
       bytes[i] = 32;
     }
     bytes.set(toBinary(GameReplaySchema, buildReplay([sayContainer(0)])));
-    expect(() => parseReplay(bytes)).toThrow(/too large/);
+    expect(() => parseReplay(bytes)).toThrow('ReplayParseError.tooLarge');
   });
 
   it('rejects too many containers before constructing protobuf objects', () => {
@@ -40,7 +40,7 @@ describe('parseReplay', () => {
     for (let i = 0; i <= 100_000; ++i) {
       writer.tag(GameReplaySchema.field.eventList.number, WireType.LengthDelimited).bytes(new Uint8Array());
     }
-    expect(() => parseReplay(writer.finish())).toThrow(/too many event containers/);
+    expect(() => parseReplay(writer.finish())).toThrow('ReplayParseError.tooManyContainers');
   });
 
   it('bounds events inside containers too, including many events in a small file', () => {
@@ -54,7 +54,7 @@ describe('parseReplay', () => {
     for (let i = 0; i < 2; ++i) {
       writer.tag(GameReplaySchema.field.eventList.number, WireType.LengthDelimited).bytes(payload);
     }
-    expect(() => parseReplay(writer.finish())).toThrow(/too many events/);
+    expect(() => parseReplay(writer.finish())).toThrow('ReplayParseError.tooManyEvents');
   });
 
   it('decodes a .cor recorded by Servatrice', () => {

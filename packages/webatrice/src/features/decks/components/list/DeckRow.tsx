@@ -33,7 +33,7 @@ function DeckRowMeta({ deck, summary, className }: {
   className: string;
 }) {
   const { t, i18n } = useTranslation();
-  const formatLabel = summary?.format ? formatDisplayLabel(summary.format) : null;
+  const formatLabel = summary?.format ? formatDisplayLabel(summary.format, t) : null;
   const age = formatDeckAge(deck.creationTime, toBcp47(i18n.language));
   const ageText = 'key' in age ? t(`Decks.list.age.${age.key}`) : age.text;
   return (

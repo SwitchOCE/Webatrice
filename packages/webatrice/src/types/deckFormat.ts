@@ -1,3 +1,4 @@
+import type { TFunction } from 'i18next';
 
 /**
  * Format string as stored in the .cod `<format>` element. Free-form
@@ -17,26 +18,26 @@ export type DeckFormat = string;
  * `value` is the canonical lowercase slug stored in the .cod
  * `<format>` element — matches Cockatrice desktop's convention.
  */
-export const MTG_FORMAT_LABELS: ReadonlyArray<{ value: string; label: string }> = [
-  { value: 'commander', label: 'Commander' },
-  { value: 'paupercommander', label: 'Pauper Commander' },
-  { value: 'duel', label: 'Duel Commander' },
-  { value: 'oathbreaker', label: 'Oathbreaker' },
-  { value: 'standard', label: 'Standard' },
-  { value: 'pioneer', label: 'Pioneer' },
-  { value: 'modern', label: 'Modern' },
-  { value: 'legacy', label: 'Legacy' },
-  { value: 'vintage', label: 'Vintage' },
-  { value: 'pauper', label: 'Pauper' },
-  { value: 'premodern', label: 'Premodern' },
-  { value: 'oldschool', label: 'Old School' },
-  { value: 'predh', label: 'PreDH' },
-  { value: 'penny', label: 'Penny Dreadful' },
-  { value: 'standardbrawl', label: 'Standard Brawl' },
-  { value: 'historic', label: 'Historic' },
-  { value: 'timeless', label: 'Timeless' },
-  { value: 'gladiator', label: 'Gladiator' },
-  { value: 'future', label: 'Future' },
+export const MTG_FORMAT_LABELS: ReadonlyArray<{ value: string; label: (t: TFunction) => string }> = [
+  { value: 'commander', label: (t) => t('DeckFormat.commander') },
+  { value: 'paupercommander', label: (t) => t('DeckFormat.paupercommander') },
+  { value: 'duel', label: (t) => t('DeckFormat.duel') },
+  { value: 'oathbreaker', label: (t) => t('DeckFormat.oathbreaker') },
+  { value: 'standard', label: (t) => t('DeckFormat.standard') },
+  { value: 'pioneer', label: (t) => t('DeckFormat.pioneer') },
+  { value: 'modern', label: (t) => t('DeckFormat.modern') },
+  { value: 'legacy', label: (t) => t('DeckFormat.legacy') },
+  { value: 'vintage', label: (t) => t('DeckFormat.vintage') },
+  { value: 'pauper', label: (t) => t('DeckFormat.pauper') },
+  { value: 'premodern', label: (t) => t('DeckFormat.premodern') },
+  { value: 'oldschool', label: (t) => t('DeckFormat.oldschool') },
+  { value: 'predh', label: (t) => t('DeckFormat.predh') },
+  { value: 'penny', label: (t) => t('DeckFormat.penny') },
+  { value: 'standardbrawl', label: (t) => t('DeckFormat.standardbrawl') },
+  { value: 'historic', label: (t) => t('DeckFormat.historic') },
+  { value: 'timeless', label: (t) => t('DeckFormat.timeless') },
+  { value: 'gladiator', label: (t) => t('DeckFormat.gladiator') },
+  { value: 'future', label: (t) => t('DeckFormat.future') },
 ];
 
 /** Value-only list, derived from `MTG_FORMAT_LABELS`. Used for the

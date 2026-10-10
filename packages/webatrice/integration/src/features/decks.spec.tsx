@@ -236,7 +236,7 @@ describe('Decks (integration)', () => {
     });
 
     const sections = await screen.findAllByRole('heading', { level: 2 });
-    expect(sections.map((h) => h.textContent)).toEqual(['Commander1', 'Modern1']);
+    expect(sections.map((h) => h.textContent)).toEqual(['DeckFormat.commander1', 'DeckFormat.modern1']);
     expect(screen.getByText('Decks.badge.bracketShort')).toHaveAttribute('title', 'Decks.badge.bracket');
     expect(screen.getByText('$12.50')).toBeInTheDocument();
     expect(screen.getByText('$40.00+')).toBeInTheDocument();

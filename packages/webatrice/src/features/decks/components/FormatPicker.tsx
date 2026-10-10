@@ -75,7 +75,7 @@ export function FormatPicker({ value, onChange, variant }: FormatPickerProps) {
         }}
       >
         {MTG_FORMAT_LABELS.map((o) => (
-          <option key={o.value} value={o.value}>{o.label}</option>
+          <option key={o.value} value={o.value}>{o.label(t)}</option>
         ))}
         <option value="other">{t(`FormatPicker.other.${variant}`)}</option>
       </select>

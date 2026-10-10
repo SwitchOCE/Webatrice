@@ -4,6 +4,7 @@ import globals from 'globals';
 import * as espree from 'espree';
 import reactHooks from 'eslint-plugin-react-hooks';
 import i18next from 'eslint-plugin-i18next';
+import untranslatedText from './scripts/i18n-lint.mjs';
 import { boundariesConfig } from './eslint.boundaries.mjs';
 
 const webClientReexports = [
@@ -208,6 +209,16 @@ export default tseslint.config(
         'should-validate-template': true,
       }],
     },
+  },
+
+  {
+    files: ['src/**/*.{ts,tsx}'],
+    ignores: [
+      'src/**/*.spec.{ts,tsx}', 'src/**/*.test.{ts,tsx}', 'src/**/*.d.ts',
+      'src/__test-utils__/**', 'src/**/__mocks__/**', 'src/setupTests.ts',
+    ],
+    plugins: { 'local-i18n': { rules: { 'no-untranslated-text': untranslatedText } } },
+    rules: { 'local-i18n/no-untranslated-text': 'error' },
   },
 
   // Project-specific config

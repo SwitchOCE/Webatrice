@@ -1,6 +1,12 @@
-import { groupLobbyDecks, type DeckSummary } from './lobbyDeckGrouping';
+import { groupLobbyDecks, lobbyDeckCategoryLabel, type DeckSummary } from './lobbyDeckGrouping';
+import type { TFunction } from 'i18next';
 
 describe('groupLobbyDecks', () => {
+  it('translates known category labels and retains unknown format text', () => {
+    const t = ((key: string) => `translated:${key}`) as unknown as TFunction;
+    expect(lobbyDeckCategoryLabel('commander', t)).toBe('translated:DeckFormat.commander');
+    expect(lobbyDeckCategoryLabel('custom', t)).toBe('custom');
+  });
   const decks = [
     { id: 1, name: 'Zulu' }, { id: 2, name: 'alpha' }, { id: 3, name: 'Modern' },
     { id: 4, name: 'Other' }, { id: 5, name: 'Unknown' }, { id: 6, name: 'Empty format' },

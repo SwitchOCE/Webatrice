@@ -21,7 +21,8 @@ describe('DeckListSections', () => {
       />,
     );
 
-    expect(screen.getAllByRole('heading', { level: 2 }).map((h) => h.textContent)).toEqual(['Modern2', 'Common.status.loading0']);
+    expect(screen.getAllByRole('heading', { level: 2 }).map((h) => h.textContent))
+      .toEqual(['DeckFormat.modern2', 'Common.status.loading0']);
     fireEvent.click(screen.getByText('Elves'));
     fireEvent.click(within(screen.getByText('Burn').closest('li')!).getByRole('button', { name: 'Decks.list.deleteDeckNamed' }));
     expect(onOpen).toHaveBeenCalledWith(elves);

@@ -81,10 +81,10 @@ export function deckArtUrl(s: DeckSummary | undefined): string | null {
   return null;
 }
 
-export function formatDisplayLabel(format: string): string {
+export function formatDisplayLabel(format: string, t: TFunction): string {
   const known = MTG_FORMAT_LABELS.find((f) => f.value === normalizeFormat(format));
   if (known) {
-    return known.label;
+    return known.label(t);
   }
   return format.replace(/^\w/, (c) => c.toUpperCase());
 }
@@ -93,7 +93,7 @@ export const SECTION_OTHER = 'other';
 export const SECTION_LOADING = 'loading';
 export const SECTION_UNKNOWN = 'unknown';
 
-const MTG_SECTION_LABELS: Record<string, string> = Object.fromEntries(
+const MTG_SECTION_LABELS: Record<string, (t: TFunction) => string> = Object.fromEntries(
   MTG_FORMAT_LABELS.map((f) => [f.value, f.label]),
 );
 
@@ -106,7 +106,7 @@ export function deckSectionLabel(section: string, t: TFunction): string {
     case SECTION_UNKNOWN:
       return t('DeckSummary.section.unknown');
     default:
-      return MTG_SECTION_LABELS[section] ?? section;
+      return MTG_SECTION_LABELS[section]?.(t) ?? section;
   }
 }
 

@@ -1,26 +1,3 @@
-// Key-integrity gate for the i18n catalogue (`npm run i18n:check`).
-//
-// The English source catalogue is the merge of every co-located `*.i18n.json`
-// under `src/` (prebuild.js writes it to `src/i18n-default.json`). A missing key
-// renders as the raw key and an orphan key ships dead text to Transifex, and
-// neither fails a build or a test, so this script checks, over all non-spec
-// sources:
-//
-//   1. every literal `t('A.b')` / `i18nKey="A.b"` / `labelKey: 'A.b'` resolves to
-//      a message (and never hides a miss behind `defaultValue`);
-//   2. every template key `t(`A.b.${x}`)` has at least one key under its prefix;
-//   3. every catalogue key is reached from source (allowlist: i18n-allowlist.json);
-//   4. every English message is valid ICU;
-//   5. the committed `src/i18n-default.json` is byte for byte a fresh merge in
-//      prebuild.js's sorted path order, so key-order drift fails too;
-//   6. the `public/locales/*` folders are exactly the `Language` enum values.
-//
-// Two heuristics leave blind spots:
-//   - a `*Key` value counts as a key only when its namespace exists, so a
-//     mistyped namespace (`labelKey: 'Usermenu.x'`) is skipped, not reported;
-//   - a template prefix marks every key under it as used, so an orphan under a
-//     dynamic prefix (`ShortcutsTab.action.`, `Reports.queue.`) is never reported.
-
 import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -28,9 +5,10 @@ import ts from 'typescript';
 import { IntlMessageFormat } from 'intl-messageformat';
 
 const SOURCE_EXTENSIONS = /\.(ts|tsx)$/;
-const SKIPPED_SOURCES = /(\.spec\.tsx?$|\/__test-utils__\/|\/__mocks__\/|\.d\.ts$)/;
+const SKIPPED_SOURCES = /(\.(spec|test)\.tsx?$|\/__test-utils__\/|\/__mocks__\/|\.d\.ts$)/;
 const CATALOG_FILE = /\.i18n\.json$/;
 const KEY_PROPERTY = /Key$/;
+const sourcePrinter = ts.createPrinter({ removeComments: true, newLine: ts.NewLineKind.LineFeed });
 
 export function flattenCatalog(json, prefix = '', out = {}) {
   for (const [key, value] of Object.entries(json)) {
@@ -84,42 +62,220 @@ function propertyName(node) {
   if (!name) {
     return undefined;
   }
-  if (ts.isIdentifier(name) || ts.isStringLiteral(name)) {
+  if (ts.isIdentifier(name) || ts.isStringLiteral(name) || ts.isNumericLiteral(name)) {
     return name.text;
   }
   return undefined;
 }
 
-export function scanSource(file, text) {
+function declaredMap(node) {
+  if (!ts.isVariableDeclaration(node) || !ts.isIdentifier(node.name) || !/(Keys|_KEYS)$/.test(node.name.text)
+    || !(node.parent.flags & ts.NodeFlags.Const)) {
+    return undefined;
+  }
+  let value = node.initializer;
+  if (value && ts.isSatisfiesExpression(value)) {
+    value = value.expression;
+  }
+  if (value && ts.isAsExpression(value) && value.type.getText() === 'const') {
+    value = value.expression;
+  } else if (!node.type) {
+    return undefined;
+  }
+  if (!value || !ts.isObjectLiteralExpression(value)) {
+    return undefined;
+  }
+  const entries = new Map();
+  for (const property of value.properties) {
+    const computedName = property.name && ts.isComputedPropertyName(property.name) ? property.name.getText() : undefined;
+    const name = propertyName(property) ?? computedName;
+    if (!ts.isPropertyAssignment(property) || name === undefined
+      || !ts.isStringLiteralLike(property.initializer) || entries.has(name)) {
+      return undefined;
+    }
+    entries.set(name, property.initializer.text);
+  }
+  return entries.size ? entries : undefined;
+}
+
+function sourceChecker(file, sourceFile) {
+  const host = {
+    getSourceFile: (name) => name === file ? sourceFile : undefined,
+    getDefaultLibFileName: () => '',
+    writeFile: () => {},
+    getCurrentDirectory: () => '',
+    getDirectories: () => [],
+    fileExists: (name) => name === file,
+    readFile: () => undefined,
+    getCanonicalFileName: (name) => name,
+    useCaseSensitiveFileNames: () => true,
+    getNewLine: () => '\n',
+  };
+  return ts.createProgram([file], { noLib: true, noResolve: true }, host).getTypeChecker();
+}
+
+export function createDomainIndex(sources) {
+  const files = new Map(sources.map(({ file, text }) => [file,
+    ts.createSourceFile(file, text, ts.ScriptTarget.Latest, true, file.endsWith('.tsx') ? ts.ScriptKind.TSX : ts.ScriptKind.TS)]));
+  const exports = new Map();
+  const resolveFile = (file, specifier) => {
+    const base = specifier.startsWith('@app/') ? `src/${specifier.slice(5)}`
+      : specifier.startsWith('.') ? path.posix.join(path.posix.dirname(file), specifier) : undefined;
+    if (!base) {
+      return undefined;
+    }
+    return [base, `${base}.ts`, `${base}.tsx`, `${base}/index.ts`, `${base}/index.tsx`, base.replace(/\.js$/, '.ts')]
+      .find((candidate) => files.has(candidate));
+  };
+  for (const [file, source] of files) {
+    const local = new Map();
+    const named = new Map();
+    const stars = [];
+    for (const statement of source.statements) {
+      if (ts.isVariableStatement(statement)) {
+        for (const declaration of statement.declarationList.declarations) {
+          const entries = declaredMap(declaration);
+          if (entries) {
+            local.set(declaration.name.text, entries);
+            if (statement.modifiers?.some((modifier) => modifier.kind === ts.SyntaxKind.ExportKeyword)) {
+              named.set(declaration.name.text, { entries });
+            }
+          }
+        }
+      }
+    }
+    for (const statement of source.statements) {
+      if (!ts.isExportDeclaration(statement) || statement.isTypeOnly) {
+        continue;
+      }
+      const target = statement.moduleSpecifier && resolveFile(file, statement.moduleSpecifier.text);
+      if (statement.exportClause && ts.isNamedExports(statement.exportClause)) {
+        for (const item of statement.exportClause.elements) {
+          if (!item.isTypeOnly) {
+            const name = (item.propertyName ?? item.name).text;
+            named.set(item.name.text, statement.moduleSpecifier ? { file: target, name } : { entries: local.get(name) });
+          }
+        }
+      } else if (!statement.exportClause && target) {
+        stars.push(target);
+      }
+    }
+    exports.set(file, { named, stars });
+  }
+  const resolveExport = (file, name, seen = new Set()) => {
+    const id = JSON.stringify([file, name]);
+    if (seen.has(id) || !exports.has(file)) {
+      return undefined;
+    }
+    seen.add(id);
+    const { named, stars } = exports.get(file);
+    if (named.has(name)) {
+      const entry = named.get(name);
+      return entry.entries ?? resolveExport(entry.file, entry.name, seen);
+    }
+    const matches = stars.map((target) => resolveExport(target, name, new Set(seen))).filter(Boolean);
+    return matches.length && matches.every((entries) => entries === matches[0]) ? matches[0] : undefined;
+  };
+  return {
+    files,
+    importedMap(declaration) {
+      if (!ts.isImportSpecifier(declaration) || declaration.isTypeOnly || declaration.parent.parent.isTypeOnly) {
+        return undefined;
+      }
+      const statement = declaration.parent.parent.parent;
+      const file = resolveFile(declaration.getSourceFile().fileName, statement.moduleSpecifier.text);
+      return resolveExport(file, (declaration.propertyName ?? declaration.name).text);
+    },
+  };
+}
+
+function domainKeys(node, checker, index, seen = new Set()) {
+  if (seen.has(node)) {
+    return undefined;
+  }
+  seen.add(node);
+  if (ts.isStringLiteralLike(node)) {
+    return [node.text];
+  }
+  if (node.kind === ts.SyntaxKind.NullKeyword
+    || (ts.isIdentifier(node) && node.text === 'undefined' && !checker.getSymbolAtLocation(node)?.declarations?.length)) {
+    return [];
+  }
+  if (ts.isParenthesizedExpression(node) || ts.isAsExpression(node)) {
+    return domainKeys(node.expression, checker, index, seen);
+  }
+  const coalesce = ts.isBinaryExpression(node) && node.operatorToken.kind === ts.SyntaxKind.QuestionQuestionToken;
+  if (ts.isConditionalExpression(node) || coalesce) {
+    const branches = ts.isConditionalExpression(node) ? [node.whenTrue, node.whenFalse] : [node.left, node.right];
+    const keys = branches.map((branch) => domainKeys(branch, checker, index, new Set(seen)));
+    return keys.every(Boolean) ? [...new Set(keys.flat())] : undefined;
+  }
+  if (ts.isIdentifier(node)) {
+    const declarations = checker.getSymbolAtLocation(node)?.declarations;
+    const declaration = declarations?.length === 1 ? declarations[0] : undefined;
+    return declaration && ts.isVariableDeclaration(declaration)
+      && (declaration.parent.flags & ts.NodeFlags.Const) && declaration.initializer
+      ? domainKeys(declaration.initializer, checker, index, seen) : undefined;
+  }
+  if ((!ts.isElementAccessExpression(node) && !ts.isPropertyAccessExpression(node)) || !ts.isIdentifier(node.expression)) {
+    return undefined;
+  }
+  const declarations = checker.getSymbolAtLocation(node.expression)?.declarations;
+  if (declarations?.length !== 1) {
+    return undefined;
+  }
+  const entries = declaredMap(declarations[0]) ?? index?.importedMap(declarations[0]);
+  if (!entries) {
+    return undefined;
+  }
+  const selected = ts.isPropertyAccessExpression(node) ? node.name.text
+    : ts.isStringLiteralLike(node.argumentExpression) ? node.argumentExpression.text : undefined;
+  if (selected !== undefined) {
+    return entries.has(selected) ? [entries.get(selected)] : undefined;
+  }
+  return [...new Set(entries.values())];
+}
+
+export function scanSource(file, text, index) {
   const kind = file.endsWith('.tsx') ? ts.ScriptKind.TSX : ts.ScriptKind.TS;
-  const sourceFile = ts.createSourceFile(file, text, ts.ScriptTarget.Latest, true, kind);
-  const result = { keys: [], prefixes: [], tails: [], heads: new Set(), strings: new Set(), defaultValues: [] };
+  const sourceFile = index?.files.get(file) ?? ts.createSourceFile(file, text, ts.ScriptTarget.Latest, true, kind);
+  const checker = sourceChecker(file, sourceFile);
+  const result = { keys: [], dynamicCalls: [], dynamicTemplates: [], strings: new Set(), defaultValues: [] };
 
   const addKey = (key, node, via) => result.keys.push({ key, file, line: lineOf(sourceFile, node), via });
 
   const visit = (node) => {
+    if (declaredMap(node)) {
+      return;
+    }
     if (ts.isStringLiteral(node) || ts.isNoSubstitutionTemplateLiteral(node)) {
       result.strings.add(node.text);
-    } else if (ts.isTemplateExpression(node) && node.head.text) {
-      result.heads.add(node.head.text);
+    }
+    if (ts.isTemplateExpression(node) && node.head.text
+      && !(ts.isCallExpression(node.parent) && isTranslateCall(node.parent) && node.parent.arguments[0] === node)) {
+      result.dynamicTemplates.push({ file, prefix: node.head.text, line: lineOf(sourceFile, node) });
     }
 
     if (ts.isCallExpression(node) && isTranslateCall(node) && node.arguments.length > 0) {
       const [first, options] = node.arguments;
-      if (ts.isStringLiteral(first) || ts.isNoSubstitutionTemplateLiteral(first)) {
-        addKey(first.text, first, 't()');
+      const keys = domainKeys(first, checker, index);
+      if (keys) {
+        keys.forEach((key) => addKey(key, first, 't()'));
         const hasDefault = options && ts.isObjectLiteralExpression(options)
           && options.properties.some((p) => propertyName(p) === 'defaultValue');
         if (hasDefault) {
-          result.defaultValues.push({ key: first.text, file, line: lineOf(sourceFile, first) });
+          keys.forEach((key) => result.defaultValues.push({ key, file, line: lineOf(sourceFile, first) }));
         }
-      } else if (ts.isTemplateExpression(first)) {
-        const head = first.head.text;
-        if (head) {
-          result.prefixes.push({ prefix: head, file, line: lineOf(sourceFile, first) });
-        } else if (first.templateSpans.length === 1) {
-          result.tails.push(first.templateSpans[0].literal.text);
+      } else {
+        const ref = { expression: normalizeExpression(sourcePrinter.printNode(ts.EmitHint.Expression, first, sourceFile)),
+          file, line: lineOf(sourceFile, first) };
+        if (ts.isTemplateExpression(first)) {
+          ref.prefix = first.head.text;
+          if (!ref.prefix && first.templateSpans.length === 1) {
+            ref.tail = first.templateSpans[0].literal.text;
+          }
         }
+        result.dynamicCalls.push(ref);
       }
     }
 
@@ -161,7 +317,8 @@ export function readLanguageEnum(text) {
   return values;
 }
 
-export function checkI18n({ catalogFiles, sources, allowlist = [], rollupText, localeDirs, languages }) {
+export function checkI18n({ catalogFiles, sources, allowlist = [], rollupText, localeDirs, languages,
+  localeFiles, baseline, localeReport = [] }) {
   const problems = [];
   const { merged, problems: mergeProblems } = mergeCatalogs(catalogFiles);
   problems.push(...mergeProblems);
@@ -169,7 +326,8 @@ export function checkI18n({ catalogFiles, sources, allowlist = [], rollupText, l
   const messages = flattenCatalog(merged);
   const catalogKeys = Object.keys(messages);
   const namespaces = new Set(Object.keys(merged));
-  const scans = sources.map(({ file, text }) => scanSource(file, text));
+  const index = createDomainIndex(sources);
+  const scans = [...sources].sort((a, b) => compareCatalogPaths(a.file, b.file)).map(({ file, text }) => scanSource(file, text, index));
 
   const used = new Set();
   const keyRefs = scans.flatMap((s) => s.keys);
@@ -192,26 +350,14 @@ export function checkI18n({ catalogFiles, sources, allowlist = [], rollupText, l
     }
   }
 
-  for (const ref of scans.flatMap((s) => s.prefixes)) {
-    const matches = catalogKeys.filter((k) => k.startsWith(ref.prefix));
-    if (matches.length === 0) {
-      problems.push(`${ref.file}:${ref.line}: no key matches the template prefix "${ref.prefix}"`);
-    }
-    matches.forEach((k) => used.add(k));
-  }
-
   const strings = new Set(scans.flatMap((s) => [...s.strings]));
-  const heads = [...new Set(scans.flatMap((s) => [...s.heads]))].filter((h) => namespaces.has(h.split('.')[0]));
-  const tails = new Set(scans.flatMap((s) => s.tails));
+  problems.push(...checkDynamicBaseline(scans, baseline, catalogKeys, strings, used));
   const allowed = new Set(allowlist);
   for (const key of catalogKeys) {
-    if (used.has(key) || strings.has(key) || allowed.has(key) || heads.some((h) => key.startsWith(h))) {
+    if (used.has(key) || strings.has(key) || allowed.has(key)) {
       continue;
     }
-    const viaTail = [...tails].some((tail) => key.endsWith(tail) && strings.has(key.slice(0, -tail.length)));
-    if (!viaTail) {
-      problems.push(`orphan key "${key}" is never referenced (delete it, or list it in scripts/i18n-allowlist.json)`);
-    }
+    problems.push(`orphan key "${key}" is never referenced (delete it, or list it in scripts/i18n-allowlist.json)`);
   }
   for (const key of allowed) {
     if (!(key in messages)) {
@@ -250,6 +396,158 @@ export function checkI18n({ catalogFiles, sources, allowlist = [], rollupText, l
     }
   }
 
+  if (localeFiles) {
+    const files = [...(localeDirs ?? []).map((locale) => ({ locale, json: {} })), ...localeFiles];
+    problems.push(...checkLocaleCompleteness(files, baseline, messages, localeReport));
+  }
+
+  return problems;
+}
+
+function normalizeExpression(expression) {
+  return expression.replace(/\s+/g, ' ').trim();
+}
+
+function dynamicId(ref) {
+  return JSON.stringify([ref.file, ref.prefix ?? null, ref.prefix === undefined ? normalizeExpression(ref.expression) : ref.tail ?? null]);
+}
+
+function validDynamicEntries(entries, templates = false) {
+  if (!Array.isArray(entries)) {
+    return false;
+  }
+  const ids = new Set();
+  return entries.every((entry) => {
+    if (!entry || typeof entry.file !== 'string' || !entry.file.startsWith('src/') || entry.file.includes('\\')
+      || !Number.isSafeInteger(entry.count) || entry.count < 1) {
+      return false;
+    }
+    const prefix = typeof entry.prefix === 'string' && entry.expression === undefined;
+    const expression = entry.prefix === undefined && typeof entry.expression === 'string' && entry.expression.length > 0;
+    if (!(prefix || (!templates && expression)) || (templates && !entry.prefix)
+      || (entry.tail !== undefined && (entry.prefix !== '' || typeof entry.tail !== 'string'))) {
+      return false;
+    }
+    const id = dynamicId(entry);
+    if (ids.has(id)) {
+      return false;
+    }
+    ids.add(id);
+    return true;
+  });
+}
+
+function checkDynamicBaseline(scans, baseline, catalogKeys, strings, used) {
+  const calls = baseline?.dynamicCalls ?? [];
+  const templates = baseline?.dynamicTemplates ?? [];
+  if (!validDynamicEntries(calls) || !validDynamicEntries(templates, true)) {
+    return ['scripts/i18n-baseline.json: invalid dynamic baseline'];
+  }
+  const problems = [];
+  const check = (refs, entries, kind) => {
+    const remaining = new Map(entries.map((entry) => [dynamicId(entry), entry.count]));
+    for (const ref of refs) {
+      const id = dynamicId(ref);
+      const count = remaining.get(id) ?? 0;
+      if (!count) {
+        if (kind === 'call') {
+          problems.push(`${ref.file}:${ref.line}: dynamic t() key has no declared domain: ${ref.expression}`);
+        }
+        continue;
+      }
+      remaining.set(id, count - 1);
+      if (ref.prefix) {
+        const matches = catalogKeys.filter((key) => key.startsWith(ref.prefix));
+        if (!matches.length) {
+          problems.push(`${ref.file}:${ref.line}: no key matches the template prefix "${ref.prefix}"`);
+        }
+        matches.forEach((key) => used.add(key));
+      } else if (ref.tail !== undefined) {
+        catalogKeys.filter((key) => key.endsWith(ref.tail) && strings.has(key.substring(0, key.length - ref.tail.length)))
+          .forEach((key) => used.add(key));
+      }
+    }
+    for (const entry of entries) {
+      if (remaining.get(dynamicId(entry))) {
+        problems.push(`scripts/i18n-baseline.json: stale dynamic ${kind}: ${entry.file}: ${entry.prefix ?? entry.expression}`);
+      }
+    }
+  };
+  check(scans.flatMap((scan) => scan.dynamicCalls), calls, 'call');
+  check(scans.flatMap((scan) => scan.dynamicTemplates), templates, 'template');
+  return problems;
+}
+
+function validBaseline(baseline) {
+  if (baseline?.version !== 1 || !baseline.locales || typeof baseline.locales !== 'object' || Array.isArray(baseline.locales)) {
+    return false;
+  }
+  return Object.values(baseline.locales).every((entry) => entry && Array.isArray(entry.keys)
+    && entry.count === entry.keys.length && entry.keys.every((key) => typeof key === 'string' && key.length > 0)
+    && entry.keys.every((key, index) => index === 0 || compareCatalogPaths(entry.keys[index - 1], key) < 0));
+}
+
+function localeCatalogs(localeFiles) {
+  const locales = new Map();
+  for (const { locale, json } of localeFiles) {
+    if (!locales.has(locale)) {
+      locales.set(locale, {});
+    }
+    Object.assign(locales.get(locale), flattenCatalog(json));
+  }
+  return locales;
+}
+
+export function refreshLocaleBaseline(localeFiles, baseline, messages) {
+  if (!validBaseline(baseline)) {
+    throw new Error('scripts/i18n-baseline.json: invalid completeness baseline');
+  }
+  const catalogs = localeCatalogs(localeFiles);
+  const locales = {};
+  const names = new Set([...Object.keys(baseline.locales), ...catalogs.keys()]);
+  for (const locale of [...names].sort(compareCatalogPaths)) {
+    const catalog = catalogs.get(locale) ?? {};
+    const translated = Object.keys(catalog).filter((key) => typeof catalog[key] === 'string' && catalog[key].trim());
+    const keys = [...new Set([...(baseline.locales[locale]?.keys ?? []), ...translated])]
+      .filter((key) => Object.hasOwn(messages, key)).sort(compareCatalogPaths);
+    locales[locale] = { count: keys.length, keys };
+  }
+  return { ...baseline, locales };
+}
+
+export function checkLocaleCompleteness(localeFiles, baseline, messages, report = []) {
+  if (!validBaseline(baseline)) {
+    return ['scripts/i18n-baseline.json: invalid completeness baseline'];
+  }
+  const locales = localeCatalogs(localeFiles);
+  const problems = [];
+  for (const locale of Object.keys(baseline.locales).sort(compareCatalogPaths)) {
+    for (const key of baseline.locales[locale].keys) {
+      if (!Object.hasOwn(messages, key)) {
+        problems.push(`scripts/i18n-baseline.json: ${locale}: stale baseline key "${key}"`);
+      }
+    }
+  }
+  for (const [locale, catalog] of [...locales.entries()].sort(([a], [b]) => compareCatalogPaths(a, b))) {
+    const keys = new Set(Object.keys(catalog).filter((key) => typeof catalog[key] === 'string' && catalog[key].trim()));
+    const entry = baseline.locales[locale];
+    report.push({ locale, translated: [...keys].filter((key) => Object.hasOwn(messages, key)).length,
+      total: Object.keys(messages).length, baseline: entry?.count ?? 0 });
+    if (!entry) {
+      problems.push(`public/locales/${locale}/: completeness baseline is missing`);
+      continue;
+    }
+    for (const key of entry.keys) {
+      if (Object.hasOwn(messages, key) && !keys.has(key)) {
+        problems.push(`public/locales/${locale}/: lost baseline translation "${key}"`);
+      }
+    }
+  }
+  for (const locale of Object.keys(baseline.locales).sort(compareCatalogPaths)) {
+    if (!locales.has(locale)) {
+      problems.push(`public/locales/${locale}/: baseline locale is missing`);
+    }
+  }
   return problems;
 }
 
@@ -274,15 +572,30 @@ function main() {
     .map((file) => ({ file: rel(file), json: JSON.parse(fs.readFileSync(file, 'utf8')) }))
     .sort((a, b) => compareCatalogPaths(a.file, b.file));
   const sources = walk(src, (f) => SOURCE_EXTENSIONS.test(f) && !SKIPPED_SOURCES.test(f.split(path.sep).join('/')))
-    .map((file) => ({ file: rel(file), text: fs.readFileSync(file, 'utf8') }));
+    .map((file) => ({ file: rel(file), text: fs.readFileSync(file, 'utf8') }))
+    .sort((a, b) => compareCatalogPaths(a.file, b.file));
   const allowlist = Object.keys(JSON.parse(fs.readFileSync(path.join(root, 'scripts/i18n-allowlist.json'), 'utf8')));
   const rollupText = fs.readFileSync(path.join(src, 'i18n-default.json'), 'utf8');
   const localeDirs = fs.readdirSync(path.join(root, 'public/locales'), { withFileTypes: true })
     .filter((d) => d.isDirectory())
-    .map((d) => d.name);
+    .map((d) => d.name).sort(compareCatalogPaths);
   const languages = readLanguageEnum(fs.readFileSync(path.join(src, 'types/languages.ts'), 'utf8'));
+  const localeFiles = localeDirs.flatMap((locale) => walk(path.join(root, 'public/locales', locale), (file) => file.endsWith('.json'))
+    .sort(compareCatalogPaths).map((file) => ({ locale, json: JSON.parse(fs.readFileSync(file, 'utf8')) })));
+  const baselineFile = path.join(root, 'scripts/i18n-baseline.json');
+  let baseline = fs.existsSync(baselineFile) ? JSON.parse(fs.readFileSync(baselineFile, 'utf8')) : undefined;
+  if (process.argv.includes('--write-locale-baseline')) {
+    const files = [...localeDirs.map((locale) => ({ locale, json: {} })), ...localeFiles];
+    baseline = refreshLocaleBaseline(files, baseline, flattenCatalog(mergeCatalogs(catalogFiles).merged));
+    fs.writeFileSync(baselineFile, `${JSON.stringify(baseline, null, 2)}\n`);
+  }
+  const localeReport = [];
 
-  const problems = checkI18n({ catalogFiles, sources, allowlist, rollupText, localeDirs, languages });
+  const problems = checkI18n({ catalogFiles, sources, allowlist, rollupText, localeDirs, languages, localeFiles, baseline, localeReport });
+  for (const { locale, translated, total, baseline: count } of localeReport) {
+    const percent = total ? (translated / total * 100).toFixed(1) : '100.0';
+    console.log(`i18n:check: ${locale}: ${translated}/${total} (${percent}%), ${count} baseline keys protected`);
+  }
   if (problems.length > 0) {
     console.error(`i18n:check found ${problems.length} problem(s):\n${problems.map((p) => `  ${p}`).join('\n')}`);
     process.exitCode = 1;

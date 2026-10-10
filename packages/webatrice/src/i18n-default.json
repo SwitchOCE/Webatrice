@@ -2832,6 +2832,12 @@
     }
   },
   "GamePrompt": {
+    "token": {
+      "title": "Create tokens",
+      "label": "Number",
+      "create": "Create",
+      "invalid": "Enter 1 to {max}"
+    },
     "action": {
       "save": "Save",
       "set": "Set"
@@ -4085,6 +4091,27 @@
     "tooLarge": "The replay file is too large.",
     "tooManyContainers": "The replay has too many event containers.",
     "tooManyEvents": "The replay has too many events."
+  },
+  "DeckFormat": {
+    "commander": "Commander",
+    "paupercommander": "Pauper Commander",
+    "duel": "Duel Commander",
+    "oathbreaker": "Oathbreaker",
+    "standard": "Standard",
+    "pioneer": "Pioneer",
+    "modern": "Modern",
+    "legacy": "Legacy",
+    "vintage": "Vintage",
+    "pauper": "Pauper",
+    "premodern": "Premodern",
+    "oldschool": "Old School",
+    "predh": "PreDH",
+    "penny": "Penny Dreadful",
+    "standardbrawl": "Standard Brawl",
+    "historic": "Historic",
+    "timeless": "Timeless",
+    "gladiator": "Gladiator",
+    "future": "Future"
   },
   "GameInfo": {
     "restriction": {

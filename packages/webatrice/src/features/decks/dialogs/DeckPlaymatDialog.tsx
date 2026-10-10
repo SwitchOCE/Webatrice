@@ -12,6 +12,13 @@ import { PLAYMAT_NAME_MAX_LENGTH } from '@app/types';
 import { useQuickAddSuggestions } from '../hooks/useQuickAddSuggestions';
 import { DeckDialogFrame } from './DeckDialogFrame';
 
+const CROP_LABEL_KEYS = {
+  marginPctL: 'PlaymatSettings.crop.leftMargin',
+  marginPctR: 'PlaymatSettings.crop.rightMargin',
+  verticalOffset: 'PlaymatSettings.crop.verticalOffset',
+  zoom: 'PlaymatSettings.crop.zoom',
+} as const;
+
 export function DeckPlaymatDialog({ playmat, onClose, onSave }: {
   playmat: games.Playmat | null;
   onClose: () => void;
@@ -104,10 +111,10 @@ export function DeckPlaymatDialog({ playmat, onClose, onSave }: {
   });
   const inputClass = 'block w-full rounded border border-border-subtle bg-bg-elevated p-2 text-sm';
   const params = [
-    { key: 'marginPctL', label: 'leftMargin', min: 0, max: 0.95 },
-    { key: 'marginPctR', label: 'rightMargin', min: 0, max: 0.95 },
-    { key: 'verticalOffset', label: 'verticalOffset', min: 0, max: 1 },
-    { key: 'zoom', label: 'zoom', min: 0.1, max: 4 },
+    { key: 'marginPctL', min: 0, max: 0.95 },
+    { key: 'marginPctR', min: 0, max: 0.95 },
+    { key: 'verticalOffset', min: 0, max: 1 },
+    { key: 'zoom', min: 0.1, max: 4 },
   ] as const;
   return (
     <DeckDialogFrame onClose={onClose} titleId={titleId}>
@@ -150,10 +157,10 @@ export function DeckPlaymatDialog({ playmat, onClose, onSave }: {
           }} />
           <details>
             <summary>{t('DeckPlaymat.numeric')}</summary>
-            {params.map(({ key, label, min, max }) => (
+            {params.map(({ key, min, max }) => (
               <Controller key={key} name={`params.${key}`} control={control} render={({ field }) => (
                 <label key={key} className="block">
-                  {t(`PlaymatSettings.crop.${label}`)}
+                  {t(CROP_LABEL_KEYS[key])}
                   <input {...field} value={Number.isNaN(field.value) ? '' : field.value}
                     onChange={(event) => field.onChange(event.target.valueAsNumber)}
                     type="number" min={min} max={max} step="0.001" className={inputClass}

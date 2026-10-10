@@ -96,7 +96,7 @@ function SharedDeck() {
                       <div className="flex-1 min-w-0">
                         <div className="font-semibold text-text-primary truncate">{item.name}</div>
                         <div className="text-xs text-text-muted flex gap-2 flex-wrap">
-                          {item.gameFormat && <span>{formatDisplayLabel(item.gameFormat)}</span>}
+                          {item.gameFormat && <span>{formatDisplayLabel(item.gameFormat, t)}</span>}
                           {item.colorIdentity && <span>{item.colorIdentity}</span>}
                           {item.tags.map((tag) => <span key={tag}>{tag}</span>)}
                         </div>

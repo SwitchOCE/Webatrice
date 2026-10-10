@@ -13,7 +13,7 @@ export interface DeckSummary {
 
 const CATEGORY_OTHER = 'other';
 const CATEGORY_UNKNOWN = 'unknown';
-const CATEGORY_LABELS: Record<string, string> = Object.fromEntries(
+const CATEGORY_LABELS: Record<string, (t: TFunction) => string> = Object.fromEntries(
   MTG_FORMAT_LABELS.map((f) => [f.value, f.label]),
 );
 
@@ -24,7 +24,7 @@ export function lobbyDeckCategoryLabel(category: string, t: TFunction): string {
   if (category === CATEGORY_UNKNOWN) {
     return t('GameLobby.deckCategory.unknown');
   }
-  return CATEGORY_LABELS[category] ?? category;
+  return CATEGORY_LABELS[category]?.(t) ?? category;
 }
 
 /** Bucket a deck's format string into a category slug for display. */

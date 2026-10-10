@@ -102,8 +102,8 @@ describe('deckArtUrl', () => {
 
 describe('formatDisplayLabel', () => {
   it('labels known formats and capitalises custom ones', () => {
-    expect(formatDisplayLabel(' PauperCommander ')).toBe('Pauper Commander');
-    expect(formatDisplayLabel('netrunner')).toBe('Netrunner');
+    expect(formatDisplayLabel(' PauperCommander ', t)).toBe('DeckFormat.paupercommander');
+    expect(formatDisplayLabel('netrunner', t)).toBe('Netrunner');
   });
 });
 
@@ -134,7 +134,7 @@ describe('format sections', () => {
       ['unknown', [5]],
     ]);
     expect(sections.map((s) => deckSectionLabel(s.section, t))).toEqual([
-      'Commander', 'Modern', 'DeckSummary.section.other', 'Common.status.loading', 'DeckSummary.section.unknown',
+      'DeckFormat.commander', 'DeckFormat.modern', 'DeckSummary.section.other', 'Common.status.loading', 'DeckSummary.section.unknown',
     ]);
   });
 });
