@@ -1,6 +1,7 @@
 import { validateCod } from './cockatriceDeckDocument';
 
 export function patchDeckDetails(xml: string, details: {
+  name?: string;
   banner?: { name: string; providerId?: string } | null;
   tagsXml?: string;
 }): string {
@@ -8,6 +9,13 @@ export function patchDeckDetails(xml: string, details: {
     throw new Error('Cockatrice deck XML is malformed');
   }
   let result = xml;
+  if (details.name !== undefined) {
+    const doc = document.implementation.createDocument(null, 'deckname');
+    doc.documentElement.textContent = details.name;
+    const deckname = new XMLSerializer().serializeToString(doc.documentElement);
+    const after = ['format', 'bannerCard', 'playmatCard', 'comments', 'tags', 'zone', 'sideboard_plan'];
+    result = replaceChild(result, 'deckname', deckname, after);
+  }
   if (details.banner !== undefined) {
     let banner = '';
     if (details.banner?.name) {

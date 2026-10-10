@@ -1,33 +1,38 @@
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { generatePath, useLocation, useNavigate, useSearchParams } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 
-import { AuthGuard } from '@app/components';
+import { server } from '@cockatrice/datatrice';
+import { AuthGuard, Button } from '@app/components';
 import { AlertDialog } from '@app/dialogs';
 import { ShortcutScope, useShortcut } from '@app/feature-widgets/shortcuts';
 import { Layout } from '@app/feature-wrappers/layout';
+import { useAppSelector } from '@app/store';
 import { RouteEnum } from '@app/types';
 
-import { DeckFolderBar } from './components/list/DeckFolderBar';
-import { DeckFolderRow } from './components/list/DeckFolderRow';
-import { DeckListHeader } from './components/list/DeckListHeader';
-import { DeckListSections } from './components/list/DeckListSections';
+import type { DeckActions, DeckStorageEditKind } from './components/list/DeckActionsMenu';
+import { DeckGridToolbar } from './components/list/DeckGridToolbar';
 import { DeckListEmpty, DeckListError, DeckListLoading, DeckStorageError } from './components/list/DeckListStates';
-import type { DeckFolderEntry } from './deckFolders';
+import { DeckStorageSidebar } from './components/list/DeckStorageSidebar';
+import { DeckListRow, DeckTile } from './components/list/DeckTile';
+import { parentDeckPath, type DeckFolderEntry } from './deckFolders';
+import type { DeckTileView } from './deckGrid';
 import { deckShareQuery, type DeckShareLink } from './deckSharing';
 import type { DecksLocationState } from './deckShortcuts';
 import type { FlatDeck } from './deckTree';
 import { CreateDeckDialog } from './dialogs/CreateDeckDialog';
 import { CreateFolderDialog } from './dialogs/CreateFolderDialog';
-import { DeleteDeckDialog } from './dialogs/DeleteDeckDialog';
 import { DeckShareLinksDialog } from './dialogs/DeckShareLinksDialog';
+import { DeckStorageEditDialog } from './dialogs/DeckStorageEditDialog';
+import { DeleteDeckDialog } from './dialogs/DeleteDeckDialog';
 import { DeleteFolderDialog } from './dialogs/DeleteFolderDialog';
 import { ImportDeckDialog } from './dialogs/ImportDeckDialog';
 import { MoveDeckDialog } from './dialogs/MoveDeckDialog';
 import { OpenShareLinkDialog } from './dialogs/OpenShareLinkDialog';
 import { ShareDeckDialog } from './dialogs/ShareDeckDialog';
-import { useDeckDeleteFocus } from './hooks/useDeckDeleteFocus';
+import { DECK_LIST_ROW_ATTRIBUTE, useDeckDeleteFocus } from './hooks/useDeckDeleteFocus';
 import { useDeckFileDownloads } from './hooks/useDeckFileDownloads';
+import { useDeckGrid } from './hooks/useDeckGrid';
 import { useDeckList } from './hooks/useDeckList';
 import { useDeckListViewMode } from './hooks/useDeckListViewMode';
 import { useDeckShareCreate, useDeckSharingSupported, useDeckVisibility } from './hooks/useDeckSharing';
@@ -40,12 +45,14 @@ function Decks() {
   const { t } = useTranslation();
   const [searchParams, setSearchParams] = useSearchParams();
   const requestedPath = searchParams.get(FOLDER_PARAM) ?? '';
+  const userName = useAppSelector(server.Selectors.getUser)?.name;
 
   const openDeckById = useCallback(
     (deckId: number) => navigate(generatePath(RouteEnum.DECK, { deckId: String(deckId) })),
     [navigate],
   );
   const list = useDeckList({ onDeckCreated: openDeckById, folderPath: requestedPath });
+  const grid = useDeckGrid(list.decks, list.summaries);
   const files = useDeckFileDownloads();
   const [viewMode, setViewMode] = useDeckListViewMode();
 
@@ -55,6 +62,7 @@ function Decks() {
   const [pendingDelete, setPendingDelete] = useState<FlatDeck | null>(null);
   const [pendingFolderDelete, setPendingFolderDelete] = useState<DeckFolderEntry | null>(null);
   const [pendingMove, setPendingMove] = useState<FlatDeck | null>(null);
+  const [pendingEdit, setPendingEdit] = useState<{ kind: DeckStorageEditKind; deck: FlatDeck } | null>(null);
 
   const sharingSupported = useDeckSharingSupported();
   const share = useDeckShareCreate();
@@ -113,7 +121,8 @@ function Decks() {
   };
 
   const listRef = useRef<HTMLDivElement>(null);
-  const focusAfterDelete = useDeckDeleteFocus(list.sections, listRef);
+  const shownSections = useMemo(() => [{ section: 'grid', decks: grid.tiles.map((view) => view.deck) }], [grid.tiles]);
+  const focusAfterDelete = useDeckDeleteFocus(shownSections, listRef);
 
   const confirmDelete = () => {
     if (!pendingDelete) {
@@ -128,85 +137,107 @@ function Decks() {
     if (!pendingFolderDelete) {
       return;
     }
+    const parent = parentDeckPath(pendingFolderDelete.path);
     list.deleteFolder(pendingFolderDelete.path);
     setPendingFolderDelete(null);
+    if (list.folder.path === pendingFolderDelete.path || list.folder.path.startsWith(`${pendingFolderDelete.path}/`)) {
+      openFolder(parent);
+    }
   };
 
-  const { folder } = list;
-  const isEmpty = folder.decks.length === 0 && folder.folders.length === 0;
+  const { folder, currentFolder } = list;
   const canMove = list.folderPaths.length > 1;
+  const folderCount = currentFolder ? currentFolder.folderCount : list.folderPaths.length - 1;
+
+  const deckActions = ({ deck }: DeckTileView): DeckActions => ({
+    onOpen: () => openDeckById(deck.id),
+    onEdit: (kind) => setPendingEdit({ kind, deck }),
+    editDisabledReason: !list.isConnected
+      ? t('Decks.grid.disconnected')
+      : list.documents.has(deck.id) ? undefined : t('Decks.grid.stillLoading'),
+    onShare: sharingSupported ? () => startShare({ deckId: deck.id }) : undefined,
+    onTogglePublic: sharingSupported ? () => visibility.toggle({ deckId: deck.id }, deck.visibility) : undefined,
+    onMove: canMove ? () => setPendingMove(deck) : undefined,
+    onDownload: () => files.download([deck], deck.path),
+    onDelete: () => setPendingDelete(deck),
+  });
+
+  const Item = viewMode === 'compact' ? DeckListRow : DeckTile;
+  const noDecks = list.decks.length === 0;
 
   return (
     <Layout>
       <AuthGuard />
-      <div className="h-full flex flex-col bg-bg-base bg-purple-radial">
-        <DeckListHeader
+      <div className="flex h-full min-h-0 bg-bg-base">
+        <DeckStorageSidebar
           loading={list.loading}
-          deckCount={list.deckTotal}
+          deckTotal={list.deckTotal}
+          folders={list.folderTree}
+          activePath={folder.path}
           isConnected={list.isConnected}
-          viewMode={viewMode}
-          onViewModeChange={setViewMode}
-          onRefresh={list.refresh}
-          onImport={() => setImportOpen(true)}
+          onSelect={openFolder}
           onCreate={() => setCreateOpen(true)}
-          onOpenShareLink={sharingSupported ? () => setOpenLinkOpen(true) : undefined}
+          onImport={() => setImportOpen(true)}
+          onNewFolder={() => setNewFolderOpen(true)}
+          publicDeckCount={list.publicDeckTotal}
+          onPublicDecks={sharingSupported && userName
+            ? () => navigate(generatePath(RouteEnum.PUBLIC_DECKS, { userName }))
+            : undefined}
           onShareLinks={sharingSupported ? () => setShareLinksOpen(true) : undefined}
+          onOpenShareLink={sharingSupported ? () => setOpenLinkOpen(true) : undefined}
         />
-
-        <div className="flex-1 min-h-0 overflow-y-auto px-6 py-4">
-          <div ref={listRef} className="max-w-4xl mx-auto focus:outline-none">
-            {list.loading && !list.listError && <DeckListLoading />}
-            {list.loading && list.listError && <DeckListError message={list.listError} onRetry={list.refresh} />}
-            {list.storageError && <DeckStorageError message={list.storageError} onDismiss={list.dismissStorageError} />}
-            {!list.loading && (
-              <DeckFolderBar
-                path={folder.path}
-                isConnected={list.isConnected}
-                onNavigate={openFolder}
-                onNewFolder={() => setNewFolderOpen(true)}
-              />
-            )}
-            {!list.loading && folder.folders.length > 0 && (
-              <ul className="space-y-2 mb-6">
-                {folder.folders.map((entry) => (
-                  <li key={entry.path}>
-                    <DeckFolderRow
-                      folder={entry}
-                      onOpen={() => openFolder(entry.path)}
-                      onDownload={() => files.download(list.decksUnder(entry.path), entry.path)}
-                      onDelete={() => setPendingFolderDelete(entry)}
-                      onShare={sharingSupported ? () => startShare({ folderPath: entry.path }) : undefined}
-                      onTogglePublic={sharingSupported
-                        ? () => visibility.toggle({ folderPath: entry.path }, entry.visibility)
-                        : undefined}
-                    />
-                  </li>
-                ))}
-              </ul>
-            )}
-            {!list.loading && isEmpty && folder.path === '' && (
-              <DeckListEmpty onCreate={() => setCreateOpen(true)} disabled={!list.isConnected} />
-            )}
-            {!list.loading && isEmpty && folder.path !== '' && (
-              <p className="text-sm text-text-muted">{t('DeckFolders.empty')}</p>
-            )}
-            {!list.loading && folder.decks.length > 0 && (
-              <DeckListSections
-                sections={list.sections}
-                summaries={list.summaries}
-                documents={list.documents}
-                onDetailsSaved={list.detailsSaved}
-                mode={viewMode}
-                onOpen={(deck) => openDeckById(deck.id)}
-                onDelete={setPendingDelete}
-                onMove={canMove ? setPendingMove : undefined}
-                onDownload={(deck) => files.download([deck], deck.path)}
-                onShare={sharingSupported ? (deck) => startShare({ deckId: deck.id }) : undefined}
-                onTogglePublic={sharingSupported
-                  ? (deck) => visibility.toggle({ deckId: deck.id }, deck.visibility)
-                  : undefined}
-              />
-            )}
+        <div className="relative flex min-h-0 min-w-0 flex-1 flex-col">
+          <DeckGridToolbar
+            title={currentFolder?.name ?? t('DeckStorageSidebar.allDecks')}
+            deckCount={list.decks.length}
+            folderCount={Math.max(folderCount, 0)}
+            folder={currentFolder}
+            folderActions={currentFolder ? {
+              onNewFolder: () => setNewFolderOpen(true),
+              onDownload: () => files.download(list.decksUnder(currentFolder.path), currentFolder.path),
+              onDelete: () => setPendingFolderDelete(currentFolder),
+              onShare: sharingSupported ? () => startShare({ folderPath: currentFolder.path }) : undefined,
+              onTogglePublic: sharingSupported
+                ? () => visibility.toggle({ folderPath: currentFolder.path }, currentFolder.visibility)
+                : undefined,
+            } : undefined}
+            grid={grid}
+            isConnected={list.isConnected}
+            viewMode={viewMode}
+            onViewModeChange={setViewMode}
+            onRefresh={list.refresh}
+          />
+          <div className="min-h-0 flex-1 overflow-y-auto px-6 pb-12 pt-4">
+            <div ref={listRef} className="focus:outline-none">
+              {list.loading && !list.listError && <DeckListLoading />}
+              {list.loading && list.listError && <DeckListError message={list.listError} onRetry={list.refresh} />}
+              {list.storageError && <DeckStorageError message={list.storageError} onDismiss={list.dismissStorageError} />}
+              {!list.loading && noDecks && folder.path === '' && (
+                <DeckListEmpty onCreate={() => setCreateOpen(true)} disabled={!list.isConnected} />
+              )}
+              {!list.loading && noDecks && folder.path !== '' && (
+                <p className="text-[13px] text-text-muted">{t('DeckFolders.empty')}</p>
+              )}
+              {!list.loading && !noDecks && grid.tiles.length === 0 && grid.pending === 0 && (
+                <div className="flex flex-col items-start gap-2 text-[13px] text-text-muted">
+                  <p>{t('Decks.grid.noMatches')}</p>
+                  <Button size="sm" onClick={grid.clearFilters}>{t('DeckGridToolbar.clear')}</Button>
+                </div>
+              )}
+              {!list.loading && grid.tiles.length > 0 && (
+                <ul
+                  aria-label={t('Decks.grid.decks')}
+                  className={viewMode === 'compact' ? 'flex flex-col gap-2' : 'grid gap-gap'}
+                  style={viewMode === 'compact' ? undefined : { gridTemplateColumns: 'repeat(auto-fill, minmax(232px, 1fr))' }}
+                >
+                  {grid.tiles.map((view) => (
+                    <li key={view.deck.id} {...{ [DECK_LIST_ROW_ATTRIBUTE]: view.deck.id }}>
+                      <Item view={view} actions={deckActions(view)} />
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </div>
           </div>
         </div>
       </div>
@@ -236,6 +267,17 @@ function Decks() {
             list.moveDeck(pendingMove, target);
             setPendingMove(null);
           }}
+        />
+      )}
+
+      {pendingEdit && list.documents.has(pendingEdit.deck.id) && (
+        <DeckStorageEditDialog
+          key={`${pendingEdit.kind}:${pendingEdit.deck.id}`}
+          kind={pendingEdit.kind}
+          deck={pendingEdit.deck}
+          xml={list.documents.get(pendingEdit.deck.id)!}
+          onSaved={list.detailsSaved}
+          onClose={() => setPendingEdit(null)}
         />
       )}
 

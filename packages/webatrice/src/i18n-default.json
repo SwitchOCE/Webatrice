@@ -1365,11 +1365,6 @@
   },
   "DeckSharing": {
     "shareDeck": "Share deck...",
-    "shareDeckNamed": "Share {name}",
-    "shareDecks": "Share decks",
-    "shareFolderNamed": "Share the decks in {name}",
-    "publish": "Publish/unpublish deck",
-    "publishNamed": "Publish or unpublish {name}",
     "title": "Share deck",
     "nameLabel": "Share name:",
     "defaultDeckName": "Shared deck",
@@ -1468,13 +1463,11 @@
     "dismiss": "Dismiss",
     "list": {
       "title": "My Decks",
-      "deckCount": "{count, plural, one {# deck} other {# decks}} on this server",
       "viewMode": "View mode",
       "view": {
-        "card": "Card view",
-        "compact": "Compact view"
+        "card": "Grid",
+        "compact": "List"
       },
-      "refresh": "Refresh",
       "refreshLabel": "Refresh deck list",
       "import": "Import",
       "newDeck": "New deck",
@@ -1482,8 +1475,6 @@
       "loading": "Loading decks…",
       "emptyTitle": "No decks yet",
       "emptyBody": "Decks live on the Servatrice server tied to your account. Create your first one to get started.",
-      "deleteDeck": "Delete deck",
-      "deleteDeckNamed": "Delete {name}",
       "created": "Created {age}",
       "age": {
         "unknown": "unknown",
@@ -1496,7 +1487,15 @@
       "priceLoading": "Loading price…",
       "priceNone": "No cached price — open the deck to compute it",
       "priceTotal": "TCGplayer USD total",
-      "priceTotalMissing": "TCGplayer USD total. {count, plural, one {# card} other {# cards}} had no price on file — actual total is higher."
+      "priceTotalMissing": "TCGplayer USD total. {count, plural, one {# card} other {# cards}} had no price on file — actual total is higher.",
+      "identity": "Colour identity: {colours}",
+      "colourless": "colourless"
+    },
+    "grid": {
+      "decks": "Decks",
+      "disconnected": "Connect to the server to change this deck.",
+      "stillLoading": "Still loading this deck from the server.",
+      "noMatches": "No decks match these filters."
     }
   },
   "DeckLink": {
@@ -1680,27 +1679,79 @@
     "size": "Sample hand size",
     "empty": "Add cards to the main deck to draw a sample hand."
   },
+  "DeckActionsMenu": {
+    "more": "More actions for {name}",
+    "label": "Actions for {name}",
+    "open": "Open in editor",
+    "share": "Share link…",
+    "makePublic": "Make public",
+    "makePrivate": "Make private",
+    "editTags": "Edit tags…",
+    "setBanner": "Set banner card…",
+    "rename": "Rename…",
+    "move": "Move to folder…",
+    "download": "Download .cod",
+    "delete": "Delete deck…"
+  },
   "DeckFolders": {
-    "location": "Folder",
     "root": "Server deck storage",
     "newFolder": "New folder",
-    "deckCount": "{count, plural, one {# deck} other {# decks}}",
     "downloadFolder": "Download all decks as .cod files",
-    "downloadFolderNamed": "Download the decks in {name}",
     "deleteFolder": "Delete folder",
-    "deleteFolderNamed": "Delete {name}",
-    "moveDeck": "Move to folder",
-    "moveDeckNamed": "Move {name} to another folder",
-    "downloadDeck": "Download .cod file",
-    "downloadDeckNamed": "Download {name}",
     "empty": "This folder is empty."
   },
-  "DeckStorageDetails": {
-    "editTags": "Edit tags ...",
-    "ok": "OK",
-    "saving": "Saving deck details...",
-    "loadFailed": "Could not load deck details.",
-    "saveFailed": "Could not save deck details. Please try again."
+  "DeckGridToolbar": {
+    "summary": "{decks, plural, one {# deck} other {# decks}} in {folders, plural, one {# folder} other {# folders}}",
+    "folderActions": "Folder actions for {name}",
+    "newSubfolder": "New folder inside",
+    "shareFolder": "Share folder…",
+    "makeFolderPublic": "Make folder public",
+    "makeFolderPrivate": "Make folder private",
+    "sort": "Sort decks",
+    "sorts": {
+      "newest": "Newest first",
+      "oldest": "Oldest first",
+      "nameAsc": "Name A–Z",
+      "nameDesc": "Name Z–A"
+    },
+    "search": "Search decks",
+    "searchPlaceholder": "Search names and tags",
+    "colours": "Colours",
+    "colour": {
+      "W": "White",
+      "U": "Blue",
+      "B": "Black",
+      "R": "Red",
+      "G": "Green"
+    },
+    "colourMode": "Colour match",
+    "colourModes": {
+      "including": "Including",
+      "exactly": "Exactly",
+      "atMost": "At most"
+    },
+    "format": "Format",
+    "anyFormat": "Any format",
+    "bracket": "Bracket",
+    "anyBracket": "Any bracket",
+    "clear": "Clear filters",
+    "pending": "Checking {count, plural, one {# deck} other {# decks}}…",
+    "tags": "Filter by tag",
+    "bracketOption": "Bracket {level}"
+  },
+  "DeckStorageSidebar": {
+    "subtitle": "Server deck storage · {count, plural, one {# deck} other {# decks}}",
+    "folders": "Folders",
+    "allDecks": "All decks",
+    "sharing": "Sharing",
+    "publicDecks": "Public decks",
+    "expand": "Expand {name}",
+    "collapse": "Collapse {name}"
+  },
+  "DeckTile": {
+    "open": "Open {name}",
+    "tags": "Tags",
+    "cards": "{count, plural, one {# card} other {# cards}}"
   },
   "CardSearch": {
     "label": "Search cards",
@@ -1834,6 +1885,21 @@
     "remove": "Remove Playmat",
     "unknownCard": "Card not found.",
     "lookupFailed": "Could not look up this card. Please try again."
+  },
+  "DeckStorageEditDialog": {
+    "title": {
+      "rename": "Rename deck",
+      "tags": "Edit tags",
+      "banner": "Set banner card"
+    },
+    "name": "Deck name",
+    "save": "Save",
+    "saving": "Saving deck…",
+    "loading": "Loading deck…",
+    "loadFailed": "Could not load this deck.",
+    "saveFailed": "Could not save this deck. Please try again.",
+    "editorHasChanges": "This deck is open in the deck editor with unsaved changes. Save or discard them there first, then try again.",
+    "howItWorks": "Saving uploads the deck again over the same deck on the server."
   },
   "DeleteDeckDialog": {
     "title": "Delete deck?",

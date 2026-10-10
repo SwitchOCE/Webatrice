@@ -33,8 +33,9 @@ describe('summarizeDeck', () => {
       bannerCard: 'Sol Ring',
       meta: { v: 1, updatedAt: 'x', priceUsd: 12.5, priceMissingCount: 1, bracketLevel: 2 },
       cards: [
-        { name: 'Forest', quantity: 1, category: 'main' },
+        { name: 'Forest', quantity: 3, category: 'main' },
         { name: 'Atraxa', quantity: 1, category: 'main', isCommander: true, scryfallId: 'id-a' },
+        { name: 'Island', quantity: 2, category: 'sideboard' },
       ],
     }));
     expect(summary).toEqual({
@@ -45,6 +46,7 @@ describe('summarizeDeck', () => {
       bannerCard: 'Sol Ring',
       commanderName: 'Atraxa',
       commanderScryfallId: 'id-a',
+      cardCount: 4,
     });
   });
 

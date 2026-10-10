@@ -1,0 +1,17 @@
+{
+  "DeckStorageEditDialog": {
+    "title": {
+      "rename": "Rename deck",
+      "tags": "Edit tags",
+      "banner": "Set banner card"
+    },
+    "name": "Deck name",
+    "save": "Save",
+    "saving": "Saving deck…",
+    "loading": "Loading deck…",
+    "loadFailed": "Could not load this deck.",
+    "saveFailed": "Could not save this deck. Please try again.",
+    "editorHasChanges": "This deck is open in the deck editor with unsaved changes. Save or discard them there first, then try again.",
+    "howItWorks": "Saving uploads the deck again over the same deck on the server."
+  }
+}

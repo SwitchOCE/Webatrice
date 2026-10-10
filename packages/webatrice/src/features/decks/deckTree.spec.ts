@@ -149,3 +149,22 @@ describe('formatDeckAge', () => {
     });
   });
 });
+
+describe('flattenFolder stored preview', () => {
+  it('carries the banner and tags the server stores, and omits them when empty', () => {
+    const root = create(ServerInfo_DeckStorage_FolderSchema, {
+      items: [
+        create(ServerInfo_DeckStorage_TreeItemSchema, {
+          id: 1, name: 'A', file: create(ServerInfo_DeckStorage_FileSchema, {
+            bannerCardName: 'Island', bannerCardProvider: 'abc', tags: ['Ramp'],
+          }),
+        }),
+        file(2, 'B', 0),
+      ],
+    });
+    const [a, b] = flattenFolder(root, '');
+    expect(a).toMatchObject({ bannerCardName: 'Island', bannerCardProvider: 'abc', tags: ['Ramp'] });
+    expect(b).not.toHaveProperty('bannerCardName');
+    expect(b).not.toHaveProperty('tags');
+  });
+});

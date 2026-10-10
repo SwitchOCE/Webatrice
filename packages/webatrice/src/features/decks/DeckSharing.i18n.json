@@ -1,11 +1,6 @@
 {
   "DeckSharing": {
     "shareDeck": "Share deck...",
-    "shareDeckNamed": "Share {name}",
-    "shareDecks": "Share decks",
-    "shareFolderNamed": "Share the decks in {name}",
-    "publish": "Publish/unpublish deck",
-    "publishNamed": "Publish or unpublish {name}",
     "title": "Share deck",
     "nameLabel": "Share name:",
     "defaultDeckName": "Shared deck",

@@ -104,6 +104,13 @@ export function listDeckFolder(root: ServerInfo_DeckStorage_Folder | undefined, 
   return { path: shownPath, folders, decks };
 }
 
+export function deckFolderEntry(root: ServerInfo_DeckStorage_Folder | undefined, path: string): DeckFolderEntry | null {
+  if (!path) {
+    return null;
+  }
+  return listDeckFolder(root, parentDeckPath(path)).folders.find((entry) => entry.path === path) ?? null;
+}
+
 export function decksUnderFolder(root: ServerInfo_DeckStorage_Folder | undefined, path: string): FlatDeck[] {
   const folder = findDeckFolder(root, path);
   return folder ? flattenFolder(folder, path, isUnderPublicFolder(root, parentDeckPath(path))) : [];
@@ -143,6 +150,32 @@ export function allDeckFolderPaths(root: ServerInfo_DeckStorage_Folder | undefin
     walk(root, '');
   }
   return [out[0], ...out.slice(1).sort((a, b) => a.localeCompare(b))];
+}
+
+export interface DeckFolderNode {
+  name: string;
+  path: string;
+  deckCount: number;
+  visibility: DeckVisibility;
+  children: DeckFolderNode[];
+}
+
+export function deckFolderTree(root: ServerInfo_DeckStorage_Folder | undefined): DeckFolderNode[] {
+  const walk = (folder: ServerInfo_DeckStorage_Folder, path: string, inherited: boolean): DeckFolderNode[] =>
+    folder.items
+      .filter((item) => item.folder)
+      .map((item) => {
+        const childPath = joinDeckPath(path, item.name);
+        return {
+          name: item.name,
+          path: childPath,
+          deckCount: flattenFolder(item.folder!, childPath).length,
+          visibility: deckVisibility(item.folder!.isPublic, inherited),
+          children: walk(item.folder!, childPath, inherited || !!item.folder!.isPublic),
+        };
+      })
+      .sort((a, b) => a.name.localeCompare(b.name));
+  return root ? walk(root, '', !!root.isPublic) : [];
 }
 
 export type FolderNameProblem = 'empty' | 'tooLong' | 'exists';

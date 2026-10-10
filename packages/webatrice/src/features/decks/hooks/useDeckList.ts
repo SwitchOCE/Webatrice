@@ -10,8 +10,17 @@ import { emptyCod, parseCod } from '@app/services';
 import { onSessionEnd } from '@app/services/session';
 
 import { clearDeckEditorCache, deleteCachedDeck } from '../deckEditorCache';
-import { allDeckFolderPaths, decksUnderFolder, listDeckFolder, type DeckFolderView } from '../deckFolders';
-import { groupDecksByFormat, summariesEqual, summarizeDeck, type DeckListSection, type DeckSummary } from '../deckSummary';
+import {
+  allDeckFolderPaths,
+  deckFolderEntry,
+  deckFolderTree,
+  decksUnderFolder,
+  listDeckFolder,
+  type DeckFolderEntry,
+  type DeckFolderNode,
+  type DeckFolderView,
+} from '../deckFolders';
+import { summariesEqual, summarizeDeck, type DeckSummary } from '../deckSummary';
 import type { FlatDeck } from '../deckTree';
 
 const summaryCache: Map<number, DeckSummary> = new Map();
@@ -52,13 +61,15 @@ export interface UseDeckList {
   dismissStorageError: () => void;
   folder: DeckFolderView;
   decks: FlatDeck[];
-  sections: DeckListSection[];
+  folderTree: DeckFolderNode[];
+  currentFolder: DeckFolderEntry | null;
   summaries: ReadonlyMap<number, DeckSummary>;
   documents: ReadonlyMap<number, string>;
   detailsSaved: (deckId: number, xml: string) => void;
   folderPaths: string[];
   decksUnder: (path: string) => FlatDeck[];
   deckTotal: number;
+  publicDeckTotal: number;
   refresh: () => void;
   createDeck: (name: string, format: string) => boolean;
   importDeck: (xml: string, colorIdentity?: string) => boolean;
@@ -109,7 +120,15 @@ export function useDeckList({ onDeckCreated, folderPath = '' }: {
   const root = backendDecks?.root;
   const folder = useMemo(() => listDeckFolder(root, folderPath), [root, folderPath]);
   const folderPaths = useMemo(() => allDeckFolderPaths(root), [root]);
-  const deckTotal = useMemo(() => decksUnderFolder(root, '').length, [root]);
+  const folderTree = useMemo(() => deckFolderTree(root), [root]);
+  const currentFolder = useMemo(() => deckFolderEntry(root, folder.path), [root, folder.path]);
+  const decks = useMemo(
+    () => decksUnderFolder(root, folder.path).sort((a, b) => b.creationTime - a.creationTime),
+    [root, folder.path],
+  );
+  const allDecks = useMemo(() => decksUnderFolder(root, ''), [root]);
+  const deckTotal = allDecks.length;
+  const publicDeckTotal = useMemo(() => allDecks.filter((deck) => deck.visibility !== 'private').length, [allDecks]);
 
   const pendingUploadsRef = useRef<PendingUpload[]>([]);
 
@@ -229,10 +248,10 @@ export function useDeckList({ onDeckCreated, folderPath = '' }: {
   }, server.Types.BACKEND_DECKS, [webClient, t]);
 
   useEffect(() => {
-    if (!isConnected || folder.decks.length === 0) {
+    if (!isConnected || decks.length === 0) {
       return;
     }
-    for (const deck of folder.decks) {
+    for (const deck of decks) {
       if (summaryRequestedRef.current.has(deck.id)) {
         continue;
       }
@@ -240,7 +259,7 @@ export function useDeckList({ onDeckCreated, folderPath = '' }: {
       summaryRequestedCache.add(deck.id);
       webClient.request.session.deckDownload(deck.id);
     }
-  }, [isConnected, folder.decks, webClient]);
+  }, [isConnected, decks, webClient]);
 
   useReduxEffect<{ deckId: number; deck: string }>(
     ({ payload }) => {
@@ -289,8 +308,6 @@ export function useDeckList({ onDeckCreated, folderPath = '' }: {
     [describeFailure, t],
   );
 
-  const sections = useMemo(() => groupDecksByFormat(folder.decks, summaries), [folder.decks, summaries]);
-
   return {
     isConnected,
     loading: !backendDecks,
@@ -298,8 +315,9 @@ export function useDeckList({ onDeckCreated, folderPath = '' }: {
     storageError,
     dismissStorageError: () => setStorageError(null),
     folder,
-    decks: folder.decks,
-    sections,
+    decks,
+    folderTree,
+    currentFolder,
     summaries,
     documents,
     detailsSaved: (deckId, xml) => {
@@ -312,6 +330,7 @@ export function useDeckList({ onDeckCreated, folderPath = '' }: {
     folderPaths,
     decksUnder: (path: string) => decksUnderFolder(root, path),
     deckTotal,
+    publicDeckTotal,
     refresh,
     createDeck,
     importDeck,

@@ -67,6 +67,37 @@ it('hydrates the stored file and saves only the banner bytes without altering se
   expect(getCachedDeck(7)).toBeUndefined();
 });
 
+it('renames by patching only the stored deck name and uploading over the same deck', async () => {
+  const ctx = setup();
+  await waitFor(() => expect(ctx.result.current.disabled).toBe(false));
+  let saved!: Promise<boolean>;
+  act(() => {
+    saved = ctx.result.current.save({ name: 'Fire & Ice' });
+  });
+  const expected = xml.replace('<deckname>Deck</deckname>', '<deckname>Fire &amp; Ice</deckname>');
+  expect(ctx.client.request.session.deckUpdate).toHaveBeenCalledWith(7, expected, undefined, 'UB', expect.any(Function));
+  ctx.respond();
+  await act(async () => {
+    expect(await saved).toBe(true);
+  });
+  expect(ctx.onSaved).toHaveBeenCalledExactlyOnceWith(7, expected);
+  expect(ctx.result.current.deck?.name).toBe('Fire & Ice');
+});
+
+it('writes an empty tag list when the last tag is removed', async () => {
+  const ctx = setup();
+  await waitFor(() => expect(ctx.result.current.disabled).toBe(false));
+  act(() => {
+    void ctx.result.current.save({ tags: ['Ramp'] });
+  });
+  ctx.respond();
+  await waitFor(() => expect(ctx.result.current.saving).toBe(false));
+  act(() => {
+    void ctx.result.current.save({ tags: [] });
+  });
+  expect(vi.mocked(ctx.client.request.session.deckUpdate).mock.calls.at(-1)![1]).toContain('<tags/>');
+});
+
 it('keeps failures visible and retries the same edit', async () => {
   const ctx = setup();
   await waitFor(() => expect(ctx.result.current.disabled).toBe(false));
@@ -111,6 +142,7 @@ it('blocks storage edits over pending editor changes', async () => {
   const ctx = setup();
   await waitFor(() => expect(ctx.result.current.disabled).toBe(false));
   act(() => getDeckSaveRegistry(ctx.store, ctx.client).markDirty(7));
+  expect(ctx.result.current.editorHasChanges).toBe(true);
   await act(async () => expect(await ctx.result.current.save({ tags: ['Ramp'] })).toBe(false));
   expect(ctx.client.request.session.deckUpdate).not.toHaveBeenCalled();
 });

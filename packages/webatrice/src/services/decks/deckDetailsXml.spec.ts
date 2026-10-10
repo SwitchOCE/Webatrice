@@ -32,6 +32,16 @@ describe('patchDeckDetails', () => {
       .toBe(original.replace('<bannerCard providerId="old">Island</bannerCard>', ''));
   });
 
+  it('renames by replacing only the deck name bytes, escaping markup', () => {
+    expect(patchDeckDetails(original, { name: 'Fire & Ice <2>' }))
+      .toBe(original.replace('<deckname>Original</deckname>', '<deckname>Fire &amp; Ice &lt;2&gt;</deckname>'));
+  });
+
+  it('inserts a missing deck name before the other metadata', () => {
+    const xml = '<cockatrice_deck><comments/><zone name="main"/></cockatrice_deck>';
+    expect(patchDeckDetails(xml, { name: 'Elves' })).toBe(xml.replace('<comments/>', '<deckname>Elves</deckname><comments/>'));
+  });
+
   it('rejects invalid documents without rewriting them', () => {
     expect(() => patchDeckDetails('<broken>', { banner: null })).toThrow();
   });
