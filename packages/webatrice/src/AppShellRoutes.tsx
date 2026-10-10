@@ -18,6 +18,7 @@ import { Server } from '@app/features/server';
 import { Settings } from '@app/features/settings';
 import { Shortcuts } from '@app/features/shortcuts';
 import { Initialize, Unsupported } from '@app/features/shell';
+import RouteFocus from './feature-wrappers/layout/RouteFocus';
 
 const AppShellRoutes = () => (
   <div className="AppShell-routes scrollable no-gutter">
@@ -48,6 +49,7 @@ const AppShellRoutes = () => (
       <Route path={RouteEnum.LOGIN} element={<Login />} />
       <Route path={RouteEnum.UNSUPPORTED} element={<Unsupported />} />
     </Routes>
+    <RouteFocus />
   </div>
 );
 

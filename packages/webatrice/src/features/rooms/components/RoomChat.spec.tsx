@@ -1,4 +1,4 @@
-import { act, fireEvent, screen } from '@testing-library/react';
+import { act, fireEvent, screen, within } from '@testing-library/react';
 import { create } from '@bufbuild/protobuf';
 import { rooms, type Message } from '@cockatrice/datatrice';
 import { WebsocketTypes } from '@cockatrice/sockatrice/types';
@@ -37,6 +37,20 @@ function renderChat(messages: Message[] = [], onSay = vi.fn()) {
 }
 
 describe('RoomChat', () => {
+  it.each([{ messages: undefined }, { messages: [] }])('shows the empty log when messages are $messages', ({ messages }) => {
+    renderWithProviders(<RoomChat roomId={1} roomName="Main" messages={messages} users={{}} onSay={vi.fn()} />);
+    expect(within(screen.getByRole('log')).getByText('RoomChat.empty')).toBeInTheDocument();
+  });
+
+  it('renders one row per message in order', () => {
+    renderChat([makeMessage({ message: 'first' }), makeMessage({ message: 'second', id: 2, timeReceived: 2 })]);
+    const log = screen.getByRole('log');
+    expect(log.children).toHaveLength(2);
+    expect(log.children[0]).toHaveTextContent('first');
+    expect(log.children[1]).toHaveTextContent('second');
+    expect(within(log).queryByText('RoomChat.empty')).not.toBeInTheDocument();
+  });
+
   it('is a labelled log with a labelled input, so screen readers hear and can answer the room', () => {
     renderChat([makeMessage({ message: 'hello room' })]);
 

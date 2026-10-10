@@ -1,11 +1,8 @@
-import { server } from '@cockatrice/datatrice';
-import { useAppSelector } from '@app/store';
-
 import { useAdminLocked } from './useAdminLock';
+import { useUserCapabilities } from './useUserCapabilities';
 
 export function useCanOverrideGameRestrictions(): boolean {
-  const isModerator = useAppSelector(server.Selectors.getIsUserModerator);
-  const isJudge = useAppSelector(server.Selectors.getIsUserJudge);
+  const { isModerator, isJudge } = useUserCapabilities();
   const locked = useAdminLocked();
   return (isModerator && !locked) || isJudge;
 }

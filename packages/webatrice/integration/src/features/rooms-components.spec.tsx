@@ -3,7 +3,6 @@ import { screen } from '@testing-library/react';
 import { create } from '@bufbuild/protobuf';
 
 import GamesList from '../../../src/features/rooms/components/GamesList';
-import Messages from '../../../src/features/rooms/components/Messages';
 import CreateGameDialog from '../../../src/features/rooms/dialogs/CreateGameDialog/CreateGameDialog';
 import FilterGamesDialog from '../../../src/features/rooms/dialogs/FilterGamesDialog/FilterGamesDialog';
 import { rooms } from '@cockatrice/datatrice';
@@ -44,15 +43,6 @@ describe('Rooms components (integration)', () => {
     expect(screen.getByRole('button', { name: 'GamesList.column.age' })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'GamesList.column.description' })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Common.action.create' })).toBeInTheDocument();
-  });
-
-  it('mounts Messages with rendered message data', () => {
-    const { container } = renderFeatureScreen(
-      <Messages messages={[{ message: 'hello', timeReceived: 1 } as never]} />,
-    );
-
-    expect(container.querySelectorAll('.message-wrapper')).toHaveLength(1);
-    expect(screen.getByText('hello')).toBeInTheDocument();
   });
 
   it('mounts CreateGameDialog open', () => {

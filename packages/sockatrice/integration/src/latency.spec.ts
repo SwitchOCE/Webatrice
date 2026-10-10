@@ -60,26 +60,28 @@ describe('round-trip latency', () => {
   });
 
   it('reports the keepalive ping round trip and zeroes it on disconnect', () => {
-    connectRaw();
+    const error = vi.spyOn(console, 'error').mockImplementation(() => {});
+    try {
+      connectRaw();
 
-    vi.advanceTimersByTime(5000);
-    const ping = findLastSessionCommand(Data.Command_Ping_ext);
-    vi.advanceTimersByTime(85);
-    deliverMessage(buildResponseMessage(buildResponse({
-      cmdId: ping.cmdId,
-      responseCode: Data.Response_ResponseCode.RespOk,
-    })));
+      vi.advanceTimersByTime(5000);
+      const ping = findLastSessionCommand(Data.Command_Ping_ext);
+      vi.advanceTimersByTime(85);
+      deliverMessage(buildResponseMessage(buildResponse({
+        cmdId: ping.cmdId,
+        responseCode: Data.Response_ResponseCode.RespOk,
+      })));
 
-    const { updateLatencyStats } = getMockResponse().session;
-    expect(updateLatencyStats).toHaveBeenLastCalledWith(
-      { lastMs: 85, medianMs: 85, p95Ms: 85, maxMs: 85, sampleCount: 1 },
-      [85],
-    );
-
-    getWebClient().updateStatus(WebsocketTypes.StatusEnum.DISCONNECTED);
-    expect(updateLatencyStats).toHaveBeenLastCalledWith(
-      { lastMs: 0, medianMs: 0, p95Ms: 0, maxMs: 0, sampleCount: 0 },
-      [],
-    );
+      getWebClient().updateStatus(WebsocketTypes.StatusEnum.DISCONNECTED);
+      const { updateLatencyStats } = getMockResponse().session;
+      expect(vi.mocked(updateLatencyStats!).mock.calls).toEqual([
+        [{ lastMs: 0, medianMs: 0, p95Ms: 0, maxMs: 0, sampleCount: 0 }, []],
+        [{ lastMs: 85, medianMs: 85, p95Ms: 85, maxMs: 85, sampleCount: 1 }, [85]],
+        [{ lastMs: 0, medianMs: 0, p95Ms: 0, maxMs: 0, sampleCount: 0 }, []],
+      ]);
+      expect(error.mock.calls).toEqual([]);
+    } finally {
+      error.mockRestore();
+    }
   });
 });

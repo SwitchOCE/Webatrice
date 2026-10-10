@@ -16,7 +16,7 @@ import {
 import { WebsocketTypes } from '@cockatrice/sockatrice/types';
 
 import { attachResponseHandlers, createStore, games, server } from '../../src';
-import { makeServerState } from '../../src/testing/fixtures/server';
+import { makeServerState, makeUser } from '../../src/testing/fixtures/server';
 import { ServerInfo_RoomSchema } from '@cockatrice/sockatrice/generated';
 
 // Integration: verify the attachResponseHandlers seam wires the five
@@ -57,31 +57,37 @@ describe('attachResponseHandlers', () => {
     expect(store.getState().rooms.joinedRoomIds[1]).toBe(true);
   });
 
-  it('game handler routes to the games slice', () => {
-    const store = createStore();
-    const response = attachResponseHandlers(store);
-
-    response.game.gameClosed(7);
-    // gameClosed marks the game as closed even when it's never been opened
-    // (the reducer is permissive and writes the state regardless). Detect
-    // via the action's dispatch effect: the games slice's `lastClosedGameId`
-    // (or equivalent) — the easier assertion is that the action passed
-    // through middleware without throwing.
-    expect(() => response.game.gameClosed(7)).not.toThrow();
-  });
-
   it('admin and moderator handlers dispatch into the server slice', () => {
-    const store = createStore();
+    const { IsRegistered, IsJudge, IsModerator } = Data.ServerInfo_User_UserLevelFlag;
+    const alice = makeUser({ name: 'alice', userLevel: IsRegistered | IsJudge });
+    const bob = makeUser({ name: 'bob', userLevel: IsRegistered });
+    const store = createStore({
+      preloadedState: { server: makeServerState({ users: { alice, bob }, userInfo: { alice } }) },
+    });
+    const before = store.getState().server;
     const response = attachResponseHandlers(store);
     const dispatchSpy = vi.spyOn(store, 'dispatch');
 
-    response.admin.adjustMod('alice', true, false);
-    response.moderator.banFromServer('bob');
+    try {
+      response.admin.adjustMod('alice', true, false);
+      response.moderator.banFromServer('bob');
 
-    expect(dispatchSpy).toHaveBeenCalledWith(
-      expect.objectContaining({ type: expect.stringMatching(/^server\//) }),
-    );
-    expect(dispatchSpy.mock.calls.length).toBeGreaterThanOrEqual(2);
+      expect(dispatchSpy.mock.calls).toStrictEqual([
+        [server.Actions.adjustMod({
+          userName: 'alice', shouldBeMod: true, shouldBeJudge: false, shouldBeDeveloper: undefined, requestId: undefined,
+        })],
+        [server.Actions.banFromServer({ userName: 'bob' })],
+      ]);
+      const updatedAlice = makeUser({ name: 'alice', userLevel: IsRegistered | IsModerator });
+      expect(store.getState().server).toEqual({
+        ...before,
+        users: { alice: updatedAlice, bob },
+        userInfo: { alice: updatedAlice },
+        banUser: 'bob',
+      });
+    } finally {
+      dispatchSpy.mockRestore();
+    }
   });
 
   it('attaching to a second store does not bleed events between stores', () => {

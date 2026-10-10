@@ -420,8 +420,7 @@ function renderCardsRevealed(params: LogParamsByKind['cardsRevealed']): LegacyLo
     return L`${p(actor)} reveals ${zone}.`;
   }
 
-  const isTopNReveal = params.mode === 'top';
-  if (isTopNReveal) {
+  if (params.mode === 'top') {
     const count = params.count;
     if (count <= 0) {
       return null;
@@ -455,6 +454,7 @@ function renderCardsRevealed(params: LogParamsByKind['cardsRevealed']): LegacyLo
     return L`${p(actor)} reveals ${n(count)} card(s) from ${fromLabel}.`;
   }
 
+  params.mode satisfies never;
   return null;
 
 }

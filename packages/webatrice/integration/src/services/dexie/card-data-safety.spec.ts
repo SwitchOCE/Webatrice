@@ -22,7 +22,7 @@ beforeEach(async () => {
 describe('card data preservation (real Dexie)', () => {
   it.each([
     '<html/>',
-    '<cockatrice_carddatabase version="3"><cards/></cockatrice_carddatabase>',
+    '<cockatrice_carddatabase version="2"><cards/></cockatrice_carddatabase>',
     '<cockatrice_carddatabase><cards/></cockatrice_carddatabase>',
     '<cockatrice_carddatabase version="4"><cards><card><text>Missing name</text></card></cards></cockatrice_carddatabase>',
     '<cockatrice_carddatabase version="4"><sets><set><name/></set></sets></cockatrice_carddatabase>',

@@ -9,6 +9,7 @@ import TextField from '@mui/material/TextField';
 import { useTranslation } from 'react-i18next';
 
 import { usePromptDialog } from './usePromptDialog';
+import { DialogFocus } from '../DialogFocus';
 
 import './PromptDialog.css';
 
@@ -73,44 +74,48 @@ function PromptDialog({
     <StyledDialog
       className={'PromptDialog ' + classes.root}
       open={isOpen}
+      disableRestoreFocus
+      disableEnforceFocus
       onClose={onCancel}
       maxWidth={false}
     >
-      <DialogTitle className="dialog-title">
-        <div className="dialog-title__wrapper">
-          {title}
-        </div>
-      </DialogTitle>
-      <form onSubmit={handleSubmit}>
-        <DialogContent className="dialog-content">
-          {description && (
-            <DialogContentText className="PromptDialog__description">{description}</DialogContentText>
-          )}
-          <TextField
-            autoFocus
-            fullWidth
-            variant="outlined"
-            size="small"
-            label={label}
-            value={value}
-            type={type}
-            placeholder={placeholder}
-            onChange={(e) => handleChange(e.target.value)}
-            onFocus={selectOnFocus ? (e) => e.target.select() : undefined}
-            error={error != null}
-            helperText={error ?? preview?.(value) ?? helperText ?? ''}
-            slotProps={{ htmlInput: { 'aria-label': label, inputMode } }}
-          />
-        </DialogContent>
-        <DialogActions>
-          <Button type="button" onClick={onCancel}>
-            {t('Common.action.cancel')}
-          </Button>
-          <Button type="submit" variant="contained" color="primary">
-            {submitLabel}
-          </Button>
-        </DialogActions>
-      </form>
+      <DialogFocus isOpen={isOpen}>
+        <DialogTitle className="dialog-title">
+          <div className="dialog-title__wrapper">
+            {title}
+          </div>
+        </DialogTitle>
+        <form onSubmit={handleSubmit}>
+          <DialogContent className="dialog-content">
+            {description && (
+              <DialogContentText className="PromptDialog__description">{description}</DialogContentText>
+            )}
+            <TextField
+              autoFocus
+              fullWidth
+              variant="outlined"
+              size="small"
+              label={label}
+              value={value}
+              type={type}
+              placeholder={placeholder}
+              onChange={(e) => handleChange(e.target.value)}
+              onFocus={selectOnFocus ? (e) => e.target.select() : undefined}
+              error={error != null}
+              helperText={error ?? preview?.(value) ?? helperText ?? ''}
+              slotProps={{ htmlInput: { 'aria-label': label, inputMode } }}
+            />
+          </DialogContent>
+          <DialogActions>
+            <Button type="button" onClick={onCancel}>
+              {t('Common.action.cancel')}
+            </Button>
+            <Button type="submit" variant="contained" color="primary">
+              {submitLabel}
+            </Button>
+          </DialogActions>
+        </form>
+      </DialogFocus>
     </StyledDialog>
   );
 }

@@ -1,4 +1,3 @@
-import { type ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
 
 import { styled } from '@mui/material/styles';
@@ -9,7 +8,7 @@ import DialogContentText from '@mui/material/DialogContentText';
 import DialogTitle from '@mui/material/DialogTitle';
 import Button from '@mui/material/Button';
 
-import { useDialogFocus, useDialogReturnFocus } from '@app/hooks';
+import { DialogFocus } from '../DialogFocus';
 
 import './AlertDialog.css';
 
@@ -45,13 +44,6 @@ export interface AlertDialogProps {
   onDismiss: () => void;
 }
 
-function AlertFocus({ isOpen, children }: { isOpen: boolean; children: ReactNode }) {
-  const returnFocusTo = useDialogReturnFocus();
-  const { getDialogProps } = useDialogFocus({ isOpen, isolate: true, returnFocusTo });
-  const props = getDialogProps();
-  return <div {...props} ref={(element) => props.ref(element?.closest<HTMLElement>('[role="dialog"]') ?? null)}>{children}</div>;
-}
-
 function AlertDialog({
   isOpen,
   title,
@@ -71,7 +63,7 @@ function AlertDialog({
       onClose={onDismiss}
       maxWidth={false}
     >
-      <AlertFocus isOpen={isOpen}>
+      <DialogFocus isOpen={isOpen}>
         <DialogTitle className="dialog-title">
           <div className="dialog-title__wrapper">
             {title}
@@ -97,7 +89,7 @@ function AlertDialog({
             {buttonLabel}
           </Button>
         </DialogActions>
-      </AlertFocus>
+      </DialogFocus>
     </StyledDialog>
   );
 }

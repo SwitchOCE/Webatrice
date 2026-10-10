@@ -1,3 +1,4 @@
+import { StrictMode } from 'react';
 import { act, renderHook, waitFor } from '@testing-library/react';
 import { ZoneName } from '@cockatrice/sockatrice';
 
@@ -43,7 +44,7 @@ const setPreferences = async (patch: Partial<Preferences>) => {
   });
 };
 
-function setup(args: Partial<Parameters<typeof useSeatClickToPlay>[0]> = {}) {
+function setup(args: Partial<Parameters<typeof useSeatClickToPlay>[0]> = {}, strict = false) {
   const zoneCommands = { moveCards: vi.fn() } as unknown as PlayerZoneCommands;
   const cardCommands = { setTapped: vi.fn() } as unknown as PlayerCardCommands;
   const setCardMetaByName = vi.fn();
@@ -58,13 +59,21 @@ function setup(args: Partial<Parameters<typeof useSeatClickToPlay>[0]> = {}) {
     zoneCommands,
     cardCommands,
     ...args,
-  }));
+  }), { wrapper: strict ? StrictMode : undefined });
   return {
     result, unmount, moveCards: vi.mocked(zoneCommands.moveCards), setTapped: vi.mocked(cardCommands.setTapped), setCardMetaByName,
   };
 }
 
 describe('useSeatClickToPlay', () => {
+  it('still plays from the mounted seat after StrictMode replays its effects', async () => {
+    const { result, moveCards } = setup({}, true);
+    result.current.onCardDoubleClick('hand', FOREST, click);
+    await waitFor(() => expect(moveCards.mock.calls).toEqual([
+      [ZoneName.HAND, [30], { zone: ZoneName.TABLE, index: 'end', row: tableRowToGridY(0) }],
+    ]));
+  });
+
   beforeEach(async () => {
     await getSettings();
   });

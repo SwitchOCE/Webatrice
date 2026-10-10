@@ -3,6 +3,8 @@ import { useTranslation } from 'react-i18next';
 import Alert from '@mui/material/Alert';
 import Button from '@mui/material/Button';
 
+import { useDialogFocus } from '@app/hooks';
+
 import type { UnknownSetsAnswer } from './CardDatabaseService';
 
 export type NewSetsChoice = UnknownSetsAnswer | 'view';
@@ -14,11 +16,12 @@ export interface NewSetsPromptProps {
 
 const NewSetsPrompt = ({ codes, onAnswer }: NewSetsPromptProps) => {
   const { t } = useTranslation();
+  const { getDialogProps } = useDialogFocus({ isOpen: codes.length > 0, modal: false });
   if (codes.length === 0) {
     return null;
   }
   return (
-    <Alert severity="warning" role="alertdialog" aria-label={t('CardDatabaseOverview.newSets.title')}>
+    <Alert {...getDialogProps()} severity="warning" role="alertdialog" aria-label={t('CardDatabaseOverview.newSets.title')}>
       <strong>{t('CardDatabaseOverview.newSets.title')}</strong>
       <div>{t('CardDatabaseOverview.newSets.text', { count: codes.length, codes: codes.join(', ') })}</div>
       <div className="cardDatabase-actions">

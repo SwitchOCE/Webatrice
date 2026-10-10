@@ -261,7 +261,7 @@ export function registerZonesListeners(mw: ListenerMiddlewareInstance<unknown>):
           if (!card.faceDown) {
             continue;
           }
-          const peekMessage = formatCardPeeked(game, playerId, card.id, card.name ?? '');
+          const peekMessage = formatCardPeeked(game, playerId, card.id, card.name);
           api.dispatch(Actions.gameMessageAppended({ gameId, playerId, message: peekMessage }));
         }
         return;

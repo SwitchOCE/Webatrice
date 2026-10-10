@@ -48,7 +48,7 @@ export function buildMovedCard(move: MoveIdentity, data: Event_MoveCard): Server
       providerId: newCardProviderId || sourceCard.providerId,
       counterList: [...sourceCard.counterList],
     })
-    : buildEmptyCard(move.newCardId, cardName, x, y, faceDown, newCardProviderId ?? '');
+    : buildEmptyCard(move.newCardId, cardName, x, y, faceDown, newCardProviderId);
 
   const leavesBattlefield = data.startZone === ZoneName.TABLE && move.targetZone !== ZoneName.TABLE;
   return leavesBattlefield ? resetCardState(card, move.targetZone === ZoneName.STACK) : card;
@@ -182,7 +182,7 @@ export function cardMovedLogEntry(
 ): LogEntry | null {
   const knownName = move.sourceCard?.name;
   if (isUndoDraw) {
-    return formatCardUndoneDraw(game, playerId, knownName ?? data.cardName ?? '');
+    return formatCardUndoneDraw(game, playerId, knownName ?? data.cardName);
   }
   return formatCardMoved(game, playerId, { ...data, targetZone: move.targetZone }, { resolvedCardName: knownName ?? '' });
 }

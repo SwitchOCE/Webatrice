@@ -37,7 +37,8 @@ class CockatriceXmlParser {
     if (!isLegacyTokenRoot && root.tagName !== 'cockatrice_carddatabase') {
       throw new Error('Cockatrice XML has an unsupported root element');
     }
-    if (!isLegacyTokenRoot && root.getAttribute('version') !== '4') {
+    const isV3 = !isLegacyTokenRoot && root.getAttribute('version') === '3';
+    if (!isLegacyTokenRoot && !isV3 && root.getAttribute('version') !== '4') {
       throw new Error('Cockatrice XML has an unsupported version');
     }
 
@@ -81,7 +82,7 @@ class CockatriceXmlParser {
       const tokenByName = new Map<string, boolean>();
 
       cardElements.forEach(el => {
-        const parsed = this.parseElement(el) as unknown as Card & { token?: XmlNode<string> };
+        const parsed = (isV3 ? this.parseV3Card(el) : this.parseElement(el)) as unknown as Card;
         this.requireName(parsed);
         const printings = Array.isArray(parsed.set) ? parsed.set : parsed.set ? [parsed.set] : [];
         if (printings.some(printing => typeof printing.value !== 'string' || !printing.value.trim())) {
@@ -111,6 +112,39 @@ class CockatriceXmlParser {
     if (typeof record.name?.value !== 'string' || !record.name.value.trim()) {
       throw new Error('Cockatrice XML contains a record without a valid name');
     }
+  }
+
+  private parseV3Card(el: Element): Record<string, unknown> {
+    const card = this.parseElement(el);
+    const properties: Record<string, unknown> = {};
+    for (const field of ['manacost', 'cmc', 'type', 'pt', 'loyalty']) {
+      if (card[field] !== undefined) {
+        properties[field] = card[field];
+        delete card[field];
+      }
+    }
+    const type = this.directChild(el, 'type')?.textContent;
+    if (type != null) {
+      properties.maintype = { value: type.split(/-|—|\/\//)[0].trim().split(/\s+/).at(-1) ?? '' };
+    }
+    properties.colors = {
+      value: Array.from(el.children)
+        .filter(child => child.tagName === 'color' || child.tagName === 'colors')
+        .map(child => child.textContent ?? '').join(''),
+    };
+    delete card.color;
+    delete card.colors;
+    card.prop = { value: properties };
+
+    const normalizePrinting = (printing: Record<string, unknown>) => Object.fromEntries(
+      Object.entries(printing).map(([key, value]) => [key === 'value' ? key : key.toLowerCase(), value]),
+    );
+    if (Array.isArray(card.set)) {
+      card.set = card.set.map(normalizePrinting);
+    } else if (card.set) {
+      card.set = normalizePrinting(card.set as Record<string, unknown>);
+    }
+    return card;
   }
 
   // @critical Output shape (leaf = `{ value, ...attrs }`, siblings collapse to arrays) is load-bearing — Dexie indexes `name.value`.

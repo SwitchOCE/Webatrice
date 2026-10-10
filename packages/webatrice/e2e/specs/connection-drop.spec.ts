@@ -1,5 +1,6 @@
 import type { WebSocketRoute } from '@playwright/test';
 
+import { CLIENT_OPTIONS } from '../../src/clientOptions';
 import { expect, test } from '../fixtures/test';
 
 import { ConnectionStatus } from '../pages';
@@ -23,6 +24,7 @@ import { E2E_HOST, registerAndReachRooms } from '../fixtures/flows';
 
 test('a dropped connection returns to login and needs an explicit re-login', async ({ page }) => {
   test.setTimeout(90_000);
+  await page.clock.install();
 
   const servers: ReturnType<WebSocketRoute['connectToServer']>[] = [];
   const sent: number[] = [];
@@ -52,10 +54,26 @@ test('a dropped connection returns to login and needs an explicit re-login', asy
   await expect(login.hostPicker).toBeVisible({ timeout: 15_000 });
   await expect(status.indicator).toBeHidden();
 
-  await page.waitForTimeout(10_000);
-  const socketsAfterWait = servers.length;
-  await page.waitForTimeout(3_000);
-  expect(servers).toHaveLength(socketsAfterWait);
+  await expect(login.loginButton).toBeEnabled();
+  const socketsAfterProbe = servers.length;
+  const reconnect = { maxAttempts: 5, maxDelayMs: 30000 };
+  const settle = async () => {
+    let last = -1;
+    await expect.poll(() => {
+      const stable = servers.length === last;
+      last = servers.length;
+      return stable;
+    }, { intervals: [500] }).toBe(true);
+  };
+  for (let attempt = 0; attempt <= reconnect.maxAttempts; attempt += 1) {
+    await page.clock.fastForward(reconnect.maxDelayMs + CLIENT_OPTIONS.keepalive);
+    await settle();
+  }
+  const socketsAfterRetries = servers.length;
+  expect(socketsAfterRetries - socketsAfterProbe).toBeLessThanOrEqual(reconnect.maxAttempts);
+  await page.clock.fastForward(10 * 60_000);
+  await settle();
+  expect(servers.length).toBe(socketsAfterRetries);
   expect(sent.slice(socketsBeforeDrop)).toEqual(sent.slice(socketsBeforeDrop).map(() => 0));
   await expect(status.indicator).toBeHidden();
   await expect(login.loginButton).toBeVisible();
