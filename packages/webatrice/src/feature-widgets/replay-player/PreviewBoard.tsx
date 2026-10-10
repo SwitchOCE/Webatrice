@@ -2,10 +2,9 @@ import { useTranslation } from 'react-i18next';
 
 import { ScryfallImageSize } from '@cockatrice/datatrice';
 import { Avatar, CardImage, Chip } from '@app/components';
-import { getScryfallUrl } from '@app/services';
+import { CARD_BACK_URL, getScryfallUrl } from '@app/services';
 import { cx } from '@app/utils';
 
-import { CARD_BACK_URL } from '../../components/ui/SeatCard/cardSize';
 import type { PreviewBoardModel, PreviewCard, PreviewSeat } from './usePreviewBoardModel';
 
 const CARD_WIDTH = 56;

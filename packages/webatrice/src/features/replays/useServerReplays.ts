@@ -32,7 +32,7 @@ export interface ServerReplays {
   select: (selection: ServerReplaySelection | null) => void;
   watch: (selection?: ServerReplaySelection) => void;
   download: () => void;
-  saveToLibrary: (folderId: number) => void;
+  saveToLibrary: (folderId: number, replayIds?: readonly number[]) => void;
   toggleKeep: () => void;
   requestDelete: () => void;
   confirmDelete: () => void;
@@ -179,20 +179,22 @@ export function useServerReplays(): ServerReplays {
     }
   }, [selectedMatch, selection, webClient, failed, t]);
 
-  const saveToLibrary = useCallback((folderId: number) => {
-    const replays = replaysOf(selectedMatch, selection);
-    if (!replays.length) {
+  const saveToLibrary = useCallback((folderId: number, replayIds?: readonly number[]) => {
+    const replays = replaysOf(selectedMatch, selection).filter((r) => !replayIds || replayIds.includes(r.replayId));
+    if (!replays.length || !selectedMatch) {
       return;
     }
-    const target = selection?.kind === 'match' && selectedMatch
+    const endpoint = webClient.socket.connectedEndpoint ?? '';
+    const gameId = selectedMatch.gameId;
+    const folder = selection?.kind === 'match'
       ? matchFolder(folderId, `${selectedMatch.gameId}_${selectedMatch.gameName}`)
       : Promise.resolve(folderId);
-    target.then((targetId) => {
+    folder.then((targetId) => {
       for (const replay of replays) {
         webClient.request.session.replayDownload(
           replay.replayId,
           (data) => {
-            ReplayFileDTO.addReplay(targetId, replayFileName(replay.replayId), data)
+            ReplayFileDTO.addReplay(targetId, replayFileName(replay.replayId), data, { endpoint, gameId, replayId: replay.replayId })
               .then(() => setLibrarySaves((n) => n + 1))
               .catch(() => showError(t('Replays.notice.failed'), t('Replays.local.saveFailed')));
           },

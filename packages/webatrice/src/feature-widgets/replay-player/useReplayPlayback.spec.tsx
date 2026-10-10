@@ -6,10 +6,10 @@ import { Provider } from 'react-redux';
 import { games, type GamesState } from '@cockatrice/datatrice';
 import { WebClientContext } from '@cockatrice/datatrice/react';
 import type { WebClient } from '@cockatrice/sockatrice';
-import { createMockWebClient } from '../../../__test-utils__';
+import { createMockWebClient } from '../../__test-utils__';
 import { closeReplay, getOpenedReplay, getOpenedReplays, openReplay, type OpenedReplay } from '@app/services';
-import { buildReplay, sayContainer } from '../../../services/replay/__mocks__/fixtures';
-import { getSettings, settingsStore } from '../../../hooks/useSettings';
+import { buildReplay, sayContainer } from '../../services/replay/__mocks__/fixtures';
+import { getSettings, settingsStore } from '../../hooks/useSettings';
 
 import { useReplayPlayback } from './useReplayPlayback';
 

@@ -3745,7 +3745,8 @@
       "inLibrary": "In library",
       "deleteFromServer": "Delete from server",
       "saveAsFile": "Save as file",
-      "deleteFile": "Delete from this browser"
+      "deleteFile": "Delete from this browser",
+      "saveMissing": "Save {count} missing to library"
     },
     "preview": {
       "title": "Preview {name}",

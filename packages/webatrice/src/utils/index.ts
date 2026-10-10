@@ -19,6 +19,8 @@ export { formatChatHistoryTime } from './chatTime';
 export { formatLocalDateTime } from './localDateTime';
 export { formatRestrictions, formatSpectators } from './gameInfo';
 export { downloadBlob } from './downloadBlob';
+export { formatReplayTime } from './formatReplayTime';
+export { phaseLabel } from './phaseLabels';
 export { computeArtSourceRect, coverFitRect, playmatImageBox } from './playmatCrop';
 export type { Rect, Size } from './playmatCrop';
 export {

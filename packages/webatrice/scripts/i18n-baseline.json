@@ -4042,37 +4042,37 @@
       "count": 1
     },
     {
-      "file": "src/features/game/components/ChatLog/logContext.ts",
+      "file": "src/feature-widgets/replay-player/logContext.ts",
       "prefix": "GameLog.",
       "count": 1
     },
     {
-      "file": "src/features/game/components/ChatLog/logContext.ts",
+      "file": "src/feature-widgets/replay-player/logContext.ts",
       "prefix": "GameLog.counter.",
       "count": 1
     },
     {
-      "file": "src/features/game/components/ChatLog/logContext.ts",
+      "file": "src/feature-widgets/replay-player/logContext.ts",
       "prefix": "GameLog.source.",
       "count": 1
     },
     {
-      "file": "src/features/game/components/ChatLog/logContext.ts",
+      "file": "src/feature-widgets/replay-player/logContext.ts",
       "prefix": "GameLog.source.library.",
       "count": 1
     },
     {
-      "file": "src/features/game/components/ChatLog/logContext.ts",
+      "file": "src/feature-widgets/replay-player/logContext.ts",
       "prefix": "GameLog.sourceCard.",
       "count": 1
     },
     {
-      "file": "src/features/game/components/ChatLog/logContext.ts",
+      "file": "src/feature-widgets/replay-player/logContext.ts",
       "prefix": "GameLog.zone.",
       "count": 2
     },
     {
-      "file": "src/features/game/components/ChatLog/logTranslation.ts",
+      "file": "src/feature-widgets/replay-player/logTranslation.ts",
       "expression": "key",
       "count": 1
     },
@@ -4087,7 +4087,7 @@
       "count": 1
     },
     {
-      "file": "src/features/game/components/PhaseTrack/phaseLabels.ts",
+      "file": "src/utils/phaseLabels.ts",
       "prefix": "GamePhase.",
       "count": 1
     },

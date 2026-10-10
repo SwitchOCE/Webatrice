@@ -1,7 +1,7 @@
 import { makeCard, makeCounter, makeGameEntry, makePlayerEntry, makePlayerProperties, makeZoneEntry } from '@cockatrice/datatrice/testing';
 import { ServerInfo_User_UserLevelFlag } from '@cockatrice/sockatrice/generated';
 
-import { makeUser } from '../../../../__test-utils__';
+import { makeUser } from '../../__test-utils__';
 import { buildPreviewBoardModel } from './usePreviewBoardModel';
 
 function seat(playerId: number, name: string, overrides: Parameters<typeof makePlayerEntry>[0] = {}) {

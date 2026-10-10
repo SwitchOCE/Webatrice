@@ -3,8 +3,8 @@ import ICU from 'i18next-icu';
 import { CardAttribute } from '@cockatrice/sockatrice/generated';
 import type { LogDescriptor } from '@cockatrice/datatrice';
 import logText from './formatLogDescriptor.i18n.json';
-import phaseText from '../PhaseTrack/phaseLabels.i18n.json';
-import { phaseLabel } from '../PhaseTrack/phaseLabels';
+import phaseText from '../../utils/phaseLabels.i18n.json';
+import { phaseLabel } from '@app/utils';
 import { formatLogDescriptor } from './formatLogDescriptor';
 import { translatedLog, p, n } from './logTranslation';
 

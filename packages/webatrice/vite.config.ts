@@ -67,6 +67,7 @@ export default defineConfig({
       '@app/feature-widgets/card-import': srcPath('feature-widgets/card-import/index.ts'),
       '@app/feature-widgets/chat-dock': srcPath('feature-widgets/chat-dock/index.ts'),
       '@app/feature-widgets/notifications': srcPath('feature-widgets/notifications/index.ts'),
+      '@app/feature-widgets/replay-player': srcPath('feature-widgets/replay-player/index.ts'),
       '@app/feature-widgets/known-hosts': srcPath('feature-widgets/known-hosts/index.ts'),
       '@app/feature-widgets/moderation': srcPath('feature-widgets/moderation/index.ts'),
       '@app/feature-widgets/shortcuts': srcPath('feature-widgets/shortcuts/index.ts'),

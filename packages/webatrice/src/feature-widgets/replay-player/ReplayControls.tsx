@@ -10,7 +10,7 @@ import TextField from '@mui/material/TextField';
 import { BIG_SKIP_MS, SMALL_SKIP_MS } from '@app/services';
 
 import ReplayTimeline from './ReplayTimeline';
-import { formatReplayTime } from './formatReplayTime';
+import { formatReplayTime } from '@app/utils';
 import type { ReplayPlayback } from './useReplayPlayback';
 
 import './ReplayControls.css';

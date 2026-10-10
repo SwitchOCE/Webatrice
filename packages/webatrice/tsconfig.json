@@ -41,6 +41,7 @@
       "@app/feature-widgets/card-import": ["./src/feature-widgets/card-import/index.ts"],
       "@app/feature-widgets/chat-dock": ["./src/feature-widgets/chat-dock/index.ts"],
       "@app/feature-widgets/notifications": ["./src/feature-widgets/notifications/index.ts"],
+      "@app/feature-widgets/replay-player": ["./src/feature-widgets/replay-player/index.ts"],
       "@app/feature-widgets/known-hosts": ["./src/feature-widgets/known-hosts/index.ts"],
       "@app/feature-widgets/moderation": ["./src/feature-widgets/moderation/index.ts"],
       "@app/feature-widgets/shortcuts": ["./src/feature-widgets/shortcuts/index.ts"],

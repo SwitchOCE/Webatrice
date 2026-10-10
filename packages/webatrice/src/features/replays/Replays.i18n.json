@@ -51,6 +51,7 @@
       "download": "Download",
       "saveToLibrary": "Save to library",
       "inLibrary": "In library",
+      "saveMissing": "Save {count} missing to library",
       "deleteFromServer": "Delete from server",
       "saveAsFile": "Save as file",
       "deleteFile": "Delete from this browser"

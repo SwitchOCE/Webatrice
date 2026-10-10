@@ -60,7 +60,6 @@ const rules = [
     from: { type: 'features' },
     allow: types('components', 'dialogs', 'feature-widgets', 'hooks', 'images', 'services', 'feature-wrappers', 'store', 'types', 'utils')
   },
-  { from: { type: 'features', captured: { feature: 'replays' } }, allow: [{ to: { type: 'features', captured: { feature: 'game' } } }] },
 ];
 
 export const boundariesConfig = [

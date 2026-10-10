@@ -2,12 +2,13 @@ import { useTranslation } from 'react-i18next';
 import { Download, HardDriveDownload, Link2, Lock, LockOpen, Trash2 } from 'lucide-react';
 
 import { Button, IconButton } from '@app/components';
-import { ReplayPreview, formatReplayTime } from '@app/features/game';
+import { ReplayPreview } from '@app/feature-widgets/replay-player';
+import { formatReplayTime } from '@app/utils';
 import { REPLAY_LIBRARY_ROOT } from '@app/services';
 import { cx, toBcp47 } from '@app/utils';
 
 import { PlayerName, formatItemDate } from './ReplayList';
-import { isSavedLocally, type FileItem, type MatchItem } from './replayLibrary';
+import { isFullySaved, savedGameCount, type FileItem, type MatchItem } from './replayLibrary';
 import type { ReplayLibrary } from './useReplayLibrary';
 import type { ReplayPreviewState } from './useReplayPreview';
 
@@ -35,7 +36,14 @@ function MatchActions({ item, library }: { item: MatchItem; library: ReplayLibra
   const { t } = useTranslation();
   const { server } = library;
   const enabled = server.availability === 'available';
-  const saved = isSavedLocally(item);
+  const complete = isFullySaved(item);
+  const missing = item.games.filter((game) => game.localEntryId == null).map((game) => game.replayId);
+  const saveLabel = complete
+    ? t('Replays.detail.inLibrary')
+    : savedGameCount(item) > 0
+      ? t('Replays.detail.saveMissing', { count: missing.length })
+      : t('Replays.detail.saveToLibrary');
+  const localEntryId = library.selectedGame?.localEntryId;
   return (
     <div className="flex shrink-0 flex-wrap items-center gap-1.5">
       <Button
@@ -57,12 +65,27 @@ function MatchActions({ item, library }: { item: MatchItem; library: ReplayLibra
       <Button
         size="sm"
         variant="quiet"
-        disabled={!enabled || saved}
+        disabled={!enabled || complete}
         icon={<HardDriveDownload size={13} />}
-        onClick={() => server.saveToLibrary(REPLAY_LIBRARY_ROOT)}
+        onClick={() => server.saveToLibrary(REPLAY_LIBRARY_ROOT, missing)}
       >
-        {saved ? t('Replays.detail.inLibrary') : t('Replays.detail.saveToLibrary')}
+        {saveLabel}
       </Button>
+      {localEntryId != null && (
+        <>
+          <Button size="sm" variant="quiet" icon={<Download size={13} />} onClick={() => library.local.exportEntry(localEntryId)}>
+            {t('Replays.detail.saveAsFile')}
+          </Button>
+          <IconButton
+            size="sm"
+            label={t('Replays.detail.deleteFile')}
+            className="hover:!text-danger"
+            onClick={() => library.local.requestDelete(localEntryId)}
+          >
+            <Trash2 size={14} />
+          </IconButton>
+        </>
+      )}
       <IconButton
         size="sm"
         label={t('Replays.detail.deleteFromServer')}

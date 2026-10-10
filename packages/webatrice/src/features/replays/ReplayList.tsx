@@ -2,7 +2,7 @@ import { useTranslation } from 'react-i18next';
 import { HardDrive, Lock, LockOpen } from 'lucide-react';
 
 import { Avatar, SectionLabel, Segmented, TextInput } from '@app/components';
-import { formatReplayTime } from '@app/features/game';
+import { formatReplayTime } from '@app/utils';
 import { Images } from '@app/images';
 import { cx, toBcp47 } from '@app/utils';
 

@@ -19,6 +19,11 @@ const opened = new Map<string, { entry: OpenedReplay; target: ReplayGameTarget }
 const listeners = new Set<() => void>();
 let snapshot: readonly OpenedReplay[] = [];
 let nextKey = 1;
+let nextGameSerial = 1;
+
+export function allocateReplayGameId(): number {
+  return REPLAY_GAME_ID_BASE - nextGameSerial++;
+}
 
 function changed(): void {
   snapshot = [...opened.values()].map(({ entry }) => entry);
@@ -26,9 +31,8 @@ function changed(): void {
 }
 
 export function openReplay(replay: GameReplay, title: string, target: ReplayGameTarget): string {
-  const serial = nextKey++;
-  const key = String(serial);
-  const gameId = REPLAY_GAME_ID_BASE - serial;
+  const key = String(nextKey++);
+  const gameId = allocateReplayGameId();
   const gameInfo = replay.gameInfo!;
   const engine = new ReplayEngine(replay, {
     rewind: () => target.loadReplayGame(gameId, gameInfo),

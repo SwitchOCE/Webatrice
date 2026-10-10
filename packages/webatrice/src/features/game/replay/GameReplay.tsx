@@ -10,8 +10,7 @@ import { RouteEnum } from '@app/types';
 import { GameBoard } from '../Game';
 import { GameReadOnlyProvider } from '../components/ui/GameReadOnlyContext';
 import { ReplayRewindProvider } from '../components/ui/ReplayRewindContext';
-import ReplayControls from './ReplayControls';
-import { useReplayPlayback } from './useReplayPlayback';
+import { ReplayControls, useReplayPlayback } from '@app/feature-widgets/replay-player';
 
 function GameReplay() {
   const { t } = useTranslation();
