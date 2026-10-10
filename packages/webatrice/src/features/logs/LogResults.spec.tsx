@@ -1,4 +1,4 @@
-import { fireEvent, screen, within } from '@testing-library/react';
+import { act, fireEvent, screen, within } from '@testing-library/react';
 import type { ServerStateLogs } from '@cockatrice/datatrice';
 import { createInstance } from 'i18next';
 import ICU from 'i18next-icu';
@@ -87,5 +87,44 @@ describe('LogResults', () => {
     expect(drawer.getByText('a long message')).toBeInTheDocument();
     fireEvent.click(drawer.getByRole('button', { name: 'Staff.drawer.close' }));
     expect(screen.queryByRole('complementary', { name: 'Logs.details' })).toBeNull();
+  });
+});
+
+describe('LogResults tabs', () => {
+  it('is a real tablist: one tab stop, arrows move between tabs, and the panel is labelled by the tab', () => {
+    const logs: ServerStateLogs = { room: [], game: [makeMessage({ message: 'game-row' })], chat: [] };
+    renderWithProviders(<LogResults logs={logs} />, { preloadedState: disconnectedState });
+    const [rooms, games] = screen.getAllByRole('tab');
+    expect(rooms).toHaveAttribute('tabindex', '0');
+    expect(games).toHaveAttribute('tabindex', '-1');
+    expect(screen.getByRole('tabpanel')).toHaveAttribute('aria-labelledby', rooms.id);
+
+    fireEvent.keyDown(rooms, { key: 'ArrowRight' });
+    expect(games).toHaveAttribute('aria-selected', 'true');
+    expect(games).toHaveFocus();
+    expect(screen.getByRole('tabpanel')).toHaveAttribute('aria-labelledby', games.id);
+    expect(games).toHaveAttribute('aria-controls', screen.getByRole('tabpanel').id);
+    expect(screen.getByText('game-row')).toBeInTheDocument();
+  });
+});
+
+describe('LogResults drawer focus', () => {
+  it('closes the drawer with Escape from the row or the drawer and returns focus to the row', () => {
+    const logs: ServerStateLogs = { room: [makeMessage({ message: 'focus-row' })], game: [], chat: [] };
+    renderWithProviders(<LogResults logs={logs} />, { preloadedState: disconnectedState });
+    const row = screen.getByText('focus-row').closest('tr')!;
+
+    act(() => row.focus());
+    fireEvent.keyDown(row, { key: 'Enter' });
+    expect(screen.getByRole('complementary', { name: 'Logs.details' })).toBeInTheDocument();
+    fireEvent.keyDown(row, { key: 'Escape' });
+    expect(screen.queryByRole('complementary', { name: 'Logs.details' })).toBeNull();
+
+    fireEvent.keyDown(row, { key: 'Enter' });
+    const close = within(screen.getByRole('complementary', { name: 'Logs.details' })).getByRole('button', { name: 'Staff.drawer.close' });
+    act(() => close.focus());
+    fireEvent.keyDown(close, { key: 'Escape' });
+    expect(screen.queryByRole('complementary', { name: 'Logs.details' })).toBeNull();
+    expect(row).toHaveFocus();
   });
 });

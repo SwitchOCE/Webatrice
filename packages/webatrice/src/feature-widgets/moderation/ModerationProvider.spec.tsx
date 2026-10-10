@@ -16,6 +16,10 @@ import { ModerationProvider } from './ModerationProvider';
 import type { ModerationAction } from './moderationMenu';
 import { REDACT_ALL_MESSAGES } from './useModerationFlow';
 import { useModerationMenu } from './useModerationMenu';
+import { setAdminLocked } from '@app/hooks';
+
+beforeEach(() => setAdminLocked(false));
+afterEach(() => setAdminLocked(true));
 
 const MODERATOR = Flag.IsUser | Flag.IsRegistered | Flag.IsModerator;
 const ADMIN = MODERATOR | Flag.IsAdmin;

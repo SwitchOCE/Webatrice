@@ -21,7 +21,8 @@ import { useJoinGame, useNavigateOnGameJoined } from './useJoinGame';
 
 import { setAdminLocked } from './useAdminLock';
 
-afterEach(() => setAdminLocked(false));
+beforeEach(() => setAdminLocked(false));
+afterEach(() => setAdminLocked(true));
 
 const navigateSpy = vi.hoisted(() => vi.fn());
 vi.mock('react-router-dom', async (importOriginal) => {

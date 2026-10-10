@@ -26,12 +26,7 @@ function setup() {
 }
 
 function run(view: ReturnType<typeof setup>, operation: 'assign' | 'resolve' | 'viewReplay') {
-  if (operation === 'resolve') {
-    act(() => view.get().promptResolve(false));
-    act(() => view.get().submitResolvePrompt(''));
-  } else {
-    act(() => view.get()[operation]());
-  }
+  act(() => view.get()[operation]());
 }
 
 it.each(['refresh', 'other-caller'] as const)('only settles the current statistics request after %s', (origin) => {

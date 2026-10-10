@@ -46,6 +46,7 @@ import { UserDisplay } from '@app/components';
 import { ModerationProvider } from '@app/feature-widgets/moderation';
 import { Administration } from '@app/features/administration';
 import { Logs } from '@app/features/logs';
+import { setAdminLocked } from '@app/hooks';
 
 import { connectAndHandshake } from '../helpers/setup';
 import { buildResponse, buildResponseMessage, deliverMessage } from '../helpers/protobuf-builders';
@@ -93,6 +94,7 @@ function chooseFromMenu(name: string, entry: string) {
 }
 
 beforeEach(() => {
+  setAdminLocked(false);
   vi.useRealTimers();
 });
 

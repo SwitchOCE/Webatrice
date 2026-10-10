@@ -27,12 +27,13 @@ interface ReportTableProps {
   columns: ReportColumn[];
   selectedId: number | null;
   onSelect: (reportId: number) => void;
+  onEscape?: () => void;
   label: string;
   status?: ReactNode;
   footer?: ReactNode;
 }
 
-export default function ReportTable({ reports, columns, selectedId, onSelect, label, status, footer }: ReportTableProps) {
+export default function ReportTable({ reports, columns, selectedId, onSelect, onEscape, label, status, footer }: ReportTableProps) {
   const { t } = useTranslation();
   const now = useMinuteClock();
 
@@ -83,6 +84,7 @@ export default function ReportTable({ reports, columns, selectedId, onSelect, la
       rowTestId={(r) => `report-row-${r.reportId}`}
       selectedKey={selectedId != null ? String(selectedId) : null}
       onSelect={(key) => onSelect(Number(key))}
+      onEscape={onEscape}
       status={status}
       footer={footer}
     />

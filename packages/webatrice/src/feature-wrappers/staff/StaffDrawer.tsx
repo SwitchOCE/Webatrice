@@ -1,8 +1,10 @@
-import type { ReactNode } from 'react';
+import { useRef, type ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
 import { X } from 'lucide-react';
 
 import { IconButton } from '@app/components';
+
+import { useDrawerReturnFocus } from './useDrawerReturnFocus';
 
 interface StaffDrawerProps {
   label: string;
@@ -15,8 +17,11 @@ interface StaffDrawerProps {
 
 export default function StaffDrawer({ label, title, subtitle, actions, onClose, children }: StaffDrawerProps) {
   const { t } = useTranslation();
+  const drawerRef = useRef<HTMLElement>(null);
+  useDrawerReturnFocus(drawerRef);
   return (
     <aside
+      ref={drawerRef}
       aria-label={label}
       onKeyDown={(event) => {
         if (event.key === 'Escape' && onClose) {

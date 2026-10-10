@@ -38,6 +38,7 @@ import { connectRaw, PROTOCOL_VERSION } from '../helpers/setup';
 import { buildResponse, buildResponseMessage, buildSessionEventMessage, deliverMessage } from '../helpers/protobuf-builders';
 import { findLastAdminCommand, findLastModeratorCommand, findLastSessionCommand } from '../helpers/command-capture';
 import { renderFeatureScreen } from './helpers';
+import { setAdminLocked } from '@app/hooks';
 
 const { IsRegistered, IsModerator, IsAdmin } = ServerInfo_User_UserLevelFlag;
 
@@ -65,6 +66,7 @@ function loginAsStaff(userLevel = IsRegistered | IsModerator | IsAdmin) {
 }
 
 beforeEach(() => {
+  setAdminLocked(true);
   vi.useRealTimers();
 });
 
@@ -73,6 +75,8 @@ describe('Administration (integration)', () => {
     loginAsStaff();
     renderFeatureScreen(<Administration />, '/administration');
 
+    expect(screen.getByRole('button', { name: /Administration\.admin\.updateServerMessage/ })).toBeDisabled();
+    fireEvent.click(screen.getByRole('button', { name: 'Administration.button.unlock' }));
     fireEvent.click(screen.getByRole('button', { name: /Administration\.admin\.updateServerMessage/ }));
     const { cmdId } = findLastAdminCommand(Command_UpdateServerMessage_ext);
 
@@ -107,8 +111,8 @@ describe('Moderation (integration)', () => {
     });
 
     const alts = screen.getByRole('region', { name: /ModerationPage\.alts\.title/ });
-    expect(within(alts).getByText('alice_smurf')).toBeInTheDocument();
-    expect(within(alts).getByText('2')).toBeInTheDocument();
+    const smurf = within(alts).getByRole('row', { name: /alice_smurf/ });
+    expect(within(smurf).getByText('2')).toBeInTheDocument();
   });
 
   it('lists staff last logins on open', () => {
@@ -143,6 +147,7 @@ describe('Investigate user (integration)', () => {
       </ModerationProvider>,
     );
 
+    act(() => setAdminLocked(false));
     fireEvent.contextMenu(screen.getByText('suspect'));
     fireEvent.click(screen.getByRole('menuitem', { name: 'Moderation.menu.investigateUser' }));
 

@@ -272,11 +272,11 @@ it('keeps another caller assignment outcome out of the queue notice and sends no
   const current = findLastModeratorCommand(Command_ReportAssign_ext);
   ok(other.cmdId);
   expect(server.Selectors.getReport(store.getState(), 5)?.status).toBe('assigned');
-  expect(screen.getByTestId('report-queue-status')).toHaveTextContent('Reports.queue.assigning');
+  expect(screen.getByTestId('report-action-status')).toHaveTextContent('Reports.queue.assigning');
   expect(findLastModeratorCommand(Command_ReportList_ext).cmdId).toBe(list.cmdId);
   act(() => deliverMessage(buildResponseMessage(buildResponse({
     cmdId: current.cmdId, responseCode: Response_ResponseCode.RespInvalidData,
   }))));
-  expect(screen.getByTestId('report-queue-status')).toHaveTextContent('Reports.queue.assignFailed');
+  expect(screen.getByTestId('report-action-status')).toHaveTextContent('Reports.queue.assignFailed');
   expect(findLastModeratorCommand(Command_ReportList_ext).cmdId).toBe(list.cmdId);
 });

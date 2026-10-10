@@ -71,6 +71,7 @@ const ReportQueueContent = () => {
             columns={QUEUE_COLUMNS}
             selectedId={q.selectedId}
             onSelect={q.select}
+            onEscape={() => q.select(null)}
             label={t('Reports.queue.title')}
             footer={(
               <span role="status" data-testid="report-queue-status">
@@ -112,12 +113,10 @@ const ReportQueueContent = () => {
                   >
                     {t('Reports.queue.assign')}
                   </Button>
-                  <Button
-                    size="sm"
-                    icon={<Gavel size={13} aria-hidden />}
-                    disabled={!q.actions.canResolve}
-                    onClick={() => q.promptResolve(false)}
-                  >
+                  <Button size="sm" icon={<Gavel size={13} aria-hidden />} disabled={!q.actions.canResolve} onClick={q.resolve}>
+                    {t('Reports.queue.resolve')}
+                  </Button>
+                  <Button size="sm" variant="quiet" disabled={!q.actions.canResolve} onClick={() => q.promptResolve(false)}>
                     {t('Reports.queue.resolveWithNote')}
                   </Button>
                   <Button size="sm" variant="quiet" disabled={!q.actions.canResolve} onClick={() => q.promptResolve(true)}>
