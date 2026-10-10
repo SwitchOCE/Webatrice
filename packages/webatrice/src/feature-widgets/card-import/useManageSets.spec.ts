@@ -2,7 +2,10 @@ import { act, renderHook, waitFor } from '@testing-library/react';
 
 const hoisted = vi.hoisted(() => ({ getSetInventory: vi.fn(), saveSetPreferences: vi.fn() }));
 
-vi.mock('./CardDatabaseService', () => ({ cardDatabaseService: hoisted }));
+vi.mock('@app/services', async (importOriginal) => ({
+  ...(await importOriginal<typeof import('@app/services')>()),
+  cardDatabaseService: hoisted,
+}));
 
 import { useManageSets } from './useManageSets';
 

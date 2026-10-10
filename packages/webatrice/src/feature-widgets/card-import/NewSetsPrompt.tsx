@@ -4,8 +4,7 @@ import Alert from '@mui/material/Alert';
 import Button from '@mui/material/Button';
 
 import { useDialogFocus } from '@app/hooks';
-
-import type { UnknownSetsAnswer } from './CardDatabaseService';
+import type { UnknownSetsAnswer } from '@app/services';
 
 export type NewSetsChoice = UnknownSetsAnswer | 'view';
 

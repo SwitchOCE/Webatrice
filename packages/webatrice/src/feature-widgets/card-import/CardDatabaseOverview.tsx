@@ -124,7 +124,9 @@ const CardDatabaseOverview = ({ onViewSets }: CardDatabaseOverviewProps) => {
 
       {overview.message && (
         <Alert severity={overview.message.severity} role="status">
-          {t(`CardDatabaseOverview.message.${overview.message.key}`, overview.message.params)}
+          {'text' in overview.message
+            ? overview.message.text
+            : t(`CardDatabaseOverview.message.${overview.message.key}`, overview.message.params)}
         </Alert>
       )}
     </div>

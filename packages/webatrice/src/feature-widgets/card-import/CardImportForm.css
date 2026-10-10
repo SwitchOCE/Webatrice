@@ -75,3 +75,14 @@
   left: 50%;
   transform: translate(-50%, -50%);
 }
+
+.cardImportForm-summary {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 16px 0;
+}
+
+.cardImportForm-summary .problem {
+  color: rgb(var(--status-warning));
+}

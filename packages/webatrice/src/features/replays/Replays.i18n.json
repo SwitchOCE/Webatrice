@@ -70,7 +70,8 @@
     },
     "notice": {
       "error": "Error",
-      "failed": "Failed"
+      "failed": "Failed",
+      "imported": "Import finished"
     },
     "local": {
       "deleteTitle": "Delete local file",
@@ -80,11 +81,8 @@
       "saveFailed": "Could not save the replay to the local library.",
       "missingData": "The replay data for this entry is missing.",
       "readFailed": "Could not read the replay from the local library.",
-      "nameTaken": "There is already an entry named \"{name}\" in this folder.",
       "invalidFile": "\"{name}\" is not a Cockatrice replay (.cor) file.",
-      "invalidFiles": "These files are not Cockatrice replays and were not imported: {names}",
-      "tooLarge": "These files are too large to be replays and were not imported: {names}",
-      "importFailed": "Could not save these replays to the local library: {names}"
+      "tooLarge": "These files are too large to be replays and were not imported: {names}"
     },
     "server": {
       "disconnected": "Connect to a server to see the replays stored for your account.",

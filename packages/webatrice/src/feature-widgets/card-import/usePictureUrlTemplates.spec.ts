@@ -4,7 +4,10 @@ import { DEFAULT_PICTURE_URL_TEMPLATES } from '@app/services';
 
 const hoisted = vi.hoisted(() => ({ getPictureUrlTemplates: vi.fn(), savePictureUrlTemplates: vi.fn() }));
 
-vi.mock('./CardDatabaseService', () => ({ cardDatabaseService: hoisted }));
+vi.mock('@app/services', async (importOriginal) => ({
+  ...(await importOriginal<typeof import('@app/services')>()),
+  cardDatabaseService: hoisted,
+}));
 
 import { usePictureUrlTemplates } from './usePictureUrlTemplates';
 

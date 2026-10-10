@@ -1,23 +1,24 @@
 import { useCallback, useEffect, useState } from 'react';
 
-import type { CardSource } from '@app/services';
-
+import { useImportSummaryText } from '@app/hooks';
 import {
   cardDatabaseService,
+  importCustomSetFiles,
   type CardDatabaseSummary,
+  type CardSource,
   type RebuildResult,
   type UnknownSetsAnswer,
-} from './CardDatabaseService';
+} from '@app/services';
+
 import { cardUpdateService, UpdateFetchError } from './CardUpdateService';
-import { localOracleImportService } from './LocalOracleImportService';
 
 export type OverviewAction = 'reload' | 'addCustom' | 'remove' | 'tokens' | 'spoilers' | 'checkCards';
 
-export interface OverviewMessage {
-  severity: 'success' | 'info' | 'error';
-  key: string;
-  params?: Record<string, string | number>;
-}
+export type OverviewSeverity = 'success' | 'info' | 'warning' | 'error';
+
+export type OverviewMessage =
+  | { severity: OverviewSeverity; key: string; params?: Record<string, string | number> }
+  | { severity: OverviewSeverity; text: string };
 
 export interface CardDatabaseOverview {
   loading: boolean;
@@ -51,6 +52,7 @@ function errorMessage(e: unknown): OverviewMessage {
 }
 
 export function useCardDatabaseOverview(): CardDatabaseOverview {
+  const summaryText = useImportSummaryText();
   const [loading, setLoading] = useState(true);
   const [busy, setBusy] = useState<OverviewAction | null>(null);
   const [sources, setSources] = useState<CardSource[]>([]);
@@ -105,17 +107,13 @@ export function useCardDatabaseOverview(): CardDatabaseOverview {
     unknownSets,
     reload: () => run('reload', () => cardDatabaseService.reload()),
     addCustomFiles: (files) => run('addCustom', async () => {
-      const ingest = await localOracleImportService.ingest(files, { allowCustomSets: true });
-      if (ingest.files.length === 0) {
-        return { severity: 'error', key: 'noXml' };
-      }
-      return cardDatabaseService.addSources(ingest.files.map((file) => ({
-        fileName: file.name,
-        xml: file.xml,
-        records: file.records,
-        origin: 'file' as const,
-        kind: file.name.toLowerCase() === 'spoiler.xml' ? 'spoiler' as const : 'custom' as const,
-      })));
+      const summary = await importCustomSetFiles(files);
+      setUnknownSets(summary.unknownSets);
+      const text = summaryText(summary, 'cardFiles');
+      return {
+        severity: text.severity === 'warning' ? 'warning' : 'success',
+        text: [text.headline, ...text.problems].join(' '),
+      };
     }),
     removeSource: (id) => run('remove', () => cardDatabaseService.removeSource(id)),
     updateTokens: () => run('tokens', () => cardUpdateService.updateTokens()),
