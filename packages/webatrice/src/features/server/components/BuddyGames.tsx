@@ -52,7 +52,7 @@ export default function BuddyGames({ home }: { home: HomeData }) {
       {shown.length === 0 ? (
         <p className="rounded-ui-lg border border-dashed border-border-subtle px-pad py-5 text-[13px] text-text-muted">{empty}</p>
       ) : (
-        <ul className="grid grid-cols-[repeat(auto-fill,minmax(340px,1fr))] gap-gap">
+        <ul className="grid grid-cols-[repeat(auto-fill,minmax(min(100%,340px),1fr))] gap-gap">
           {shown.map(({ room: gameRoom, game }) => (
             <li key={`${gameRoom.info.roomId}:${game.info.gameId}`} className="flex min-w-0">
               <GameCard

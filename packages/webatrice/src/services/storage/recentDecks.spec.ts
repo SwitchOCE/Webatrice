@@ -4,7 +4,9 @@ import {
   getRecentDecks,
   parseRecentDecks,
   recentDeckArtUrl,
+  recentDeckScope,
   recentDeckSnapshot,
+  recentDecksIn,
   recordRecentDeck,
   RECENT_DECKS_STORAGE_KEY,
   resetRecentDecksCache,
@@ -15,6 +17,7 @@ import {
 } from './recentDecks';
 
 const SCRYFALL_ID = '0b9a7a0b-8f8e-4b0f-9a8c-1f1e1d1c1b1a';
+const HOST = 'localhost:4748';
 
 const source = (overrides: Partial<RecentDeckSource> = {}): RecentDeckSource => ({
   name: 'Atraxa',
@@ -36,30 +39,44 @@ const source = (overrides: Partial<RecentDeckSource> = {}): RecentDeckSource => 
 });
 
 const entry = (deckId: number, overrides: Partial<RecentDeck> = {}): RecentDeck => ({
-  ...recentDeckSnapshot('alice', deckId, source({ name: `Deck ${deckId}` }), deckId),
+  ...recentDeckSnapshot(HOST, 'alice', deckId, source({ name: `Deck ${deckId}` }), deckId),
   ...overrides,
+});
+
+describe('recentDeckScope', () => {
+  it('canonicalises the websocket endpoint to host:port and path', () => {
+    expect(recentDeckScope('ws://LocalHost:4748')).toBe('localhost:4748');
+    expect(recentDeckScope('wss://server.cockatrice.us:4748/servatrice/')).toBe('server.cockatrice.us:4748/servatrice');
+    expect(recentDeckScope('wss://mtg.example.net/')).toBe('mtg.example.net:443');
+    expect(recentDeckScope('ws://mtg.example.net')).toBe('mtg.example.net:80');
+  });
+
+  it('has no scope without a websocket connection', () => {
+    expect(recentDeckScope(null)).toBeNull();
+    expect(recentDeckScope('https://example.net')).toBeNull();
+    expect(recentDeckScope('not a url')).toBeNull();
+  });
 });
 
 describe('recentDeckSnapshot', () => {
   it('counts the main deck and orders its colours WUBRG', () => {
-    const snap = recentDeckSnapshot('alice', 4, source(), 10);
-    expect(snap).toMatchObject({ owner: 'alice', deckId: 4, name: 'Atraxa', colors: 'WUBG', cardCount: 2, openedAt: 10 });
+    const snap = recentDeckSnapshot(HOST, 'alice', 4, source(), 10);
+    expect(snap).toMatchObject({ scope: HOST, owner: 'alice', deckId: 4, name: 'Atraxa', colors: 'WUBG', cardCount: 2, openedAt: 10 });
     expect(snap.commanderName).toBe('Atraxa, Praetors\' Voice');
   });
 
   it('prefers the bracket assessment over the cached level', () => {
-    expect(recentDeckSnapshot('a', 1, source({ meta: { bracketLevel: 2 }, bracketAssessment: { level: 4 } }), 0).bracketLevel).toBe(4);
-    expect(recentDeckSnapshot('a', 1, source({ meta: { bracketLevel: 2 } }), 0).bracketLevel).toBe(2);
+    const assessed = source({ meta: { bracketLevel: 2 }, bracketAssessment: { level: 4 } });
+    expect(recentDeckSnapshot(HOST, 'a', 1, assessed, 0).bracketLevel).toBe(4);
+    expect(recentDeckSnapshot(HOST, 'a', 1, source({ meta: { bracketLevel: 2 } }), 0).bracketLevel).toBe(2);
   });
 });
 
 describe('recentDeckArtUrl', () => {
   it('uses the banner card, then the commander', () => {
-    const banner = recentDeckSnapshot('a', 1, source({ bannerCard: 'Sol Ring' }), 0);
-    expect(recentDeckArtUrl(banner)).toContain('Sol');
-    const commander = recentDeckSnapshot('a', 1, source(), 0);
-    expect(recentDeckArtUrl(commander)).toContain(SCRYFALL_ID);
-    expect(recentDeckArtUrl(recentDeckSnapshot('a', 1, source({ cards: [] }), 0))).toBeNull();
+    expect(recentDeckArtUrl(recentDeckSnapshot(HOST, 'a', 1, source({ bannerCard: 'Sol Ring' }), 0))).toContain('Sol');
+    expect(recentDeckArtUrl(recentDeckSnapshot(HOST, 'a', 1, source(), 0))).toContain(SCRYFALL_ID);
+    expect(recentDeckArtUrl(recentDeckSnapshot(HOST, 'a', 1, source({ cards: [] }), 0))).toBeNull();
   });
 });
 
@@ -69,21 +86,25 @@ describe('withRecentDeck', () => {
     expect(withRecentDeck(list, entry(2, { openedAt: 99 })).map((d) => d.deckId)).toEqual([2, 1, 3]);
   });
 
-  it('keeps the same deck id of another account', () => {
-    const list = [entry(1, { owner: 'bob' })];
-    expect(withRecentDeck(list, entry(1))).toHaveLength(2);
+  it('keeps the same deck id on another server or account apart', () => {
+    const list = [entry(1, { owner: 'bob' }), entry(1, { scope: 'other.net:4748' })];
+    expect(withRecentDeck(list, entry(1))).toHaveLength(3);
   });
 
-  it('caps the list', () => {
-    expect(withRecentDeck([entry(1), entry(2)], entry(3), 2).map((d) => d.deckId)).toEqual([3, 1]);
+  it('caps each server and account separately', () => {
+    const otherHost = [entry(7, { scope: 'other.net:4748' }), entry(8, { scope: 'other.net:4748' })];
+    const next = withRecentDeck([entry(1), entry(2), ...otherHost], entry(3), 2);
+    expect(recentDecksIn(next, HOST, 'alice').map((d) => d.deckId)).toEqual([3, 1]);
+    expect(recentDecksIn(next, 'other.net:4748', 'alice').map((d) => d.deckId)).toEqual([7, 8]);
   });
 });
 
 describe('parseRecentDecks', () => {
-  it('drops malformed storage', () => {
+  it('drops malformed storage and legacy entries without a server', () => {
+    const { scope: _scope, ...legacy } = entry(2);
     expect(parseRecentDecks('nope')).toEqual([]);
     expect(parseRecentDecks('{"a":1}')).toEqual([]);
-    expect(parseRecentDecks(JSON.stringify([entry(1), { deckId: 'x' }]))).toEqual([entry(1)]);
+    expect(parseRecentDecks(JSON.stringify([entry(1), legacy, { deckId: 'x' }]))).toEqual([entry(1)]);
   });
 });
 
@@ -99,9 +120,38 @@ describe('recordRecentDeck', () => {
     recordRecentDeck(entry(1));
     recordRecentDeck(entry(1, { openedAt: 500 }));
     expect(listener).toHaveBeenCalledTimes(1);
-    resetRecentDecksCache();
-    expect(getRecentDecks()).toEqual([entry(1)]);
-    expect(window.localStorage.getItem(RECENT_DECKS_STORAGE_KEY)).not.toBeNull();
+    expect(parseRecentDecks(window.localStorage.getItem(RECENT_DECKS_STORAGE_KEY))).toEqual([entry(1)]);
     unsubscribe();
+  });
+
+  it('merges with what another tab wrote instead of overwriting it', () => {
+    recordRecentDeck(entry(1));
+    expect(getRecentDecks()).toHaveLength(1);
+    window.localStorage.setItem(RECENT_DECKS_STORAGE_KEY, JSON.stringify([entry(2), entry(1)]));
+    recordRecentDeck(entry(3));
+    expect(getRecentDecks().map((d) => d.deckId)).toEqual([3, 2, 1]);
+  });
+
+  it('purges legacy entries on the next write', () => {
+    const { scope: _scope, ...legacy } = entry(9);
+    window.localStorage.setItem(RECENT_DECKS_STORAGE_KEY, JSON.stringify([legacy]));
+    recordRecentDeck(entry(1));
+    expect(JSON.parse(window.localStorage.getItem(RECENT_DECKS_STORAGE_KEY) ?? '[]')).toEqual([entry(1)]);
+  });
+
+  it('tells subscribers when another tab changes the list', () => {
+    const listener = vi.fn();
+    const unsubscribe = subscribeRecentDecks(listener);
+    window.localStorage.setItem(RECENT_DECKS_STORAGE_KEY, JSON.stringify([entry(4)]));
+    window.dispatchEvent(new StorageEvent('storage', { key: RECENT_DECKS_STORAGE_KEY }));
+    window.dispatchEvent(new StorageEvent('storage', { key: 'something.else' }));
+    expect(listener).toHaveBeenCalledTimes(1);
+    expect(getRecentDecks().map((d) => d.deckId)).toEqual([4]);
+    unsubscribe();
+  });
+
+  it('keeps a stable snapshot while storage is unchanged', () => {
+    recordRecentDeck(entry(1));
+    expect(getRecentDecks()).toBe(getRecentDecks());
   });
 });

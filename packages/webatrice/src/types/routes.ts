@@ -39,6 +39,10 @@ export interface ServerRouteState {
   startupRoom?: string;
 }
 
+export interface RoomRouteState {
+  createGame?: boolean;
+}
+
 export interface DeckRouteState {
   replacesDeckId?: number;
 }
