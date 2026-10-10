@@ -1,10 +1,10 @@
 import { memo } from 'react';
 import { useTranslation } from 'react-i18next';
-import type { TFunction } from 'i18next';
 
 import type { ServerInfo_User } from '@cockatrice/sockatrice/generated';
 import { ServerInfo_User_UserLevelFlag } from '@cockatrice/sockatrice/generated';
 import { DialogShell } from '@app/dialogs';
+import { formatAccountAge } from '@app/utils';
 
 const MODAL_BUTTON_PRIMARY =
   'px-3 py-1.5 rounded-md text-sm font-semibold bg-accent text-white '
@@ -42,24 +42,6 @@ function levelFlags(userLevel: number): LevelFlag[] {
   return flags;
 }
 
-function accountAgeString(seconds: bigint, t: TFunction): string {
-  if (seconds <= 0n) {
-    return '—';
-  }
-  const days = Number(seconds / 86_400n);
-  if (days < 1) {
-    return t('PlayerListDialogs.age.lessThanDay');
-  }
-  if (days < 30) {
-    return t('PlayerListDialogs.age.days', { count: days });
-  }
-  const months = Math.floor(days / 30);
-  if (months < 12) {
-    return t('PlayerListDialogs.age.months', { count: months });
-  }
-  return t('PlayerListDialogs.age.years', { count: Math.floor(days / 365) });
-}
-
 export const UserDetailsModal = memo(function UserDetailsModal({
   user,
   onClose,
@@ -67,7 +49,7 @@ export const UserDetailsModal = memo(function UserDetailsModal({
   user: ServerInfo_User;
   onClose: () => void;
 }) {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const flags = levelFlags(user.userLevel);
   return (
     <DialogShell
@@ -107,7 +89,7 @@ export const UserDetailsModal = memo(function UserDetailsModal({
               </>
             )}
             <dt className="text-text-muted">{t('PlayerListDialogs.accountAge')}</dt>
-            <dd className="text-text-primary">{accountAgeString(user.accountageSecs, t)}</dd>
+            <dd className="text-text-primary">{formatAccountAge(t, user.accountageSecs, user.userLevel, i18n.language)}</dd>
           </dl>
         </div>
         <ul className="flex flex-wrap gap-1.5" aria-label={t('PlayerListDialogs.userLevel')}>

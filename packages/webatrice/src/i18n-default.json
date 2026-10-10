@@ -2587,12 +2587,6 @@
     "country": "Country",
     "accountAge": "Account age",
     "userLevel": "User level",
-    "age": {
-      "lessThanDay": "less than a day",
-      "days": "{count, plural, one {# day} other {# days}}",
-      "months": "{count, plural, one {# month} other {# months}}",
-      "years": "{count, plural, one {# year} other {# years}}"
-    },
     "level": {
       "admin": "Admin",
       "moderator": "Moderator",

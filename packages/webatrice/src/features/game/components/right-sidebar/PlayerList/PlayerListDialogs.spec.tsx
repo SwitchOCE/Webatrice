@@ -24,6 +24,11 @@ describe('UserDetailsModal', () => {
       .map((item) => item.textContent)).toEqual(['PlayerListDialogs.level.judge', 'PlayerListDialogs.level.registered']);
   });
 
+  it('formats the account age with the shared desktop-style formatter', () => {
+    renderWithProviders(<UserDetailsModal user={{ ...BOB, accountageSecs: 86_400n * 400n }} onClose={vi.fn()} />);
+    expect(within(screen.getByRole('dialog', { name: 'Bob' })).getByText('Account.age.yearsAndDays')).toBeInTheDocument();
+  });
+
   it('takes focus on its Close button, keeps Tab inside and closes on Escape', async () => {
     const user = userEvent.setup();
     const onClose = vi.fn();
