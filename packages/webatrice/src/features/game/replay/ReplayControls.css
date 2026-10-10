@@ -35,12 +35,16 @@
 
 /* Timeline: event-density silhouette with the played portion tinted, as on
  * desktop's ReplayTimelineWidget. */
-.replay-timeline {
+.replay-timeline__frame {
   position: relative;
   flex: 1;
   min-width: 120px;
-  height: 36px;
   margin: 0 8px;
+}
+
+.replay-timeline {
+  position: relative;
+  height: 36px;
   border: 1px solid rgb(var(--border-strong));
   border-radius: 4px;
   overflow: hidden;
@@ -65,3 +69,35 @@
   background: rgb(var(--accent-primary) / 0.35);
   pointer-events: none;
 }
+
+.replay-timeline__tick {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: 1px;
+  background: rgb(var(--border-strong));
+  pointer-events: none;
+}
+
+.replay-timeline__turns {
+  position: relative;
+  height: 14px;
+  margin: 2px 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.replay-timeline__turn {
+  position: absolute;
+  top: 0;
+  transform: translateX(-50%);
+  font-family: var(--font-mono);
+  font-size: 9px;
+  font-variant-numeric: tabular-nums;
+  color: rgb(var(--text-muted));
+}
+
+.replay-timeline__turn--played {
+  color: rgb(var(--text-secondary));
+}
+
