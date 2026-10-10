@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
-import { PanelRight, X } from 'lucide-react';
+import { ChevronsDownUp, ChevronsUpDown, PanelLeftClose, PanelRight, PanelRightClose, Rows4, Search, X } from 'lucide-react';
 
 import { server } from '@cockatrice/datatrice';
 
@@ -22,7 +22,9 @@ import { DeckHistoryControls } from './components/editor/DeckHistoryControls';
 import { DeckInspector } from './components/editor/DeckInspector';
 import { DeckLegalitySummary } from './components/editor/DeckLegalitySummary';
 import { DeckMainPane } from './components/editor/DeckMainPane';
-import { deckEditorGridStyle, WIDE_EDITOR_QUERY } from './components/editor/editorLayout';
+import { CollapsedPaneRail } from './components/editor/CollapsedPaneRail';
+import { deckEditorGridStyle } from './components/editor/editorLayout';
+import { PaneResizer } from './components/editor/PaneResizer';
 import {
   dockColorIdentity,
   inspectedRow,
@@ -50,7 +52,8 @@ import { useDeckPricing } from './hooks/useDeckPricing';
 import { useDeckShareCreate, useDeckSharingSupported } from './hooks/useDeckSharing';
 import { useBracketCache } from './hooks/useBracketCache';
 import { useInspectorPreview } from './hooks/useInspectorPreview';
-import { useMediaQuery } from './hooks/useMediaQuery';
+import { useDeckEditorLayout } from './hooks/useDeckEditorLayout';
+import { usePaneFocusHandoff } from './hooks/usePaneFocusHandoff';
 import type { DeckCard } from './types';
 
 const NO_CARDS: DeckCard[] = [];
@@ -69,7 +72,8 @@ const DeckEditor = () => {
   const [exportOpen, setExportOpen] = useState(false);
   const [playmatOpen, setPlaymatOpen] = useState(false);
   const [inspectorOpen, setInspectorOpen] = useState(false);
-  const wide = useMediaQuery(WIDE_EDITOR_QUERY);
+  const paneLayout = useDeckEditorLayout();
+  const paneFocus = usePaneFocusHandoff();
   const addFieldRef = useRef<HTMLInputElement>(null);
   const dockApi = useRef<CardSearchDockApi | null>(null);
   const onDockReady = useCallback((api: CardSearchDockApi) => {
@@ -176,24 +180,49 @@ const DeckEditor = () => {
     return <DeckEditorSkeleton loaded={preload.loaded} total={preload.total} />;
   }
 
-  const showInspector = wide || inspectorOpen;
+  const { layout, prefs } = paneLayout;
+  const docked = layout.inspectorDocked;
+  const dockCollapsed = prefs.dockCollapsed;
+  const inspectorCollapsed = docked && prefs.inspectorCollapsed;
+  const showInspector = docked ? !inspectorCollapsed : inspectorOpen;
+  const groupLabels = groups.map(({ label }) => label);
+  const allGroupsCollapsed = groupLabels.length > 0 && groupLabels.every((label) => paneLayout.collapsedGroups.has(label));
+  const collapsePane = (pane: 'dock' | 'inspector', collapsed: boolean) => {
+    paneLayout.setPaneCollapsed(pane, collapsed);
+    paneFocus.handOff(`${pane}-${collapsed ? 'expand' : 'collapse'}`);
+  };
+  const resetLayout = () => {
+    paneLayout.reset();
+    setInspectorOpen(false);
+  };
+
   const inspector = (
     <aside
       aria-label={t('DeckEditor.inspector.label')}
       className={[
         'flex min-h-0 w-[var(--deck-inspector-w)] flex-col gap-4 overflow-y-auto border-l border-border-subtle bg-bg-surface p-pad',
-        wide ? '' : 'absolute inset-y-0 right-0 z-20 shadow-pop',
+        docked ? '' : 'absolute inset-y-0 right-0 z-20 shadow-pop',
       ].join(' ')}
       onPointerEnter={preview.clear}
     >
-      {!wide && (
-        <div className="flex items-center">
-          <SectionLabel>{t('DeckEditor.inspector.label')}</SectionLabel>
+      <div className="-mb-2 flex items-center">
+        <SectionLabel>{t('DeckEditor.inspector.label')}</SectionLabel>
+        {docked ? (
+          <IconButton
+            ref={paneFocus.target('inspector-collapse')}
+            size="sm"
+            label={t('DeckEditor.inspector.close')}
+            className="ml-auto"
+            onClick={() => collapsePane('inspector', true)}
+          >
+            <PanelRightClose size={14} />
+          </IconButton>
+        ) : (
           <IconButton size="sm" label={t('DeckEditor.inspector.close')} className="ml-auto" onClick={() => setInspectorOpen(false)}>
             <X size={14} />
           </IconButton>
-        </div>
-      )}
+        )}
+      </div>
       {isMtg && (
         <>
           <DeckInspector
@@ -228,14 +257,24 @@ const DeckEditor = () => {
     <Layout>
       <AuthGuard />
       <div
+        ref={paneLayout.containerRef}
         className="relative grid h-full min-h-0 bg-bg-base"
-        style={deckEditorGridStyle(showInspector && wide)}
+        style={deckEditorGridStyle({ dock: layout.dockWidth, inspector: layout.inspectorWidth, inspectorColumn: docked })}
       >
         <aside
           aria-label={t('DeckEditor.dock.label')}
           className="flex min-h-0 flex-col overflow-hidden border-r border-border-subtle bg-bg-surface"
         >
-          {isMtg ? (
+          {dockCollapsed ? (
+            <CollapsedPaneRail
+              ref={paneFocus.target('dock-expand')}
+              side="left"
+              title={t('DeckEditor.dock.label')}
+              expandLabel={t('DeckEditor.layout.showDock')}
+              icon={<Search size={15} aria-hidden />}
+              onExpand={() => collapsePane('dock', false)}
+            />
+          ) : isMtg ? (
             <CardSearchDock
               onAdd={addCard}
               onPreview={previewSearchCard}
@@ -244,13 +283,46 @@ const DeckEditor = () => {
               colorIdentity={colorIdentity}
               format={editor.deck.format}
               deckCards={editor.deck.cards}
+              headerAction={(
+                <IconButton
+                  ref={paneFocus.target('dock-collapse')}
+                  size="sm"
+                  label={t('DeckEditor.layout.hideDock')}
+                  onClick={() => collapsePane('dock', true)}
+                >
+                  <PanelLeftClose size={14} />
+                </IconButton>
+              )}
             />
           ) : (
-            <div className="p-pad">
-              <PlainAddCard onAdd={(name) => addCard(name, 'main')} inputRef={addFieldRef} />
+            <div className="flex items-start gap-1 p-pad">
+              <div className="min-w-0 flex-1">
+                <PlainAddCard onAdd={(name) => addCard(name, 'main')} inputRef={addFieldRef} />
+              </div>
+              <IconButton
+                ref={paneFocus.target('dock-collapse')}
+                label={t('DeckEditor.layout.hideDock')}
+                onClick={() => collapsePane('dock', true)}
+              >
+                <PanelLeftClose size={15} />
+              </IconButton>
             </div>
           )}
         </aside>
+        {!dockCollapsed && (
+          <PaneResizer
+            label={t('DeckEditor.layout.resizeDock')}
+            hint={t('DeckEditor.layout.resizeHint')}
+            side="left"
+            width={layout.dockWidth}
+            range={layout.dockRange}
+            style={{ left: layout.dockWidth }}
+            onResize={(width) => paneLayout.setPaneWidth('dock', width)}
+            onResizeBy={(delta) => paneLayout.resizePaneBy('dock', delta)}
+            onReset={() => paneLayout.resetPaneWidth('dock')}
+            onCollapse={() => collapsePane('dock', true)}
+          />
+        )}
 
         <main className="relative flex min-h-0 min-w-0 flex-col">
           <DeckEditorHeader
@@ -298,7 +370,27 @@ const DeckEditor = () => {
             pricesLoading={pricing.loading}
             isMtg={isMtg}
             bracketLevel={bracketLevel}
-            trailing={!wide && (
+            onResetLayout={resetLayout}
+            viewControls={isMtg && groupLabels.length > 0 && (
+              <>
+                <IconButton
+                  size="sm"
+                  label={t(allGroupsCollapsed ? 'DeckEditor.layout.expandAll' : 'DeckEditor.layout.collapseAll')}
+                  onClick={() => paneLayout.setGroupsCollapsed(groupLabels, !allGroupsCollapsed)}
+                >
+                  {allGroupsCollapsed ? <ChevronsUpDown size={14} /> : <ChevronsDownUp size={14} />}
+                </IconButton>
+                <IconButton
+                  size="sm"
+                  label={t('DeckEditor.layout.compactRows')}
+                  active={prefs.density === 'compact'}
+                  onClick={() => paneLayout.setDensity(prefs.density === 'compact' ? 'comfortable' : 'compact')}
+                >
+                  <Rows4 size={14} />
+                </IconButton>
+              </>
+            )}
+            trailing={!docked && (
               <IconButton
                 label={t('DeckEditor.inspector.toggle')}
                 className="border border-border-subtle"
@@ -326,11 +418,38 @@ const DeckEditor = () => {
             isMtg={isMtg}
             isCommander={isCommander}
             legality={legality.rows}
+            density={prefs.density}
+            collapsedGroups={paneLayout.collapsedGroups}
+            onToggleGroup={(label) => paneLayout.setGroupsCollapsed([label], !paneLayout.collapsedGroups.has(label))}
           />
-          {showInspector && !wide && inspector}
+          {showInspector && !docked && inspector}
         </main>
 
-        {showInspector && wide && inspector}
+        {showInspector && docked && inspector}
+        {inspectorCollapsed && (
+          <CollapsedPaneRail
+            ref={paneFocus.target('inspector-expand')}
+            side="right"
+            title={t('DeckEditor.inspector.label')}
+            expandLabel={t('DeckEditor.inspector.toggle')}
+            icon={<PanelRight size={15} aria-hidden />}
+            onExpand={() => collapsePane('inspector', false)}
+          />
+        )}
+        {showInspector && docked && (
+          <PaneResizer
+            label={t('DeckEditor.layout.resizeInspector')}
+            hint={t('DeckEditor.layout.resizeHint')}
+            side="right"
+            width={layout.inspectorWidth}
+            range={layout.inspectorRange}
+            style={{ left: `calc(100% - ${layout.inspectorWidth}px)` }}
+            onResize={(width) => paneLayout.setPaneWidth('inspector', width)}
+            onResizeBy={(delta) => paneLayout.resizePaneBy('inspector', delta)}
+            onReset={() => paneLayout.resetPaneWidth('inspector')}
+            onCollapse={() => collapsePane('inspector', true)}
+          />
+        )}
       </div>
 
       <PrintingPickerDialog

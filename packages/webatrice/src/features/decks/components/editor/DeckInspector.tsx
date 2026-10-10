@@ -147,7 +147,7 @@ function CardSummary({ card, prices, children }: { card: DeckCard; prices: Price
             {(card.set || stats) && (
               <span>
                 {card.set && <span className="uppercase">{card.set}</span>}
-                {card.set && stats && ' · '}
+                {card.set && stats && ' Â· '}
                 {stats}
               </span>
             )}

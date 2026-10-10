@@ -13,7 +13,7 @@ export function DeckEditorSkeleton({ loaded, total }: { loaded: number; total: n
   return (
     <Layout>
       <AuthGuard />
-      <div className="grid h-full min-h-0 bg-bg-base" style={deckEditorGridStyle(true)}>
+      <div className="grid h-full min-h-0 bg-bg-base" style={deckEditorGridStyle({ inspectorColumn: true })}>
         <div className="flex flex-col gap-3 border-r border-border-subtle bg-bg-surface p-pad">
           <div className="h-9 w-full animate-pulse rounded-ui bg-bg-elevated" />
           {Array.from({ length: 8 }).map((_, i) => (

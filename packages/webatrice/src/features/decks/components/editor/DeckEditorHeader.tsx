@@ -1,7 +1,9 @@
 import { useRef, useState, type ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useNavigate } from 'react-router-dom';
-import { Check, CircleAlert, FolderOpen, Image as ImageIcon, Loader2, MoreHorizontal, Share2, Tag, Upload, Wallpaper } from 'lucide-react';
+import {
+  Check, CircleAlert, FolderOpen, Image as ImageIcon, LayoutTemplate, Loader2, MoreHorizontal, Share2, Tag, Upload, Wallpaper,
+} from 'lucide-react';
 
 import { Chip, Divider, IconButton, Menu, MenuItem, MenuSeparator, type MenuAnchor } from '@app/components';
 import { DialogShell } from '@app/dialogs';
@@ -41,6 +43,8 @@ export interface DeckEditorHeaderProps {
   isMtg: boolean;
   bracketLevel?: number;
   trailing?: ReactNode;
+  viewControls?: ReactNode;
+  onResetLayout?: () => void;
 }
 
 export function DeckEditorHeader({
@@ -65,6 +69,8 @@ export function DeckEditorHeader({
   isMtg,
   bracketLevel,
   trailing,
+  viewControls,
+  onResetLayout,
 }: DeckEditorHeaderProps) {
   const { t } = useTranslation();
   const navigate = useNavigate();
@@ -76,23 +82,26 @@ export function DeckEditorHeader({
 
   return (
     <header className="flex shrink-0 flex-col gap-2.5 border-b border-border-subtle px-5 py-3.5">
-      <div className="flex items-center gap-3">
-        <div className="flex min-w-0 flex-1 flex-col">
-          <span className="flex items-center gap-1.5 text-[12px] text-text-muted">
+      <div className="flex flex-wrap items-center gap-x-3 gap-y-2">
+        <div className="flex min-w-[14rem] flex-[1_1_16rem] flex-col">
+          <span className="flex min-w-0 items-center gap-1.5 whitespace-nowrap text-[12px] text-text-muted">
             <button
               type="button"
               onClick={() => navigate(RouteEnum.DECKS)}
-              className="rounded-ui-sm hover:text-accent focus-visible:outline focus-visible:outline-2 focus-visible:outline-accent"
+              className={[
+                'shrink-0 rounded-ui-sm hover:text-accent',
+                'focus-visible:outline focus-visible:outline-2 focus-visible:outline-accent',
+              ].join(' ')}
             >
               {t('DeckHeader.myDecks')}
             </button>
             <span aria-hidden>·</span>
-            <span className="tabular-nums">
+            <span className="truncate tabular-nums">
               {t('DeckHeader.cardCount', { count: totalMainboardCount })}
               {totalSideboardCount > 0 && <> · {t('DeckHeader.sideboardCount', { count: totalSideboardCount })}</>}
             </span>
           </span>
-          <div className="flex min-w-0 items-center gap-2.5">
+          <div className="flex min-w-0 flex-wrap items-center gap-x-2.5">
             <input
               type="text"
               value={deck.name}
@@ -100,7 +109,7 @@ export function DeckEditorHeader({
               placeholder={t('DeckHeader.namePlaceholder')}
               aria-label={t('DeckHeader.name')}
               className={[
-                'min-w-0 flex-1 truncate rounded-ui-sm bg-transparent font-display text-[22px] font-semibold leading-tight',
+                'min-w-[10rem] flex-1 truncate rounded-ui-sm bg-transparent font-display text-[22px] font-semibold leading-tight',
                 'text-text-primary placeholder:text-text-muted focus:bg-bg-elevated focus:outline-none',
                 'focus-visible:outline focus-visible:outline-2 focus-visible:outline-accent',
               ].join(' ')}
@@ -110,7 +119,7 @@ export function DeckEditorHeader({
             </span>
           </div>
         </div>
-        <div className="ml-auto flex shrink-0 items-center gap-2">
+        <div className="ml-auto flex shrink-0 flex-wrap items-center justify-end gap-2">
           {history}
           <Divider vertical />
           <IconButton label={t('DeckHeader.export')} className="border border-border-subtle" onClick={onExport}>
@@ -139,7 +148,7 @@ export function DeckEditorHeader({
         </div>
       </div>
 
-      <div className="flex min-w-0 items-center gap-2">
+      <div className="flex min-w-0 flex-wrap items-center gap-2">
         <div className="w-44 shrink-0">
           <FormatPicker value={deck.format} onChange={onFormatChange} variant="sidebar" />
         </div>
@@ -162,6 +171,7 @@ export function DeckEditorHeader({
             ))}
           </ul>
         )}
+        {viewControls && <div className="ml-auto flex shrink-0 items-center gap-1">{viewControls}</div>}
       </div>
 
       {moreAnchor && (
@@ -185,6 +195,14 @@ export function DeckEditorHeader({
           <MenuItem icon={<Wallpaper size={13} />} onSelect={onEditPlaymat}>
             {t('DeckHeader.playmat')}
           </MenuItem>
+          {onResetLayout && (
+            <>
+              <MenuSeparator />
+              <MenuItem icon={<LayoutTemplate size={13} />} onSelect={onResetLayout}>
+                {t('DeckHeader.resetLayout')}
+              </MenuItem>
+            </>
+          )}
         </Menu>
       )}
 
