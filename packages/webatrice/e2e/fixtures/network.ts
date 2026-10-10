@@ -13,7 +13,7 @@ import { DefaultHosts } from '../../src/utils/HostService';
 // list, Scryfall card data and images, Google Fonts — is either stubbed here
 // or refused, so a run never depends on (or leaks traffic to) the internet.
 // Without this, the login screen's automatic test-connection against the
-// first default host (Chickatrice) made `app-boots` fail whenever that server
+// first default host made `app-boots` fail whenever that server
 // was slow or refused the TLS handshake.
 //
 // Known external traffic gets a deterministic stand-in: the Scryfall routes

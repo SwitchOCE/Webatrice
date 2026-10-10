@@ -1,15 +1,15 @@
 import { Host } from '@app/types';
 export const DefaultHosts: Host[] = [
   {
-    name: 'Chickatrice',
-    host: 'mtg.chickatrice.net',
-    port: '443',
-    editable: false,
-  },
-  {
     name: 'Rooster',
     host: 'server.cockatrice.us/servatrice',
     port: '4748',
+    editable: false,
+  },
+  {
+    name: 'Chickatrice',
+    host: 'mtg.chickatrice.net',
+    port: '443',
     editable: false,
   },
   {

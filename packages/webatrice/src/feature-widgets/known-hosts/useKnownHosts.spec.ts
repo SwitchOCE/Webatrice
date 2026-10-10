@@ -146,6 +146,32 @@ describe('useKnownHosts', () => {
     // @critical normalize() seed-selection is in-memory only — persisted on select()/remove()
   });
 
+  test('falls back to the preferred default host, not the first row, when nothing was picked', async () => {
+    stored = [
+      { id: 1, name: 'B', host: 'b.x', port: '2', editable: false },
+      { id: 2, name: 'A', host: 'a.x', port: '1', editable: false },
+    ];
+    nextId = 3;
+
+    const { result } = renderHook(() => useKnownHostsModule.useKnownHosts());
+    await waitFor(() => expect(result.current.status).toBe(LoadingState.READY));
+
+    expect(result.current.value?.selectedHost.name).toBe('A');
+  });
+
+  test('keeps the host a returning user picked over the preferred default', async () => {
+    stored = [
+      { id: 1, name: 'B', host: 'b.x', port: '2', editable: false, lastSelected: true },
+      { id: 2, name: 'A', host: 'a.x', port: '1', editable: false },
+    ];
+    nextId = 3;
+
+    const { result } = renderHook(() => useKnownHostsModule.useKnownHosts());
+    await waitFor(() => expect(result.current.status).toBe(LoadingState.READY));
+
+    expect(result.current.value?.selectedHost.name).toBe('B');
+  });
+
   test('select(id) flips lastSelected atomically — exactly one row true', async () => {
     stored = [
       { id: 1, name: 'A', host: 'a', port: '1', editable: false, lastSelected: true },

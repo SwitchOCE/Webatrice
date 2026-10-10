@@ -18,9 +18,14 @@ const loadAll = async (): Promise<HostDTO[]> => {
   return hosts;
 };
 
+const fallbackHost = (hosts: HostDTO[]): HostDTO => {
+  const [preferred] = DefaultHosts;
+  return hosts.find((h) => h.host === preferred?.host && h.port === preferred?.port) ?? hosts[0];
+};
+
 const normalize = (hosts: HostDTO[]): KnownHostsValue => {
   const existing = hosts.find((h) => h.lastSelected);
-  return { hosts, selectedHost: existing ?? hosts[0] };
+  return { hosts, selectedHost: existing ?? fallbackHost(hosts) };
 };
 
 export const knownHostsStore = createSharedStore<KnownHostsValue>(async () => {
@@ -97,7 +102,7 @@ const remove = async (id: number): Promise<void> => {
   const next = hosts.filter((h) => h.id !== id);
   let nextSelected = selectedHost;
   if (selectedHost.id === id) {
-    nextSelected = next[0];
+    nextSelected = fallbackHost(next);
     if (nextSelected) {
       nextSelected.lastSelected = true;
       await nextSelected.save();
