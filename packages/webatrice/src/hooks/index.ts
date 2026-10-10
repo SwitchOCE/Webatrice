@@ -40,3 +40,5 @@ export * from './useApplyCardPresentation';
 export * from './useUnreadCounts';
 export * from './useMarkRead';
 export * from './useRecentDecks';
+export * from './useNotificationLog';
+export * from './useUnreadTracker';

@@ -1,0 +1,189 @@
+import { onSessionEnd } from '@app/services/session';
+
+export type NotificationKind = 'message' | 'mention' | 'buddy' | 'game' | 'report';
+
+export type NotificationTarget =
+  | { type: 'chat'; userName: string }
+  | { type: 'room'; roomId: number }
+  | { type: 'game'; gameId: number }
+  | { type: 'route'; path: string };
+
+export interface NotificationInput {
+  kind: NotificationKind;
+  target: NotificationTarget;
+  actor?: string;
+  place?: string;
+  title?: string;
+  body?: string;
+  seats?: { taken: number; max: number };
+}
+
+export interface NotificationEntry extends NotificationInput {
+  id: number;
+  time: number;
+  read: boolean;
+}
+
+export type UnreadScope = 'rooms' | 'games' | 'chats';
+
+export interface NotificationState {
+  entries: readonly NotificationEntry[];
+  rooms: Readonly<Record<number, number>>;
+  games: Readonly<Record<number, number>>;
+  chats: Readonly<Record<string, number>>;
+  seq: number;
+  drawerOpen: boolean;
+}
+
+export type NotificationAction =
+  | { type: 'append'; entry: NotificationInput; time: number; read: boolean }
+  | { type: 'markEntryRead'; id: number }
+  | { type: 'markAllRead' }
+  | { type: 'bump'; scope: UnreadScope; key: number | string }
+  | { type: 'clear'; scope: UnreadScope; key: number | string }
+  | { type: 'setDrawer'; open: boolean };
+
+export const MAX_ENTRIES = 200;
+
+export const initialNotificationState: NotificationState = {
+  entries: [],
+  rooms: {},
+  games: {},
+  chats: {},
+  seq: 0,
+  drawerOpen: false,
+};
+
+const TARGET_SCOPE: Record<NotificationTarget['type'], UnreadScope | null> = {
+  chat: 'chats',
+  room: 'rooms',
+  game: 'games',
+  route: null,
+};
+
+function targetKey(target: NotificationTarget): number | string | null {
+  switch (target.type) {
+    case 'chat':
+      return target.userName;
+    case 'room':
+      return target.roomId;
+    case 'game':
+      return target.gameId;
+    default:
+      return null;
+  }
+}
+
+export function targetsMatch(target: NotificationTarget, scope: UnreadScope, key: number | string): boolean {
+  return TARGET_SCOPE[target.type] === scope && targetKey(target) === key;
+}
+
+function withoutKey<T>(record: Readonly<Record<string | number, T>>, key: number | string) {
+  if (!(key in record)) {
+    return record;
+  }
+  const next = { ...record };
+  delete next[key];
+  return next;
+}
+
+function markEntries(entries: readonly NotificationEntry[], match: (entry: NotificationEntry) => boolean) {
+  if (!entries.some((entry) => !entry.read && match(entry))) {
+    return entries;
+  }
+  return entries.map((entry) => (!entry.read && match(entry) ? { ...entry, read: true } : entry));
+}
+
+export function notificationReducer(state: NotificationState, action: NotificationAction): NotificationState {
+  switch (action.type) {
+    case 'append': {
+      const seq = state.seq + 1;
+      const entry: NotificationEntry = { ...action.entry, id: seq, time: action.time, read: action.read };
+      return { ...state, seq, entries: [entry, ...state.entries].slice(0, MAX_ENTRIES) };
+    }
+    case 'markEntryRead': {
+      const entries = markEntries(state.entries, (entry) => entry.id === action.id);
+      return entries === state.entries ? state : { ...state, entries };
+    }
+    case 'markAllRead': {
+      const entries = markEntries(state.entries, () => true);
+      return entries === state.entries ? state : { ...state, entries };
+    }
+    case 'bump': {
+      const counts = state[action.scope] as Record<string | number, number>;
+      return { ...state, [action.scope]: { ...counts, [action.key]: (counts[action.key] ?? 0) + 1 } };
+    }
+    case 'clear': {
+      const before = state[action.scope] as Record<string | number, number>;
+      const counts = withoutKey(before, action.key);
+      const entries = markEntries(state.entries, (entry) => targetsMatch(entry.target, action.scope, action.key));
+      if (counts === before && entries === state.entries) {
+        return state;
+      }
+      return { ...state, [action.scope]: counts, entries };
+    }
+    case 'setDrawer':
+      return state.drawerOpen === action.open ? state : { ...state, drawerOpen: action.open };
+    default:
+      return state;
+  }
+}
+
+export interface NotificationStore {
+  getState: () => NotificationState;
+  subscribe: (listener: () => void) => () => void;
+  dispatch: (action: NotificationAction) => void;
+  reset: () => void;
+}
+
+export function createNotificationStore(): NotificationStore {
+  let state = initialNotificationState;
+  const listeners = new Set<() => void>();
+  const emit = () => listeners.forEach((listener) => listener());
+  return {
+    getState: () => state,
+    subscribe: (listener) => {
+      listeners.add(listener);
+      return () => {
+        listeners.delete(listener);
+      };
+    },
+    dispatch: (action) => {
+      const next = notificationReducer(state, action);
+      if (next !== state) {
+        state = next;
+        emit();
+      }
+    },
+    reset: () => {
+      state = initialNotificationState;
+      emit();
+    },
+  };
+}
+
+export const notificationStore = createNotificationStore();
+
+const chatSeen = new Map<string, number>();
+let chatSeenTick = 0;
+
+export function markChatSeen(userName: string): void {
+  chatSeenTick += 1;
+  chatSeen.set(userName, chatSeenTick);
+  notificationStore.dispatch({ type: 'clear', scope: 'chats', key: userName });
+}
+
+export function afterChatRender(userName: string, callback: (seen: boolean) => void): void {
+  const mark = chatSeenTick;
+  window.setTimeout(() => callback((chatSeen.get(userName) ?? 0) > mark), 0);
+}
+
+export function logNotification(entry: NotificationInput, read = false, time = Date.now()): number {
+  notificationStore.dispatch({ type: 'append', entry, time, read });
+  return notificationStore.getState().seq;
+}
+
+onSessionEnd(() => {
+  chatSeen.clear();
+  notificationStore.reset();
+});

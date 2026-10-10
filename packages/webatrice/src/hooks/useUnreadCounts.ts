@@ -1,13 +1,9 @@
-export interface UnreadCounts {
-  rooms: Readonly<Record<number, number>>;
-  games: Readonly<Record<number, number>>;
-  chats: Readonly<Record<string, number>>;
-  notifications: number;
-  total: number;
-}
+import { selectUnreadCounts, type UnreadCounts } from '@app/services';
 
-const NONE: UnreadCounts = { rooms: {}, games: {}, chats: {}, notifications: 0, total: 0 };
+import { useNotificationLog } from './useNotificationLog';
+
+export type { UnreadCounts };
 
 export function useUnreadCounts(): UnreadCounts {
-  return NONE;
+  return selectUnreadCounts(useNotificationLog());
 }

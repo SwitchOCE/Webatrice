@@ -1,7 +1,7 @@
 import { act, screen } from '@testing-library/react';
 import { create } from '@bufbuild/protobuf';
 import { games, rooms, server } from '@cockatrice/datatrice';
-import { makeGameEntry, makePlayerEntry, makePlayerProperties } from '@cockatrice/datatrice/testing';
+import { makeGameEntry, makeGameInfo, makePlayerEntry, makePlayerProperties } from '@cockatrice/datatrice/testing';
 import { Event_RoomSay_RoomMessageType, Event_RoomSaySchema } from '@cockatrice/sockatrice/generated';
 
 import { connectedWithRoomsState, makeUser, renderWithProviders } from '../../../__test-utils__';
@@ -11,6 +11,7 @@ import { soundEngine } from '../../../services/sound/SoundEngine';
 import { ATTENTION_MARKER } from '../../../services/notifications/NotificationService';
 import type { Preferences } from '../../../types';
 import AppAlerts from './AppAlerts';
+import { notificationStore } from '../../../services/notifications/notificationStore';
 
 vi.mock('../../../hooks/playSound');
 
@@ -24,6 +25,7 @@ const preloadedState = {
   games: {
     games: {
       1: makeGameEntry({
+        info: makeGameInfo({ description: 'casual evening', maxPlayers: 2 }),
         localPlayerId: 1,
         players: { 1: makePlayerEntry({ properties: makePlayerProperties({ playerId: 1 }) }) },
       }),
@@ -50,6 +52,7 @@ describe('AppAlerts', () => {
   beforeEach(async () => {
     vi.spyOn(document, 'hasFocus').mockReturnValue(true);
     document.title = 'Webatrice';
+    notificationStore.reset();
     settingsStore.reset();
     await getSettings();
   });
@@ -83,6 +86,25 @@ describe('AppAlerts', () => {
       });
       expect(document.title).toBe('Webatrice');
     });
+
+    it('announces your game is ready when the last seat fills, once', () => {
+      const { store } = renderAlerts();
+      const join = (playerId: number, spectator = false) => act(() => {
+        store.dispatch(games.Actions.playerJoined({ gameId: 1, playerProperties: makePlayerProperties({ playerId, spectator }) }));
+      });
+
+      join(5, true);
+      expect(notificationStore.getState().entries).toHaveLength(0);
+
+      join(2);
+      expect(notificationStore.getState().entries).toEqual([
+        expect.objectContaining({ kind: 'game', place: 'casual evening', seats: { taken: 2, max: 2 } }),
+      ]);
+      expect(screen.getByRole('button', { name: 'Notifications.action.game' })).toBeInTheDocument();
+
+      join(3, true);
+      expect(notificationStore.getState().entries).toHaveLength(1);
+    });
   });
 
   describe('room mentions', () => {
@@ -93,7 +115,8 @@ describe('AppAlerts', () => {
       });
 
       expect(playSound).toHaveBeenCalledWith('chat_mention');
-      expect(screen.getByText(/AppAlerts\.mention/)).toBeInTheDocument();
+      expect(screen.getByText(/Notifications\.toastTitle/)).toBeInTheDocument();
+      expect(notificationStore.getState().entries[0]).toMatchObject({ kind: 'mention', actor: 'otherUser', read: false });
     });
 
     it('only plays the sound while you are reading that room', () => {
@@ -103,7 +126,8 @@ describe('AppAlerts', () => {
       });
 
       expect(playSound).toHaveBeenCalledWith('chat_mention');
-      expect(screen.queryByText(/AppAlerts\.mention/)).not.toBeInTheDocument();
+      expect(screen.queryByText(/Notifications\.toastTitle/)).not.toBeInTheDocument();
+      expect(notificationStore.getState().entries[0]).toMatchObject({ kind: 'mention', read: true });
     });
 
     it('stays quiet for history, your own lines and lines without a mention', () => {
@@ -122,7 +146,7 @@ describe('AppAlerts', () => {
         store.dispatch(roomSay('pest', 'hey @testUser'));
       });
       expect(playSound).not.toHaveBeenCalled();
-      expect(screen.queryByText(/AppAlerts\.mention/)).not.toBeInTheDocument();
+      expect(screen.queryByText(/Notifications\.toastTitle/)).not.toBeInTheDocument();
     });
 
     it('raises nothing for the client’s own flood or not-sent notices', () => {
@@ -131,7 +155,7 @@ describe('AppAlerts', () => {
         store.dispatch(rooms.Actions.roomSayFailed({ roomId: 1, message: '@testUser hi', responseCode: 18, timeReceived: 1 }));
       });
       expect(playSound).not.toHaveBeenCalled();
-      expect(screen.queryByText(/AppAlerts\.mention/)).not.toBeInTheDocument();
+      expect(screen.queryByText(/Notifications\.toastTitle/)).not.toBeInTheDocument();
     });
 
     it('respects the mention and popup preferences', async () => {
@@ -141,7 +165,7 @@ describe('AppAlerts', () => {
         store.dispatch(roomSay('otherUser', 'hey @testUser'));
       });
       expect(playSound).toHaveBeenCalledWith('chat_mention');
-      expect(screen.queryByText(/AppAlerts\.mention/)).not.toBeInTheDocument();
+      expect(screen.queryByText(/Notifications\.toastTitle/)).not.toBeInTheDocument();
 
       vi.mocked(playSound).mockClear();
       await act(async () => {
@@ -185,7 +209,7 @@ describe('AppAlerts', () => {
         store.dispatch(server.Actions.userJoined({ user: makeUser({ name: 'alice' }) }));
       });
       expect(playSound).toHaveBeenCalledWith('buddy_join');
-      expect(screen.queryByText(/AppAlerts\.buddySignedOn/)).not.toBeInTheDocument();
+      expect(screen.queryByText(/Notifications\.title\.buddy/)).not.toBeInTheDocument();
     });
 
     it('plays the buddy sounds and announces a buddy signing on', () => {
@@ -194,7 +218,7 @@ describe('AppAlerts', () => {
         store.dispatch(server.Actions.userJoined({ user: makeUser({ name: 'alice' }) }));
       });
       expect(playSound).toHaveBeenCalledWith('buddy_join');
-      expect(screen.getByText(/AppAlerts\.buddySignedOn/)).toBeInTheDocument();
+      expect(screen.getByText(/Notifications\.title\.buddy/)).toBeInTheDocument();
 
       act(() => {
         store.dispatch(server.Actions.userLeft({ name: 'alice' }));
@@ -208,7 +232,7 @@ describe('AppAlerts', () => {
         store.dispatch(server.Actions.userJoined({ user: makeUser({ name: 'stranger' }) }));
       });
       expect(playSound).not.toHaveBeenCalled();
-      expect(screen.queryByText(/AppAlerts\.buddySignedOn/)).not.toBeInTheDocument();
+      expect(screen.queryByText(/Notifications\.title\.buddy/)).not.toBeInTheDocument();
     });
 
     it('keeps the sound but skips the announcement when buddy notifications are off', async () => {
@@ -218,7 +242,7 @@ describe('AppAlerts', () => {
         store.dispatch(server.Actions.userJoined({ user: makeUser({ name: 'alice' }) }));
       });
       expect(playSound).toHaveBeenCalledWith('buddy_join');
-      expect(screen.queryByText(/AppAlerts\.buddySignedOn/)).not.toBeInTheDocument();
+      expect(screen.queryByText(/Notifications\.title\.buddy/)).not.toBeInTheDocument();
     });
   });
 });

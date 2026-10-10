@@ -34,7 +34,17 @@ export { default as DeveloperGuard } from './Guard/DeveloperGuard';
 
 export { default as Toast, useToast, usePushToast, ToastProvider } from './Toast';
 export { ErrorBoundary, ErrorFallback, RouteErrorBoundary } from './ErrorBoundary';
-export { NotificationToast, useNotify } from './Notifications';
+export {
+  NotificationToast,
+  NotificationLead,
+  useNotify,
+  useOpenNotification,
+  targetPath,
+  actionLabel,
+  entryAge,
+  entryBody,
+  entryTitle,
+} from './Notifications';
 export type { NotifyOptions, NotifyResult } from './Notifications';
 export { default as PlaymatImage } from './PlaymatImage/PlaymatImage';
 export { GameLinkButton, GameLinkJoinHost, renderGameLinks, requestGameLinkJoin } from './GameLink';

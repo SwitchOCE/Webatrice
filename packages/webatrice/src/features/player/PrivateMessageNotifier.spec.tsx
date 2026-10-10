@@ -7,6 +7,7 @@ import { connectedState, makeUser, renderWithProviders } from '../../__test-util
 import { playSound } from '../../hooks/playSound';
 import { getSettings, settingsStore } from '../../hooks/useSettings';
 import PrivateMessageNotifier from './PrivateMessageNotifier';
+import { markChatSeen, notificationStore } from '../../services/notifications/notificationStore';
 import { chatFilterVerdicts } from '../../utils/chatFilters';
 
 vi.mock('../../hooks/playSound');
@@ -33,18 +34,28 @@ const state = {
   },
 };
 
-const receive = (store: { dispatch: (action: unknown) => unknown }, senderName: string, message: string) =>
-  act(() => {
+const settle = () => new Promise((resolve) => setTimeout(resolve, 0));
+
+const receive = (
+  store: { dispatch: (action: unknown) => unknown },
+  senderName: string,
+  message: string,
+  whileRendering?: () => void,
+) =>
+  act(async () => {
     store.dispatch(server.Actions.userMessage({
       timeReceived: 123,
       messageData: create(Event_UserMessageSchema, { senderName, receiverName: 'me', message }),
     }));
+    whileRendering?.();
+    await settle();
   });
 
 const renderNotifier = (route = '/') => renderWithProviders(<PrivateMessageNotifier />, { preloadedState: state, route });
 
 describe('PrivateMessageNotifier', () => {
   beforeEach(async () => {
+    notificationStore.reset();
     vi.spyOn(document, 'hasFocus').mockReturnValue(true);
     FakeNotification.instances = [];
     vi.stubGlobal('Notification', FakeNotification);
@@ -73,6 +84,7 @@ describe('PrivateMessageNotifier', () => {
       expect(chatFilterVerdicts.get(stored)).toBe(visible);
       store.dispatch(server.Actions.userLeft({ name: 'alice' }));
     });
+    await act(settle);
     expect(Boolean(screen.queryByText('arrival'))).toBe(visible);
   });
 
@@ -80,13 +92,14 @@ describe('PrivateMessageNotifier', () => {
     vi.unstubAllGlobals();
   });
 
-  it('toasts and plays the private-message sound for a new message, not for history', () => {
+  it('toasts and plays the private-message sound for a new message, not for history', async () => {
     const { store } = renderNotifier();
-    expect(screen.queryByText(/PrivateMessageNotifier\.title/)).not.toBeInTheDocument();
+    expect(screen.queryByTestId('toast')).not.toBeInTheDocument();
 
-    receive(store, 'alice', 'hello there');
+    await receive(store, 'alice', 'hello there');
 
-    expect(screen.getByText(/PrivateMessageNotifier\.title/)).toBeInTheDocument();
+    expect(screen.getByTestId('toast')).toHaveTextContent('Notifications.toastTitle');
+    expect(notificationStore.getState().entries[0]).toMatchObject({ kind: 'message', actor: 'alice', read: false });
     expect(screen.getByText('hello there')).toBeInTheDocument();
     expect(playSound).toHaveBeenCalledWith('private_message');
   });
@@ -103,30 +116,30 @@ describe('PrivateMessageNotifier', () => {
     expect(playSound).not.toHaveBeenCalled();
   });
 
-  it('stays quiet while you are reading that conversation', () => {
+  it('stays quiet while you are reading that conversation', async () => {
     const { store } = renderNotifier('/player/alice');
-    receive(store, 'alice', 'hello there');
+    await receive(store, 'alice', 'hello there');
 
     expect(screen.queryByText('hello there')).not.toBeInTheDocument();
     expect(playSound).not.toHaveBeenCalled();
   });
 
-  it('uses an OS notification instead of a toast while the tab is hidden', () => {
+  it('uses an OS notification instead of a toast while the tab is hidden', async () => {
     vi.spyOn(document, 'hidden', 'get').mockReturnValue(true);
     const { store } = renderNotifier();
 
-    receive(store, 'alice', 'are you there?');
+    await receive(store, 'alice', 'are you there?');
 
     expect(FakeNotification.instances).toHaveLength(1);
     expect(FakeNotification.instances[0].options).toMatchObject({ body: 'are you there?', tag: 'pm:alice' });
     expect(screen.queryByText('are you there?')).not.toBeInTheDocument();
   });
 
-  it('notifies for the open conversation when the visible window loses focus', () => {
+  it('notifies for the open conversation when the visible window loses focus', async () => {
     vi.spyOn(document, 'hidden', 'get').mockReturnValue(false);
     vi.spyOn(document, 'hasFocus').mockReturnValue(false);
     const { store } = renderNotifier('/player/alice');
-    receive(store, 'alice', 'window is inactive');
+    await receive(store, 'alice', 'window is inactive');
     expect(FakeNotification.instances[0]?.options.body).toBe('window is inactive');
   });
 
@@ -137,10 +150,20 @@ describe('PrivateMessageNotifier', () => {
     settingsStore.setValue(settings);
     const { store } = renderNotifier();
 
-    receive(store, 'alice', 'are you there?');
+    await receive(store, 'alice', 'are you there?');
 
     expect(FakeNotification.instances).toHaveLength(0);
     expect(screen.getByText('are you there?')).toBeInTheDocument();
+  });
+
+  it('skips the toast and sound for a chat the dock already shows, logging it as read', async () => {
+    const { store } = renderNotifier();
+
+    await receive(store, 'alice', 'seen in the dock', () => markChatSeen('alice'));
+
+    expect(screen.queryByTestId('toast')).not.toBeInTheDocument();
+    expect(playSound).not.toHaveBeenCalled();
+    expect(notificationStore.getState().entries[0]).toMatchObject({ actor: 'alice', read: true });
   });
 
   it('raises nothing for a message the Chat preferences filter out', async () => {
@@ -149,7 +172,7 @@ describe('PrivateMessageNotifier', () => {
     settingsStore.setValue(settings);
     const { store } = renderNotifier();
 
-    receive(store, 'alice', 'filtered');
+    await receive(store, 'alice', 'filtered');
 
     expect(screen.queryByText('filtered')).not.toBeInTheDocument();
     expect(playSound).not.toHaveBeenCalled();

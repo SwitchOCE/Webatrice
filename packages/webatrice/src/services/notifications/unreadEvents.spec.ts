@@ -1,0 +1,72 @@
+import { create } from '@bufbuild/protobuf';
+import { games, rooms, server } from '@cockatrice/datatrice';
+import { makeGameEntry, makePlayerEntry, makePlayerProperties } from '@cockatrice/datatrice/testing';
+import { Event_RoomSay_RoomMessageType, Event_UserMessageSchema } from '@cockatrice/sockatrice/generated';
+
+import { connectedWithRoomsState, makeUser } from '../../__test-utils__';
+import type { RootState } from '@app/store';
+
+import { currentView, unreadChange, type VisibilityChecks } from './unreadEvents';
+
+const state = {
+  ...connectedWithRoomsState,
+  server: { ...connectedWithRoomsState.server!, user: makeUser({ name: 'me' }) },
+  games: {
+    games: {
+      4: makeGameEntry({
+        localPlayerId: 1,
+        players: {
+          1: makePlayerEntry({ properties: makePlayerProperties({ playerId: 1 }) }),
+          2: makePlayerEntry({ properties: makePlayerProperties({ playerId: 2 }) }),
+        },
+      }),
+    },
+    pings: {},
+  },
+} as unknown as RootState;
+
+const visible: VisibilityChecks = { roomMessage: () => true, privateMessage: () => true };
+const change = (action: { type: string; payload: unknown }, pathname = '/', checks = visible) =>
+  unreadChange(action, state, state, currentView(pathname), checks);
+
+const roomLine = (name: string, messageType = Event_RoomSay_RoomMessageType.UserMessage) =>
+  rooms.Actions.addMessage({ roomId: 1, message: { name, message: 'hi', messageType, timeReceived: 0 } as never });
+
+describe('currentView', () => {
+  it('reads the room, game or conversation on screen from the route', () => {
+    expect(currentView('/room/3')).toEqual({ roomId: 3, gameId: undefined, chatPeer: undefined });
+    expect(currentView('/game/9')).toMatchObject({ gameId: 9 });
+    expect(currentView('/player/bob')).toMatchObject({ chatPeer: 'bob' });
+  });
+});
+
+describe('unreadChange', () => {
+  it('counts room lines from others in rooms you are not viewing', () => {
+    expect(change(roomLine('bob'))).toEqual({ op: 'bump', scope: 'rooms', key: 1 });
+    expect(change(roomLine('bob'), '/room/1')).toBeNull();
+    expect(change(roomLine('me'))).toBeNull();
+    expect(change(roomLine('bob', Event_RoomSay_RoomMessageType.ChatHistory))).toBeNull();
+    expect(change(roomLine('bob'), '/', { ...visible, roomMessage: () => false })).toBeNull();
+    expect(change(rooms.Actions.leaveRoom({ roomId: 1 }))).toEqual({ op: 'clear', scope: 'rooms', key: 1 });
+  });
+
+  it('counts private messages by sender unless that conversation is open', () => {
+    const pm = (senderName: string) => server.Actions.userMessage({
+      timeReceived: 0,
+      messageData: create(Event_UserMessageSchema, { senderName, receiverName: 'me', message: 'yo' }),
+    });
+    expect(change(pm('bob'))).toEqual({ op: 'bump', scope: 'chats', key: 'bob' });
+    expect(change(pm('bob'), '/player/bob')).toBeNull();
+    expect(change(pm('me'))).toBeNull();
+  });
+
+  it('counts game chat and seat changes from others in games you are not viewing', () => {
+    const say = (playerId: number) => games.Actions.gameSay({ gameId: 4, playerId, message: 'gg', timeReceived: 0 } as never);
+    expect(change(say(2))).toEqual({ op: 'bump', scope: 'games', key: 4 });
+    expect(change(say(1))).toBeNull();
+    expect(change(say(2), '/game/4')).toBeNull();
+    const left = games.Actions.playerLeft({ gameId: 4, playerId: 2, reason: 0 } as never);
+    expect(change(left)).toEqual({ op: 'bump', scope: 'games', key: 4 });
+    expect(change(games.Actions.gameLeft({ gameId: 4 }))).toEqual({ op: 'clear', scope: 'games', key: 4 });
+  });
+});

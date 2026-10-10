@@ -1,7 +1,7 @@
 import type { ReactNode } from 'react';
 import type { LucideIcon } from 'lucide-react';
 
-import type { ToastSeverity } from './Toast';
+import type { ToastActionButton, ToastSeverity } from './Toast';
 
 export const ACTIONS = {
   ADD_TOAST: 'ADD_TOAST',
@@ -15,13 +15,14 @@ export interface ToastEntry {
   isOpen: boolean;
   children: ReactNode;
   refs: number;
-  // Optional icon override — passed straight through to Toast. Null
-  // means "use severity default" (which today is a green checkmark).
   icon?: LucideIcon;
   severity?: ToastSeverity;
-  persistent?: boolean;
+  lead?: ReactNode;
+  action?: ToastActionButton;
   pushed?: boolean;
 }
+
+export const MAX_PUSHED_TOASTS = 3;
 
 export interface ToastState {
   toasts: Record<string, ToastEntry>;
@@ -39,7 +40,8 @@ export type ToastAction =
       children: ReactNode;
       icon?: LucideIcon;
       severity?: ToastSeverity;
-      persistent?: boolean;
+      lead?: ReactNode;
+      action?: ToastActionButton;
       pushed?: boolean;
     };
   }
@@ -51,17 +53,19 @@ export type ToastAction =
 export function reducer(state: ToastState, action: ToastAction): ToastState {
   switch (action.type) {
     case ACTIONS.ADD_TOAST: {
-      const { key, children, icon, severity, persistent, pushed } = action.payload;
+      const { key, children, icon, severity, lead, action: button, pushed } = action.payload;
       const existing = state.toasts[key];
-      return {
-        ...state,
-        toasts: {
-          ...state.toasts,
-          [key]: existing
-            ? { ...existing, refs: existing.refs + 1 }
-            : { isOpen: false, children, refs: 1, icon, severity, persistent, pushed },
-        },
+      const toasts = {
+        ...state.toasts,
+        [key]: existing
+          ? { ...existing, refs: existing.refs + 1 }
+          : { isOpen: false, children, refs: 1, icon, severity, lead, action: button, pushed },
       };
+      if (pushed && !existing) {
+        const pushedKeys = Object.keys(toasts).filter((k) => toasts[k].pushed);
+        pushedKeys.slice(0, Math.max(0, pushedKeys.length - MAX_PUSHED_TOASTS)).forEach((k) => delete toasts[k]);
+      }
+      return { ...state, toasts };
     }
     case ACTIONS.OPEN_TOAST: {
       const { key, children, icon } = action.payload;
