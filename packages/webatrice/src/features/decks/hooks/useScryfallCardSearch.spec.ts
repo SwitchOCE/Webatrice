@@ -3,10 +3,13 @@ import { act, renderHook } from '@testing-library/react';
 import { SEARCH_DEBOUNCE_MS, useScryfallCardSearch } from './useScryfallCardSearch';
 
 const fetchMock = vi.fn();
+let clock = Date.now();
 
 beforeEach(() => {
   vi.clearAllMocks();
   vi.useFakeTimers();
+  clock += 60_000;
+  vi.setSystemTime(clock);
   vi.stubGlobal('fetch', fetchMock);
   fetchMock.mockResolvedValue({ ok: true, json: async () => ({ data: [] }) });
 });
@@ -60,10 +63,31 @@ describe('useScryfallCardSearch', () => {
     expect(result.current).toEqual({ results: [], loading: false, error: null });
   });
 
-  it.each([429, 500])('surfaces HTTP %s as a typed failure', async (status) => {
-    fetchMock.mockResolvedValue({ ok: false, status, json: async () => ({}) });
+  it('surfaces an HTTP 500 as a typed failure', async () => {
+    fetchMock.mockResolvedValue({ ok: false, status: 500, json: async () => ({}) });
     const { result } = renderHook(() => useScryfallCardSearch('bolt'));
     await settle();
+    expect(result.current).toEqual({ results: [], loading: false, error: { kind: 'failed' } });
+  });
+
+  it('stays loading through HTTP 429 retries, then surfaces the exhausted failure', async () => {
+    fetchMock.mockResolvedValue({ ok: false, status: 429, json: async () => ({}) });
+    const { result } = renderHook(() => useScryfallCardSearch('bolt'));
+
+    await settle();
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+    expect(result.current).toEqual({ results: [], loading: true, error: null });
+
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(1_000);
+    });
+    expect(fetchMock).toHaveBeenCalledTimes(2);
+    expect(result.current).toEqual({ results: [], loading: true, error: null });
+
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(1_000);
+    });
+    expect(fetchMock).toHaveBeenCalledTimes(3);
     expect(result.current).toEqual({ results: [], loading: false, error: { kind: 'failed' } });
   });
 

@@ -2,6 +2,9 @@ import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { ChevronDown, ChevronRight, Hand, Shuffle } from 'lucide-react';
 
+import { useImageCandidates } from '@app/hooks';
+import { imageCandidatesOf } from '@app/services';
+
 import { MIN_SAMPLE_HAND_SIZE } from '../../sampleHand';
 import { useSampleHand } from '../../hooks/useSampleHand';
 import type { DeckCard } from '../../types';
@@ -67,8 +70,8 @@ function SampleHand({ cards, showImages, random }: SampleHandPanelProps) {
         <ul className="mt-3 flex flex-wrap gap-2" aria-label={t('SampleHand.title')}>
           {hand.map((card, i) => (
             <li key={`${card.name}-${i}`} className="w-28">
-              {showImages && card.imageUri ? (
-                <img src={card.imageUri} alt={card.name} className="w-full rounded-md shadow" loading="lazy" />
+              {showImages ? (
+                <SampleHandImage card={card} />
               ) : (
                 <div className="h-36 rounded-md border border-border-subtle bg-bg-elevated p-2 text-xs text-text-primary">
                   {card.name}
@@ -80,4 +83,15 @@ function SampleHand({ cards, showImages, random }: SampleHandPanelProps) {
       )}
     </div>
   );
+}
+
+function SampleHandImage({ card }: { card: DeckCard }) {
+  const { src, onError } = useImageCandidates(imageCandidatesOf(card));
+  return src
+    ? <img src={src} alt={card.name} className="w-full rounded-md shadow" loading="lazy" onError={onError} />
+    : (
+      <div className="h-36 rounded-md border border-border-subtle bg-bg-elevated p-2 text-xs text-text-primary">
+        {card.name}
+      </div>
+    );
 }

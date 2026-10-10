@@ -2,8 +2,8 @@ import { useId } from 'react';
 import { useTranslation } from 'react-i18next';
 import { CheckCircle2, CircleAlert, Loader2, X } from 'lucide-react';
 
-import { usePreference } from '@app/hooks';
-import type { PrintingSummary } from '@app/services';
+import { useImageCandidates, usePreference } from '@app/hooks';
+import { imageCandidatesOf, type PrintingSummary } from '@app/services';
 
 import { useCardPrintings } from '../hooks/useCardPrintings';
 import { bumpPrintingsInDeck } from '../printingOrder';
@@ -97,7 +97,6 @@ export function PrintingPickerDialog({
               style={{ gridTemplateColumns: 'repeat(auto-fill, minmax(160px, 1fr))' }}
             >
               {printings.map((p, i) => {
-                const img = upgradeScryfallImageSize(p.imageUri);
                 const isCurrent = p.scryfallId != null && p.scryfallId === currentId;
                 return (
                   <button
@@ -113,19 +112,7 @@ export function PrintingPickerDialog({
                     title={`${p.set?.toUpperCase() ?? '?'} · ${request.card.name}`}
                   >
                     <div className="aspect-[5/7] w-full">
-                      {img ? (
-                        <img
-                          src={img}
-                          alt={`${request.card.name} (${p.set ?? ''})`}
-                          className="w-full h-full object-cover"
-                          loading="lazy"
-                          draggable={false}
-                        />
-                      ) : (
-                        <div className="h-full flex items-center justify-center text-xs text-text-muted p-2 text-center">
-                          {request.card.name}
-                        </div>
-                      )}
+                      <PrintingImage printing={p} cardName={request.card.name} />
                     </div>
                     <div
                       className={[
@@ -175,4 +162,27 @@ export function PrintingPickerDialog({
       </div>
     </DeckDialogFrame>
   );
+}
+
+function PrintingImage({ printing, cardName }: { printing: PrintingSummary; cardName: string }) {
+  const candidates = imageCandidatesOf(printing)
+    .map(upgradeScryfallImageSize)
+    .filter((url): url is string => Boolean(url));
+  const { src, onError } = useImageCandidates(candidates);
+  return src
+    ? (
+      <img
+        src={src}
+        alt={`${cardName} (${printing.set ?? ''})`}
+        className="w-full h-full object-cover"
+        loading="lazy"
+        draggable={false}
+        onError={onError}
+      />
+    )
+    : (
+      <div className="h-full flex items-center justify-center text-xs text-text-muted p-2 text-center">
+        {cardName}
+      </div>
+    );
 }

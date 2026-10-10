@@ -6,7 +6,7 @@ import { WebsocketTypes } from '@cockatrice/sockatrice/types';
 import { lookupCard } from '@app/services';
 
 import { connectedState, createMockWebClient, renderWithProviders } from '../../../__test-utils__';
-import { clearDeckEditorCache, getCachedDeck, setCachedDeck } from '../deckEditorCache';
+import { clearDeckEditorCache, getCachedDeck, setCachedDeck, setDraftDocument } from '../deckEditorCache';
 import { deckSaveSignature } from '../deckPersistence';
 import { hydrateDeck } from '../hydrate';
 import type { HydratedDeck } from '../types';
@@ -41,6 +41,11 @@ function Probe({ deckId }: { deckId: number | null }) {
   return null;
 }
 
+function DraftProbe({ draftToken }: { draftToken: string }) {
+  latest = useDeckEditor(null, draftToken);
+  return null;
+}
+
 function setup(deckId: number | null = 5) {
   const webClient = createMockWebClient();
   const view = renderWithProviders(<Probe deckId={deckId} />, { preloadedState: connectedState, webClient });
@@ -67,6 +72,54 @@ describe('useDeckEditor', () => {
     expect(latest.deck?.name).toBe('Burn');
     expect(latest.totalMainboardCount).toBe(1);
     expect(getCachedDeck(5)?.savedSignature).toBe(deckSaveSignature(hydrated()));
+  });
+
+  it.each(['deck changes', 'editor unmounts'] as const)('aborts an in-flight downloaded-deck hydration when the %s', async (trigger) => {
+    vi.mocked(hydrateDeck).mockImplementation((_parsed, signal) => new Promise((_resolve, reject) => {
+      signal?.addEventListener('abort', () => reject(new DOMException('Aborted', 'AbortError')), { once: true });
+    }));
+    const { store, requestId, rerender, unmount } = setup();
+    act(() => {
+      store.dispatch(server.Actions.deckDownloaded({ deckId: 5, deck: COD, requestId: requestId() }));
+    });
+    const firstSignal = vi.mocked(hydrateDeck).mock.calls[0]?.[1];
+
+    if (trigger === 'deck changes') {
+      rerender(<Probe deckId={6} />);
+    } else {
+      unmount();
+    }
+
+    expect(firstSignal).toBeInstanceOf(AbortSignal);
+    expect(firstSignal?.aborted).toBe(true);
+    await act(async () => undefined);
+    if (trigger === 'deck changes') {
+      expect(latest.notFound).toBe(false);
+    }
+  });
+
+  it.each(['draft changes', 'editor unmounts'] as const)('aborts an in-flight draft hydration when the %s', async (trigger) => {
+    setDraftDocument('draft-a', COD);
+    setDraftDocument('draft-b', COD.replace('Burn', 'Control'));
+    vi.mocked(hydrateDeck).mockImplementation((_parsed, signal) => new Promise((_resolve, reject) => {
+      signal?.addEventListener('abort', () => reject(new DOMException('Aborted', 'AbortError')), { once: true });
+    }));
+    const webClient = createMockWebClient();
+    const view = renderWithProviders(<DraftProbe draftToken="draft-a" />, { preloadedState: connectedState, webClient });
+    const firstSignal = vi.mocked(hydrateDeck).mock.calls[0]?.[1];
+
+    if (trigger === 'draft changes') {
+      view.rerender(<DraftProbe draftToken="draft-b" />);
+    } else {
+      view.unmount();
+    }
+
+    expect(firstSignal).toBeInstanceOf(AbortSignal);
+    expect(firstSignal?.aborted).toBe(true);
+    await act(async () => undefined);
+    if (trigger === 'draft changes') {
+      expect(latest.notFound).toBe(false);
+    }
   });
 
   it('ignores another deck’s download', () => {
@@ -201,6 +254,22 @@ describe('useDeckEditor', () => {
       { kind: 'setCommander', name: 'Sol Ring' },
       { kind: 'removeCard', name: 'Sol Ring' },
     ]);
+  });
+
+  it('keeps every image candidate when selecting a printing', () => {
+    setCachedDeck(5, { deck: hydrated(), savedSignature: deckSaveSignature(hydrated()) });
+    setup();
+
+    act(() => latest.setPrinting(0, {
+      set: 'lea',
+      imageUri: 'https://img/first.jpg',
+      imageUris: ['https://img/first.jpg', 'https://img/second.jpg'],
+    }));
+
+    expect(latest.deck?.cards[0]).toMatchObject({
+      imageUri: 'https://img/first.jpg',
+      imageUris: ['https://img/first.jpg', 'https://img/second.jpg'],
+    });
   });
 
   it('sets the banner and tags as undoable edits', () => {

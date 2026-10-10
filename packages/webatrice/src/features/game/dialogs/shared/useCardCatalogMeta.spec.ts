@@ -43,7 +43,7 @@ describe('useCardCatalogMeta', () => {
       power: '2',
       toughness: '2',
     });
-    expect(lookupCardsCached).toHaveBeenCalledWith(['Grizzly Bears']);
+    expect(lookupCardsCached).toHaveBeenCalledWith(['Grizzly Bears'], expect.any(AbortSignal));
   });
 
   it('counts a name the catalog leaves out as unknown, and asks only for new names', async () => {
@@ -59,7 +59,7 @@ describe('useCardCatalogMeta', () => {
     expect(result.current.metadataLoaded).toBe(false);
     await flush();
     expect(lookupCardsCached).toHaveBeenCalledTimes(2);
-    expect(lookupCardsCached).toHaveBeenLastCalledWith(['Opt']);
+    expect(lookupCardsCached).toHaveBeenLastCalledWith(['Opt'], expect.any(AbortSignal));
     expect(result.current.metadataLoaded).toBe(true);
   });
 
@@ -67,5 +67,19 @@ describe('useCardCatalogMeta', () => {
     const { result } = renderHook(() => useCardCatalogMeta([]));
     expect(result.current.metadataLoaded).toBe(true);
     expect(lookupCardsCached).not.toHaveBeenCalled();
+  });
+
+  it('aborts the abandoned lookup when the requested cards change', () => {
+    vi.mocked(lookupCardsCached).mockImplementation(() => new Promise(() => {}));
+    const { rerender } = renderHook(({ cards }) => useCardCatalogMeta(cards), {
+      initialProps: { cards: [{ name: 'Grizzly Bears' }] },
+    });
+    const firstSignal = vi.mocked(lookupCardsCached).mock.calls[0]?.[1];
+
+    rerender({ cards: [{ name: 'Opt' }] });
+
+    expect(firstSignal).toBeInstanceOf(AbortSignal);
+    expect(firstSignal?.aborted).toBe(true);
+    expect(lookupCardsCached).toHaveBeenLastCalledWith(['Opt'], expect.any(AbortSignal));
   });
 });

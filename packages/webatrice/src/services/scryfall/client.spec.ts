@@ -75,7 +75,10 @@ describe('fetchNamedCard', () => {
     fetchMock.mockImplementation(() => respond({ id: 'g', name: 'Goblin' }));
 
     await expect(fetchNamedCard('Goblin Token')).resolves.toEqual({ id: 'g', name: 'Goblin' });
-    expect(fetchMock.mock.calls).toEqual([['https://api.scryfall.com/cards/named?exact=Goblin']]);
+    expect(fetchMock).toHaveBeenCalledWith(
+      'https://api.scryfall.com/cards/named?exact=Goblin',
+      { signal: expect.any(AbortSignal) },
+    );
   });
 
   it('returns null on a miss or a network failure', async () => {
@@ -86,6 +89,23 @@ describe('fetchNamedCard', () => {
 });
 
 describe('fetchCollection', () => {
+  it.each([{ scryfallId: 'wanted' }, { set: 'xln', collectorNumber: '65' }, { set: 'xln' }])(
+    'does not substitute a different printing for a hinted miss: %j', async (hint) => {
+      fetchMock.mockImplementation(() => respond({ data: [{ id: 'other', name: 'Opt', set: 'dom', collector_number: '60' }] }));
+      await expect(fetchCollection([{ name: 'Opt', ...hint }])).resolves.toEqual(new Map());
+    },
+  );
+
+  it.each([['Fire', 'Fire // Ice'], ['B\u014d', 'Bo\u0304']])(
+    'matches the set-hinted name %s using NFC and the front face', async (requested, name) => {
+      fetchMock.mockImplementation(() => respond({ data: [
+        { id: 'wrong-set', name, set: 'dom' },
+        { id: 'wanted', name, set: 'mh2' },
+      ] }));
+      expect((await fetchCollection([{ name: requested, set: 'MH2' }])).get(requested)?.id).toBe('wanted');
+    },
+  );
+
   it('makes no request for no hints', async () => {
     await expect(fetchCollection([])).resolves.toEqual(new Map());
     expect(fetchMock).not.toHaveBeenCalled();
@@ -121,9 +141,10 @@ describe('fetchPrintings', () => {
     fetchMock.mockImplementation(() => respond({ data: [{ id: 'p', name: 'Say "Hi"' }] }));
 
     await expect(fetchPrintings('Say "Hi" Token')).resolves.toEqual([{ id: 'p', name: 'Say "Hi"' }]);
-    expect(fetchMock.mock.calls).toEqual([[
+    expect(fetchMock).toHaveBeenCalledWith(
       `https://api.scryfall.com/cards/search?q=${encodeURIComponent('!"Say \\"Hi\\""')}&unique=prints&order=released&dir=desc`,
-    ]]);
+      { signal: expect.any(AbortSignal) },
+    );
   });
 
   it('returns no printings on a failed request', async () => {

@@ -127,7 +127,7 @@ describe('lookupCard', () => {
 
     const result = await lookupCard('Swan Song');
 
-    expect(fetchMock).toHaveBeenCalledWith('https://api.scryfall.com/cards/named?exact=Swan%20Song');
+    expect(fetchMock).toHaveBeenCalledWith('https://api.scryfall.com/cards/named?exact=Swan%20Song', { signal: expect.any(AbortSignal) });
     expect(result).toMatchObject({
       found: true,
       source: 'dexie+scryfall',
@@ -146,6 +146,7 @@ describe('lookupCard', () => {
 
   it('serves a cached Scryfall record without fetching and drops stale combo pieces', async () => {
     cache.get.mockResolvedValue({
+      fetchedAt: Date.now(),
       found: true,
       source: 'scryfall',
       name: 'Delver of Secrets',
@@ -230,7 +231,7 @@ describe('lookupCard', () => {
 
   it('strips a trailing "Token" suffix before the exact-name request', async () => {
     await lookupCard('Goblin Token');
-    expect(fetchMock).toHaveBeenCalledWith('https://api.scryfall.com/cards/named?exact=Goblin');
+    expect(fetchMock).toHaveBeenCalledWith('https://api.scryfall.com/cards/named?exact=Goblin', { signal: expect.any(AbortSignal) });
   });
 });
 
@@ -291,7 +292,9 @@ describe('lookupCards', () => {
 
   it('does not fetch names already in the Scryfall cache', async () => {
     cache.bulkGet.mockImplementation(async (names: string[]) =>
-      names.map((n) => (n === 'Cached' ? { found: true, source: 'scryfall', name: 'Cached', printings: [] } : undefined)));
+      names.map((n) => (n === 'Cached'
+        ? { found: true, source: 'scryfall', name: 'Cached', printings: [], fetchedAt: Date.now() }
+        : undefined)));
 
     const result = await lookupCards(['Cached']);
 
@@ -307,7 +310,7 @@ describe('Scryfall request shapes (characterization)', () => {
     return fetchMock.mock.calls.filter(([url]) => url === COLLECTION_URL);
   }
 
-  it('posts JSON identifiers with exactly a method, a content type and a body', async () => {
+  it('posts JSON identifiers with a method, a content type, a body and a shared signal', async () => {
     fetchMock.mockImplementation(() => respond({ data: [] }));
 
     await lookupCards([{ name: 'Opt', set: 'XLN', collectorNumber: '65' }]);
@@ -318,16 +321,17 @@ describe('Scryfall request shapes (characterization)', () => {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: '{"identifiers":[{"set":"xln","collector_number":"65"}]}',
+        signal: expect.any(AbortSignal),
       },
     ]);
   });
 
-  it('sends the exact-name request with the URL as its only argument', async () => {
+  it('sends the exact-name request with a shared signal', async () => {
     await lookupCard('Opt');
-    expect(fetchMock.mock.calls).toEqual([['https://api.scryfall.com/cards/named?exact=Opt']]);
+    expect(fetchMock.mock.calls).toEqual([['https://api.scryfall.com/cards/named?exact=Opt', { signal: expect.any(AbortSignal) }]]);
   });
 
-  it('splits identifiers into chunks of 75 and sends every chunk at once', async () => {
+  it('splits identifiers into chunks of 75 without waiting for prior responses', async () => {
     const pending: Array<() => void> = [];
     fetchMock.mockImplementation((url: string) =>
       url === COLLECTION_URL
@@ -361,8 +365,9 @@ describe('Scryfall request shapes (characterization)', () => {
     });
     expect(fetchMock).toHaveBeenCalledWith(
       `https://api.scryfall.com/cards/named?exact=${encodeURIComponent(nfd.normalize('NFC'))}`,
+      { signal: expect.any(AbortSignal) },
     );
-    expect(fetchMock).toHaveBeenCalledWith('https://api.scryfall.com/cards/named?exact=Soldier');
+    expect(fetchMock).toHaveBeenCalledWith('https://api.scryfall.com/cards/named?exact=Soldier', { signal: expect.any(AbortSignal) });
   });
 
   it('matches an NFD name to the NFC response card', async () => {
@@ -375,7 +380,7 @@ describe('Scryfall request shapes (characterization)', () => {
     expect(result.get(nfd)).toMatchObject({ found: true, printings: [{ scryfallId: 'd' }] });
   });
 
-  it('falls back to the name when the printing Scryfall returned is not the one asked for', async () => {
+  it('rejects a different printing without retrying by name', async () => {
     fetchMock.mockImplementation((url: string) =>
       url === COLLECTION_URL
         ? respond({ data: [{ id: 'promo', name: 'Opt', set: 'pxln', collector_number: '65p' }] })
@@ -383,17 +388,26 @@ describe('Scryfall request shapes (characterization)', () => {
 
     const result = await lookupCards([{ name: 'Opt', set: 'XLN', collectorNumber: '65' }]);
 
-    expect(result.get('Opt')).toMatchObject({ found: true, printings: [{ scryfallId: 'promo' }] });
+    expect(result.get('Opt')).toMatchObject({ found: false });
+    expect(cache.bulkPut).not.toHaveBeenCalled();
     expect(fetchMock).toHaveBeenCalledTimes(1);
   });
 
-  it('warns with the status and chunk size when a batch is refused', async () => {
+  it.each(['single', 'batch'] as const)('returns a Dexie hit after exhausted 429 retries for a %s lookup', async (kind) => {
+    cards.get.mockResolvedValue(XML_SWAN_SONG);
+    cards.bulkGet.mockResolvedValue([XML_SWAN_SONG]);
+    fetchMock.mockImplementation(() => respond({}, false, 429));
+    const result = kind === 'single' ? lookupCard('Swan Song') : lookupCards(['Swan Song']).then((hits) => hits.get('Swan Song'));
+    await expect(result).resolves.toMatchObject({ found: true, source: 'dexie', name: 'Swan Song' });
+    expect(fetchMock).toHaveBeenCalledTimes(3);
+  });
+
+  it('warns on a non-429 collection failure while preserving Dexie results', async () => {
     const warn = vi.spyOn(console, 'warn').mockImplementation(() => undefined);
-    fetchMock.mockImplementation((url: string) => (url === COLLECTION_URL ? respond({}, false, 429) : respond({}, false, 404)));
-
-    await lookupCards(['Opt', 'Ponder']);
-
-    expect(warn).toHaveBeenCalledWith('Scryfall /cards/collection returned 429 for 2 identifiers');
+    cards.bulkGet.mockResolvedValue([XML_SWAN_SONG]);
+    fetchMock.mockImplementation(() => respond({}, false, 500));
+    expect((await lookupCards(['Swan Song'])).get('Swan Song')).toMatchObject({ source: 'dexie' });
+    expect(warn).toHaveBeenCalledWith('Scryfall /cards/collection returned 500 for 1 identifiers');
     warn.mockRestore();
   });
 });

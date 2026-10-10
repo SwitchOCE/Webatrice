@@ -27,19 +27,19 @@ export function useCardPrintings(cardName: string | undefined): CardPrintings {
     setPrices(emptyPriceLookup());
     setError(null);
     setLoading(true);
-    let cancelled = false;
+    const controller = new AbortController();
     (async () => {
       try {
-        const scryfall = await fetchAllPrintings(cardName);
-        if (cancelled) {
+        const scryfall = await fetchAllPrintings(cardName, controller.signal);
+        if (controller.signal.aborted) {
           return;
         }
         let resolved: PrintingSummary[];
         if (scryfall.length > 0) {
           resolved = scryfall;
         } else {
-          const local = await lookupCard(cardName);
-          if (cancelled) {
+          const local = await lookupCard(cardName, controller.signal);
+          if (controller.signal.aborted) {
             return;
           }
           resolved = local.printings;
@@ -53,7 +53,7 @@ export function useCardPrintings(cardName: string | undefined): CardPrintings {
         if (cards.length > 0) {
           fetchPricesForCards(cards)
             .then((lookup) => {
-              if (cancelled) {
+              if (controller.signal.aborted) {
                 return;
               }
               setPrices(lookup);
@@ -63,7 +63,7 @@ export function useCardPrintings(cardName: string | undefined): CardPrintings {
             });
         }
       } catch (e) {
-        if (cancelled) {
+        if (controller.signal.aborted) {
           return;
         }
         setError(e instanceof Error ? e.message : t('PrintingPicker.loadFailed'));
@@ -71,7 +71,7 @@ export function useCardPrintings(cardName: string | undefined): CardPrintings {
       }
     })();
     return () => {
-      cancelled = true;
+      controller.abort();
     };
   }, [cardName, t]);
 

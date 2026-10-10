@@ -3,6 +3,7 @@ import { ScryfallImageSize } from '@cockatrice/datatrice';
 import { resolvePrintingImageUrls, sortBySetPreference, type CardDataPreferences } from '../../cardDatabase';
 import { dexieService, type Card, type CardInSet, type RelatedCard } from '../../dexie';
 import { getScryfallUrlById } from '../../scryfall';
+import { primaryImageUri } from './imageCandidates';
 import type { LookupResult, PrintingSummary, RelatedCardRef } from './types';
 
 export async function getFromDexie(name: string): Promise<Card | undefined> {
@@ -26,12 +27,16 @@ export function dexieToLookup(card: Card, preferences?: CardDataPreferences): Lo
   const sets = preferences
     ? sortBySetPreference(normalizeSets(card.set), (s) => s.value, preferences.setPreferences)
     : normalizeSets(card.set);
-  const printings: PrintingSummary[] = sets.map((s) => ({
-    set: s.value || undefined,
-    collectorNumber: s.num,
-    scryfallId: s.uuid,
-    imageUri: pickImageUri(card, s, preferences),
-  }));
+  const printings: PrintingSummary[] = sets.map((s) => {
+    const imageUris = pickImageUris(card, s, preferences);
+    return {
+      set: s.value || undefined,
+      collectorNumber: s.num,
+      scryfallId: s.uuid,
+      imageUri: primaryImageUri({ imageUris }),
+      imageUris,
+    };
+  });
 
   // Cockatrice merges related + reverse-related into one flat list
   // (card_info.h:249 `getAllRelatedCards`). Keeping the origin lets
@@ -124,30 +129,27 @@ function readLegalities(prop: Record<string, { value?: unknown } | undefined>): 
   return out;
 }
 
-function pickImageUri(
+function pickImageUris(
   card: Card,
   printing: CardInSet,
   preferences: CardDataPreferences | undefined,
-): string | undefined {
+): string[] {
+  const urls: string[] = [];
   if (preferences) {
-    const [first] = resolvePrintingImageUrls(card, printing, {
+    urls.push(...resolvePrintingImageUrls(card, printing, {
       templates: preferences.pictureUrlTemplates,
       setLongNames: preferences.setLongNames,
-    });
-    if (first) {
-      return first;
+    }));
+  } else {
+    const direct = printing.picurl ?? printing.picURL;
+    if (direct) {
+      urls.push(direct);
     }
   }
-  if (printing.picurl) {
-    return printing.picurl;
-  }
-  if (printing.picURL) {
-    return printing.picURL;
-  }
   if (printing.uuid) {
-    return getScryfallUrlById(printing.uuid, ScryfallImageSize.Small);
+    urls.push(getScryfallUrlById(printing.uuid, ScryfallImageSize.Small));
   }
-  return undefined;
+  return [...new Set(urls)];
 }
 
 function normalizeSets(setField: CardInSet | CardInSet[] | undefined): CardInSet[] {

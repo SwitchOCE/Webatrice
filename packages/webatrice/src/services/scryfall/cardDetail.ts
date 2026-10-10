@@ -1,4 +1,4 @@
-import { cleanScryfallName, scryfallCardUrl, scryfallNamedUrl } from './client';
+import { cleanScryfallName, fetchCardById, fetchNamedCard } from './client';
 
 export interface ScryfallDetail {
   id: string;
@@ -49,19 +49,7 @@ export async function fetchScryfallDetail(
   name: string,
   signal?: AbortSignal,
 ): Promise<ScryfallDetail | null> {
-  try {
-    const url = scryfallId ? scryfallCardUrl(scryfallId) : scryfallNamedUrl(cleanScryfallName(name));
-    const res = await fetch(url, { signal });
-    if (!res.ok) {
-      return null;
-    }
-    return (await res.json()) as ScryfallDetail;
-  } catch (e) {
-    if ((e as { name?: string })?.name === 'AbortError') {
-      throw e;
-    }
-    return null;
-  }
+  return scryfallId ? fetchCardById(scryfallId, signal) : fetchNamedCard(name, signal);
 }
 
 export function selectCardFace(

@@ -1,4 +1,4 @@
-import { render, screen } from '@testing-library/react';
+import { fireEvent, render, screen } from '@testing-library/react';
 
 import { emptyPriceLookup } from '../../pricing';
 import type { DeckCard } from '../../types';
@@ -34,5 +34,19 @@ describe('DeckCardPreview', () => {
     expect(screen.getByText('DeckEditor.preview.noImage')).toBeInTheDocument();
     expect(screen.queryByRole('link')).toBeNull();
     expect(screen.getByText('—')).toBeInTheDocument();
+  });
+
+  it('tries the next catalogue image when the preferred URL fails', () => {
+    render(<DeckCardPreview card={{
+      ...bolt,
+      imageUris: [
+        'https://cards.scryfall.io/small/front/first.jpg',
+        'https://cards.scryfall.io/small/front/second.jpg',
+      ],
+    }} prices={emptyPriceLookup()} />);
+
+    const image = screen.getByRole('img', { name: 'Lightning Bolt' });
+    fireEvent.error(image);
+    expect(image).toHaveAttribute('src', 'https://cards.scryfall.io/normal/front/second.jpg');
   });
 });

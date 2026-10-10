@@ -1,4 +1,5 @@
 
+import { rethrowCancellationOrRateLimit, scheduleScryfallRequest } from '../../services/scryfall/scheduler';
 import type { DeckCard } from './types';
 
 export interface SearchResult {
@@ -8,7 +9,7 @@ export interface SearchResult {
 
 const MIN_QUERY = 2;
 
-export async function searchCards(query: string, limit = 20): Promise<SearchResult[]> {
+export async function searchCards(query: string, limit = 20, signal?: AbortSignal): Promise<SearchResult[]> {
   const q = query.trim();
   if (q.length < MIN_QUERY) {
     return [];
@@ -16,13 +17,14 @@ export async function searchCards(query: string, limit = 20): Promise<SearchResu
 
   const url = `https://api.scryfall.com/cards/autocomplete?q=${encodeURIComponent(q)}`;
   try {
-    const res = await fetch(url);
+    const res = await scheduleScryfallRequest(url, signal ? { signal } : undefined);
     if (!res.ok) {
       return [];
     }
     const body = (await res.json()) as { data?: string[] };
     return (body.data ?? []).slice(0, limit).map((name) => ({ name, source: 'scryfall' }));
-  } catch {
+  } catch (error) {
+    rethrowCancellationOrRateLimit(error);
     return [];
   }
 }
@@ -72,7 +74,7 @@ export async function searchScryfallCards(
   // matches how the printings picker layers on top of a search result.
   const url = `https://api.scryfall.com/cards/search?q=${encodeURIComponent(q)}&unique=cards&order=name`;
   try {
-    const res = await fetch(url, { signal });
+    const res = await scheduleScryfallRequest(url, { signal });
     if (!res.ok) {
       if (res.status === 404 || res.status === 400) {
         const body = await res.json() as { object?: string; code?: string; details?: string } | null;

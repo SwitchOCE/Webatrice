@@ -72,4 +72,15 @@ describe('SampleHandPanel', () => {
     expect(screen.getByText('SampleHand.empty')).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'SampleHand.redraw' })).toBeDisabled();
   });
+
+  it('tries the next catalogue image after an image error', () => {
+    open([card('Bolt', 1, {
+      imageUri: 'https://img/first.jpg',
+      imageUris: ['https://img/first.jpg', 'https://img/second.jpg'],
+    })]);
+
+    const image = screen.getByRole('img', { name: 'Bolt' });
+    fireEvent.error(image);
+    expect(image).toHaveAttribute('src', 'https://img/second.jpg');
+  });
 });

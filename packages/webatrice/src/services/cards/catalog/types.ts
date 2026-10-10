@@ -1,6 +1,7 @@
 /** Unified result shape returned by all `lookup*` functions. Callers
  *  can render straight from this without switching on the source. */
 export interface LookupResult {
+  fetchedAt?: number;
   found: boolean;
   source: 'dexie' | 'scryfall' | 'dexie+scryfall' | 'unknown';
   name: string;
@@ -92,6 +93,7 @@ export interface PrintingSummary {
   collectorNumber?: string;
   scryfallId?: string;
   imageUri?: string;
+  imageUris?: string[];
 }
 
 /** Optional set / collector-number hints paired with a card name.
@@ -104,6 +106,7 @@ export interface PrintingSummary {
  *  caller has printing info to offer. */
 export interface LookupHint {
   name: string;
+  scryfallId?: string;
   set?: string;
   collectorNumber?: string;
 }

@@ -9,16 +9,16 @@ function useLandscapeCard(name: string | undefined): boolean {
     if (!name) {
       return;
     }
-    let cancelled = false;
-    lookupCardsCached([name])
+    const controller = new AbortController();
+    lookupCardsCached([name], controller.signal)
       .then((results) => {
-        if (!cancelled) {
+        if (!controller.signal.aborted) {
           setLandscape({ name, value: !!results.get(name)?.landscape });
         }
       })
       .catch(() => {});
     return () => {
-      cancelled = true;
+      controller.abort();
     };
   }, [name]);
   return !!name && landscape?.name === name && landscape.value;

@@ -5,6 +5,7 @@ function json(body: unknown, ok = true, status = ok ? 200 : 500): Response {
 }
 
 afterEach(() => {
+  vi.useRealTimers();
   vi.unstubAllGlobals();
 });
 
@@ -18,7 +19,7 @@ describe('searchCards', () => {
       { name: 'Risen Reef', source: 'scryfall' },
       { name: 'Risen Riptide', source: 'scryfall' },
     ]);
-    expect(fetchMock).toHaveBeenCalledWith('https://api.scryfall.com/cards/autocomplete?q=risen');
+    expect(fetchMock).toHaveBeenCalledWith('https://api.scryfall.com/cards/autocomplete?q=risen', undefined);
   });
 
   it('returns no suggestions on failure', async () => {
@@ -46,7 +47,7 @@ describe('searchScryfallCards', () => {
     });
   });
 
-  it.each([429, 500, 503, 404])('rejects HTTP %s without a not_found error object', async (status) => {
+  it.each([500, 503, 404])('rejects HTTP %s without a not_found error object', async (status) => {
     vi.stubGlobal('fetch', vi.fn(async () => json({}, false, status)));
     await expect(searchScryfallCards('bolt')).rejects.toMatchObject({ failure: { kind: 'failed' } });
   });
@@ -69,6 +70,20 @@ describe('searchScryfallCards', () => {
     const abort = new DOMException('aborted', 'AbortError');
     vi.stubGlobal('fetch', vi.fn().mockRejectedValue(abort));
     await expect(searchScryfallCards('bolt')).rejects.toBe(abort);
+  });
+
+  it('rejects an exhausted HTTP 429 retry sequence', async () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(Date.now() + 10_000);
+    const fetchMock = vi.fn(async () => json({}, false, 429));
+    vi.stubGlobal('fetch', fetchMock);
+
+    const result = expect(searchScryfallCards('bolt')).rejects.toMatchObject({ failure: { kind: 'failed' } });
+    await vi.advanceTimersByTimeAsync(1_000);
+    expect(fetchMock).toHaveBeenCalledTimes(2);
+    await vi.advanceTimersByTimeAsync(1_000);
+    await result;
+    expect(fetchMock).toHaveBeenCalledTimes(3);
   });
 });
 

@@ -1,3 +1,5 @@
+import { primaryImageUri, type ImageCandidateSource } from '@app/services';
+
 export function upgradeScryfallImageSize(url: string | undefined): string | undefined {
   if (!url) {
     return url;
@@ -11,11 +13,11 @@ export function upgradeScryfallImageSize(url: string | undefined): string | unde
   return url;
 }
 
-export function previewImageUrls(cards: ReadonlyArray<{ imageUri?: string }>): string[] {
+export function previewImageUrls(cards: ReadonlyArray<ImageCandidateSource>): string[] {
   return Array.from(
     new Set(
       cards
-        .map((c) => upgradeScryfallImageSize(c.imageUri))
+        .map((card) => upgradeScryfallImageSize(primaryImageUri(card)))
         .filter((u): u is string => !!u),
     ),
   );

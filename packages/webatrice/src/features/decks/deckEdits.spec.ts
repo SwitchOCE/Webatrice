@@ -115,10 +115,38 @@ describe('card edits', () => {
   });
 
   it('switches a row to another printing, or returns the deck when it is the same printing', () => {
-    const reprinted = setCardPrinting(base, 1, { set: 'lea', collectorNumber: '1', scryfallId: 'id', imageUri: 'img' });
-    expect(reprinted.cards[1]).toEqual(expect.objectContaining({ set: 'lea', collectorNumber: '1', scryfallId: 'id', imageUri: 'img' }));
+    const reprinted = setCardPrinting(base, 1, {
+      set: 'lea',
+      collectorNumber: '1',
+      scryfallId: 'id',
+      imageUri: 'img',
+      imageUris: ['img', 'fallback'],
+    });
+    expect(reprinted.cards[1]).toEqual(expect.objectContaining({
+      set: 'lea',
+      collectorNumber: '1',
+      scryfallId: 'id',
+      imageUri: 'img',
+      imageUris: ['img', 'fallback'],
+    }));
     expect(setCardPrinting(reprinted, 1, { set: 'lea', collectorNumber: '1', scryfallId: 'id' })).toBe(reprinted);
     expect(setCardPrinting(base, 9, { set: 'lea' })).toBe(base);
+  });
+
+  it('derives the selected image from the ordered candidate chain', () => {
+    const reprinted = setCardPrinting(base, 1, {
+      set: 'lea',
+      imageUri: 'stale',
+      imageUris: ['preferred', 'fallback'],
+    });
+
+    expect(reprinted.cards[1]).toMatchObject({
+      imageUri: 'preferred',
+      imageUris: ['preferred', 'fallback', 'stale'],
+    });
+
+    const refreshed = setCardPrinting(reprinted, 1, { set: 'lea', imageUris: ['replacement'] });
+    expect(refreshed.cards[1]).toMatchObject({ imageUri: 'replacement', imageUris: ['replacement'] });
   });
 
   it('appends a new row', () => {

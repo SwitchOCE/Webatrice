@@ -111,6 +111,7 @@ export function useDeckEditor(deckId: number | null, draftToken: string | null =
   const requests = useRequestTracker();
 
   const deckRef = useRef<HydratedDeck | null>(null);
+  const hydrationControllerRef = useRef<AbortController | null>(null);
   const readDeck = useCallback(() => deckRef.current, []);
 
   const onDraftStored = useCallback((storedId: number, signature: string) => {
@@ -163,11 +164,11 @@ export function useDeckEditor(deckId: number | null, draftToken: string | null =
       return;
     }
     setDraftDocument(draftToken, cod);
-    let cancelled = false;
+    const controller = new AbortController();
     (async () => {
       try {
-        const hydrated = await hydrateDeck(parseCod(cod));
-        if (cancelled) {
+        const hydrated = await hydrateDeck(parseCod(cod), controller.signal);
+        if (controller.signal.aborted) {
           return;
         }
         deckRef.current = hydrated;
@@ -176,24 +177,36 @@ export function useDeckEditor(deckId: number | null, draftToken: string | null =
         clearHistory();
         setLoading(false);
       } catch (err) {
-        console.error('Failed to parse deck XML', err);
-        if (!cancelled) {
-          setNotFound(true);
-          setLoading(false);
+        if (controller.signal.aborted || (err as { name?: string })?.name === 'AbortError') {
+          return;
         }
+        console.error('Failed to parse deck XML', err);
+        setNotFound(true);
+        setLoading(false);
       }
     })();
     return () => {
-      cancelled = true;
+      controller.abort();
     };
   }, [isDraft, draftToken, clearHistory]);
 
   // --- Load ---
   useEffect(() => {
     requests.cancel();
+    hydrationControllerRef.current?.abort();
+    hydrationControllerRef.current = null;
     if (deckId == null) {
       return;
     }
+    const controller = new AbortController();
+    hydrationControllerRef.current = controller;
+    const cleanup = () => {
+      controller.abort();
+      if (hydrationControllerRef.current === controller) {
+        hydrationControllerRef.current = null;
+      }
+      requests.cancel();
+    };
     const cached = getCachedDeck(deckId);
     if (cached) {
       if (savedSignature() !== cached.savedSignature) {
@@ -205,10 +218,10 @@ export function useDeckEditor(deckId: number | null, draftToken: string | null =
       }
       setLoading(false);
       setNotFound(false);
-      return;
+      return cleanup;
     }
     if (!isConnected) {
-      return;
+      return cleanup;
     }
     setLoading(true);
     setNotFound(false);
@@ -218,7 +231,7 @@ export function useDeckEditor(deckId: number | null, draftToken: string | null =
     const requestId = requests.begin();
     requests.track(requestId);
     webClient.request.session.deckDownload(deckId, requestId);
-    return requests.cancel;
+    return cleanup;
   }, [isConnected, deckId, webClient, resetSaved, markSaved, savedSignature, requests]);
 
   useReduxEffect<{ deckId: number; deck: string; requestId?: string }>(
@@ -227,10 +240,14 @@ export function useDeckEditor(deckId: number | null, draftToken: string | null =
         return;
       }
       (async () => {
+        const controller = hydrationControllerRef.current;
+        if (!controller || controller.signal.aborted) {
+          return;
+        }
         try {
           const parsed = parseCod(payload.deck);
-          const hydrated = await hydrateDeck(parsed);
-          if (!requests.isCurrent(payload.requestId)) {
+          const hydrated = await hydrateDeck(parsed, controller.signal);
+          if (controller.signal.aborted || !requests.isCurrent(payload.requestId)) {
             return;
           }
           requests.cancel();
@@ -252,7 +269,8 @@ export function useDeckEditor(deckId: number | null, draftToken: string | null =
             scheduleSave();
           }
         } catch (err) {
-          if (!requests.isCurrent(payload.requestId)) {
+          if (controller.signal.aborted || (err as { name?: string })?.name === 'AbortError'
+            || !requests.isCurrent(payload.requestId)) {
             return;
           }
           requests.cancel();

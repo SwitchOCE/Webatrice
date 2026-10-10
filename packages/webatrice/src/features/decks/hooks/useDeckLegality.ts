@@ -26,10 +26,10 @@ export function useDeckLegality(deck: HydratedDeck | null): UseDeckLegality {
       setFacts({ key: namesKey, byName: EMPTY_FACTS });
       return;
     }
-    let cancelled = false;
-    lookupCardsCached(namesKey.split('\n'))
+    const controller = new AbortController();
+    lookupCardsCached(namesKey.split('\n'), controller.signal)
       .then((lookups) => {
-        if (!cancelled) {
+        if (!controller.signal.aborted) {
           const byName = new Map<string, LegalityFacts | undefined>();
           for (const [name, lookup] of lookups) {
             byName.set(name, legalityFacts(lookup));
@@ -38,12 +38,12 @@ export function useDeckLegality(deck: HydratedDeck | null): UseDeckLegality {
         }
       })
       .catch(() => {
-        if (!cancelled) {
+        if (!controller.signal.aborted) {
           setFacts({ key: namesKey, byName: EMPTY_FACTS });
         }
       });
     return () => {
-      cancelled = true;
+      controller.abort();
     };
   }, [namesKey]);
 

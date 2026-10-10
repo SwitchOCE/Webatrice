@@ -89,6 +89,7 @@ export interface DeckCard {
   collectorNumber?: string; // "203"
   scryfallId?: string; // Scryfall UUID — Cockatrice's `set.uuid` for modern DBs
   imageUri?: string; // preferred picurl or Scryfall CDN URL
+  imageUris?: string[];
 
   /** Where the lookup came from. `unknown` = card name wasn't in Dexie
    *  and Scryfall couldn't find it either (typo, retired card, etc.).

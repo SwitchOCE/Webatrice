@@ -30,21 +30,23 @@ export function useQuickAddSuggestions(query: string): QuickAddSuggestions {
       setHighlight(-1);
       return;
     }
+    const controller = new AbortController();
     setLoading(true);
     timerRef.current = window.setTimeout(() => {
       timerRef.current = null;
       const token = ++queryTokenRef.current;
-      searchCards(query, MAX_SUGGESTIONS)
+      searchCards(query, MAX_SUGGESTIONS, controller.signal)
         .then((rows) => {
-          if (token !== queryTokenRef.current) {
+          if (controller.signal.aborted || token !== queryTokenRef.current) {
             return;
           }
           setSuggestions(rows);
           setLoading(false);
           setHighlight(rows.length ? 0 : -1);
         })
-        .catch(() => {
-          if (token !== queryTokenRef.current) {
+        .catch((error: unknown) => {
+          if (controller.signal.aborted || (error as { name?: string })?.name === 'AbortError'
+            || token !== queryTokenRef.current) {
             return;
           }
           setSuggestions([]);
@@ -56,6 +58,7 @@ export function useQuickAddSuggestions(query: string): QuickAddSuggestions {
       if (timerRef.current != null) {
         window.clearTimeout(timerRef.current);
       }
+      controller.abort();
     };
   }, [query]);
 

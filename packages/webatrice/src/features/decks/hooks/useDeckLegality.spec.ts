@@ -70,4 +70,18 @@ describe('useDeckLegality', () => {
     expect(result.current.rows[0].status).toBe('unknown');
     expect(result.current.status).toBe('unavailable');
   });
+
+  it('aborts the abandoned lookup when the deck changes', () => {
+    vi.mocked(lookupCardsCached).mockImplementation(() => new Promise(() => {}));
+    const { rerender } = renderHook(({ d }) => useDeckLegality(d), {
+      initialProps: { d: deck('modern', [['Lightning Bolt', 1]]) },
+    });
+    const firstSignal = vi.mocked(lookupCardsCached).mock.calls[0]?.[1];
+
+    rerender({ d: deck('modern', [['Opt', 1]]) });
+
+    expect(firstSignal).toBeInstanceOf(AbortSignal);
+    expect(firstSignal?.aborted).toBe(true);
+    expect(lookupCardsCached).toHaveBeenLastCalledWith(['Opt'], expect.any(AbortSignal));
+  });
 });

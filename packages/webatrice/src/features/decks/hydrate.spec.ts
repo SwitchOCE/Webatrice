@@ -22,4 +22,41 @@ describe('assembleDeckCard image', () => {
     const card = assembleDeckCard({ name: 'Sol Ring', quantity: 1, category: 'main', scryfallId: ID }, lookup());
     expect(card.imageUri).toBe(`https://api.scryfall.com/cards/${ID}?format=image&version=normal`);
   });
+
+  it('retains the id fallback when a matching printing has no image metadata', () => {
+    const card = assembleDeckCard(
+      { name: 'Sol Ring', quantity: 1, category: 'main', scryfallId: ID },
+      lookup({ printings: [{ scryfallId: ID }] }),
+    );
+    expect(card.imageUris).toEqual([`https://api.scryfall.com/cards/${ID}?format=image&version=normal`]);
+  });
+
+  it('uses the first preferred printing when the deck has no override', () => {
+    const card = assembleDeckCard(
+      { name: 'Sol Ring', quantity: 1, category: 'main' },
+      lookup({
+        printings: [
+          { set: 'MPS', scryfallId: 'preferred', imageUri: 'https://img/preferred.jpg' },
+          { set: 'C21', scryfallId: 'last', imageUri: 'https://img/last.jpg' },
+        ],
+      }),
+    );
+
+    expect(card).toMatchObject({ set: 'MPS', scryfallId: 'preferred', imageUri: 'https://img/preferred.jpg' });
+  });
+
+  it('keeps the selected printing image fallback chain', () => {
+    const card = assembleDeckCard(
+      { name: 'Sol Ring', quantity: 1, category: 'main' },
+      lookup({
+        printings: [{
+          set: 'C21',
+          imageUri: 'https://img/first.jpg',
+          imageUris: ['https://img/first.jpg', 'https://img/second.jpg'],
+        }],
+      }),
+    );
+
+    expect(card.imageUris).toEqual(['https://img/first.jpg', 'https://img/second.jpg']);
+  });
 });

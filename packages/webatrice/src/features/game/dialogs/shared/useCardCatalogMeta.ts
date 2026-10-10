@@ -25,23 +25,27 @@ export function useCardCatalogMeta(cards: readonly { name: string }[]) {
     if (needed.length === 0) {
       return;
     }
-    let cancelled = false;
+    const controller = new AbortController();
     void (async () => {
-      const results = await lookupCardsCached(needed);
-      if (cancelled) {
+      try {
+        const results = await lookupCardsCached(needed, controller.signal);
+        if (controller.signal.aborted) {
+          return;
+        }
+        setMetaByName((prev) => {
+          const next = new Map(prev);
+          for (const name of needed) {
+            const r = results.get(name);
+            next.set(name, r ? zoneViewMetaFromLookup(name, r) : placeholderMeta(name));
+          }
+          return next;
+        });
+      } catch {
         return;
       }
-      setMetaByName((prev) => {
-        const next = new Map(prev);
-        for (const name of needed) {
-          const r = results.get(name);
-          next.set(name, r ? zoneViewMetaFromLookup(name, r) : placeholderMeta(name));
-        }
-        return next;
-      });
     })();
     return () => {
-      cancelled = true;
+      controller.abort();
     };
   }, [names, metaByName]);
 

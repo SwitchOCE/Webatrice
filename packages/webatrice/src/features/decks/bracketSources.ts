@@ -1,5 +1,6 @@
 import { z } from 'zod';
 import { chunkForCollection, postCollection, scryfallSearchUrl } from '../../services/scryfall/client';
+import { scheduleScryfallRequest, ScryfallRateLimitError } from '../../services/scryfall/scheduler';
 
 import type { DeckCard } from './types';
 
@@ -37,6 +38,9 @@ async function fetchJson(send: (signal: AbortSignal) => Promise<Response>): Prom
     try {
       res = await send(controller.signal);
     } catch (e) {
+      if (e instanceof ScryfallRateLimitError) {
+        throw new SourceError({ kind: 'http', status: e.status });
+      }
       throw new SourceError({ kind: (e as { name?: string })?.name === 'AbortError' ? 'timeout' : 'network' });
     }
     if (!res.ok) {
@@ -74,7 +78,7 @@ export async function fetchGameChangers(): Promise<SourceResult<Set<string>>> {
   }
   gameChangersInFlight = (async (): Promise<SourceResult<Set<string>>> => {
     try {
-      const body = await fetchJson((signal) => fetch(GAME_CHANGERS_URL, { signal }));
+      const body = await fetchJson((signal) => scheduleScryfallRequest(GAME_CHANGERS_URL, { signal }));
       if (!isRecord(body) || !Array.isArray(body.data)) {
         return { status: 'unavailable', failure: MALFORMED };
       }

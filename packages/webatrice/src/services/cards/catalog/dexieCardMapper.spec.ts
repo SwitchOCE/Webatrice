@@ -1,4 +1,5 @@
 import type { Card } from '../../dexie';
+import type { CardDataPreferences } from '../../cardDatabase';
 import { dexieToLookup } from './dexieCardMapper';
 
 function xmlCard(overrides: Partial<Record<string, unknown>> = {}): Card {
@@ -55,6 +56,35 @@ describe('dexieToLookup', () => {
       ['C', 'https://api.scryfall.com/cards/0f1a2b3c-0000-4000-8000-000000000001?format=image&version=small'],
       [undefined, undefined],
     ]);
+  });
+
+  it('orders enabled sets by user preference and keeps every image candidate', () => {
+    const preferences: CardDataPreferences = {
+      setPreferences: new Map([
+        ['OLD', { code: 'OLD', sortKey: 0, enabled: false, isKnown: true }],
+        ['NEW', { code: 'NEW', sortKey: 1, enabled: true, isKnown: true }],
+      ]),
+      setLongNames: new Map(),
+      pictureUrlTemplates: [
+        'https://first.example/!setcode!/!set:uuid!.jpg',
+        'https://second.example/!setcode!/!set:uuid!.jpg',
+      ],
+    };
+    const result = dexieToLookup(xmlCard({
+      set: [
+        { value: 'OLD', uuid: 'old-id' },
+        { value: 'NEW', uuid: 'new-id', picurl: 'https://mirror.example/new.jpg' },
+      ],
+    }), preferences);
+
+    expect(result.printings.map((printing) => printing.set)).toEqual(['NEW', 'OLD']);
+    expect(result.printings[0].imageUris).toEqual([
+      'https://mirror.example/new.jpg',
+      'https://first.example/NEW/new-id.jpg',
+      'https://second.example/NEW/new-id.jpg',
+      'https://api.scryfall.com/cards/new-id?format=image&version=small',
+    ]);
+    expect(result.printings[0].imageUri).toBe('https://mirror.example/new.jpg');
   });
 
   it('has no legality, related or printing data when cards.xml carries none', () => {

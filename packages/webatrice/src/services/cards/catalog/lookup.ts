@@ -1,14 +1,27 @@
 import { currentCardDataPreferences, type CardDataPreferences } from '../../cardDatabase';
 import { fetchCollection, fetchNamedCard, fetchPrintings, SCRYFALL_NAMED_RETRY_CAP } from '../../scryfall/client';
+import { throwIfAborted } from '../../scryfall/scheduler';
 import { bulkGetFromDexie, dexieToLookup, getFromDexie } from './dexieCardMapper';
 import {
   bulkGetFromScryfallCache,
   bulkPutScryfallCache,
   getFromScryfallCache,
+  isScryfallCacheFresh,
   putScryfallCache,
 } from './scryfallCache';
 import { scryfallToLookup } from './scryfallCardMapper';
 import type { LookupHint, LookupInput, LookupResult, PrintingSummary, RelatedCardRef } from './types';
+
+async function fetchForLookup<T>(request: Promise<T>): Promise<T | undefined> {
+  try {
+    return await request;
+  } catch (error) {
+    if ((error as { name?: string })?.name === 'AbortError') {
+      throw error;
+    }
+    return undefined;
+  }
+}
 
 /**
  * Look up a single card by name. Merges Dexie cards.xml data (if we
@@ -18,19 +31,21 @@ import type { LookupHint, LookupInput, LookupResult, PrintingSummary, RelatedCar
  * (case-insensitive match handled internally by Dexie's primary key
  * / Scryfall's exact endpoint).
  */
-export async function lookupCard(name: string): Promise<LookupResult> {
+export async function lookupCard(name: string, signal?: AbortSignal): Promise<LookupResult> {
+  throwIfAborted(signal);
   const [xmlHit, scryfallCached, preferences] = await Promise.all([
     getFromDexie(name),
     getFromScryfallCache(name),
     readCardDataPreferences(),
   ]);
+  throwIfAborted(signal);
   const xmlLookup = xmlHit ? dexieToLookup(xmlHit, preferences) : undefined;
 
   let scryfallLookup = scryfallCached;
-  if (!scryfallLookup) {
-    const fetched = await fetchNamedCard(name);
+  if (!scryfallLookup || !isScryfallCacheFresh(scryfallLookup)) {
+    const fetched = await fetchForLookup(fetchNamedCard(name, signal));
     if (fetched) {
-      scryfallLookup = scryfallToLookup(fetched);
+      scryfallLookup = { ...scryfallToLookup(fetched), fetchedAt: Date.now() };
       // Write-through to the persistent cache. Fire-and-forget —
       // a stalled Dexie write shouldn't hold up the caller.
       void putScryfallCache(scryfallLookup);
@@ -68,13 +83,15 @@ async function readCardDataPreferences(): Promise<CardDataPreferences | undefine
   }
 }
 
-export async function lookupCardsCached(names: string[]): Promise<Map<string, LookupResult>> {
+export async function lookupCardsCached(names: string[], signal?: AbortSignal): Promise<Map<string, LookupResult>> {
+  throwIfAborted(signal);
   const out = new Map<string, LookupResult>();
   const missing: string[] = [];
   await readCardDataPreferences();
+  throwIfAborted(signal);
   for (const name of names) {
     const cached = sessionCache.get(name);
-    if (cached) {
+    if (cached && ((cached.source === 'dexie' && cached.fetchedAt === undefined) || isScryfallCacheFresh(cached))) {
       out.set(name, cached);
     } else {
       missing.push(name);
@@ -83,7 +100,7 @@ export async function lookupCardsCached(names: string[]): Promise<Map<string, Lo
   if (missing.length === 0) {
     return out;
   }
-  const fresh = await lookupCards(missing);
+  const fresh = await lookupCards(missing, signal);
   for (const [name, result] of fresh) {
     out.set(name, result);
     if (result.source !== 'unknown') {
@@ -107,7 +124,9 @@ export async function lookupCardsCached(names: string[]): Promise<Map<string, Lo
  */
 export async function lookupCards(
   input: LookupInput[],
+  signal?: AbortSignal,
 ): Promise<Map<string, LookupResult>> {
+  throwIfAborted(signal);
   const out = new Map<string, LookupResult>();
   // Normalize to `LookupHint`, deduped by name (first hint wins if a
   // caller passes the same name twice with conflicting printing
@@ -129,9 +148,10 @@ export async function lookupCards(
 
   const [xmlHits, scryfallCached, preferences] = await Promise.all([
     bulkGetFromDexie(uniqueNames),
-    bulkGetFromScryfallCache(uniqueNames),
+    bulkGetFromScryfallCache(uniqueNames, uniqueNames.map((name) => uniqueHints.get(name))),
     readCardDataPreferences(),
   ]);
+  throwIfAborted(signal);
 
   // Names we still need to fetch from Scryfall. Any name without a
   // scryfallCache hit — regardless of whether cards.xml has it —
@@ -147,18 +167,19 @@ export async function lookupCards(
 
   const needScryfall: LookupHint[] = [];
   for (const name of uniqueNames) {
-    if (!scryfallLookups.has(name)) {
+    const cached = scryfallLookups.get(name);
+    if (!cached || !isScryfallCacheFresh(cached)) {
       needScryfall.push(uniqueHints.get(name)!);
     }
   }
 
   if (needScryfall.length > 0) {
-    const collected = await fetchCollection(needScryfall);
+    const collected = await fetchForLookup(fetchCollection(needScryfall, signal));
     const toCache: LookupResult[] = [];
     for (const hint of needScryfall) {
-      const hit = collected.get(hint.name);
+      const hit = collected?.get(hint.name);
       if (hit) {
-        const parsed = scryfallToLookup(hit);
+        const parsed = { ...scryfallToLookup(hit), fetchedAt: Date.now() };
         scryfallLookups.set(hint.name, parsed);
         toCache.push(parsed);
       }
@@ -179,16 +200,16 @@ export async function lookupCards(
     // give up gracefully; the console.warn on the batch failure is
     // the actionable signal.
     const stillMissing = needScryfall.filter(
-      (h) => !scryfallLookups.has(h.name),
+      (h) => collected && !collected.has(h.name) && !h.scryfallId && !h.set && !h.collectorNumber,
     );
     if (stillMissing.length > 0 && stillMissing.length <= SCRYFALL_NAMED_RETRY_CAP) {
       const retried = await Promise.all(
-        stillMissing.map((h) => fetchNamedCard(h.name)),
+        stillMissing.map((h) => fetchForLookup(fetchNamedCard(h.name, signal))),
       );
       for (let i = 0; i < stillMissing.length; i++) {
         const hit = retried[i];
         if (hit) {
-          const parsed = scryfallToLookup(hit);
+          const parsed = { ...scryfallToLookup(hit), fetchedAt: Date.now() };
           scryfallLookups.set(stillMissing[i].name, parsed);
           toCache.push(parsed);
         }
@@ -226,8 +247,8 @@ export async function lookupCards(
  * matches") so the caller can degrade to `lookupCard(name).printings`
  * without a try/catch.
  */
-export async function fetchAllPrintings(name: string): Promise<PrintingSummary[]> {
-  const cards = await fetchPrintings(name);
+export async function fetchAllPrintings(name: string, signal?: AbortSignal): Promise<PrintingSummary[]> {
+  const cards = await fetchPrintings(name, signal);
   try {
     return cards.map((c) => ({
       set: c.set,
@@ -296,6 +317,7 @@ function mergeLookup(
   return {
     ...xml!,
     source: 'dexie+scryfall',
+    fetchedAt: scryfall!.fetchedAt,
     related: overlaid.length > 0 ? overlaid : undefined,
     // Layout + faces only live on Scryfall records (cards.xml
     // doesn't carry them), so pull directly from that side without

@@ -16,6 +16,10 @@ vi.mock('../pricing', async (importOriginal) => ({
 }));
 
 describe('useCardPrintings', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
   it('loads nothing without a card', () => {
     const { result } = renderHook(() => useCardPrintings(undefined));
     expect(result.current.loading).toBe(false);
@@ -57,5 +61,19 @@ describe('useCardPrintings', () => {
     const { result } = renderHook(() => useCardPrintings('X'));
     await waitFor(() => expect(result.current.error).toBe('boom'));
     expect(result.current.loading).toBe(false);
+  });
+
+  it('aborts the abandoned lookup when the card changes', () => {
+    vi.mocked(fetchAllPrintings).mockImplementation(() => new Promise(() => {}));
+    const { rerender } = renderHook(({ name }) => useCardPrintings(name), {
+      initialProps: { name: 'Lightning Bolt' },
+    });
+    const firstSignal = vi.mocked(fetchAllPrintings).mock.calls[0]?.[1];
+
+    rerender({ name: 'Opt' });
+
+    expect(firstSignal).toBeInstanceOf(AbortSignal);
+    expect(firstSignal?.aborted).toBe(true);
+    expect(fetchAllPrintings).toHaveBeenLastCalledWith('Opt', expect.any(AbortSignal));
   });
 });

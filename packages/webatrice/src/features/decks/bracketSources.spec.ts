@@ -1,3 +1,16 @@
+const scheduler = vi.hoisted(() => ({
+  request: undefined as ((url: string, init?: RequestInit) => Promise<Response>) | undefined,
+}));
+
+vi.mock('../../services/scryfall/scheduler', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('../../services/scryfall/scheduler')>();
+  return {
+    ...actual,
+    scheduleScryfallRequest: (url: string, init?: RequestInit) => scheduler.request!(url, init),
+  };
+});
+
+import { createScryfallScheduler } from '../../services/scryfall/scheduler';
 import {
   BRACKET_SOURCE_TIMEOUT_MS,
   clearBracketSourceCaches,
@@ -30,6 +43,7 @@ function hanging(_url: unknown, init?: RequestInit): Promise<Response> {
 let fetchMock: ReturnType<typeof vi.fn>;
 
 beforeEach(() => {
+  scheduler.request = createScryfallScheduler();
   clearBracketSourceCaches();
   fetchMock = vi.fn();
   vi.stubGlobal('fetch', fetchMock);
@@ -54,6 +68,7 @@ describe('Scryfall request shapes (characterization)', () => {
   });
 
   it('posts oracle-text names 75 to a request, one request at a time', async () => {
+    vi.useFakeTimers();
     let resolveFirst!: (response: Response) => void;
     const firstResponse = new Promise<Response>((resolve) => {
       resolveFirst = resolve;
@@ -63,10 +78,11 @@ describe('Scryfall request shapes (characterization)', () => {
 
     const result = fetchOracleText(names);
     try {
-      await Promise.resolve();
+      await vi.advanceTimersByTimeAsync(500);
       expect(fetchMock).toHaveBeenCalledTimes(1);
     } finally {
       resolveFirst(json({ data: [] }));
+      await vi.advanceTimersByTimeAsync(0);
       await result;
     }
 

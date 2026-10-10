@@ -1,6 +1,9 @@
 import { ImageOff, ShoppingCart } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 
+import { useImageCandidates } from '@app/hooks';
+import { imageCandidatesOf } from '@app/services';
+
 import { priceForCard, type PriceLookup } from '../../pricing';
 import { upgradeScryfallImageSize } from '../../scryfallImage';
 import type { DeckCard } from '../../types';
@@ -13,7 +16,12 @@ export function DeckCardPreview({
   prices: PriceLookup;
 }) {
   const { t } = useTranslation();
-  const imageUri = card ? upgradeScryfallImageSize(card.imageUri) : null;
+  const imageUris = card
+    ? imageCandidatesOf(card)
+      .map(upgradeScryfallImageSize)
+      .filter((url): url is string => Boolean(url))
+    : [];
+  const { src: imageUri, onError } = useImageCandidates(imageUris);
 
   // Shared frame: `aspect-[5/7]` + `rounded-xl` + `shadow-glow` matches
   // fancy webatrice's CardImagePreview so the empty state carries the
@@ -37,6 +45,7 @@ export function DeckCardPreview({
             alt={card?.name ?? ''}
             className="w-full h-full object-cover"
             draggable={false}
+            onError={onError}
           />
         ) : card ? (
           <div className="text-xs text-text-muted text-center px-4 flex flex-col items-center gap-2">

@@ -1,30 +1,21 @@
 import { ScryfallImageSize } from '@cockatrice/datatrice';
 
-import { getScryfallUrlById, lookupCards, parseCod, type LookupResult, type PrintingSummary } from '@app/services';
+import {
+  getScryfallUrlById,
+  imageCandidatesOf,
+  lookupCards,
+  parseCod,
+  primaryImageUri,
+  type LookupResult,
+  type PrintingSummary,
+} from '@app/services';
 import type { ParsedCard, ParsedDeck } from '@app/types';
 
 import type { DeckCard, HydratedDeck } from './types';
 
-/**
- * Top-level "load a deck" pipeline: raw `.cod` XML → structured
- * `ParsedDeck` → hydrated `HydratedDeck` with per-card metadata and
- * chosen printings. This is what MyDecks / DeckEditor call after
- * `deckDownload(id)` returns.
- *
- * The hydration step:
- *   1. Bulk-lookup every unique card name (Dexie + Scryfall fallback).
- *   2. For each ParsedCard, pick a printing — user's XML hint if
- *      present, else newest from the lookup result.
- *   3. Merge card metadata + chosen printing into a DeckCard.
- *
- * Cards not found anywhere still render as `DeckCard`s with only
- * `name`/`quantity`/`category` populated + `lookupSource: 'unknown'`,
- * so the UI can flag them without special-casing missing rows.
- */
-
-export async function hydrateDeck(parsed: ParsedDeck): Promise<HydratedDeck> {
+export async function hydrateDeck(parsed: ParsedDeck, signal?: AbortSignal): Promise<HydratedDeck> {
   const uniqueNames = Array.from(new Set(parsed.cards.map((c) => c.name)));
-  const lookups = await lookupCards(uniqueNames);
+  const lookups = await lookupCards(uniqueNames, signal);
 
   const cards: DeckCard[] = parsed.cards.map((row) => {
     const lookup = lookups.get(row.name);
@@ -55,20 +46,10 @@ export async function hydrateDeck(parsed: ParsedDeck): Promise<HydratedDeck> {
 }
 
 /** Convenience: fetch → parse → hydrate in one call. */
-export async function loadDeckFromCod(xml: string): Promise<HydratedDeck> {
-  return hydrateDeck(parseCod(xml));
+export async function loadDeckFromCod(xml: string, signal?: AbortSignal): Promise<HydratedDeck> {
+  return hydrateDeck(parseCod(xml), signal);
 }
 
-/**
- * Merge a parsed card row with its lookup result into a renderable
- * DeckCard. Printing selection priority:
- *   1. If the parsed row has an XML hint (`set` / `collectorNumber` /
- *      `scryfallId`), find the matching printing in the lookup —
- *      prefer scryfallId match, fall back to (set + collector) match.
- *   2. Otherwise take the last entry in `printings[]` (newest).
- *   3. If the lookup has no printings, emit an empty printing (no set/
- *      image); the row still renders but as a text-only entry.
- */
 export function assembleDeckCard(
   row: ParsedCard,
   lookup: LookupResult | undefined,
@@ -88,18 +69,10 @@ export function assembleDeckCard(
 
   const chosen = pickPrinting(row, lookup.printings);
 
-  // When the hint identifies a printing that Dexie doesn't know about
-  // (user picked a Scryfall-only printing from the printings picker),
-  // `chosen` is undefined but `row.scryfallId` still identifies the
-  // exact printing. Synthesize an image URL from that id so the
-  // deck editor renders the correct art on reload — without this,
-  // we'd silently substitute Dexie's newest known printing and the
-  // user's choice would appear discarded.
-  const imageUri =
-    chosen?.imageUri ??
-    (row.scryfallId
-      ? getScryfallUrlById(row.scryfallId, ScryfallImageSize.Normal)
-      : undefined);
+  const fallbackImageUri = row.scryfallId
+    ? getScryfallUrlById(row.scryfallId, ScryfallImageSize.Normal)
+    : undefined;
+  const imageUris = imageCandidatesOf({ imageUris: imageCandidatesOf(chosen), imageUri: fallbackImageUri });
 
   return {
     name: row.name,
@@ -115,7 +88,8 @@ export function assembleDeckCard(
     set: chosen?.set ?? row.set,
     collectorNumber: chosen?.collectorNumber ?? row.collectorNumber,
     scryfallId: chosen?.scryfallId ?? row.scryfallId,
-    imageUri,
+    imageUri: primaryImageUri({ imageUris }),
+    imageUris,
     lookupSource: lookup.source,
   };
 }
@@ -138,8 +112,6 @@ function pickPrinting(
     // a printing from Scryfall that's not in their imported card DB.
     // Returning undefined preserves the hint values in assembleDeckCard
     // (set/collectorNumber/scryfallId flow through from `row.*`).
-    // If we fell through to `printings[last]` here we'd silently
-    // replace the user's pick with Dexie's newest — a data-losing bug.
     return undefined;
   }
 
@@ -156,6 +128,5 @@ function pickPrinting(
     return undefined;
   }
 
-  // No hint at all — use newest.
-  return printings[printings.length - 1];
+  return printings[0];
 }

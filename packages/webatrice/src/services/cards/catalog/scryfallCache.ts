@@ -1,12 +1,35 @@
 import { dexieService } from '../../dexie';
-import type { LookupResult } from './types';
+import type { LookupResult, PrintingSummary } from './types';
 
-export async function getFromScryfallCache(name: string): Promise<LookupResult | undefined> {
+export const SCRYFALL_CACHE_TTL_MS = 24 * 60 * 60 * 1000;
+
+export interface ScryfallCacheHint {
+  set?: string;
+  collectorNumber?: string;
+  scryfallId?: string;
+}
+
+type ScryfallCacheRecord = LookupResult & { fetchedAt?: number };
+
+export function isScryfallCacheFresh(
+  result: ScryfallCacheRecord,
+  now = Date.now(),
+): boolean {
+  return typeof result.fetchedAt === 'number'
+    && Number.isFinite(result.fetchedAt)
+    && now - result.fetchedAt >= 0
+    && now - result.fetchedAt < SCRYFALL_CACHE_TTL_MS;
+}
+
+export async function getFromScryfallCache(
+  name: string,
+  hint?: ScryfallCacheHint,
+): Promise<LookupResult | undefined> {
   try {
     const raw = (await dexieService.scryfallCache.get(name)) as
-      | LookupResult
+      | ScryfallCacheRecord
       | undefined;
-    return raw ? sanitizeCached(raw) : undefined;
+    return readCached(raw, hint);
   } catch {
     return undefined;
   }
@@ -14,30 +37,51 @@ export async function getFromScryfallCache(name: string): Promise<LookupResult |
 
 export async function bulkGetFromScryfallCache(
   names: string[],
+  hints?: ReadonlyArray<ScryfallCacheHint | undefined>,
 ): Promise<Array<LookupResult | undefined>> {
   try {
     const raw = (await dexieService.scryfallCache.bulkGet(names)) as Array<
-      LookupResult | undefined
+      ScryfallCacheRecord | undefined
     >;
-    return raw.map((r) => (r ? sanitizeCached(r) : undefined));
+    return raw.map((result, index) => readCached(result, hints?.[index]));
   } catch {
     return names.map(() => undefined);
   }
 }
 
-/**
- * Drop stale `combo_piece` entries from a cached Scryfall record.
- * We used to write those into the cache, but they turned out to be
- * unreliable (see the `scryfallToLookup` comment). Filtering on
- * read lets old cached records self-heal without a schema bump —
- * the next time we re-fetch and write, the record will already be
- * clean. Cheap enough to run every read.
- */
-function sanitizeCached(result: LookupResult): LookupResult {
+function readCached(
+  result: ScryfallCacheRecord | undefined,
+  hint?: ScryfallCacheHint,
+): LookupResult | undefined {
+  if (!result || !matchesHint(result.printings, hint)) {
+    return undefined;
+  }
+  return sanitizeCached(result);
+}
+
+function matchesHint(
+  printings: PrintingSummary[],
+  hint?: ScryfallCacheHint,
+): boolean {
+  if (!hint) {
+    return true;
+  }
+  if (hint.scryfallId) {
+    return printings.some((printing) => printing.scryfallId === hint.scryfallId);
+  }
+  if (!hint.set && !hint.collectorNumber) {
+    return true;
+  }
+  return printings.some((printing) =>
+    (!hint.set || printing.set?.toLowerCase() === hint.set.toLowerCase())
+    && (!hint.collectorNumber || printing.collectorNumber === hint.collectorNumber));
+}
+
+function sanitizeCached(result: ScryfallCacheRecord): LookupResult {
   if (!result.related) {
     return result;
   }
-  const filtered = result.related.filter((r) => r.component !== 'combo_piece');
+  const filtered = result.related.filter((related) => related.component !== 'combo_piece');
   if (filtered.length === result.related.length) {
     return result;
   }
@@ -46,13 +90,9 @@ function sanitizeCached(result: LookupResult): LookupResult {
 
 export async function putScryfallCache(result: LookupResult): Promise<void> {
   try {
-    // Dexie's put replaces the whole record — safe for our use since
-    // we always store the full merged LookupResult (not partial
-    // patches). Failures are swallowed so a full-disk / permissions
-    // error doesn't break the caller.
-    await dexieService.scryfallCache.put(result);
+    await dexieService.scryfallCache.put(toCacheRecord(result, Date.now()));
   } catch {
-    /* ignore */
+    return;
   }
 }
 
@@ -61,8 +101,19 @@ export async function bulkPutScryfallCache(results: LookupResult[]): Promise<voi
     return;
   }
   try {
-    await dexieService.scryfallCache.bulkPut(results);
+    const fetchedAt = Date.now();
+    await dexieService.scryfallCache.bulkPut(results.map((result) => toCacheRecord(result, fetchedAt)));
   } catch {
-    /* ignore */
+    return;
   }
+}
+
+function toCacheRecord(result: LookupResult, fallbackFetchedAt: number): ScryfallCacheRecord {
+  const fetchedAt = (result as ScryfallCacheRecord).fetchedAt;
+  return {
+    ...result,
+    fetchedAt: typeof fetchedAt === 'number' && Number.isFinite(fetchedAt)
+      ? fetchedAt
+      : fallbackFetchedAt,
+  };
 }

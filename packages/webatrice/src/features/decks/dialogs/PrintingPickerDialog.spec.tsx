@@ -76,4 +76,19 @@ describe('PrintingPickerDialog', () => {
     const titles = screen.getAllByTitle(/· Lightning Bolt$/).map((el) => el.getAttribute('title'));
     expect(titles).toEqual(['A25 · Lightning Bolt', 'M11 · Lightning Bolt']);
   });
+
+  it('tries every catalogue image candidate for a printing', () => {
+    printings({ printings: [{
+      ...m11,
+      imageUris: [
+        'https://cards.scryfall.io/small/front/first.jpg',
+        'https://cards.scryfall.io/small/front/second.jpg',
+      ],
+    }] });
+    render(<PrintingPickerDialog request={{ index: 0, card: bolt }} onClose={vi.fn()} onPick={vi.fn()} />);
+
+    const image = screen.getByAltText('Lightning Bolt (m11)');
+    fireEvent.error(image);
+    expect(image).toHaveAttribute('src', 'https://cards.scryfall.io/normal/front/second.jpg');
+  });
 });

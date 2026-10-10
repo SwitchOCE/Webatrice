@@ -36,7 +36,7 @@ describe('useQuickAddSuggestions', () => {
     await settle();
 
     expect(searchCards).toHaveBeenCalledTimes(1);
-    expect(searchCards).toHaveBeenCalledWith('sol', MAX_SUGGESTIONS);
+    expect(searchCards).toHaveBeenCalledWith('sol', MAX_SUGGESTIONS, expect.any(AbortSignal));
     expect(result.current.suggestions).toEqual([{ name: 'Sol Ring', source: 'scryfall' }]);
     expect(result.current.highlight).toBe(0);
 
@@ -58,6 +58,24 @@ describe('useQuickAddSuggestions', () => {
     await settle();
 
     await act(async () => resolveFirst([{ name: 'Sol Ring', source: 'scryfall' }]));
+    expect(result.current.suggestions).toEqual([{ name: 'Sol Talisman', source: 'scryfall' }]);
+  });
+
+  it('aborts an in-flight lookup when the query changes', async () => {
+    vi.mocked(searchCards)
+      .mockImplementationOnce((_query, _limit, signal) => new Promise((_resolve, reject) => {
+        signal?.addEventListener('abort', () => reject(new DOMException('Aborted', 'AbortError')), { once: true });
+      }))
+      .mockResolvedValueOnce([{ name: 'Sol Talisman', source: 'scryfall' }]);
+    const { result, rerender } = renderHook(({ q }) => useQuickAddSuggestions(q), { initialProps: { q: 'sol r' } });
+    await settle();
+    const firstSignal = vi.mocked(searchCards).mock.calls[0]?.[2];
+
+    rerender({ q: 'sol t' });
+
+    expect(firstSignal).toBeInstanceOf(AbortSignal);
+    expect(firstSignal?.aborted).toBe(true);
+    await settle();
     expect(result.current.suggestions).toEqual([{ name: 'Sol Talisman', source: 'scryfall' }]);
   });
 

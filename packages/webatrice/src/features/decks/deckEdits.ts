@@ -1,4 +1,5 @@
 import type { BracketAssessment, DeckCategory } from '@app/types';
+import { imageCandidatesOf, primaryImageUri } from '@app/services';
 
 import { readDeckTags, writeDeckTags, type BannerCandidate } from './deckTags';
 import type { DeckCard, HydratedDeck } from './types';
@@ -99,15 +100,21 @@ export interface CardPrinting {
   collectorNumber?: string;
   scryfallId?: string;
   imageUri?: string;
+  imageUris?: string[];
 }
 
 export function setCardPrinting(deck: HydratedDeck, index: number, printing: CardPrinting): HydratedDeck {
   const card = deck.cards[index];
+  const imageUris = imageCandidatesOf(printing);
+  const currentImageUris = imageCandidatesOf(card);
+  const sameImages = imageUris.length === 0
+    || (imageUris.length === currentImageUris.length && imageUris.every((url, i) => url === currentImageUris[i]));
   if (
     !card
     || (card.set === printing.set
       && card.collectorNumber === printing.collectorNumber
-      && card.scryfallId === printing.scryfallId)
+      && card.scryfallId === printing.scryfallId
+      && sameImages)
   ) {
     return deck;
   }
@@ -115,7 +122,8 @@ export function setCardPrinting(deck: HydratedDeck, index: number, printing: Car
     set: printing.set,
     collectorNumber: printing.collectorNumber,
     scryfallId: printing.scryfallId,
-    imageUri: printing.imageUri,
+    imageUri: primaryImageUri({ imageUris }),
+    imageUris,
   });
 }
 

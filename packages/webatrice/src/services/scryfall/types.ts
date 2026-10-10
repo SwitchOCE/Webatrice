@@ -47,6 +47,7 @@ export interface ScryfallIdentifier {
 
 export interface ScryfallCardHint {
   name: string;
+  scryfallId?: string;
   set?: string;
   collectorNumber?: string;
 }

@@ -1,4 +1,5 @@
 import { chunkForCollection, postCollection } from '../../services/scryfall/client';
+import { rethrowCancellationOrRateLimit } from '../../services/scryfall/scheduler';
 
 import type { DeckCard } from './types';
 
@@ -310,6 +311,7 @@ async function fetchChunk(identifiers: Identifier[]): Promise<ChunkResult> {
     }
     return out;
   } catch (e) {
+    rethrowCancellationOrRateLimit(e);
     console.warn('[pricing] Scryfall fetch threw:', e);
     return empty;
   }
