@@ -11,9 +11,10 @@ import { closeReplay, getOpenedReplay, getOpenedReplays, openReplay, type Opened
 import { buildReplay, sayContainer } from '../../services/replay/__mocks__/fixtures';
 import { getSettings, settingsStore } from '../../hooks/useSettings';
 
+import type { ReplayShortcutBinder } from './replayShortcuts';
 import { useReplayPlayback } from './useReplayPlayback';
 
-function setup(opened: OpenedReplay | undefined) {
+function setup(opened: OpenedReplay | undefined, useShortcuts?: ReplayShortcutBinder) {
   const store = configureStore({
     reducer: { games: games.gamesReducer },
     preloadedState: { games: { games: {}, pings: {} } as GamesState },
@@ -25,7 +26,7 @@ function setup(opened: OpenedReplay | undefined) {
       </Provider>
     );
   }
-  const hook = renderHook(() => useReplayPlayback(opened), { wrapper: Wrapper });
+  const hook = renderHook(() => useReplayPlayback(opened, useShortcuts), { wrapper: Wrapper });
   return { ...hook, store };
 }
 
@@ -47,6 +48,18 @@ afterEach(() => {
 });
 
 describe('useReplayPlayback', () => {
+  it('hands its actions to the shortcut binder, enabled only while a replay is open', () => {
+    const bind = vi.fn<ReplayShortcutBinder>();
+    setup(undefined, bind);
+    expect(bind).toHaveBeenLastCalledWith(expect.objectContaining({ togglePlay: expect.any(Function) }), false);
+
+    const { opened } = open();
+    setup(opened, bind);
+    expect(bind).toHaveBeenLastCalledWith(expect.any(Object), true);
+    bind.mock.lastCall![0].togglePlay();
+    expect(opened.engine.getState().playing).toBe(true);
+  });
+
   it('shows the opened replay at its start', () => {
     const { opened } = open();
     const { result } = setup(opened);

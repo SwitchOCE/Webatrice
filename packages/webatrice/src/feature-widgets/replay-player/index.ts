@@ -4,6 +4,8 @@ export { default as ReplayControls } from './ReplayControls';
 export { default as ReplayTimeline } from './ReplayTimeline';
 export { useReplayPlayback } from './useReplayPlayback';
 export type { ReplayPlayback } from './useReplayPlayback';
+export { REPLAY_SHORTCUT_IDS, runReplayShortcut } from './replayShortcuts';
+export type { ReplayShortcutActions, ReplayShortcutBinder } from './replayShortcuts';
 export { createTurnMarks, turnAt } from './replayTurnMarks';
 export type { TurnMark } from './replayTurnMarks';
 export { GameLogRows } from './GameLogRows';

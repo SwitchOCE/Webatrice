@@ -12,6 +12,8 @@ import { GameReadOnlyProvider } from '../components/ui/GameReadOnlyContext';
 import { ReplayRewindProvider } from '../components/ui/ReplayRewindContext';
 import { ReplayControls, useReplayPlayback } from '@app/feature-widgets/replay-player';
 
+import { useReplayShortcuts } from './useReplayShortcuts';
+
 function GameReplay() {
   const { t } = useTranslation();
   const { replayKey } = useParams<{ replayKey: string }>();
@@ -33,7 +35,7 @@ function GameReplay() {
 
 function ReplayView({ opened }: { opened: OpenedReplay }) {
   const navigate = useNavigate();
-  const playback = useReplayPlayback(opened);
+  const playback = useReplayPlayback(opened, useReplayShortcuts);
 
   const closeReplayTab = useCallback(() => {
     navigate(generatePath(RouteEnum.REPLAYS));

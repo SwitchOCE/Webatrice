@@ -12,6 +12,7 @@ import { formatReplayTime } from '@app/utils';
 import { GameLogRows } from './GameLogRows';
 import PreviewBoard from './PreviewBoard';
 import ReplayTimeline from './ReplayTimeline';
+import { noReplayShortcuts, type ReplayShortcutBinder } from './replayShortcuts';
 import { createTurnMarks, turnAt } from './replayTurnMarks';
 import { usePreviewBoardModel } from './usePreviewBoardModel';
 import { useReplayPlayback } from './useReplayPlayback';
@@ -19,11 +20,12 @@ import { useReplayPlayback } from './useReplayPlayback';
 export interface ReplayPreviewProps {
   opened: OpenedReplay;
   onWatchFrom: (time: number) => void;
+  useShortcuts?: ReplayShortcutBinder;
 }
 
-function ReplayPreview({ opened, onWatchFrom }: ReplayPreviewProps) {
+function ReplayPreview({ opened, onWatchFrom, useShortcuts = noReplayShortcuts }: ReplayPreviewProps) {
   const { t } = useTranslation();
-  const playback = useReplayPlayback(opened);
+  const playback = useReplayPlayback(opened, useShortcuts);
   const model = usePreviewBoardModel(opened.gameId);
   const turnMarks = useMemo(() => createTurnMarks(opened.replay, opened.engine.timeline), [opened]);
   const messages = useAppSelector((state) => games.Selectors.getMessages(state, opened.gameId));

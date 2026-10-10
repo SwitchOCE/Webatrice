@@ -117,16 +117,41 @@ describe('useReplayPreview', () => {
     expect(fetch).toHaveBeenCalledTimes(3);
   });
 
-  it('never hands a preview the game id of a replay opened in a tab', async () => {
+  it('does not cache a download that finishes after the preview unmounted and the session ended', async () => {
     const view = setup();
-    const full = getOpenedReplays().length ? [] : [openReplay(buildReplay([sayContainer(0)]), 'tab', view.webClient)];
+    let resolveSlow: (value: Uint8Array) => void = () => {};
+    const slow = new Promise<Uint8Array>((resolve) => {
+      resolveSlow = resolve;
+    });
+    const source = { key: 'server:70', title: 'Game 7', fetch: vi.fn().mockReturnValue(slow) };
+
+    act(() => view.state.load(source));
+    view.unmount();
+    endSession();
+    await act(async () => {
+      resolveSlow(bytes());
+      await slow;
+    });
+
+    const next = setup();
+    act(() => next.state.load({ ...source, fetch: vi.fn().mockResolvedValue(bytes()) }));
+    expect(next.state.status).toBe('loading');
+    await waitFor(() => expect(next.state.status).toBe('ready'));
+    expect(next.webClient.loadReplayGame).toHaveBeenCalledTimes(1);
+  });
+
+  it('draws preview and tab game ids from one sequence', async () => {
+    const view = setup();
     act(() => view.state.load({ key: 'server:70', title: 'Game 7', fetch: () => Promise.resolve(bytes()) }));
     await waitFor(() => expect(view.state.status).toBe('ready'));
-    const tabIds = full.map((key) => getOpenedReplays().find((r) => r.key === key)!.gameId);
+    const previewId = view.state.opened!.gameId;
 
-    expect(tabIds).not.toContain(view.state.opened!.gameId);
-    const later = openReplay(buildReplay([sayContainer(0)]), 'later', view.webClient);
-    expect(getOpenedReplays().find((r) => r.key === later)!.gameId).not.toBe(view.state.opened!.gameId);
+    const tab = openReplay(buildReplay([sayContainer(0)]), 'tab', view.webClient);
+    expect(getOpenedReplays().find((r) => r.key === tab)!.gameId).toBe(previewId - 1);
+
+    act(() => view.state.load({ key: 'server:71', title: 'Game 7', fetch: () => Promise.resolve(bytes()) }));
+    await waitFor(() => expect(view.state.opened?.key).toBe('server:71'));
+    expect(view.state.opened!.gameId).toBe(previewId - 2);
   });
 
   it('opens the full replay at the preview position when watching from a time', async () => {
