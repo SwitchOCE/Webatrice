@@ -115,8 +115,8 @@ describe('GamesList restriction gating', () => {
     const room = makeRoomEntry([makeGame({ playerCount: 4, spectatorsAllowed: false, withPassword: true,
       spectatorsNeedPassword: true })]);
     renderWithProviders(<GamesList room={room} />, { preloadedState: buildState(room, makeUser({ userLevel }), 1) });
-    const join = screen.getByRole('button', { name: 'Common.action.join' });
-    const spectate = screen.getByRole('button', { name: 'GamesList.action.spectate' });
+    const join = screen.getByRole('button', { name: /^GameRow\.join/ });
+    const spectate = screen.getByRole('button', { name: /^GameRow\.spectate/ });
     expect(join).toHaveProperty('disabled', !override);
     expect(spectate).toHaveProperty('disabled', !override);
     if (override) {
@@ -124,7 +124,7 @@ describe('GamesList restriction gating', () => {
       expect(client.request.rooms.joinGame).toHaveBeenCalledWith(1, expect.objectContaining({
         overrideRestrictions: true, password: '', spectator: true,
       }), expect.any(String));
-      expect(screen.queryByText('Password required')).not.toBeInTheDocument();
+      expect(screen.queryByRole('dialog', { name: 'PasswordPopover.label' })).not.toBeInTheDocument();
     }
   });
 });

@@ -1,52 +1,65 @@
-import { useCallback, useMemo, useRef, useState, type CSSProperties } from 'react';
+import { useCallback, useMemo, useRef, useState, type CSSProperties, type ReactNode } from 'react';
 import type { ListImperativeAPI } from 'react-window';
-import { Filter, FilterX, Plus, LogIn, Eye, Gavel, ArrowUp, ArrowDown } from 'lucide-react';
-import { Trans, useTranslation } from 'react-i18next';
+import { ArrowDown, ArrowUp, Gavel, Info, Link } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 
-import { server, rooms, type GameFilters, type Room, type Game } from '@cockatrice/datatrice';
-import { useAppDispatch, useAppSelector } from '@app/store';
-import { VirtualRows } from '@app/components';
+import { games as gamesSlice, server, rooms, type Room, type Game } from '@cockatrice/datatrice';
+import { useAppSelector } from '@app/store';
+import { Menu, MenuItem, MenuSeparator, VirtualRows, type MenuAnchor } from '@app/components';
 import { useCanOverrideGameRestrictions, useGridRows, useJoinGame, useJoinGameErrorMessage, useNavigateOnGameJoined } from '@app/hooks';
-import { useWebClient } from '@cockatrice/datatrice/react';
-import type { CreateGameParams } from '@cockatrice/sockatrice/generated';
-import { AlertDialog, ConfirmDialog, PromptDialog } from '@app/dialogs';
-import { formatRestrictions, formatSpectators } from '@app/utils';
+import { AlertDialog, ConfirmDialog } from '@app/dialogs';
 
-import CreateGameDialog from '../dialogs/CreateGameDialog/CreateGameDialog';
-import FilterGamesDialog from '../dialogs/FilterGamesDialog/FilterGamesDialog';
+import RoomGameInfoDialog from '../dialogs/RoomGameInfoDialog/RoomGameInfoDialog';
+import GameRow, { gameName, type RowAction } from './GameRow';
+import PasswordPopover from './PasswordPopover';
+import QuickFilterBar, { SORT_KEYS } from './QuickFilterBar';
+import { rowJoinState, type RowJoinState } from './gameRowModel';
+import { currentSortOption, SORT_OPTIONS, type SortOptionId } from './quickFilters';
+import { useElementWidth } from './useElementWidth';
+import { useGameLink } from './useGameLink';
+import { useNowSeconds } from './useNowSeconds';
 import { useOpenGames } from './useOpenGames';
-
-const TOOLBAR_BUTTON_CLASS =
-  'inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md text-sm font-medium '
-  + 'bg-bg-elevated text-text-secondary hover:text-text-primary border border-border-subtle '
-  + 'disabled:opacity-40 disabled:cursor-not-allowed transition-colors';
+import { useRoomGameFilters } from './useRoomGameFilters';
 
 interface GamesListProps {
   room: Room;
+  header?: ReactNode;
 }
 
-const COLUMNS: Array<{ id: string; field?: string }> = [
-  { id: 'age', field: 'info.startTime' },
-  { id: 'description', field: 'info.description' },
-  { id: 'creator', field: 'info.creatorInfo.name' },
-  { id: 'type', field: 'gameType' },
-  { id: 'restrictions' },
-  { id: 'players' },
-  { id: 'spectators', field: 'info.spectatorsCount' },
-];
+const ROW_HEIGHT_FALLBACK = 40;
+const WATCHING_MIN_WIDTH = 760;
+const PASSWORD_TOGGLE_MIN_WIDTH = 980;
+const COLUMNS_WIDE = 'minmax(0,1fr) 116px 92px 216px';
+const COLUMNS_NARROW = 'minmax(0,1fr) 116px 216px';
 
-const GRID_COLS = 'grid grid-cols-[6rem_minmax(0,1fr)_10rem_8rem_14rem_5rem_8rem]';
-const GAME_ROW_HEIGHT = 37;
+function rowHeight(): number {
+  const raw = typeof window === 'undefined'
+    ? ''
+    : getComputedStyle(document.documentElement).getPropertyValue('--row-h');
+  const parsed = Number.parseFloat(raw);
+  return Math.round((Number.isFinite(parsed) && parsed > 0 ? parsed : ROW_HEIGHT_FALLBACK) * 1.5);
+}
 
-export default function GamesList({ room }: GamesListProps) {
+interface PendingTrigger {
+  gameId: number;
+  action: RowAction;
+  button: HTMLElement;
+}
+
+interface MoreMenu {
+  gameId: number;
+  anchor: MenuAnchor;
+  button: HTMLElement;
+}
+
+export default function GamesList({ room, header }: GamesListProps) {
   const { t } = useTranslation();
   const roomId = room.info.roomId;
-  const webClient = useWebClient();
   const overrideRestrictions = useCanOverrideGameRestrictions();
-  const dispatch = useAppDispatch();
   const {
-    beginJoin: joinGame,
+    beginJoin,
     passwordRequired,
+    passwordGame,
     submitPassword,
     cancelPassword,
     spectatorConfirmationRequired,
@@ -60,35 +73,41 @@ export default function GamesList({ room }: GamesListProps) {
   useNavigateOnGameJoined();
 
   const roomGames = useAppSelector((state) => rooms.Selectors.getRoomGames(state, roomId));
-  const activateGame = useCallback((gameId: number) => {
-    const game = roomGames[gameId];
-    if (game) {
-      joinGame(roomId, game.info, false, false);
-    }
-  }, [roomGames, joinGame, roomId]);
-  const { sortBy, games: gameList, selectedGameId, handleSort, handleSelect, handleActivate } =
-    useOpenGames({ roomId, onActivateGame: activateGame });
-  const selectedGame = selectedGameId != null ? roomGames[selectedGameId] : undefined;
-  const counts = useAppSelector((state) => rooms.Selectors.getRoomGameCounts(state, roomId));
-  const isFilterActive = useAppSelector((state) => rooms.Selectors.isGameFilterActive(state, roomId));
-  const filters = useAppSelector((state) => rooms.Selectors.getGameFilters(state, roomId));
+  const activeGameIds = useAppSelector(gamesSlice.Selectors.getActiveGameIds);
   const isJudgeUser = useAppSelector(server.Selectors.getIsUserJudge);
+  const roomFilters = useRoomGameFilters(roomId);
+  const nowSeconds = useNowSeconds();
+  const gameLink = useGameLink();
+  const [measureRef, width, section] = useElementWidth<HTMLElement>();
+  const watchingColumn = width >= WATCHING_MIN_WIDTH;
+  const passwordInBar = width >= PASSWORD_TOGGLE_MIN_WIDTH;
+  const columns = watchingColumn ? COLUMNS_WIDE : COLUMNS_NARROW;
+  const [height] = useState(rowHeight);
 
-  const [createOpen, setCreateOpen] = useState(false);
-  const [filterOpen, setFilterOpen] = useState(false);
+  const [trigger, setTrigger] = useState<PendingTrigger | null>(null);
+  const [moreMenu, setMoreMenu] = useState<MoreMenu | null>(null);
+  const [infoGameId, setInfoGameId] = useState<number | null>(null);
 
-  function joinById(gameId: number, asSpectator: boolean, asJudge: boolean) {
+  const startJoin = useCallback((gameId: number, asSpectator: boolean, asJudge: boolean, button?: HTMLElement) => {
     const game = roomGames[gameId];
-    if (game) {
-      joinGame(roomId, game.info, asSpectator, asJudge);
+    if (!game) {
+      return;
     }
-  }
+    const anchor = button ?? document.querySelector<HTMLElement>(`[data-join-game="${gameId}"]`);
+    setTrigger(anchor ? { gameId, action: asSpectator ? 'spectate' : 'join', button: anchor } : null);
+    beginJoin(roomId, game.info, asSpectator, asJudge);
+  }, [roomGames, beginJoin, roomId]);
 
-  function beginJoin(asSpectator: boolean, asJudge: boolean) {
-    if (selectedGameId != null) {
-      joinById(selectedGameId, asSpectator, asJudge);
+  const activateGame = useCallback((gameId: number) => startJoin(gameId, false, false), [startJoin]);
+  const { sortBy, games: gameList, selectedGameId, setSort, handleSelect, handleActivate } =
+    useOpenGames({ roomId, onActivateGame: activateGame });
+  const sort = currentSortOption(sortBy);
+  const onSort = useCallback((id: SortOptionId) => {
+    const option = SORT_OPTIONS.find((candidate) => candidate.id === id);
+    if (option) {
+      setSort(option.field, option.order);
     }
-  }
+  }, [setSort]);
 
   const listRef = useRef<ListImperativeAPI>(null);
   const keys = useMemo(() => gameList.map((game) => String(game.info.gameId)), [gameList]);
@@ -104,127 +123,129 @@ export default function GamesList({ room }: GamesListProps) {
     onActivate: activateRow,
   });
 
-  const canJoin =
-    Boolean(selectedGame && (selectedGame.info.playerCount < selectedGame.info.maxPlayers || overrideRestrictions)) && !joinPending;
-  const canSpectate = Boolean(selectedGame && (selectedGame.info.spectatorsAllowed || overrideRestrictions)) && !joinPending;
+  const joinStates = useMemo(() => {
+    const states = new Map<number, RowJoinState>();
+    for (const game of gameList) {
+      states.set(game.info.gameId, rowJoinState(game.info, {
+        override: overrideRestrictions,
+        pending: joinPending,
+        alreadyJoined: activeGameIds.includes(game.info.gameId),
+      }));
+    }
+    return states;
+  }, [gameList, overrideRestrictions, joinPending, activeGameIds]);
 
-  const handleCreateSubmit = (params: CreateGameParams) => {
-    webClient.request.rooms.createGame(roomId, params);
-    setCreateOpen(false);
-  };
+  const onAction = useCallback((gameId: number, action: RowAction, button: HTMLElement) => {
+    handleSelect(gameId);
+    startJoin(gameId, action === 'spectate', false, button);
+  }, [handleSelect, startJoin]);
 
-  const handleFilterSubmit = (next: GameFilters) => {
-    dispatch(rooms.Actions.setGameFilters({ roomId, filters: next }));
-    setFilterOpen(false);
-  };
+  const onMore = useCallback((gameId: number, button: HTMLElement) => {
+    handleSelect(gameId);
+    setMoreMenu({ gameId, button, anchor: { rect: button.getBoundingClientRect(), placement: 'below', align: 'end' } });
+  }, [handleSelect]);
 
-  const sortOrder = sortBy.order.toLowerCase() === 'asc' ? 'asc' : 'desc';
+  const renderGameRow = useCallback((game: Game, index: number, style: CSSProperties) => (
+    <GameRow
+      key={game.info.gameId}
+      game={game}
+      index={index}
+      style={style}
+      columns={columns}
+      selected={game.info.gameId === selectedGameId}
+      rowProps={getRowProps(String(game.info.gameId))}
+      state={joinStates.get(game.info.gameId)!}
+      nowSeconds={nowSeconds}
+      gametypeMap={room.gametypeMap}
+      watchingColumn={watchingColumn}
+      onSelect={handleSelect}
+      onActivate={handleActivate}
+      onAction={onAction}
+      onMore={onMore}
+    />
+  ), [
+    columns, selectedGameId, getRowProps, joinStates, nowSeconds, room.gametypeMap, watchingColumn,
+    handleSelect, handleActivate, onAction, onMore,
+  ]);
 
-  const renderGameRow = useCallback((game: Game, index: number, style: CSSProperties) => {
-    const { info, gameType } = game;
-    const isSelected = info.gameId === selectedGameId;
-    return (
-      <div
-        key={info.gameId}
-        role="row"
-        style={style}
-        {...getRowProps(String(info.gameId))}
-        aria-selected={isSelected}
-        aria-rowindex={index + 2}
-        onClick={() => handleSelect(info.gameId)}
-        onDoubleClick={() => handleActivate(info.gameId)}
-        className={[
-          GRID_COLS,
-          'cursor-pointer transition-colors',
-          'focus-visible:outline focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-accent',
-          isSelected
-            ? 'bg-accent/20 hover:bg-accent/25'
-            : 'hover:bg-bg-elevated',
-        ].join(' ')}
-      >
-        <div role="gridcell" className="px-3 py-2 border-b border-border-subtle/50 text-text-secondary tabular-nums whitespace-nowrap">
-          {info.startTime}
-        </div>
-        <div role="gridcell" className="px-3 py-2 border-b border-border-subtle/50 text-text-primary overflow-hidden">
-          <div className="truncate" title={info.description}>{info.description}</div>
-        </div>
-        <div role="gridcell" className="px-3 py-2 border-b border-border-subtle/50 text-text-secondary overflow-hidden">
-          <div className="truncate">{info.creatorInfo?.name ?? ''}</div>
-        </div>
-        <div role="gridcell" className="px-3 py-2 border-b border-border-subtle/50 text-text-secondary whitespace-nowrap">
-          {gameType}
-        </div>
-        <div role="gridcell" className="px-3 py-2 border-b border-border-subtle/50 text-text-secondary overflow-hidden">
-          <div className="truncate">{formatRestrictions(t, info)}</div>
-        </div>
-        <div role="gridcell" className="px-3 py-2 border-b border-border-subtle/50 text-text-primary tabular-nums whitespace-nowrap">
-          {info.playerCount}/{info.maxPlayers}
-        </div>
-        <div role="gridcell" className="px-3 py-2 border-b border-border-subtle/50 text-text-secondary overflow-hidden">
-          <div className="truncate">{formatSpectators(t, info)}</div>
-        </div>
-      </div>
-    );
-  }, [t, selectedGameId, getRowProps, handleSelect, handleActivate]);
+  const menuGame = moreMenu ? roomGames[moreMenu.gameId] : undefined;
+  const menuState = menuGame ? joinStates.get(menuGame.info.gameId) : undefined;
+  const infoGame = infoGameId != null ? roomGames[infoGameId] ?? null : null;
+  const passwordAnchor = passwordGame && trigger?.gameId === passwordGame.gameId ? trigger.button : section;
+  const sortLabel = t(SORT_KEYS[sort ?? 'custom']);
+  const descending = sortBy.order.toUpperCase() === 'DESC';
 
   return (
-    <section className="flex h-full flex-col bg-bg-surface border border-border-subtle rounded-lg overflow-hidden">
-      {/* Header */}
-      <div className="shrink-0 flex items-center justify-between px-4 py-3 border-b border-border-subtle">
-        <div>
-          <h2 className="font-modern text-lg font-semibold text-text-primary">{t('GamesList.heading', { room: room.info.name })}</h2>
-          <p className="text-xs text-text-muted mt-0.5 tabular-nums">
-            {t('GamesList.showing', { visible: counts.visible, total: counts.total })}
-          </p>
-        </div>
+    <section
+      ref={measureRef}
+      aria-label={t('GamesList.heading', { room: room.info.name })}
+      className="flex h-full min-h-0 flex-col overflow-hidden rounded-ui-lg border border-border-subtle bg-bg-surface shadow-panel"
+    >
+      {header}
+      <div className={header ? 'px-pad pb-3' : 'px-pad pb-3 pt-3'}>
+        <QuickFilterBar
+          roomFilters={roomFilters}
+          gametypeMap={room.gametypeMap}
+          passwordInBar={passwordInBar}
+          sort={sort}
+          onSort={onSort}
+        />
       </div>
 
       <div
         role="grid"
         aria-label={t('GamesList.heading', { room: room.info.name })}
         aria-rowcount={gameList.length + 1}
-        className="flex-1 min-h-0 flex flex-col overflow-hidden"
+        className="flex min-h-0 flex-1 flex-col overflow-hidden border-t border-border-subtle"
       >
         <div role="rowgroup" className="shrink-0">
-          <div role="row" aria-rowindex={1} className={`${GRID_COLS} bg-bg-elevated text-sm overflow-auto [scrollbar-gutter:stable]`}>
-            {COLUMNS.map(({ id, field }) => {
-              const active = field === sortBy.field;
-              return (
-                <div
-                  role="columnheader"
-                  key={id}
-                  aria-sort={active ? (sortOrder === 'asc' ? 'ascending' : 'descending') : undefined}
-                  className={[
-                    'text-left px-3 py-2 text-xs font-semibold uppercase tracking-wider text-text-muted',
-                    'border-b border-border-subtle select-none',
-                  ].join(' ')}
-                >
-                  {field ? (
-                    <button
-                      type="button"
-                      className="inline-flex items-center gap-1 uppercase tracking-wider hover:text-text-primary"
-                      onClick={() => handleSort(field)}
-                    >
-                      {t(`GamesList.column.${id}`)}
-                      {active && (sortOrder === 'asc' ? <ArrowUp size={11} /> : <ArrowDown size={11} />)}
-                    </button>
-                  ) : (
-                    t(`GamesList.column.${id}`)
-                  )}
-                </div>
-              );
-            })}
+          <div
+            role="row"
+            aria-rowindex={1}
+            className={[
+              'grid items-center gap-gap border-b border-border-subtle bg-bg-elevated/40 px-pad py-1.5',
+              'text-[11px] font-semibold uppercase tracking-[0.06em] text-text-muted [scrollbar-gutter:stable]',
+            ].join(' ')}
+            style={{ gridTemplateColumns: columns }}
+          >
+            <span
+              role="columnheader"
+              aria-sort={sort ? (descending ? 'descending' : 'ascending') : undefined}
+              className="inline-flex items-center gap-1"
+            >
+              {t('GamesList.column.game', { sort: sortLabel })}
+              {sort && (descending ? <ArrowDown size={11} aria-hidden /> : <ArrowUp size={11} aria-hidden />)}
+            </span>
+            <span role="columnheader">{t('GamesList.column.seats')}</span>
+            {watchingColumn && <span role="columnheader">{t('GamesList.column.watching')}</span>}
+            <span role="columnheader" className="pr-9 text-right">{t('GamesList.column.actions')}</span>
           </div>
         </div>
         {gameList.length === 0 ? (
-          <div className="flex-1 min-h-0 px-4 py-8 text-center text-sm text-text-muted">
-            <Trans i18nKey="GamesList.empty" components={{ create: <span className="text-text-primary" /> }} />
+          <div className="flex min-h-0 flex-1 flex-col items-center gap-2 px-4 py-8 text-center text-sm text-text-muted">
+            {roomFilters.isActive && roomFilters.counts.total > 0 ? (
+              <>
+                <span>{t('GamesList.emptyFiltered')}</span>
+                <button
+                  type="button"
+                  onClick={roomFilters.clear}
+                  className={[
+                    'rounded-ui-sm px-1 font-medium text-accent hover:underline',
+                    'focus-visible:outline focus-visible:outline-2 focus-visible:outline-accent',
+                  ].join(' ')}
+                >
+                  {t('QuickFilterBar.clearAll')}
+                </button>
+              </>
+            ) : (
+              <span>{t('GamesList.empty')}</span>
+            )}
           </div>
         ) : (
-          <div className="flex-1 min-h-0 text-sm">
+          <div className="min-h-0 flex-1">
             <VirtualRows
               items={gameList}
-              rowHeight={GAME_ROW_HEIGHT}
+              rowHeight={height}
               role="rowgroup"
               className="[scrollbar-gutter:stable]"
               renderRow={renderGameRow}
@@ -235,93 +256,47 @@ export default function GamesList({ room }: GamesListProps) {
         )}
       </div>
 
-      {/* Toolbar */}
-      <div className="shrink-0 flex items-center gap-2 px-4 py-3 border-t border-border-subtle bg-bg-surface">
-        <button
-          type="button"
-          onClick={() => setFilterOpen(true)}
-          className={[
-            'inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md text-sm font-medium transition-colors',
-            isFilterActive
-              ? 'bg-accent text-on-accent hover:bg-accent-hover'
-              : 'bg-bg-elevated text-text-secondary hover:text-text-primary border border-border-subtle',
-          ].join(' ')}
+      {moreMenu && menuGame && menuState && (
+        <Menu
+          anchor={moreMenu.anchor}
+          label={t('GameRow.more', { game: gameName(t, menuGame) })}
+          triggerRef={{ current: moreMenu.button }}
+          onClose={() => setMoreMenu(null)}
         >
-          <Filter size={14} /> {t('GamesList.action.filter')}
-        </button>
-        <button
-          type="button"
-          onClick={() => dispatch(rooms.Actions.clearGameFilters({ roomId }))}
-          disabled={!isFilterActive}
-          className={TOOLBAR_BUTTON_CLASS}
-        >
-          <FilterX size={14} /> {t('GamesList.action.clearFilter')}
-        </button>
+          <MenuItem icon={<Info size={14} />} onSelect={() => setInfoGameId(menuGame.info.gameId)}>
+            {t('GamesList.action.info')}
+          </MenuItem>
+          <MenuItem
+            icon={<Link size={14} />}
+            disabled={!gameLink.available}
+            disabledReason={gameLink.unavailableReason ?? undefined}
+            onSelect={() => gameLink.copy(menuGame.info)}
+          >
+            {t('GamesList.action.copyLink')}
+          </MenuItem>
+          {isJudgeUser && (
+            <>
+              <MenuSeparator />
+              <MenuItem
+                icon={<Gavel size={14} />}
+                disabled={!menuState.canJoin}
+                onSelect={() => startJoin(menuGame.info.gameId, false, true)}
+              >
+                {t('GamesList.action.judge')}
+              </MenuItem>
+              <MenuItem
+                icon={<Gavel size={14} />}
+                disabled={!menuState.canSpectate}
+                onSelect={() => startJoin(menuGame.info.gameId, true, true)}
+              >
+                {t('GamesList.action.judgeSpectate')}
+              </MenuItem>
+            </>
+          )}
+        </Menu>
+      )}
 
-        <div className="flex-1" />
-
-        <button
-          type="button"
-          onClick={() => setCreateOpen(true)}
-          className={[
-            'inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md text-sm',
-            'font-semibold bg-accent text-on-accent hover:bg-accent-hover shadow-glow transition-colors',
-          ].join(' ')}
-        >
-          <Plus size={14} /> {t('Common.action.create')}
-        </button>
-        <button
-          type="button"
-          onClick={() => beginJoin(false, false)}
-          disabled={!canJoin}
-          className={TOOLBAR_BUTTON_CLASS}
-        >
-          <LogIn size={14} /> {t('Common.action.join')}
-        </button>
-        <button
-          type="button"
-          onClick={() => beginJoin(true, false)}
-          disabled={!canSpectate}
-          className={TOOLBAR_BUTTON_CLASS}
-        >
-          <Eye size={14} /> {t('GamesList.action.spectate')}
-        </button>
-        {isJudgeUser && (
-          <>
-            <button
-              type="button"
-              onClick={() => beginJoin(false, true)}
-              disabled={!canJoin}
-              className={TOOLBAR_BUTTON_CLASS}
-            >
-              <Gavel size={14} /> {t('GamesList.action.judge')}
-            </button>
-            <button
-              type="button"
-              onClick={() => beginJoin(true, true)}
-              disabled={!canSpectate}
-              className={TOOLBAR_BUTTON_CLASS}
-            >
-              <Gavel size={14} /> {t('GamesList.action.judgeSpectate')}
-            </button>
-          </>
-        )}
-      </div>
-
-      {/* Dialogs — kept as-is; a later piece will reskin these too */}
-      <CreateGameDialog
-        isOpen={createOpen}
-        gametypeMap={room.gametypeMap}
-        onCancel={() => setCreateOpen(false)}
-        onSubmit={handleCreateSubmit}
-      />
-      <FilterGamesDialog
-        isOpen={filterOpen}
-        initialFilters={filters}
-        gametypeMap={room.gametypeMap}
-        onCancel={() => setFilterOpen(false)}
-        onSubmit={handleFilterSubmit}
-      />
+      <RoomGameInfoDialog game={infoGame} gametypeMap={room.gametypeMap} nowSeconds={nowSeconds} onClose={() => setInfoGameId(null)} />
       <ConfirmDialog
         cancelDefault
         title={t('GameLink.confirm.title')}
@@ -332,15 +307,16 @@ export default function GamesList({ room }: GamesListProps) {
         onConfirm={confirmSpectatorJoin}
         onCancel={cancelSpectatorJoin}
       />
-      <PromptDialog
-        isOpen={passwordRequired}
-        title={t('GamesList.password.title')}
-        label={t('Common.label.password')}
-        type="password"
-        submitLabel={t('Common.action.join')}
-        onSubmit={submitPassword}
-        onCancel={cancelPassword}
-      />
+      {passwordRequired && passwordGame && (
+        <PasswordPopover
+          key={passwordGame.gameId}
+          anchor={passwordAnchor}
+          gameName={passwordGame.description || t('GameRow.untitled', { id: passwordGame.gameId })}
+          spectating={trigger?.gameId === passwordGame.gameId && trigger.action === 'spectate'}
+          onSubmit={submitPassword}
+          onCancel={cancelPassword}
+        />
+      )}
       <AlertDialog
         isOpen={joinError !== null}
         title={t('GamesList.error.title')}
