@@ -13,8 +13,8 @@ import { useModeratorFunctions } from './useModeratorFunctions';
 export interface Administration {
   adminFunctionsEnabled: boolean;
   moderatorFunctionsEnabled: boolean;
+  isAdmin: boolean;
   locked: boolean;
-  lock: () => void;
   unlock: () => void;
   shutdownDialogOpen: boolean;
   openShutdownDialog: () => void;
@@ -73,8 +73,8 @@ export function useAdministration(): Administration {
   return {
     adminFunctionsEnabled: isAdmin && !locked,
     moderatorFunctionsEnabled: !locked,
+    isAdmin,
     locked,
-    lock: () => setLocked(true),
     unlock: () => setLocked(false),
     shutdownDialogOpen,
     openShutdownDialog: () => setShutdownDialogOpen(true),

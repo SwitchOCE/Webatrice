@@ -65,17 +65,18 @@ describe('Administration permissions', () => {
 });
 
 describe('Administration lock', () => {
-  it('starts unlocked and Lock disables every function until Unlock', () => {
+  it('starts unlocked, and the console lock disables every function until Unlock', () => {
     setup();
-    expect(button(/button\.unlock/)).toBeDisabled();
+    expect(screen.queryByRole('button', { name: 'Administration.button.unlock' })).not.toBeInTheDocument();
 
-    fireEvent.click(button(/button\.lock$/));
+    fireEvent.click(button(/^Staff\.lock\.lock$/));
     expect(button(/admin\.updateServerMessage/)).toBeDisabled();
     expect(screen.getByRole('textbox', { name: /moderator\.replayId/ })).toBeDisabled();
-    expect(button(/button\.lock$/)).toBeDisabled();
+    expect(screen.getByText('Administration.lockedNotice')).toBeInTheDocument();
 
-    fireEvent.click(button(/button\.unlock/));
+    fireEvent.click(button(/^Administration\.button\.unlock$/));
     expect(button(/admin\.updateServerMessage/)).toBeEnabled();
+    expect(button(/^Staff\.lock\.lock$/)).toBeInTheDocument();
   });
 });
 
