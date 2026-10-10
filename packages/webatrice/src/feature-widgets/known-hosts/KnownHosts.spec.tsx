@@ -310,3 +310,48 @@ describe('KnownHosts keyboard and screen-reader access', () => {
     expect(screen.getByText('KnownHosts.status.failed')).toHaveAttribute('role', 'status');
   });
 });
+
+describe('KnownHosts summary variant', () => {
+  const renderSummary = (testConnectionStatus: 'testing' | 'success' | 'failed') => {
+    const hook = makeKnownHostsHook();
+    hook.value = { hosts: [SAVED], selectedHost: SAVED };
+    vi.mocked(useKnownHosts).mockReturnValue(hook);
+    return renderWithProviders(<KnownHosts variant="summary" value={SAVED} onChange={vi.fn()} />, {
+      preloadedState: { ...connectedState, server: { ...(connectedState.server as any), testConnectionStatus } },
+    });
+  };
+
+  it('shows the selected server on one line with its status and address', () => {
+    const { store } = renderSummary('success');
+    act(() => {
+      store.dispatch(server.Actions.testConnectionSuccessful({ supportsHashedPassword: true }));
+    });
+    expect(screen.getByText('Rooster')).toBeInTheDocument();
+    expect(screen.getByText('KnownHosts.summary.success')).toBeInTheDocument();
+    expect(screen.getByText(/server\.cockatrice\.us\/servatrice:4748/)).toBeInTheDocument();
+  });
+
+  it('opens the saved host list from "Change server" and returns focus to it after a pick', async () => {
+    renderSummary('success');
+    const change = screen.getByRole('button', { name: 'KnownHosts.change' });
+    expect(change).toHaveAttribute('aria-expanded', 'false');
+
+    await act(async () => {
+      fireEvent.click(change);
+    });
+    expect(change).toHaveAttribute('aria-expanded', 'true');
+    const list = screen.getByRole('listbox', { name: 'KnownHosts.saved' });
+
+    await act(async () => {
+      fireEvent.click(within(list).getByRole('option'));
+    });
+    expect(screen.queryByRole('listbox')).not.toBeInTheDocument();
+    expect(change).toHaveFocus();
+  });
+
+  it('offers a re-test, disabled while a test runs', () => {
+    renderSummary('testing');
+    expect(screen.getByRole('button', { name: 'KnownHosts.refresh' })).toBeDisabled();
+    expect(screen.getByText('KnownHosts.summary.testing')).toBeInTheDocument();
+  });
+});

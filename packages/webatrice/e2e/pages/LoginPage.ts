@@ -2,15 +2,15 @@ import { expect, type Locator, type Page } from '@playwright/test';
 
 // Page object for the Login screen (`/login`).
 //
-// The Tailwind rewrite replaced the MUI Select KnownHosts picker with a
-// custom dropdown built from a trigger `<button>` (accessible-named via
-// aria-labelledby against the visible "Host" caption) plus refresh and
-// chevron buttons in a non-label wrapper (KnownHosts.tsx). Saved hosts
-// are a single-tab-stop `role="listbox"` of clickable `<li role="option">`s.
+// The login home shows the selected server as one line with a "Change
+// server" button (KnownHosts.tsx, summary variant) that opens the saved
+// host list. The dialogs keep the field variant, whose trigger `<button>`
+// is named by its visible "Host" caption. Saved hosts are a
+// single-tab-stop `role="listbox"` of clickable `<li role="option">`s.
 //
-// Login button + Register button both still resolve by role/name. The
-// login button remains disabled until the test-connection probe reports
-// `success`; `selectHost` waits for that. The registration dialog is a
+// The state-aware sign-in button reads "Sign in and play" only when it can
+// be pressed; while the server is tested or the session opens it names the
+// step instead, so `selectHost` waits for the enabled "Sign in and play". The registration dialog is a
 // Tailwind DialogShell (portalled `role="dialog"` with `aria-modal`).
 
 // Text used by the KnownHosts dropdown from KnownHosts.i18n.json.
@@ -27,7 +27,7 @@ export class LoginPage {
   }
 
   get hostPicker(): Locator {
-    return this.hostPickerIn(this.page);
+    return this.page.getByRole('button', { name: /^change server$/i }).first();
   }
 
   // Same lookup, but scoped to a specific dialog (registration form has
@@ -43,7 +43,7 @@ export class LoginPage {
   }
 
   get loginButton(): Locator {
-    return this.page.getByRole('button', { name: /^login$/i });
+    return this.page.getByRole('button', { name: /^sign in and play$/i });
   }
 
   get registerButton(): Locator {
@@ -51,7 +51,7 @@ export class LoginPage {
   }
 
   async openHostPicker(scope: Page | Locator = this.page): Promise<void> {
-    await this.hostPickerIn(scope).click();
+    await (scope === this.page ? this.hostPicker : this.hostPickerIn(scope)).click();
   }
 
   async addHost(label: string, host: string, port: number): Promise<void> {

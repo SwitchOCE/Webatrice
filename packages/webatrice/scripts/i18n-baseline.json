@@ -2,7 +2,7 @@
   "version": 1,
   "locales": {
     "de": {
-      "count": 315,
+      "count": 309,
       "keys": [
         "AccountActivationDialog.subtitle1",
         "AccountActivationDialog.subtitle2",
@@ -290,13 +290,7 @@
         "KnownHosts.add",
         "KnownHosts.label",
         "KnownHosts.toast",
-        "Login.content.subtitle1",
-        "Login.content.subtitle2",
-        "Login.footer.credit",
-        "Login.footer.registerAction",
-        "Login.footer.registerPrompt",
         "Login.footer.version",
-        "Login.header.subtitle",
         "Login.header.title",
         "Login.toasts.accountActivationSuccess",
         "Login.toasts.passwordResetSuccessToast",
@@ -322,7 +316,7 @@
       ]
     },
     "en_US": {
-      "count": 315,
+      "count": 309,
       "keys": [
         "AccountActivationDialog.subtitle1",
         "AccountActivationDialog.subtitle2",
@@ -610,13 +604,7 @@
         "KnownHosts.add",
         "KnownHosts.label",
         "KnownHosts.toast",
-        "Login.content.subtitle1",
-        "Login.content.subtitle2",
-        "Login.footer.credit",
-        "Login.footer.registerAction",
-        "Login.footer.registerPrompt",
         "Login.footer.version",
-        "Login.header.subtitle",
         "Login.header.title",
         "Login.toasts.accountActivationSuccess",
         "Login.toasts.passwordResetSuccessToast",
@@ -642,7 +630,7 @@
       ]
     },
     "es": {
-      "count": 315,
+      "count": 309,
       "keys": [
         "AccountActivationDialog.subtitle1",
         "AccountActivationDialog.subtitle2",
@@ -930,13 +918,7 @@
         "KnownHosts.add",
         "KnownHosts.label",
         "KnownHosts.toast",
-        "Login.content.subtitle1",
-        "Login.content.subtitle2",
-        "Login.footer.credit",
-        "Login.footer.registerAction",
-        "Login.footer.registerPrompt",
         "Login.footer.version",
-        "Login.header.subtitle",
         "Login.header.title",
         "Login.toasts.accountActivationSuccess",
         "Login.toasts.passwordResetSuccessToast",
@@ -962,7 +944,7 @@
       ]
     },
     "fi": {
-      "count": 315,
+      "count": 309,
       "keys": [
         "AccountActivationDialog.subtitle1",
         "AccountActivationDialog.subtitle2",
@@ -1250,13 +1232,7 @@
         "KnownHosts.add",
         "KnownHosts.label",
         "KnownHosts.toast",
-        "Login.content.subtitle1",
-        "Login.content.subtitle2",
-        "Login.footer.credit",
-        "Login.footer.registerAction",
-        "Login.footer.registerPrompt",
         "Login.footer.version",
-        "Login.header.subtitle",
         "Login.header.title",
         "Login.toasts.accountActivationSuccess",
         "Login.toasts.passwordResetSuccessToast",
@@ -1282,7 +1258,7 @@
       ]
     },
     "fr": {
-      "count": 315,
+      "count": 309,
       "keys": [
         "AccountActivationDialog.subtitle1",
         "AccountActivationDialog.subtitle2",
@@ -1570,13 +1546,7 @@
         "KnownHosts.add",
         "KnownHosts.label",
         "KnownHosts.toast",
-        "Login.content.subtitle1",
-        "Login.content.subtitle2",
-        "Login.footer.credit",
-        "Login.footer.registerAction",
-        "Login.footer.registerPrompt",
         "Login.footer.version",
-        "Login.header.subtitle",
         "Login.header.title",
         "Login.toasts.accountActivationSuccess",
         "Login.toasts.passwordResetSuccessToast",
@@ -1602,7 +1572,7 @@
       ]
     },
     "it": {
-      "count": 315,
+      "count": 309,
       "keys": [
         "AccountActivationDialog.subtitle1",
         "AccountActivationDialog.subtitle2",
@@ -1890,13 +1860,7 @@
         "KnownHosts.add",
         "KnownHosts.label",
         "KnownHosts.toast",
-        "Login.content.subtitle1",
-        "Login.content.subtitle2",
-        "Login.footer.credit",
-        "Login.footer.registerAction",
-        "Login.footer.registerPrompt",
         "Login.footer.version",
-        "Login.header.subtitle",
         "Login.header.title",
         "Login.toasts.accountActivationSuccess",
         "Login.toasts.passwordResetSuccessToast",
@@ -1922,7 +1886,7 @@
       ]
     },
     "nl": {
-      "count": 315,
+      "count": 309,
       "keys": [
         "AccountActivationDialog.subtitle1",
         "AccountActivationDialog.subtitle2",
@@ -2210,13 +2174,7 @@
         "KnownHosts.add",
         "KnownHosts.label",
         "KnownHosts.toast",
-        "Login.content.subtitle1",
-        "Login.content.subtitle2",
-        "Login.footer.credit",
-        "Login.footer.registerAction",
-        "Login.footer.registerPrompt",
         "Login.footer.version",
-        "Login.header.subtitle",
         "Login.header.title",
         "Login.toasts.accountActivationSuccess",
         "Login.toasts.passwordResetSuccessToast",
@@ -2242,7 +2200,7 @@
       ]
     },
     "pl": {
-      "count": 315,
+      "count": 309,
       "keys": [
         "AccountActivationDialog.subtitle1",
         "AccountActivationDialog.subtitle2",
@@ -2530,13 +2488,7 @@
         "KnownHosts.add",
         "KnownHosts.label",
         "KnownHosts.toast",
-        "Login.content.subtitle1",
-        "Login.content.subtitle2",
-        "Login.footer.credit",
-        "Login.footer.registerAction",
-        "Login.footer.registerPrompt",
         "Login.footer.version",
-        "Login.header.subtitle",
         "Login.header.title",
         "Login.toasts.accountActivationSuccess",
         "Login.toasts.passwordResetSuccessToast",
@@ -2562,7 +2514,7 @@
       ]
     },
     "pt_BR": {
-      "count": 315,
+      "count": 309,
       "keys": [
         "AccountActivationDialog.subtitle1",
         "AccountActivationDialog.subtitle2",
@@ -2850,13 +2802,7 @@
         "KnownHosts.add",
         "KnownHosts.label",
         "KnownHosts.toast",
-        "Login.content.subtitle1",
-        "Login.content.subtitle2",
-        "Login.footer.credit",
-        "Login.footer.registerAction",
-        "Login.footer.registerPrompt",
         "Login.footer.version",
-        "Login.header.subtitle",
         "Login.header.title",
         "Login.toasts.accountActivationSuccess",
         "Login.toasts.passwordResetSuccessToast",
@@ -2882,7 +2828,7 @@
       ]
     },
     "ru": {
-      "count": 315,
+      "count": 309,
       "keys": [
         "AccountActivationDialog.subtitle1",
         "AccountActivationDialog.subtitle2",
@@ -3170,13 +3116,7 @@
         "KnownHosts.add",
         "KnownHosts.label",
         "KnownHosts.toast",
-        "Login.content.subtitle1",
-        "Login.content.subtitle2",
-        "Login.footer.credit",
-        "Login.footer.registerAction",
-        "Login.footer.registerPrompt",
         "Login.footer.version",
-        "Login.header.subtitle",
         "Login.header.title",
         "Login.toasts.accountActivationSuccess",
         "Login.toasts.passwordResetSuccessToast",
@@ -3202,7 +3142,7 @@
       ]
     },
     "tok": {
-      "count": 315,
+      "count": 309,
       "keys": [
         "AccountActivationDialog.subtitle1",
         "AccountActivationDialog.subtitle2",
@@ -3490,13 +3430,7 @@
         "KnownHosts.add",
         "KnownHosts.label",
         "KnownHosts.toast",
-        "Login.content.subtitle1",
-        "Login.content.subtitle2",
-        "Login.footer.credit",
-        "Login.footer.registerAction",
-        "Login.footer.registerPrompt",
         "Login.footer.version",
-        "Login.header.subtitle",
         "Login.header.title",
         "Login.toasts.accountActivationSuccess",
         "Login.toasts.passwordResetSuccessToast",
@@ -3522,7 +3456,7 @@
       ]
     },
     "yue": {
-      "count": 315,
+      "count": 309,
       "keys": [
         "AccountActivationDialog.subtitle1",
         "AccountActivationDialog.subtitle2",
@@ -3810,13 +3744,7 @@
         "KnownHosts.add",
         "KnownHosts.label",
         "KnownHosts.toast",
-        "Login.content.subtitle1",
-        "Login.content.subtitle2",
-        "Login.footer.credit",
-        "Login.footer.registerAction",
-        "Login.footer.registerPrompt",
         "Login.footer.version",
-        "Login.header.subtitle",
         "Login.header.title",
         "Login.toasts.accountActivationSuccess",
         "Login.toasts.passwordResetSuccessToast",
