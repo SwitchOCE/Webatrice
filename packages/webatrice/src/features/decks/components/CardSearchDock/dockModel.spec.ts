@@ -7,6 +7,7 @@ import {
   dockKeyZone,
   gameChangerNote,
   initialDockFilters,
+  isImeComposition,
   isScryfallPageUrl,
   moveHighlight,
   shouldSearch,
@@ -88,6 +89,14 @@ describe('dockKeyZone', () => {
   it('follows rebinding and unbinding', () => {
     expect(dockKeyZone(key({ code: 'Enter', key: 'Enter' }), { main: [], side: [] })).toBeNull();
     expect(dockKeyZone(key({ code: 'KeyS', key: 's', altKey: true }), { main: [], side: ['Alt+KeyS'] })).toBe('side');
+  });
+});
+
+describe('isImeComposition', () => {
+  it('recognises composition by flag or by the legacy 229 key code', () => {
+    expect(isImeComposition(key({ code: 'Enter', key: 'Enter', isComposing: true }))).toBe(true);
+    expect(isImeComposition(new KeyboardEvent('keydown', { key: 'Process', keyCode: 229 } as KeyboardEventInit))).toBe(true);
+    expect(isImeComposition(key({ code: 'Enter', key: 'Enter' }))).toBe(false);
   });
 });
 

@@ -29,6 +29,11 @@ export interface CardSearchDockProps {
   format?: string;
   deckCards?: readonly DeckCard[];
   className?: string;
+  onReady?: (api: CardSearchDockApi) => void;
+}
+
+export interface CardSearchDockApi {
+  focusSearch: () => void;
 }
 
 const FOCUS = 'focus-visible:outline focus-visible:outline-2 focus-visible:outline-accent';
@@ -38,11 +43,13 @@ function AddButtons({
   onAdd,
   onFocus,
   onArt,
+  disabled,
 }: {
   card: ScryfallSearchCard;
   onAdd: (zone: DockZone) => void;
   onFocus: () => void;
   onArt?: boolean;
+  disabled: boolean;
 }) {
   const { t } = useTranslation();
   const tone = onArt
@@ -54,9 +61,10 @@ function AddButtons({
         type="button"
         onClick={() => onAdd('main')}
         onFocus={onFocus}
+        disabled={disabled}
         aria-label={t('CardSearchDock.addMain', { name: card.name })}
         title={t('CardSearchDock.addMain', { name: card.name })}
-        className={cx('inline-flex h-7 w-7 items-center justify-center rounded-ui-sm border', tone, FOCUS)}
+        className={cx('inline-flex h-7 w-7 items-center justify-center rounded-ui-sm border disabled:opacity-45', tone, FOCUS)}
       >
         <Plus size={14} aria-hidden />
       </button>
@@ -64,10 +72,11 @@ function AddButtons({
         type="button"
         onClick={() => onAdd('side')}
         onFocus={onFocus}
+        disabled={disabled}
         aria-label={t('CardSearchDock.addSide', { name: card.name })}
         title={t('CardSearchDock.addSide', { name: card.name })}
         className={cx(
-          'inline-flex h-7 min-w-7 items-center justify-center rounded-ui-sm border px-1 text-[10.5px] font-semibold',
+          'inline-flex h-7 min-w-7 items-center justify-center rounded-ui-sm border px-1 text-[10.5px] font-semibold disabled:opacity-45',
           tone,
           FOCUS,
         )}
@@ -97,6 +106,7 @@ function ResultList({
   idFor,
   onHighlight,
   onAdd,
+  stale,
 }: {
   results: ScryfallSearchCard[];
   highlight: number;
@@ -104,6 +114,7 @@ function ResultList({
   idFor: (i: number) => string;
   onHighlight: (i: number) => void;
   onAdd: (i: number, zone: DockZone) => void;
+  stale: boolean;
 }) {
   return (
     <ul className="flex flex-col gap-0.5 px-1.5 py-1.5">
@@ -135,7 +146,7 @@ function ResultList({
               </span>
               <ResultMeta card={card} inDeck={quantities.get(card.name) ?? 0} />
             </button>
-            <AddButtons card={card} onAdd={(zone) => onAdd(i, zone)} onFocus={() => onHighlight(i)} />
+            <AddButtons card={card} onAdd={(zone) => onAdd(i, zone)} onFocus={() => onHighlight(i)} disabled={stale} />
           </li>
         );
       })}
@@ -150,6 +161,7 @@ function ResultGrid({
   idFor,
   onHighlight,
   onAdd,
+  stale,
 }: {
   results: ScryfallSearchCard[];
   highlight: number;
@@ -157,6 +169,7 @@ function ResultGrid({
   idFor: (i: number) => string;
   onHighlight: (i: number) => void;
   onAdd: (i: number, zone: DockZone) => void;
+  stale: boolean;
 }) {
   const { t } = useTranslation();
   return (
@@ -191,7 +204,7 @@ function ResultGrid({
               </span>
             )}
             <span className="absolute bottom-1.5 right-1.5">
-              <AddButtons card={card} onAdd={(zone) => onAdd(i, zone)} onFocus={() => onHighlight(i)} onArt />
+              <AddButtons card={card} onAdd={(zone) => onAdd(i, zone)} onFocus={() => onHighlight(i)} onArt disabled={stale} />
             </span>
           </li>
         );
@@ -233,7 +246,15 @@ function ListMessage({ children }: { children: ReactNode }) {
   return <div className="flex h-full items-center justify-center px-6 text-center text-[12.5px] text-text-muted">{children}</div>;
 }
 
-export default function CardSearchDock({ onAdd, onSelect, colorIdentity, format, deckCards, className }: CardSearchDockProps) {
+export default function CardSearchDock({
+  onAdd,
+  onSelect,
+  colorIdentity,
+  format,
+  deckCards,
+  className,
+  onReady,
+}: CardSearchDockProps) {
   const { t } = useTranslation();
   const dock = useCardSearchDock({ onAdd, onSelect, colorIdentity, format, deckCards });
   const menuShortcut = useMenuShortcut();
@@ -244,6 +265,12 @@ export default function CardSearchDock({ onAdd, onSelect, colorIdentity, format,
   const mainKey = menuShortcut('deck.addSearchResult');
   const sideKey = menuShortcut('deck.addSearchResultToSideboard');
   const selectedName = dock.selected?.name;
+
+  const onReadyRef = useRef(onReady);
+  onReadyRef.current = onReady;
+  useEffect(() => {
+    onReadyRef.current?.({ focusSearch: () => inputRef.current?.focus() });
+  }, []);
 
   useEffect(() => {
     if (dock.highlight >= 0) {
@@ -273,6 +300,7 @@ export default function CardSearchDock({ onAdd, onSelect, colorIdentity, format,
     idFor,
     onHighlight: dock.setHighlight,
     onAdd: dock.add,
+    stale: dock.stale,
   };
 
   return (
@@ -337,7 +365,13 @@ export default function CardSearchDock({ onAdd, onSelect, colorIdentity, format,
         <DockFilters value={dock.filters} onChange={dock.setFilters} colorIdentity={colorIdentity} format={format} />
       </header>
 
-      <div id={listId} aria-label={t('CardSearchDock.results')} role="region" className="relative min-h-0 flex-1 overflow-y-auto">
+      <div
+        id={listId}
+        aria-label={t('CardSearchDock.results')}
+        aria-busy={dock.stale || undefined}
+        role="region"
+        className={cx('relative min-h-0 flex-1 overflow-y-auto transition-opacity', dock.stale && dock.results.length > 0 && 'opacity-60')}
+      >
         {dock.results.length === 0 ? (
           <ListMessage>
             {dock.loading

@@ -4002,21 +4002,6 @@
       "count": 1
     },
     {
-      "file": "src/features/decks/components/search/CardSearchFilters.tsx",
-      "prefix": "CardSearch.cardType.",
-      "count": 1
-    },
-    {
-      "file": "src/features/decks/components/search/CardSearchFilters.tsx",
-      "prefix": "CardSearch.color.",
-      "count": 2
-    },
-    {
-      "file": "src/features/decks/components/search/CardSearchFilters.tsx",
-      "prefix": "CardSearch.rarity.",
-      "count": 2
-    },
-    {
       "file": "src/features/decks/dialogs/CreateFolderDialog.tsx",
       "prefix": "CreateFolder.problem.",
       "count": 1

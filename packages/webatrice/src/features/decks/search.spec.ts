@@ -6,7 +6,6 @@ import {
   searchCards,
   searchCardTypeLine,
   searchCardUsd,
-  searchScryfallCards,
   searchScryfallPage,
   scryfallSearchUrl,
   type ScryfallSearchCard,
@@ -40,12 +39,14 @@ describe('searchCards', () => {
   });
 });
 
-describe('searchScryfallCards', () => {
+const searchPage = (query: string) => searchScryfallPage(scryfallSearchUrl(query));
+
+describe('searchScryfallPage errors', () => {
   it('searches unique cards by name order and treats a 404 as no results', async () => {
     const fetchMock = vi.fn(async (_url: string) => json({ object: 'error', code: 'not_found' }, false, 404));
     vi.stubGlobal('fetch', fetchMock);
 
-    expect(await searchScryfallCards('c:r t:instant')).toEqual([]);
+    expect(await searchPage('c:r t:instant')).toEqual({ cards: [], total: 0, nextPage: null });
     expect(fetchMock.mock.calls[0][0])
       .toBe('https://api.scryfall.com/cards/search?q=c%3Ar%20t%3Ainstant&unique=cards&order=name');
   });
@@ -54,19 +55,19 @@ describe('searchScryfallCards', () => {
     vi.stubGlobal('fetch', vi.fn(async () => json({
       object: 'error', code: 'bad_request', details: 'Unknown color: purple',
     }, false, 400)));
-    await expect(searchScryfallCards('c:purple')).rejects.toMatchObject({
+    await expect(searchPage('c:purple')).rejects.toMatchObject({
       failure: { kind: 'badQuery', details: 'Unknown color: purple' },
     });
   });
 
   it.each([500, 503, 404])('rejects HTTP %s without a not_found error object', async (status) => {
     vi.stubGlobal('fetch', vi.fn(async () => json({}, false, status)));
-    await expect(searchScryfallCards('bolt')).rejects.toMatchObject({ failure: { kind: 'failed' } });
+    await expect(searchPage('bolt')).rejects.toMatchObject({ failure: { kind: 'failed' } });
   });
 
   it('rejects a network failure', async () => {
     vi.stubGlobal('fetch', vi.fn().mockRejectedValue(new TypeError('Failed to fetch')));
-    await expect(searchScryfallCards('bolt')).rejects.toMatchObject({ failure: { kind: 'failed' } });
+    await expect(searchPage('bolt')).rejects.toMatchObject({ failure: { kind: 'failed' } });
   });
 
   it('rejects an unreadable error response', async () => {
@@ -75,13 +76,13 @@ describe('searchScryfallCards', () => {
         throw new SyntaxError('Invalid JSON');
       },
     }));
-    await expect(searchScryfallCards('bolt')).rejects.toMatchObject({ failure: { kind: 'failed' } });
+    await expect(searchPage('bolt')).rejects.toMatchObject({ failure: { kind: 'failed' } });
   });
 
   it('rethrows an abort so the caller can ignore it', async () => {
     const abort = new DOMException('aborted', 'AbortError');
     vi.stubGlobal('fetch', vi.fn().mockRejectedValue(abort));
-    await expect(searchScryfallCards('bolt')).rejects.toBe(abort);
+    await expect(searchPage('bolt')).rejects.toBe(abort);
   });
 
   it('rejects an exhausted HTTP 429 retry sequence', async () => {
@@ -90,7 +91,7 @@ describe('searchScryfallCards', () => {
     const fetchMock = vi.fn(async () => json({}, false, 429));
     vi.stubGlobal('fetch', fetchMock);
 
-    const result = expect(searchScryfallCards('bolt')).rejects.toMatchObject({ failure: { kind: 'failed' } });
+    const result = expect(searchPage('bolt')).rejects.toMatchObject({ failure: { kind: 'failed' } });
     await vi.advanceTimersByTimeAsync(1_000);
     expect(fetchMock).toHaveBeenCalledTimes(2);
     await vi.advanceTimersByTimeAsync(1_000);

@@ -54,6 +54,10 @@ export function clampHighlight(index: number, count: number): number {
   return Math.min(count - 1, Math.max(0, index));
 }
 
+export function isImeComposition(event: KeyboardEvent): boolean {
+  return event.isComposing || event.keyCode === 229;
+}
+
 export function dockKeyZone(
   event: KeyboardEvent,
   bindings: { main: readonly string[]; side: readonly string[] },

@@ -8,6 +8,7 @@ import { cx } from '@app/utils';
 
 import {
   FILTER_RARITIES,
+  FILTER_TYPES,
   hasActiveFilters,
   toggleFilter,
   type FilterCardType,
@@ -66,8 +67,6 @@ const RARITY_NAME_KEYS: Record<FilterRarity, string> = {
   rare: 'CardSearch.rarity.rare.name',
   mythic: 'CardSearch.rarity.mythic.name',
 };
-
-const DOCK_TYPES: FilterCardType[] = ['Creature', 'Planeswalker', 'Instant', 'Sorcery', 'Enchantment', 'Artifact', 'Land'];
 
 const FOCUS = 'focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-accent';
 const FIELD = 'rounded-ui-sm border border-border-control/70 bg-bg-sunken text-[12px] text-text-primary';
@@ -153,7 +152,7 @@ export function DockFilters({
       </div>
 
       <div role="group" aria-label={t('CardSearchDock.filter.types')} className="flex flex-wrap gap-1">
-        {DOCK_TYPES.map((type) => (
+        {FILTER_TYPES.map((type) => (
           <FilterChip
             key={type}
             label={t(TYPE_KEYS[type])}
