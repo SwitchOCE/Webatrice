@@ -6,6 +6,7 @@ import Layout from './Layout';
 import RouteFocus from './RouteFocus';
 
 vi.mock('./TopBar', () => ({ default: () => null }));
+vi.mock('./NavRail', () => ({ default: () => null }));
 
 function FirstPage() {
   return <Layout><input aria-label="First input" autoFocus /></Layout>;

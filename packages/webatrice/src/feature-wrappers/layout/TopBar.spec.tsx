@@ -19,6 +19,7 @@ import { closeReplay, getOpenedReplay, getOpenedReplays, loadPersistedLastRoute,
 import { buildReplay, sayContainer } from '../../services/replay/__mocks__/fixtures';
 
 import { getSettings, settingsStore } from '../../hooks/useSettings';
+import NavRail from './NavRail';
 import TopBar from './TopBar';
 import { server } from '@cockatrice/datatrice';
 
@@ -30,21 +31,33 @@ function LocationProbe() {
   return <div data-testid="location">{useLocation().pathname}</div>;
 }
 
+function Shell() {
+  return (
+    <>
+      <NavRail />
+      <TopBar />
+    </>
+  );
+}
+
 function renderTopBar(route: InitialEntry = RouteEnum.SERVER, preloadedState = connectedState) {
   return renderWithProviders(
     <>
-      <TopBar />
+      <Shell />
       <LocationProbe />
     </>,
     { preloadedState, route },
   );
 }
 
+const play = () => screen.getByRole('link', { name: 'NavRail.place.play' });
+const strip = () => screen.getByRole('navigation', { name: 'TopBar.tabs.label' });
+
 describe('TopBar identity changes', () => {
   it('keeps an empty chat registered while navigating, then unregisters it on tab close', () => {
     const { store } = renderTopBar('/player/empty-chat');
     expect(store.getState().server.messages['empty-chat']).toEqual([]);
-    fireEvent.click(screen.getByRole('link', { name: 'TopBar.tab.lobby' }));
+    fireEvent.click(play());
     act(() => {
       store.dispatch(server.Actions.userLeft({ name: 'empty-chat' }));
     });
@@ -67,7 +80,6 @@ describe('TopBar identity changes', () => {
       renderTopBar(RouteEnum.DECKS).unmount();
       renderTopBar('/deck/1').unmount();
       expect(JSON.parse(window.localStorage.getItem(TABS_KEY)!)).toEqual(expect.arrayContaining([
-        expect.objectContaining({ type: 'decks' }),
         expect.objectContaining({ type: 'deck' }),
       ]));
       window.localStorage.setItem(OWNER_KEY, 'Other Server::someoneElse');
@@ -105,12 +117,13 @@ describe('TopBar identity changes', () => {
 
 describe('TopBar user menu', () => {
   it('focuses a surviving tab after closing the focused tab', () => {
-    renderTopBar(RouteEnum.SETTINGS);
-    const settingsTab = screen.getByRole('link', { name: 'UserMenu.settings' }).parentElement!;
-    const close = within(settingsTab).getByRole('button', { name: 'TopBar.tabs.close' });
+    renderTopBar(RouteEnum.ACCOUNT, connectedWithRoomsState);
+    const accountTab = screen.getByRole('link', { name: 'UserMenu.account' }).parentElement!;
+    const close = within(accountTab).getByRole('button', { name: 'TopBar.tabs.close' });
     close.focus();
     fireEvent.click(close);
-    expect(screen.queryByRole('link', { name: 'UserMenu.settings' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('link', { name: 'UserMenu.account' })).not.toBeInTheDocument();
+    expect(strip()).toContainElement(document.activeElement as HTMLElement);
     expect(document.activeElement).toHaveAttribute('href');
   });
   const moderatorState = {
@@ -130,7 +143,7 @@ describe('TopBar user menu', () => {
     window.localStorage.clear();
   });
 
-  it('reaches Account and Settings, replacing the transient tab instead of stacking it', () => {
+  it('reaches Account from the menu and Settings from the rail, without stacking page tabs', () => {
     renderTopBar();
 
     openMenuAndPick('UserMenu.account');
@@ -138,13 +151,23 @@ describe('TopBar user menu', () => {
     expect(screen.getByRole('link', { name: /UserMenu\.account/ })).toHaveAttribute('aria-current', 'page');
     expect(document.title).toMatch(/UserMenu\.account · Webatrice$/);
 
-    openMenuAndPick('UserMenu.settings');
+    fireEvent.click(screen.getByRole('link', { name: 'NavRail.place.settings' }));
     expect(screen.getByTestId('location')).toHaveTextContent(RouteEnum.SETTINGS);
+    expect(screen.getByRole('link', { name: 'NavRail.place.settings' })).toHaveAttribute('aria-current', 'page');
     expect(screen.queryByRole('link', { name: /UserMenu\.account/ })).not.toBeInTheDocument();
+    expect(within(strip()).queryByRole('link', { name: /UserMenu\.settings/ })).not.toBeInTheDocument();
+    expect(document.title).toMatch(/UserMenu\.settings · Webatrice$/);
 
-    fireEvent.click(screen.getByRole('link', { name: /TopBar\.tab\.lobby/ }));
+    fireEvent.click(play());
     expect(screen.getByTestId('location')).toHaveTextContent(RouteEnum.SERVER);
-    expect(screen.queryByRole('link', { name: /UserMenu\.settings/ })).not.toBeInTheDocument();
+  });
+
+  it('leaves Settings out of the account menu, since the rail holds it', () => {
+    renderTopBar();
+
+    fireEvent.click(screen.getByRole('button', { name: 'testUser' }));
+
+    expect(screen.queryByRole('menuitem', { name: 'UserMenu.settings' })).not.toBeInTheDocument();
   });
 
   it('gives an unsaved deck draft the deck editor tab', () => {
@@ -152,7 +175,7 @@ describe('TopBar user menu', () => {
 
     expect(screen.getByRole('link', { name: /TopBar\.tab\.unsavedDeck/ })).toHaveAttribute('aria-current', 'page');
 
-    fireEvent.click(screen.getByRole('link', { name: /TopBar\.tab\.lobby/ }));
+    fireEvent.click(play());
     fireEvent.click(screen.getByRole('link', { name: /TopBar\.tab\.unsavedDeck/ }));
     expect(screen.getByTestId('location')).toHaveTextContent('/deck/draft/abc');
   });
@@ -189,13 +212,14 @@ describe('TopBar user menu', () => {
 });
 
 describe('TopBar replays entry', () => {
-  it('opens the replays tab from the top bar', () => {
+  it('opens the replay list from the rail, without a strip tab for it', () => {
     renderTopBar();
 
-    fireEvent.click(screen.getByRole('button', { name: 'TopBar.replays.button' }));
+    fireEvent.click(screen.getByRole('link', { name: 'NavRail.place.replays' }));
 
     expect(screen.getByTestId('location')).toHaveTextContent(RouteEnum.REPLAYS);
-    expect(screen.getByRole('link', { name: 'TopBar.replays.tab' })).toHaveAttribute('aria-current', 'page');
+    expect(screen.getByRole('link', { name: 'NavRail.place.replays' })).toHaveAttribute('aria-current', 'page');
+    expect(within(strip()).queryByRole('link', { name: 'TopBar.replays.tab' })).not.toBeInTheDocument();
   });
 
   afterEach(() => {
@@ -213,7 +237,7 @@ describe('TopBar replays entry', () => {
     const replayKey = openReplay(buildReplay([sayContainer(0)]), 'final.cor', createMockWebClient());
     renderTopBar(`/replay/${replayKey}`);
 
-    fireEvent.click(screen.getByRole('link', { name: /TopBar\.tab\.lobby/ }));
+    fireEvent.click(play());
     expect(screen.getByTestId('location')).toHaveTextContent(RouteEnum.SERVER);
     const replayTab = screen.getByRole('link', { name: /final\.cor/ });
     expect(replayTab).not.toHaveAttribute('aria-current');
@@ -255,8 +279,8 @@ describe('TopBar replays entry', () => {
     expect(nav).toContainElement(replayLink);
     const close = within(replayLink.closest('li')!).getByRole('button', { name: 'TopBar.tabs.close' });
     expect(replayLink).not.toContainElement(close);
-    const lobbyTab = screen.getByRole('link', { name: /TopBar\.tab\.lobby/ }).closest('li')!;
-    expect(within(lobbyTab).queryByRole('button')).not.toBeInTheDocument();
+    expect(screen.getByRole('list', { name: 'TopBar.group.replays' })).toContainElement(replayLink);
+    expect(within(nav).queryByRole('link', { name: /TopBar\.tab\.lobby/ })).not.toBeInTheDocument();
   });
 });
 
@@ -320,17 +344,17 @@ describe('TopBar tab titles', () => {
         <I18nProbe />
         <TopBar />
       </>,
-      { preloadedState: connectedState, route: RouteEnum.DECKS },
+      { preloadedState: connectedState, route: '/decks/public/bob' },
     );
-    i18n.addResourceBundle('en-US', 'translation', { TopBar: { tab: { myDecks: 'My Decks' } } });
-    i18n.addResourceBundle('de', 'translation', { TopBar: { tab: { myDecks: 'Meine Decks' } } });
+    i18n.addResourceBundle('en-US', 'translation', { TopBar: { tab: { publicDecks: 'Public decks of {name}' } } });
+    i18n.addResourceBundle('de', 'translation', { TopBar: { tab: { publicDecks: 'Decks von {name}' } } });
     await act(() => i18n.changeLanguage('en-US'));
-    expect(screen.getByRole('link', { name: 'My Decks' })).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: 'Public decks of bob' })).toBeInTheDocument();
 
     await act(() => i18n.changeLanguage('de'));
 
-    expect(screen.getByRole('link', { name: 'Meine Decks' })).toBeInTheDocument();
-    expect(screen.queryByRole('link', { name: 'My Decks' })).not.toBeInTheDocument();
+    expect(screen.getByRole('link', { name: 'Decks von bob' })).toBeInTheDocument();
+    expect(screen.queryByRole('link', { name: 'Public decks of bob' })).not.toBeInTheDocument();
   });
 
   it('names the browser tab after the active tab in the current language', async () => {
@@ -452,7 +476,7 @@ describe('TopBar requests', () => {
 
   it('signs out by disconnecting', () => {
     const webClient = createMockWebClient();
-    renderWithProviders(<TopBar />, { preloadedState: connectedState, route: RouteEnum.SERVER, webClient });
+    renderWithProviders(<Shell />, { preloadedState: connectedState, route: RouteEnum.SERVER, webClient });
 
     fireEvent.click(screen.getByRole('button', { name: 'testUser' }));
     fireEvent.click(screen.getByRole('menuitem', { name: 'TopBar.user.signOut' }));
@@ -472,7 +496,7 @@ describe('TopBar sticky tabs', () => {
   it('keeps a player tab after leaving it, and saves it without its handlers', () => {
     renderTopBar('/player/alice');
 
-    fireEvent.click(screen.getByRole('link', { name: /TopBar\.tab\.lobby/ }));
+    fireEvent.click(play());
 
     expect(screen.getByRole('link', { name: 'alice' })).not.toHaveAttribute('aria-current');
     expect(persisted()).toContainEqual({
@@ -522,7 +546,7 @@ describe('TopBar sticky tabs', () => {
 
   it('restores saved tabs on load, dropping malformed ones and retitling ones saved translated', async () => {
     window.localStorage.setItem(STICKY_KEY, JSON.stringify([
-      { key: 'decks', type: 'decks', title: 'My Decks', route: '/decks', closeable: true },
+      { key: 'public-decks:ann', type: 'decks', title: 'Decks von ann', route: '/decks/public/ann', closeable: true },
       { key: 'player:bob', type: 'player', title: 'bob', route: '/player/bob', closeable: true },
       { key: 'bogus', type: 'bogus', title: 'Bogus', route: '/bogus', closeable: true },
       { key: 'player:', type: 'player', route: '/player', closeable: true },
@@ -533,9 +557,9 @@ describe('TopBar sticky tabs', () => {
 
     renderFresh(<FreshTopBar />, { preloadedState: connectedState, route: RouteEnum.SERVER });
 
-    expect(screen.getByRole('link', { name: 'TopBar.tab.myDecks' })).toHaveAttribute('href', '/decks');
+    expect(screen.getByRole('link', { name: 'TopBar.tab.publicDecks' })).toHaveAttribute('href', '/decks/public/ann');
     expect(screen.getByRole('link', { name: 'bob' })).toBeInTheDocument();
-    expect(screen.queryByRole('link', { name: 'My Decks' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('link', { name: 'Decks von ann' })).not.toBeInTheDocument();
     expect(screen.queryByRole('link', { name: 'Bogus' })).not.toBeInTheDocument();
     expect(screen.queryByRole('link', { name: 'TopBar.tab.player' })).not.toBeInTheDocument();
   });
@@ -553,8 +577,8 @@ describe('TopBar sticky tabs', () => {
     renderFresh(<><FreshTopBar /><LocationProbe /></>, { preloadedState: connectedState, route: '/deck/5' });
 
     expect(screen.getByTestId('location')).toHaveTextContent(RouteEnum.SERVER);
-    expect(screen.getByRole('link', { name: 'TopBar.tab.lobby' })).toHaveAttribute('aria-current', 'page');
-    expect(screen.getAllByRole('link').filter((link) => /^\/decks?$|^\/deck\//.test(link.getAttribute('href') ?? ''))).toEqual([]);
+    expect(document.title).toMatch(/TopBar\.tab\.lobby · Webatrice$/);
+    expect(screen.queryAllByRole('link').filter((link) => /^\/decks?$|^\/deck\//.test(link.getAttribute('href') ?? ''))).toEqual([]);
     expect(persisted().filter(({ key }) => key === 'decks' || key.startsWith('deck:'))).toEqual([]);
   });
 });
@@ -568,7 +592,7 @@ describe('TopBar last route', () => {
     renderTopBar(RouteEnum.SETTINGS);
     expect(loadPersistedLastRoute()).toBe(RouteEnum.SETTINGS);
 
-    fireEvent.click(screen.getByRole('link', { name: /TopBar\.tab\.lobby/ }));
+    fireEvent.click(play());
 
     expect(loadPersistedLastRoute()).toBe(RouteEnum.SERVER);
   });

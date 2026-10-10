@@ -11,6 +11,16 @@
     "cardArtRules": "Card Art Rules",
     "developer": "Developer",
     "importCards": "Import cards",
-    "debugLog": "View debug log"
+    "debugLog": "Debug log",
+    "onTheBoard": "On the board",
+    "staff": "Staff tools",
+    "roleOnServer": "{role} · {server}",
+    "role": {
+      "admin": "Administrator",
+      "moderator": "Moderator",
+      "judge": "Judge",
+      "registered": "Registered user",
+      "unregistered": "Unregistered user"
+    }
   }
 }

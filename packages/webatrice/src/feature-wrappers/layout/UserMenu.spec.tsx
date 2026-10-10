@@ -1,4 +1,4 @@
-import { fireEvent, screen } from '@testing-library/react';
+import { fireEvent, screen, within } from '@testing-library/react';
 
 import { ServerInfo_User_UserLevelFlag as Level } from '@cockatrice/sockatrice/generated';
 import { connectedState, renderWithProviders } from '../../__test-utils__';
@@ -69,9 +69,9 @@ describe('UserMenu', () => {
     const props = renderMenu();
     fireEvent.click(trigger());
 
-    fireEvent.click(screen.getByRole('menuitem', { name: 'UserMenu.settings' }));
+    fireEvent.click(screen.getByRole('menuitem', { name: 'UserMenu.account' }));
 
-    expect(props.onNavigate).toHaveBeenCalledWith(RouteEnum.SETTINGS);
+    expect(props.onNavigate).toHaveBeenCalledWith(RouteEnum.ACCOUNT);
     expect(screen.queryByRole('menu')).not.toBeInTheDocument();
   });
 
@@ -85,11 +85,35 @@ describe('UserMenu', () => {
     expect(props.onNavigate).not.toHaveBeenCalled();
   });
 
-  it('lists staff entries only for staff', () => {
+  it('lists staff entries only for staff, in their own group', () => {
     renderMenu({ userLevel: Level.IsUser | Level.IsRegistered | Level.IsModerator });
     fireEvent.click(trigger());
 
-    expect(screen.getByRole('menuitem', { name: 'UserMenu.administration' })).toBeInTheDocument();
+    const staff = screen.getByRole('group', { name: 'UserMenu.staff' });
+    expect(within(staff).getByRole('menuitem', { name: 'UserMenu.administration' })).toBeInTheDocument();
+  });
+
+  it('shows no staff group to a regular user', () => {
+    renderMenu();
+    fireEvent.click(trigger());
+
+    expect(screen.queryByRole('group', { name: 'UserMenu.staff' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('menuitem', { name: 'UserMenu.administration' })).not.toBeInTheDocument();
+  });
+
+  it('groups the board toggles', () => {
+    renderMenu();
+    fireEvent.click(trigger());
+
+    const board = screen.getByRole('group', { name: 'UserMenu.onTheBoard' });
+    expect(within(board).getAllByRole('menuitemcheckbox')).toHaveLength(2);
+  });
+
+  it('heads the menu with the account role and server', () => {
+    renderMenu({ serverName: 'Rooster Ranges' });
+    fireEvent.click(trigger());
+
+    expect(screen.getByRole('menu')).toHaveTextContent('UserMenu.roleOnServer');
   });
 
   it('signs out last', () => {

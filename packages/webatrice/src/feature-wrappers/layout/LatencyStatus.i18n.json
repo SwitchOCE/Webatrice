@@ -6,6 +6,7 @@
     "last": "Last: {ms} ms",
     "median": "Median: {ms} ms",
     "p95": "95th percentile: {ms} ms",
-    "max": "Maximum: {ms} ms"
+    "max": "Maximum: {ms} ms",
+    "short": "{ms} ms"
   }
 }
