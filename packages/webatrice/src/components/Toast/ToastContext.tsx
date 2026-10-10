@@ -71,7 +71,7 @@ export const ToastProvider: FC<PropsWithChildren> = ({ children }) => {
     updateToast,
     openToast: (key, toastChildren) => {
       if (import.meta.env.DEV && toastChildren === undefined && !state.toasts[key]) {
-        console.warn(`[toast] openToast("${key}") before registration — nothing to show`);
+        console.warn(`[toast] openToast("${key}") before registration â€” nothing to show`);
       }
       dispatch({ type: ACTIONS.OPEN_TOAST, payload: { key, children: toastChildren } });
     },

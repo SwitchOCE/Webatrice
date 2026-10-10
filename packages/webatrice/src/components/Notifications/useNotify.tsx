@@ -5,7 +5,7 @@ import { showSystemNotification } from '@app/services';
 import { usePushToast } from '../Toast';
 import NotificationLead from './NotificationLead';
 import NotificationToast from './NotificationToast';
-import { logNotification, type NotificationInput } from './notificationStore';
+import { logNotification, notificationStore, type NotificationInput } from './notificationStore';
 import { actionLabel, entryBody, entryTitle, systemTitle } from './notificationText';
 import { useOpenNotification } from './useNotifications';
 
@@ -33,7 +33,7 @@ export function useNotify(): (options: NotifyOptions) => NotifyResult {
     if (system && showSystemNotification({ title: systemTitle(t, entry), body, tag, onClick: open })) {
       return 'system';
     }
-    if (!toast) {
+    if (!toast || notificationStore.getState().drawerOpen) {
       return 'none';
     }
     pushToast(
