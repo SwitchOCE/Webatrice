@@ -2,7 +2,14 @@ import { server, type CommandFailedPayload } from '@cockatrice/datatrice';
 import type { WebClient } from '@cockatrice/sockatrice';
 import type { RootState } from '@app/store';
 
-import { clearDeckEditorCache, deleteCachedDeck, getCachedDeck, retainCachedDecks, setCachedDeck } from './deckEditorCache';
+import {
+  clearDeckEditorCache,
+  deleteCachedDeck,
+  getCachedDeck,
+  retainCachedDecks,
+  setCachedDeck,
+  type CachedDeck,
+} from './deckEditorCache';
 import { deckColorIdentity, deckSaveSignature, serializeDeckForSave } from './deckPersistence';
 import type { HydratedDeck } from './types';
 
@@ -118,6 +125,14 @@ export function createDeckSaveRegistry(store: SessionStore, client: WebClient) {
       entry.lastSettledRequest = nextRequest;
       publish(entry, { savedSignature, lastFailure: null, failedBy: null, pending: new Map() });
     },
+    rebase(deckId: number, savedSignature: string) {
+      initialize(deckId, savedSignature);
+      const entry = entries.get(deckId);
+      if (!entry || entry.dirty || entry.snapshot.pending.size > 0 || entry.snapshot.savedSignature === savedSignature) {
+        return;
+      }
+      publish(entry, { savedSignature });
+    },
     markDirty(deckId: number) {
       const entry = entries.get(deckId);
       if (!entry) {
@@ -197,11 +212,19 @@ export function createDeckSaveRegistry(store: SessionStore, client: WebClient) {
   return registry;
 }
 
-export function dropCleanCachedDecks(registry: Pick<ReturnType<typeof createDeckSaveRegistry>, 'getSnapshot'>): void {
-  retainCachedDecks((deckId, entry) => {
-    const snapshot = registry.getSnapshot(deckId);
-    return snapshot.isModified || snapshot.pending.size > 0 || deckSaveSignature(entry.deck) !== entry.savedSignature;
-  });
+type SnapshotSource = Pick<ReturnType<typeof createDeckSaveRegistry>, 'getSnapshot'>;
+
+function holdsUnsavedWork(registry: SnapshotSource, deckId: number, entry: CachedDeck): boolean {
+  const snapshot = registry.getSnapshot(deckId);
+  return snapshot.isModified || snapshot.pending.size > 0 || deckSaveSignature(entry.deck) !== entry.savedSignature;
+}
+
+export function dropCleanCachedDecks(registry: SnapshotSource): void {
+  retainCachedDecks((deckId, entry) => holdsUnsavedWork(registry, deckId, entry));
+}
+
+export function dropCleanCachedDeck(registry: SnapshotSource, deckId: number): void {
+  retainCachedDecks((id, entry) => id !== deckId || holdsUnsavedWork(registry, id, entry));
 }
 
 const registries = new WeakMap<SessionStore, WeakMap<WebClient, ReturnType<typeof createDeckSaveRegistry>>>();
