@@ -1,10 +1,13 @@
 import { useCallback, useState } from 'react';
 
+import { LoadingState, useSettings } from '@app/hooks';
+
 import { loginArtUrl, pickLoginArt } from './loginArt';
 
 export interface LoginArt {
+  enabled: boolean;
   name: string;
-  url: string;
+  url: string | null;
   failed: boolean;
   onError: () => void;
   shuffle: () => void;
@@ -17,6 +20,8 @@ export function forgetLoginArt(): void {
 }
 
 export function useLoginArt(random: () => number = Math.random): LoginArt {
+  const settings = useSettings();
+  const enabled = settings.status === LoadingState.READY && settings.value?.signInCardArt !== false;
   const [art, setArt] = useState(() => {
     visitArt ??= pickLoginArt(random);
     return { name: visitArt, failed: false };
@@ -31,5 +36,12 @@ export function useLoginArt(random: () => number = Math.random): LoginArt {
     });
   }, [random]);
 
-  return { name: art.name, url: loginArtUrl(art.name), failed: art.failed, onError, shuffle };
+  return {
+    enabled,
+    name: art.name,
+    url: enabled && !art.failed ? loginArtUrl(art.name) : null,
+    failed: art.failed,
+    onError,
+    shuffle,
+  };
 }

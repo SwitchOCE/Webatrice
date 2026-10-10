@@ -255,6 +255,17 @@ describe('Login — signed-out actions', () => {
     expect(container.querySelector('img[src*="art_crop"]')?.getAttribute('src')).not.toBe(firstSrc);
   });
 
+  test('never requests remote art when "Card art on the sign-in screen" is off', () => {
+    hoisted.useSettings.mockReturnValue(
+      makeSettingsHook({ status: LoadingState.READY, value: makeSettings({ signInCardArt: false }) })
+    );
+    const { container, queryByRole } = renderWithProviders(<Login />, { preloadedState: disconnectedState });
+
+    expect(container.querySelector('img[src*="scryfall"]')).toBeNull();
+    expect(container.querySelector('.login-art-fallback')).not.toBeNull();
+    expect(queryByRole('button', { name: 'Login.art.shuffle' })).toBeNull();
+  });
+
   test('falls back to the bundled gradient when the art cannot load', () => {
     const { container, getByRole } = renderWithProviders(<Login />, { preloadedState: disconnectedState });
     fireEvent.error(container.querySelector('img[src*="art_crop"]')!);

@@ -51,7 +51,7 @@ function LoginBackdrop({ art }: { art: LoginArt }) {
   return (
     <div aria-hidden className="pointer-events-none absolute inset-0">
       <div className="login-art-fallback absolute inset-0" />
-      {!art.failed && (
+      {art.url && (
         <img
           key={art.name}
           src={art.url}
@@ -215,21 +215,23 @@ const Login = () => {
           </div>
         </div>
 
-        <div
-          className={cx(
-            'absolute bottom-8 right-10 hidden items-center gap-2 rounded-full border border-border-subtle',
-            'bg-bg-surface/80 py-1 pl-3 pr-1 text-[12px] text-text-secondary backdrop-blur-sm lg:flex',
-          )}
-        >
-          {!art.failed && (
-            <span>
-              {t('Login.art.label')} <span className="font-medium text-text-primary">{art.name}</span>
-            </span>
-          )}
-          <IconButton size="sm" label={t('Login.art.shuffle')} onClick={art.shuffle}>
-            <Shuffle size={14} aria-hidden />
-          </IconButton>
-        </div>
+        {art.enabled && (
+          <div
+            className={cx(
+              'absolute bottom-8 right-10 hidden items-center gap-2 rounded-full border border-border-subtle',
+              'bg-bg-surface/80 py-1 pl-3 pr-1 text-[12px] text-text-secondary backdrop-blur-sm lg:flex',
+            )}
+          >
+            {!art.failed && (
+              <span>
+                {t('Login.art.label')} <span className="font-medium text-text-primary">{art.name}</span>
+              </span>
+            )}
+            <IconButton size="sm" label={t('Login.art.shuffle')} onClick={art.shuffle}>
+              <Shuffle size={14} aria-hidden />
+            </IconButton>
+          </div>
+        )}
 
         <DebugLogDialog isOpen={debugLogOpen} onClose={() => setDebugLogOpen(false)} />
 

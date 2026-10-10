@@ -4362,7 +4362,8 @@
       "cardCounters": "Card counters",
       "menus": "Menu settings",
       "cardPrintings": "Card printings",
-      "zoneBackgrounds": "Zone backgrounds"
+      "zoneBackgrounds": "Zone backgrounds",
+      "signIn": "Sign-in screen"
     },
     "themeMode": {
       "label": "Active theme palette",
@@ -4446,6 +4447,10 @@
       "clearLabel": "Clear the {zone} background",
       "change": "Change",
       "chooseLabel": "Choose the {zone} background"
+    },
+    "signInCardArt": {
+      "label": "Card art on the sign-in screen",
+      "description": "Shows a card illustration from Scryfall behind the sign-in form. Turn it off to use a plain background and contact no other site before you sign in."
     }
   },
   "SettingsCardSources": {

@@ -7,7 +7,7 @@ import { useKnownHosts } from '@app/feature-widgets/known-hosts';
 import { useWebClient } from '@cockatrice/datatrice/react';
 import { server } from '@cockatrice/datatrice';
 import { useAppSelector } from '@app/store';
-import { getHostPort } from '@app/utils';
+import { getHostKey, getHostPort } from '@app/utils';
 import { WebsocketTypes } from '@cockatrice/sockatrice/types';
 import { Response_ResponseCode } from '@cockatrice/sockatrice/generated';
 
@@ -15,6 +15,7 @@ import type { LoginFormValues } from './forms/LoginForm/LoginForm';
 import type { RegisterFormValues } from './forms/RegisterForm/RegisterForm';
 import type { RequestPasswordResetFormValues } from './forms/RequestPasswordResetForm/RequestPasswordResetForm';
 import type { ResetPasswordFormValues } from './forms/ResetPasswordForm/ResetPasswordForm';
+import { loginAttempt, useLoginAttemptFailed } from './loginAttempt';
 import { useAutoLogin } from './useAutoLogin';
 
 export interface LoginDialogState {
@@ -64,7 +65,6 @@ export function useLogin(): Login {
   const loginFailureKey = loginFailureCode === null ? undefined : LOGIN_FAILURE_MESSAGE_KEYS[loginFailureCode];
   const passwordChangeRequired =
     !isConnected && loginFailureCode === Response_ResponseCode.RespPasswordChangeRequired;
-  const loginFailed = !isConnected && (loginFailureCode !== null || connectUnreachable);
   let description = rawDescription;
   if (!isConnected && connectUnreachable) {
     description = t('Login.status.serverUnreachable');
@@ -78,6 +78,9 @@ export function useLogin(): Login {
   const rememberLoginRef = useRef<LoginFormValues | RegisterFormValues | null>(null);
   const pendingActivationPasswordRef = useRef<string | undefined>(undefined);
   const knownHosts = useKnownHosts();
+  const selectedHost = knownHosts.value?.selectedHost;
+  const attemptFailed = useLoginAttemptFailed(selectedHost ? getHostKey(selectedHost) : null);
+  const loginFailed = !isConnected && attemptFailed;
   const [dialogState, setDialogState] = useState<LoginDialogState>({
     passwordResetRequestDialog: false,
     resetPasswordDialog: false,
@@ -165,6 +168,7 @@ export function useLogin(): Login {
       options.hashedPassword = selectedHost.hashedPassword;
     }
 
+    loginAttempt.started(getHostKey(selectedHost));
     webClient.request.authentication.login(options);
   }, [webClient]);
 
@@ -172,7 +176,8 @@ export function useLogin(): Login {
 
   useReduxEffect(() => {
     resetSubmitButton();
-  }, [server.Types.CONNECTION_FAILED, server.Types.LOGIN_FAILED], []);
+    loginAttempt.failed();
+  }, [server.Types.CONNECTION_FAILED, server.Types.LOGIN_FAILED, server.Actions.connectUnreachable.type], []);
 
   const updateHost = (
     hashedPassword: string | undefined,
@@ -196,6 +201,7 @@ export function useLogin(): Login {
       updateHost(options.hashedPassword, loginForm);
     }
     rememberLoginRef.current = null;
+    loginAttempt.succeeded();
   }, server.Types.LOGIN_SUCCESSFUL, []);
 
   useAutoLogin(handleLogin, connectionAttemptMade);
