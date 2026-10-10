@@ -130,7 +130,7 @@ export default function PhaseTrack() {
             )}
           >
             <Icon size={13} aria-hidden />
-            <span>{label}</span>
+            <span className="max-[1359px]:hidden">{label}</span>
           </button>
         );
       })}

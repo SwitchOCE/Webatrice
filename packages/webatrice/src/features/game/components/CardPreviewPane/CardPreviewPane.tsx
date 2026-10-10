@@ -4,7 +4,7 @@ import { ChevronLeft, ExternalLink, FileText, Image as ImageIcon, LayoutList, X 
 import { CardRelatedLinks, IconButton, ManaSymbols, SymbolText } from '@app/components';
 import { cx } from '@app/utils';
 
-import { CARD_CORNER_RADIUS } from '../ui/SeatCard/cardSize';
+import { CARD_CORNER_RADIUS, CARD_HEIGHT, CARD_WIDTH } from '../ui/SeatCard/cardSize';
 import PreviewCardImage from '../ui/PreviewCardImage/PreviewCardImage';
 import { useCardPreviewPane, type PreviewMode } from './useCardPreviewPane';
 
@@ -53,17 +53,17 @@ export default function CardPreviewPane() {
           </IconButton>
         ))}
       </div>
-      <div className="flex min-h-0 flex-1 gap-2">
+      <div className="flex min-h-0 gap-2" style={{ height: CARD_HEIGHT }}>
         {pane.isPopupOpen ? (
           <button
             type="button"
             onClick={pane.togglePopup}
             className={cx(
-              'flex h-full aspect-[5/7] flex-col items-center justify-center gap-1 rounded-ui border border-dashed border-accent/40',
+              'flex h-full flex-col items-center justify-center gap-1 rounded-ui border border-dashed border-accent/40',
               'bg-accent/5 p-2 text-center text-[11px] text-text-muted hover:bg-accent/10 board-motion transition-colors',
               'focus-visible:outline focus-visible:outline-2 focus-visible:outline-accent',
             )}
-            style={{ borderRadius: CARD_CORNER_RADIUS }}
+            style={{ width: CARD_WIDTH, borderRadius: CARD_CORNER_RADIUS }}
           >
             <ExternalLink size={18} className="text-accent" aria-hidden />
             <span className="italic">{t('CardPreviewPane.previewInWindow')}</span>
@@ -76,16 +76,21 @@ export default function CardPreviewPane() {
                 <PreviewCardImage
                   src={pane.imageUrl}
                   name={activeCard?.name}
-                  className="h-full w-auto shrink-0 shadow-md"
-                  style={{ borderRadius: CARD_CORNER_RADIUS, imageRendering: '-webkit-optimize-contrast' }}
+                  className="shrink-0 shadow-md"
+                  style={{
+                    height: CARD_HEIGHT,
+                    width: CARD_WIDTH,
+                    borderRadius: CARD_CORNER_RADIUS,
+                    imageRendering: '-webkit-optimize-contrast',
+                  }}
                 />
               ) : (
                 <div
                   className={cx(
-                    'flex h-full aspect-[5/7] shrink-0 items-center justify-center rounded-ui border border-dashed border-border-subtle',
+                    'flex h-full shrink-0 items-center justify-center rounded-ui border border-dashed border-border-subtle',
                     'bg-bg-sunken/60 p-2 text-center text-[11px] italic text-text-muted',
                   )}
-                  style={{ borderRadius: CARD_CORNER_RADIUS }}
+                  style={{ width: CARD_WIDTH, borderRadius: CARD_CORNER_RADIUS }}
                 >
                   {t('CardPreviewPane.hoverToPreview')}
                 </div>

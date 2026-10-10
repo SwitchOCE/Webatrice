@@ -59,12 +59,12 @@ export default function TurnBar() {
               name: item.playerName ?? t('GameLog.player.number', { id: item.playerId }),
             })}
             className={cx(
-              'flex h-7 min-w-0 max-w-[180px] items-center gap-1.5 rounded-ui-sm border border-accent/50 bg-bg-elevated pl-1.5 pr-1.5',
+              'flex h-7 min-w-0 max-w-[240px] items-center gap-1.5 rounded-ui-sm border border-accent/50 bg-bg-elevated pl-1.5 pr-1.5',
               'text-[12px] font-medium text-text-primary hover:border-accent board-motion transition-colors',
               GAME_FOCUS_RING,
             )}
           >
-            <span className="truncate text-[10.5px] text-text-muted">{item.playerName}</span>
+            <span className="max-w-[72px] shrink truncate text-[10.5px] text-text-muted">{item.playerName}</span>
             <span className="truncate">{item.card.name}</span>
           </button>
         ))}

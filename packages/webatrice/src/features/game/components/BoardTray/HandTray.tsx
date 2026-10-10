@@ -136,7 +136,7 @@ export default function HandTray() {
       >
         <ZoneBackground zone="hand" />
         <header className="flex h-6 shrink-0 items-center gap-2 px-1">
-          <span className="text-[11px] font-semibold uppercase tracking-[0.08em] text-text-muted">
+          <span className="whitespace-nowrap text-[11px] font-semibold uppercase tracking-[0.08em] text-text-muted">
             {t('BoardTray.handHeading', { count: handSize })}
           </span>
           <span className="ml-auto flex items-center gap-1">

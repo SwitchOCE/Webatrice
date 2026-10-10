@@ -11,6 +11,7 @@ import { usePlayerSeatContext } from '../../ui/PlayerBoard/PlayerSeatContext';
 import { useCardPreviewActions } from '../../ui/CardPreviewContext';
 import { getScryfallUrlByIdOrExactName } from '@app/services';
 import { ScryfallImageSize } from '@cockatrice/datatrice';
+import { CARD_WIDTH } from '../../ui/SeatCard/cardSize';
 import { useValueFlash } from '../../ui/ValueFlash/useValueFlash';
 import ValueFlashOverlay from '../../ui/ValueFlash/ValueFlashOverlay';
 import ZoneBackground from '../../ui/ZoneBackground/ZoneBackground';
@@ -124,6 +125,8 @@ function ManaPip({
     </div>
   );
 }
+
+const INFO_FONT_SIZE = `clamp(10px, calc(${CARD_WIDTH} * 16 / 72), 16px)`;
 
 const NO_MODIFIERS = (event: KeyboardEvent) => !event.altKey && !event.ctrlKey && !event.metaKey && !event.shiftKey;
 
@@ -240,7 +243,7 @@ export default function PlayerInfoPanel() {
   return (
     <div
       className="relative isolate border-r border-border-subtle bg-bg-surface/70 flex flex-col p-[0.75em] gap-[0.5em] min-h-0"
-      style={seatGrid.info}
+      style={{ ...seatGrid.info, fontSize: INFO_FONT_SIZE }}
     >
       <ZoneBackground zone="playerInfo" />
       <div className="relative" ref={blockRef}>
@@ -361,23 +364,23 @@ export default function PlayerInfoPanel() {
           <ValueFlashOverlay flash={lifeFlash} kind="change" />
         </div>
         <PlayerMenuButton />
+        {handPlacement === 'hidden' && (
+          <button
+            type="button"
+            disabled
+            title={handCountLabel}
+            aria-label={handCountLabel}
+            className={[
+              'absolute bottom-[0.3em] right-[0.3em] z-20 flex items-center gap-[0.3em] rounded px-[0.35em] py-[0.1em]',
+              'bg-over-art-backdrop/60 text-[0.8em] font-bold tabular-nums text-over-art-text',
+            ].join(' ')}
+          >
+            <Hand size="1em" aria-hidden />
+            {handCount}
+          </button>
+        )}
       </div>
 
-      {handPlacement === 'hidden' && (
-        <button
-          type="button"
-          disabled
-          title={handCountLabel}
-          aria-label={handCountLabel}
-          className={[
-            'relative flex h-[2em] shrink-0 items-center justify-center gap-[0.4em] rounded-md border border-border-subtle',
-            'bg-bg-surface/80 text-text-primary',
-          ].join(' ')}
-        >
-          <Hand size="1.1em" className="text-text-secondary" aria-hidden />
-          <span className="text-[1em] font-bold tabular-nums">{handCount}</span>
-        </button>
-      )}
 
       {/* Below the life total: mana pool sits as the first item of
          the zone column — same `justify-evenly` distribution as
