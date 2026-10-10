@@ -1,4 +1,4 @@
-import { markChatSeen, notificationStore } from '@app/services';
+import { isPageInactive, notificationStore, type UnreadScope } from '@app/services';
 
 export interface MarkRead {
   markRoomRead(id: number): void;
@@ -7,10 +7,16 @@ export interface MarkRead {
   markNotificationsRead(): void;
 }
 
+const clearWhileActive = (scope: UnreadScope, key: number | string) => {
+  if (!isPageInactive()) {
+    notificationStore.dispatch({ type: 'clear', scope, key });
+  }
+};
+
 const markRead: MarkRead = {
-  markRoomRead: (id) => notificationStore.dispatch({ type: 'clear', scope: 'rooms', key: id }),
-  markGameRead: (id) => notificationStore.dispatch({ type: 'clear', scope: 'games', key: id }),
-  markChatRead: (name) => markChatSeen(name),
+  markRoomRead: (id) => clearWhileActive('rooms', id),
+  markGameRead: (id) => clearWhileActive('games', id),
+  markChatRead: (name) => clearWhileActive('chats', name),
   markNotificationsRead: () => notificationStore.dispatch({ type: 'markAllRead' }),
 };
 

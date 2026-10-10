@@ -5,6 +5,8 @@ import { renderWithProviders } from '../../__test-utils__';
 import Toast, { type ToastActionButton } from './Toast';
 import { ToastProvider, usePushToast, useToast } from './ToastContext';
 import { ACTIONS, initialState, reducer } from './reducer';
+import { toastLaneFor } from './toastLane';
+import { endSession } from '../../services/session';
 
 function ManagedToast() {
   const [open, setOpen] = useState(true);
@@ -37,10 +39,15 @@ function AutoOpen({ messageKey, body }: { messageKey: string; body: string }) {
   return null;
 }
 
-function PushOnMount({ body, severity, action }: { body: string; severity?: 'warning' | 'error'; action?: ToastActionButton }) {
+function PushOnMount({ body, severity, action, sessionScoped }: {
+  body: string;
+  severity?: 'warning' | 'error';
+  action?: ToastActionButton;
+  sessionScoped?: boolean;
+}) {
   const pushToast = usePushToast();
   useEffect(() => {
-    pushToast(body, { severity, action });
+    pushToast(body, { severity, action, sessionScoped });
     // eslint-disable-next-line react-hooks/exhaustive-deps -- fixture pushes exactly once on mount
   }, []);
   return null;
@@ -264,6 +271,44 @@ describe('ToastProvider + usePushToast', () => {
     );
 
     expect(queryAlerts().map((toast) => toast.textContent)).toEqual(['three', 'four', 'five']);
+  });
+});
+
+describe('Toast eviction, session and lane', () => {
+  it('keeps the focused toast when newer ones would evict it', () => {
+    const toasts = (bodies: string[]) => (
+      <ToastProvider>
+        {bodies.map((body) => <PushOnMount key={body} body={body} />)}
+        <button type="button">elsewhere</button>
+      </ToastProvider>
+    );
+    const { rerender } = renderWithProviders(toasts(['one', 'two', 'three']));
+    const dismissOne = within(queryAlerts()[0]).getByRole('button', { name: 'Common.action.dismiss' });
+    act(() => dismissOne.focus());
+
+    rerender(toasts(['one', 'two', 'three', 'four']));
+
+    expect(queryAlerts().map((toast) => toast.textContent)).toEqual(['one', 'three', 'four']);
+    expect(dismissOne).toHaveFocus();
+  });
+
+  it('removes session toasts when the session ends and keeps the rest', () => {
+    renderWithProviders(
+      <ToastProvider>
+        <PushOnMount body="private message" sessionScoped />
+        <PushOnMount body="password changed" />
+      </ToastProvider>,
+    );
+
+    act(() => endSession());
+
+    expect(queryAlerts().map((toast) => toast.textContent)).toEqual(['password changed']);
+  });
+
+  it('moves the toast lane off the deck editor top controls', () => {
+    expect(toastLaneFor('/room/1')).toBe('top');
+    expect(toastLaneFor('/deck/12')).toBe('bottom');
+    expect(toastLaneFor('/deck/draft/abc')).toBe('bottom');
   });
 });
 

@@ -1,8 +1,7 @@
 export * from './NotificationService';
 export {
-  afterChatRender,
+  bindToSession,
   logNotification,
-  markChatSeen,
   notificationStore,
 } from './notificationStore';
 export type {
@@ -15,7 +14,7 @@ export type {
 } from './notificationStore';
 export { selectUnreadCounts } from './unreadCounts';
 export type { UnreadCounts } from './unreadCounts';
-export { currentView, unreadChange } from './unreadEvents';
+export { countsAsGameUnread, currentView, unreadChange } from './unreadEvents';
 export type { CurrentView, UnreadChange, VisibilityChecks } from './unreadEvents';
 export { detectGameReady } from './gameReady';
 export type { GameReady } from './gameReady';

@@ -1,10 +1,11 @@
 import { useEffect, useRef } from 'react';
 import { useLocation } from 'react-router-dom';
 
-import { currentView, notificationStore, unreadChange, type VisibilityChecks } from '@app/services';
+import { notificationStore, unreadChange, type CurrentView, type VisibilityChecks } from '@app/services';
 import type { RootState } from '@app/store';
 import { chatFilterVerdicts, isRoomMessageVisible, visiblePrivateMessages } from '@app/utils';
 
+import { viewedNow } from './chatVisibility';
 import { useActionFeed } from './useActionFeed';
 import { getPreferencesSnapshot } from './useSettings';
 
@@ -30,26 +31,37 @@ const checks: VisibilityChecks = {
   },
 };
 
+function clearViewed(view: CurrentView) {
+  if (view.roomId != null) {
+    notificationStore.dispatch({ type: 'clear', scope: 'rooms', key: view.roomId });
+  }
+  if (view.gameId != null) {
+    notificationStore.dispatch({ type: 'clear', scope: 'games', key: view.gameId });
+  }
+  view.chatPeers.forEach((peer) => notificationStore.dispatch({ type: 'clear', scope: 'chats', key: peer }));
+}
+
 export function useUnreadTracker(): void {
   const { pathname } = useLocation();
-  const view = currentView(pathname);
-  const viewRef = useRef(view);
-  viewRef.current = view;
+  const pathnameRef = useRef(pathname);
+  pathnameRef.current = pathname;
 
   useEffect(() => {
-    if (view.roomId != null) {
-      notificationStore.dispatch({ type: 'clear', scope: 'rooms', key: view.roomId });
-    }
-    if (view.gameId != null) {
-      notificationStore.dispatch({ type: 'clear', scope: 'games', key: view.gameId });
-    }
-    if (view.chatPeer != null) {
-      notificationStore.dispatch({ type: 'clear', scope: 'chats', key: view.chatPeer });
-    }
-  }, [view.roomId, view.gameId, view.chatPeer]);
+    clearViewed(viewedNow(pathname));
+  }, [pathname]);
+
+  useEffect(() => {
+    const reconcile = () => clearViewed(viewedNow(pathnameRef.current));
+    window.addEventListener('focus', reconcile);
+    document.addEventListener('visibilitychange', reconcile);
+    return () => {
+      window.removeEventListener('focus', reconcile);
+      document.removeEventListener('visibilitychange', reconcile);
+    };
+  }, []);
 
   useActionFeed((action, before, after) => {
-    const change = unreadChange(action, before, after, viewRef.current, checks);
+    const change = unreadChange(action, before, after, viewedNow(pathnameRef.current), checks);
     if (change) {
       notificationStore.dispatch({ type: change.op, scope: change.scope, key: change.key });
     }

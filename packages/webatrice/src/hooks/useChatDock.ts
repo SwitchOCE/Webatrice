@@ -39,6 +39,10 @@ export function getExpandedChats(): string[] {
   return expandedChatNames(state);
 }
 
+export function getVisibleChats(): string[] {
+  return getExpandedChats();
+}
+
 export function currentMaxExpandedChats(): number {
   return maxExpandedFor(typeof window === 'undefined' ? 1440 : window.innerWidth);
 }

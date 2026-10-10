@@ -1,5 +1,7 @@
 import { onSessionEnd } from '@app/services/session';
 
+import { closeSystemNotifications } from './NotificationService';
+
 export type NotificationKind = 'message' | 'mention' | 'buddy' | 'game' | 'report';
 
 export type NotificationTarget =
@@ -156,7 +158,7 @@ export function createNotificationStore(): NotificationStore {
       }
     },
     reset: () => {
-      state = initialNotificationState;
+      state = { ...initialNotificationState, seq: state.seq };
       emit();
     },
   };
@@ -164,18 +166,15 @@ export function createNotificationStore(): NotificationStore {
 
 export const notificationStore = createNotificationStore();
 
-const chatSeen = new Map<string, number>();
-let chatSeenTick = 0;
+let generation = 0;
 
-export function markChatSeen(userName: string): void {
-  chatSeenTick += 1;
-  chatSeen.set(userName, chatSeenTick);
-  notificationStore.dispatch({ type: 'clear', scope: 'chats', key: userName });
-}
-
-export function afterChatRender(userName: string, callback: (seen: boolean) => void): void {
-  const mark = chatSeenTick;
-  window.setTimeout(() => callback((chatSeen.get(userName) ?? 0) > mark), 0);
+export function bindToSession<A extends unknown[]>(callback: (...args: A) => void): (...args: A) => void {
+  const owner = generation;
+  return (...args: A) => {
+    if (owner === generation) {
+      callback(...args);
+    }
+  };
 }
 
 export function logNotification(entry: NotificationInput, read = false, time = Date.now()): number {
@@ -184,6 +183,7 @@ export function logNotification(entry: NotificationInput, read = false, time = D
 }
 
 onSessionEnd(() => {
-  chatSeen.clear();
+  generation += 1;
+  closeSystemNotifications();
   notificationStore.reset();
 });

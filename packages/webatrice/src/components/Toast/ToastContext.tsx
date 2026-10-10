@@ -3,14 +3,18 @@ import { createPortal } from 'react-dom';
 import { useTranslation } from 'react-i18next';
 import type { LucideIcon } from 'lucide-react';
 
+import { onSessionEnd } from '@app/services/session';
+
 import { ACTIONS, initialState, reducer, ToastEntry } from './reducer';
 import Toast, { type ToastActionButton, type ToastSeverity } from './Toast';
+import { useToastLane } from './toastLane';
 
 export interface PushToastOptions {
   icon?: LucideIcon;
   severity?: ToastSeverity;
   lead?: ReactNode;
   action?: ToastActionButton;
+  sessionScoped?: boolean;
 }
 
 interface ToastContextValue {
@@ -36,6 +40,8 @@ const ToastContext = createContext<ToastContextValue>({
 export const ToastProvider: FC<PropsWithChildren> = ({ children }) => {
   const [state, dispatch] = useReducer(reducer, initialState);
   const pushCounter = useRef(0);
+  const focusedKey = useRef<string | null>(null);
+  useEffect(() => onSessionEnd(() => dispatch({ type: ACTIONS.REMOVE_SESSION_TOASTS })), []);
   const pushToast = useCallback((toastChildren: ReactNode, options?: PushToastOptions) => {
     pushCounter.current += 1;
     const key = `push:${Date.now()}:${pushCounter.current}`;
@@ -48,7 +54,9 @@ export const ToastProvider: FC<PropsWithChildren> = ({ children }) => {
         severity: options?.severity,
         lead: options?.lead,
         action: options?.action,
+        sessionScoped: options?.sessionScoped,
         pushed: true,
+        keep: focusedKey.current,
       },
     });
     dispatch({ type: ACTIONS.OPEN_TOAST, payload: { key } });
@@ -80,6 +88,7 @@ export const ToastProvider: FC<PropsWithChildren> = ({ children }) => {
     pushToast,
   };
   const { t } = useTranslation();
+  const lane = useToastLane();
   const portalTarget = typeof document !== 'undefined' ? document.body : null;
   const entries = Object.entries(state.toasts);
   const renderToast = ([key, entry]: [string, ToastEntry]) => (
@@ -91,6 +100,9 @@ export const ToastProvider: FC<PropsWithChildren> = ({ children }) => {
       severity={entry.severity}
       lead={entry.lead}
       action={entry.action}
+      onFocusChange={(focused) => {
+        focusedKey.current = focused ? key : focusedKey.current === key ? null : focusedKey.current;
+      }}
     >
       {entry.children}
     </Toast>
@@ -103,7 +115,11 @@ export const ToastProvider: FC<PropsWithChildren> = ({ children }) => {
         createPortal(
           <section
             aria-label={t('Toast.region')}
-            className="pointer-events-none fixed inset-x-0 top-[52px] z-40 flex flex-col items-center gap-2 px-4"
+            data-lane={lane}
+            className={[
+              'pointer-events-none fixed inset-x-0 z-40 flex flex-col items-center gap-2 px-4',
+              lane === 'top' ? 'top-[52px]' : 'bottom-6',
+            ].join(' ')}
           >
             <div aria-live="assertive" className="flex flex-col items-center gap-2">
               {entries.filter(([, entry]) => entry.severity === 'error').map(renderToast)}

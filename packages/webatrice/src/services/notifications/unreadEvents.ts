@@ -15,7 +15,7 @@ export interface ObservedAction {
 export interface CurrentView {
   roomId?: number;
   gameId?: number;
-  chatPeer?: string;
+  chatPeers: readonly string[];
 }
 
 export interface UnreadChange {
@@ -36,7 +36,7 @@ export function currentView(pathname: string): CurrentView {
   return {
     roomId: room != null ? Number(room) : undefined,
     gameId: game != null ? Number(game) : undefined,
-    chatPeer: peer,
+    chatPeers: peer != null ? [peer] : [],
   };
 }
 
@@ -48,32 +48,38 @@ function liveGame(state: RootState, gameId: number): GameEntry | undefined {
   return game && !game.replay ? game : undefined;
 }
 
-function gameChange(action: ObservedAction, before: RootState, after: RootState, view: CurrentView): UnreadChange | null {
+export function countsAsGameUnread(action: ObservedAction, before: RootState, after: RootState): boolean {
   const { gameId, playerId } = action.payload as { gameId: number; playerId?: number };
+  const was = liveGame(before, gameId);
+  const game = liveGame(after, gameId);
+  switch (action.type) {
+    case G.GAME_SAY:
+      return Boolean(game) && playerId !== game?.localPlayerId;
+    case G.PLAYER_JOINED: {
+      const joined = (action.payload as { playerProperties: { playerId: number } }).playerProperties.playerId;
+      return Boolean(game) && joined !== game?.localPlayerId && !was?.players[joined];
+    }
+    case G.PLAYER_LEFT:
+      return Boolean(was) && playerId !== was?.localPlayerId && Boolean(was?.players[playerId ?? -1]);
+    case G.ACTIVE_PLAYER_SET:
+      return Boolean(game && was) && game?.activePlayerId !== was?.activePlayerId;
+    case G.ACTIVE_PHASE_SET:
+      return Boolean(game && was) && !game?.spectator && game?.activePlayerId === game?.localPlayerId
+        && game?.activePhase !== was?.activePhase;
+    default:
+      return false;
+  }
+}
+
+function gameChange(action: ObservedAction, before: RootState, after: RootState, view: CurrentView): UnreadChange | null {
+  const { gameId } = action.payload as { gameId: number };
   if (GAME_GONE.has(action.type ?? '')) {
     return { op: 'clear', scope: 'games', key: gameId };
   }
-  if (gameId === view.gameId) {
+  if (gameId === view.gameId || !countsAsGameUnread(action, before, after)) {
     return null;
   }
-  const bump: UnreadChange = { op: 'bump', scope: 'games', key: gameId };
-  switch (action.type) {
-    case G.GAME_SAY: {
-      const game = liveGame(after, gameId);
-      return game && playerId !== game.localPlayerId ? bump : null;
-    }
-    case G.PLAYER_JOINED: {
-      const joined = (action.payload as { playerProperties: { playerId: number } }).playerProperties.playerId;
-      const game = liveGame(after, gameId);
-      return game && joined !== game.localPlayerId && !before.games.games[gameId]?.players[joined] ? bump : null;
-    }
-    case G.PLAYER_LEFT: {
-      const game = liveGame(before, gameId);
-      return game && playerId !== game.localPlayerId && game.players[playerId ?? -1] ? bump : null;
-    }
-    default:
-      return null;
-  }
+  return { op: 'bump', scope: 'games', key: gameId };
 }
 
 function roomChange(action: ObservedAction, after: RootState, view: CurrentView, checks: VisibilityChecks): UnreadChange | null {
@@ -98,7 +104,7 @@ function chatChange(action: ObservedAction, after: RootState, view: CurrentView,
   const { messageData } = action.payload as { messageData: Event_UserMessage };
   const selfName = after.server.user?.name;
   const peer = messageData.senderName;
-  if (!selfName || peer === selfName || peer === view.chatPeer || !checks.privateMessage(peer, after)) {
+  if (!selfName || peer === selfName || view.chatPeers.includes(peer) || !checks.privateMessage(peer, after)) {
     return null;
   }
   return { op: 'bump', scope: 'chats', key: peer };

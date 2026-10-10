@@ -1,12 +1,11 @@
 import { useRef } from 'react';
-import { matchPath, useLocation } from 'react-router-dom';
+import { useLocation } from 'react-router-dom';
 import { server } from '@cockatrice/datatrice';
 import type { Event_UserMessage } from '@cockatrice/sockatrice/generated';
 
 import { useNotify } from '@app/components';
-import { getPreferencesSnapshot, playSound, useActionFeed } from '@app/hooks';
-import { afterChatRender, isPageInactive } from '@app/services';
-import { RouteEnum } from '@app/types';
+import { getPreferencesSnapshot, isChatOnScreen, playSound, useActionFeed } from '@app/hooks';
+import { isPageInactive } from '@app/services';
 import { chatFilterVerdicts, visiblePrivateMessages } from '@app/utils';
 
 export default function PrivateMessageNotifier() {
@@ -38,25 +37,18 @@ export default function PrivateMessageNotifier() {
       return;
     }
     const sender = entry.senderName;
-    const announce = (shown: boolean) => {
-      const read = shown && !isPageInactive();
-      if (!shown) {
-        playSound('private_message');
-      }
-      notify({
-        entry: { kind: 'message', actor: sender, body: entry.message, target: { type: 'chat', userName: sender } },
-        tag: `pm:${sender}`,
-        system: prefs.showMessagePopups && !read,
-        toast: !shown,
-        read,
-      });
-    };
-    const onPeerPage = matchPath({ path: RouteEnum.PLAYER, end: true }, pathnameRef.current)?.params.name === sender;
-    if (onPeerPage) {
-      announce(true);
-    } else {
-      afterChatRender(sender, announce);
+    const shown = isChatOnScreen(sender, pathnameRef.current);
+    const read = shown && !isPageInactive();
+    if (!shown) {
+      playSound('private_message');
     }
+    notify({
+      entry: { kind: 'message', actor: sender, body: entry.message, target: { type: 'chat', userName: sender } },
+      tag: `pm:${sender}`,
+      system: prefs.showMessagePopups && !read,
+      toast: !shown,
+      read,
+    });
   });
 
   return null;

@@ -5,6 +5,7 @@ export * from './useGameDeckCommands';
 export * from './useChatPreferences';
 export * from './chatDockState';
 export * from './useChatDock';
+export * from './chatVisibility';
 export * from './useColorScheme';
 export * from './useFireOnce';
 export * from './useLeaveGame';
