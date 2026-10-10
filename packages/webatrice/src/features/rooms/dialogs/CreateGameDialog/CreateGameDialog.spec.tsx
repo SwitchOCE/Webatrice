@@ -2,6 +2,7 @@ import { fireEvent, screen } from '@testing-library/react';
 import { renderWithProviders, makeStoreState, makeUser } from '../../../../__test-utils__';
 import { ServerInfo_User_UserLevelFlag } from '@cockatrice/sockatrice/generated';
 import CreateGameDialog from './CreateGameDialog';
+import { CREATE_GAME_DEFAULTS_KEY } from './createGameDefaults';
 
 function renderDialog(opts: { isJudge?: boolean; isRegistered?: boolean; gametypeMap?: Record<number, string> } = {}) {
   const userLevel =
@@ -12,6 +13,7 @@ function renderDialog(opts: { isJudge?: boolean; isRegistered?: boolean; gametyp
   renderWithProviders(
     <CreateGameDialog
       isOpen
+      roomName="Magic"
       gametypeMap={opts.gametypeMap ?? {}}
       onSubmit={onSubmit}
       onCancel={onCancel}
@@ -27,31 +29,22 @@ function renderDialog(opts: { isJudge?: boolean; isRegistered?: boolean; gametyp
   return { onSubmit, onCancel };
 }
 
+const create = () => fireEvent.click(screen.getByRole('button', { name: 'CreateGameDialog.action.create' }));
+const openAdvanced = () => fireEvent.click(screen.getByRole('button', { name: /CreateGameDialog.advanced.title/ }));
+const toggle = (key: string) => fireEvent.click(screen.getByRole('switch', { name: `CreateGameDialog.label.${key}` }));
+const preset = (id: string) => screen.getByRole('radio', { name: `CreateGameDialog.preset.${id}.name` });
+
 describe('CreateGameDialog', () => {
-  it('hides the "Create as judge" checkbox for non-judge users', () => {
-    renderDialog({ isJudge: false });
-    expect(screen.queryByLabelText('CreateGameDialog.label.joinAsJudge')).not.toBeInTheDocument();
+  beforeEach(() => {
+    window.localStorage.clear();
   });
 
-  it('shows the "Create as judge" checkbox for judges', () => {
-    renderDialog({ isJudge: true });
-    expect(screen.getByLabelText('CreateGameDialog.label.joinAsJudge')).toBeInTheDocument();
-  });
-
-  it('disables spectator sub-options when "Allow spectators" is unchecked', () => {
-    renderDialog();
-    fireEvent.click(screen.getByLabelText('CreateGameDialog.label.spectatorsAllowed'));
-    expect(screen.getByLabelText('CreateGameDialog.label.spectatorsNeedPassword')).toBeDisabled();
-    expect(screen.getByLabelText('CreateGameDialog.label.spectatorsCanTalk')).toBeDisabled();
-    expect(screen.getByLabelText('CreateGameDialog.label.spectatorsSeeEverything')).toBeDisabled();
-  });
-
-  it('submits desktop-default values for an unedited form', () => {
+  it('submits desktop-default values for an unedited form, with the 1v1 preset selected', () => {
     const { onSubmit } = renderDialog({ isRegistered: true });
-    fireEvent.click(screen.getByRole('button', { name: 'Common.action.create' }));
+    expect(preset('oneVsOne')).toBeChecked();
+    create();
     expect(onSubmit).toHaveBeenCalledTimes(1);
-    const params = onSubmit.mock.calls[0][0];
-    expect(params).toMatchObject({
+    expect(onSubmit.mock.calls[0][0]).toMatchObject({
       description: '',
       password: '',
       maxPlayers: 2,
@@ -69,76 +62,138 @@ describe('CreateGameDialog', () => {
     });
   });
 
-  it('forwards updated description and max players to onSubmit', () => {
-    const { onSubmit } = renderDialog();
-    fireEvent.change(screen.getByLabelText('CreateGameDialog.label.description'), { target: { value: 'Friday Casual' } });
-    fireEvent.change(screen.getByLabelText('CreateGameDialog.label.maxPlayers'), { target: { value: '4' } });
-    fireEvent.click(screen.getByRole('button', { name: 'Common.action.create' }));
-    const params = onSubmit.mock.calls[0][0];
-    expect(params.description).toBe('Friday Casual');
-    expect(params.maxPlayers).toBe(4);
+  it('Commander pod sets four seats, 40 life and the room\'s Commander type', () => {
+    const { onSubmit } = renderDialog({ isRegistered: true, gametypeMap: { 0: 'Standard', 3: 'Commander' } });
+    fireEvent.click(preset('commanderPod'));
+    expect(preset('commanderPod')).toBeChecked();
+    create();
+    expect(onSubmit.mock.calls[0][0]).toMatchObject({ maxPlayers: 4, startingLifeTotal: 40, gameTypeIds: [3] });
   });
 
-  it('renders a radio per available game type', () => {
-    renderDialog({ gametypeMap: { 0: 'Constructed', 1: 'Limited' } });
-    expect(screen.getByLabelText('Constructed')).toBeInTheDocument();
-    expect(screen.getByLabelText('Limited')).toBeInTheDocument();
+  it('Commander pod leaves the format as Any when the room has no Commander type', () => {
+    const { onSubmit } = renderDialog({ isRegistered: true, gametypeMap: { 0: 'Standard' } });
+    fireEvent.change(screen.getByLabelText('CreateGameDialog.label.format'), { target: { value: '0' } });
+    fireEvent.click(preset('commanderPod'));
+    create();
+    expect(onSubmit.mock.calls[0][0].gameTypeIds).toEqual([]);
+  });
+
+  it('Friends only is unavailable to unregistered users', () => {
+    renderDialog({ isRegistered: false });
+    expect(preset('friendsOnly')).toBeDisabled();
+  });
+
+  it('deselects the preset once a field no longer matches it', () => {
+    renderDialog({ isRegistered: true });
+    openAdvanced();
+    fireEvent.change(screen.getByLabelText('CreateGameDialog.label.maxPlayers'), { target: { value: '3' } });
+    expect(screen.getAllByRole('radio').every((radio) => !(radio as HTMLInputElement).checked)).toBe(true);
+  });
+
+  it('keeps every field under Advanced, collapsed by default', () => {
+    renderDialog({ isRegistered: true });
+    expect(screen.queryByRole('switch', { name: 'CreateGameDialog.label.spectatorsAllowed' })).not.toBeInTheDocument();
+    openAdvanced();
+    expect(screen.getByRole('button', { name: /CreateGameDialog.advanced.title/ })).toHaveAttribute('aria-expanded', 'true');
+    expect(screen.getByRole('switch', { name: 'CreateGameDialog.label.spectatorsAllowed' })).toBeInTheDocument();
+  });
+
+  it('hides "Join as judge" for non-judges', () => {
+    renderDialog({ isJudge: false });
+    openAdvanced();
+    expect(screen.queryByRole('switch', { name: 'CreateGameDialog.label.joinAsJudge' })).not.toBeInTheDocument();
+  });
+
+  it('disables spectator sub-options when watching is off', () => {
+    renderDialog();
+    openAdvanced();
+    toggle('spectatorsAllowed');
+    expect(screen.getByRole('switch', { name: 'CreateGameDialog.label.spectatorsNeedPassword' })).toBeDisabled();
+    expect(screen.getByRole('switch', { name: 'CreateGameDialog.label.spectatorsCanTalk' })).toBeDisabled();
+    expect(screen.getByRole('switch', { name: 'CreateGameDialog.label.spectatorsSeeEverything' })).toBeDisabled();
+  });
+
+  it('forwards description, password, seats, life and format edits', () => {
+    const { onSubmit } = renderDialog({ gametypeMap: { 0: 'Constructed', 1: 'Limited' } });
+    fireEvent.change(screen.getByLabelText('CreateGameDialog.label.description'), { target: { value: 'Friday Casual' } });
+    fireEvent.change(screen.getByLabelText('CreateGameDialog.label.password'), { target: { value: 'secret' } });
+    fireEvent.change(screen.getByLabelText('CreateGameDialog.label.format'), { target: { value: '1' } });
+    openAdvanced();
+    fireEvent.change(screen.getByLabelText('CreateGameDialog.label.maxPlayers'), { target: { value: '4' } });
+    fireEvent.change(screen.getByLabelText('CreateGameDialog.label.startingLifeTotal'), { target: { value: '30' } });
+    create();
+    expect(onSubmit.mock.calls[0][0]).toMatchObject({
+      description: 'Friday Casual',
+      password: 'secret',
+      maxPlayers: 4,
+      startingLifeTotal: 30,
+      gameTypeIds: [1],
+    });
+  });
+
+  it('toggles every Advanced switch and forwards them on Create', () => {
+    const { onSubmit } = renderDialog({ isRegistered: true, isJudge: true });
+    openAdvanced();
+    ['onlyBuddies', 'onlyRegistered', 'shareDecklistsOnLoad', 'joinAsSpectator', 'joinAsJudge',
+      'spectatorsCanTalk', 'spectatorsSeeEverything', 'spectatorsNeedPassword'].forEach(toggle);
+    create();
+    expect(onSubmit.mock.calls[0][0]).toMatchObject({
+      onlyBuddies: true,
+      onlyRegistered: false,
+      shareDecklistsOnLoad: true,
+      joinAsSpectator: true,
+      joinAsJudge: true,
+      spectatorsCanTalk: true,
+      spectatorsSeeEverything: true,
+      spectatorsNeedPassword: true,
+    });
+  });
+
+  it('remembers the settings for next time, without the password', () => {
+    const { onSubmit } = renderDialog({ isRegistered: true, gametypeMap: { 3: 'Commander' } });
+    fireEvent.click(preset('commanderPod'));
+    fireEvent.change(screen.getByLabelText('CreateGameDialog.label.password'), { target: { value: 'secret' } });
+    create();
+    expect(onSubmit).toHaveBeenCalled();
+    const stored = JSON.parse(window.localStorage.getItem(CREATE_GAME_DEFAULTS_KEY) ?? '{}');
+    expect(stored).toMatchObject({ remember: true, gameTypeName: 'Commander', fields: { maxPlayers: 4 } });
+    expect(JSON.stringify(stored)).not.toContain('secret');
+  });
+
+  it('opens on the remembered preset', () => {
+    window.localStorage.setItem(CREATE_GAME_DEFAULTS_KEY, JSON.stringify({
+      remember: true,
+      gameTypeName: 'Commander',
+      fields: {
+        description: 'Pod night',
+        maxPlayers: 4,
+        startingLifeTotal: 40,
+        onlyBuddies: false,
+        onlyRegistered: true,
+        spectatorsAllowed: true,
+        spectatorsNeedPassword: false,
+        spectatorsCanTalk: false,
+        spectatorsSeeEverything: false,
+        joinAsSpectator: false,
+        shareDecklistsOnLoad: false,
+      },
+    }));
+    renderDialog({ isRegistered: true, gametypeMap: { 3: 'Commander' } });
+    expect(preset('commanderPod')).toBeChecked();
+    expect(screen.getByLabelText('CreateGameDialog.label.description')).toHaveValue('Pod night');
+    expect(screen.getByLabelText('CreateGameDialog.label.format')).toHaveValue('3');
+  });
+
+  it('forgets the settings when "Remember as my default" is off', () => {
+    renderDialog({ isRegistered: true });
+    fireEvent.click(screen.getByRole('checkbox', { name: 'CreateGameDialog.label.remember' }));
+    create();
+    expect(JSON.parse(window.localStorage.getItem(CREATE_GAME_DEFAULTS_KEY) ?? '{}')).toEqual({ remember: false });
   });
 
   it('Cancel calls onCancel', () => {
     const { onCancel } = renderDialog();
     fireEvent.click(screen.getByRole('button', { name: 'Common.action.cancel' }));
     expect(onCancel).toHaveBeenCalledTimes(1);
-  });
-
-  it('forwards password and startingLifeTotal text edits', () => {
-    const { onSubmit } = renderDialog();
-    fireEvent.change(screen.getByLabelText('CreateGameDialog.label.password'), { target: { value: 'secret' } });
-    fireEvent.change(screen.getByLabelText('CreateGameDialog.label.startingLifeTotal'), { target: { value: '30' } });
-    fireEvent.click(screen.getByRole('button', { name: 'Common.action.create' }));
-    const params = onSubmit.mock.calls[0][0];
-    expect(params.password).toBe('secret');
-    expect(params.startingLifeTotal).toBe(30);
-  });
-
-  it('forwards the selected game type id when a radio option is picked', () => {
-    const { onSubmit } = renderDialog({ gametypeMap: { 0: 'Constructed', 1: 'Limited' } });
-    fireEvent.click(screen.getByLabelText('Limited'));
-    fireEvent.click(screen.getByRole('button', { name: 'Common.action.create' }));
-    expect(onSubmit.mock.calls[0][0].gameTypeIds).toEqual([1]);
-  });
-
-  it('toggles onlyBuddies and onlyRegistered permission checkboxes', () => {
-    const { onSubmit } = renderDialog({ isRegistered: true });
-    fireEvent.click(screen.getByLabelText('CreateGameDialog.label.onlyBuddies'));
-    fireEvent.click(screen.getByLabelText('CreateGameDialog.label.onlyRegistered'));
-    fireEvent.click(screen.getByRole('button', { name: 'Common.action.create' }));
-    const params = onSubmit.mock.calls[0][0];
-    expect(params.onlyBuddies).toBe(true);
-    expect(params.onlyRegistered).toBe(false);
-  });
-
-  it('toggles every spectator sub-option and forwards them on Create', () => {
-    const { onSubmit } = renderDialog();
-    fireEvent.click(screen.getByLabelText('CreateGameDialog.label.spectatorsNeedPassword'));
-    fireEvent.click(screen.getByLabelText('CreateGameDialog.label.spectatorsCanTalk'));
-    fireEvent.click(screen.getByLabelText('CreateGameDialog.label.spectatorsSeeEverything'));
-    fireEvent.click(screen.getByLabelText('CreateGameDialog.label.joinAsSpectator'));
-    fireEvent.click(screen.getByRole('button', { name: 'Common.action.create' }));
-    const params = onSubmit.mock.calls[0][0];
-    expect(params.spectatorsNeedPassword).toBe(true);
-    expect(params.spectatorsCanTalk).toBe(true);
-    expect(params.spectatorsSeeEverything).toBe(true);
-    expect(params.joinAsSpectator).toBe(true);
-  });
-
-  it('toggles shareDecklistsOnLoad and joinAsJudge (judge-only)', () => {
-    const { onSubmit } = renderDialog({ isJudge: true });
-    fireEvent.click(screen.getByLabelText('CreateGameDialog.label.shareDecklistsOnLoad'));
-    fireEvent.click(screen.getByLabelText('CreateGameDialog.label.joinAsJudge'));
-    fireEvent.click(screen.getByRole('button', { name: 'Common.action.create' }));
-    const params = onSubmit.mock.calls[0][0];
-    expect(params.shareDecklistsOnLoad).toBe(true);
-    expect(params.joinAsJudge).toBe(true);
   });
 });

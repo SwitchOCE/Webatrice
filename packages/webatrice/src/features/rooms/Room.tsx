@@ -34,30 +34,29 @@ const Room = () => {
       <AuthGuard />
 
       <div className="room-view__grid grid h-full min-h-0 gap-gap bg-bg-base p-gap">
-        <section
-          aria-labelledby="room-view-title"
-          className="flex min-h-0 min-w-0 flex-col overflow-hidden rounded-ui-lg border border-border-subtle bg-bg-surface shadow-panel"
-        >
-          <header className="flex min-h-[60px] shrink-0 items-center gap-3 px-pad pb-2 pt-3">
-            <h1 id="room-view-title" className="shrink-0 font-display text-[20px] font-semibold text-text-primary">
-              <Trans i18nKey="Room.title" values={{ room: name }} components={{ room: <span className="text-accent" /> }} />
-            </h1>
-            {description && (
-              <p className="min-w-0 truncate text-[12.5px] text-text-muted" title={description}>{description}</p>
-            )}
-            <Button
-              variant="primary"
-              className="ml-auto shrink-0"
-              icon={<Plus size={16} aria-hidden />}
-              onClick={() => setCreateOpen(true)}
-            >
-              {t('Room.createGame')}
-            </Button>
-          </header>
-          <div className="min-h-0 flex-1">
-            <GamesList room={room} />
-          </div>
-        </section>
+        <div className="min-h-0 min-w-0">
+          <GamesList
+            room={room}
+            header={
+              <header className="flex min-h-[60px] shrink-0 items-center gap-3 px-pad pb-2 pt-3">
+                <h1 id="room-view-title" className="shrink-0 font-display text-[20px] font-semibold text-text-primary">
+                  <Trans i18nKey="Room.title" values={{ room: name }} components={{ room: <span className="text-accent" /> }} />
+                </h1>
+                {description && (
+                  <p className="min-w-0 truncate text-[12.5px] text-text-muted" title={description}>{description}</p>
+                )}
+                <Button
+                  variant="primary"
+                  className="ml-auto shrink-0"
+                  icon={<Plus size={16} aria-hidden />}
+                  onClick={() => setCreateOpen(true)}
+                >
+                  {t('Room.createGame')}
+                </Button>
+              </header>
+            }
+          />
+        </div>
         <div className="row-span-2 min-h-0 min-w-0">
           <RoomUsers roomId={roomId} roomName={name} />
         </div>
@@ -74,6 +73,7 @@ const Room = () => {
 
       <CreateGameDialog
         isOpen={createOpen}
+        roomName={name}
         gametypeMap={room.gametypeMap}
         onCancel={() => setCreateOpen(false)}
         onSubmit={submitCreate}

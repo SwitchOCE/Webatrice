@@ -5,8 +5,7 @@ import type { ServerInfo_User } from '@cockatrice/sockatrice/generated';
 
 import { Avatar, IconButton, Panel, SectionLabel, TextInput, UserDisplay } from '@app/components';
 import { useUserGames } from '@app/feature-widgets/user-games';
-// eslint-disable-next-line boundaries/dependencies -- seam owned by the chat worker
-import { useOpenChat } from '@app/features/chat-dock';
+import { useOpenChat } from '@app/feature-widgets/chat-dock';
 import { cx } from '@app/utils';
 
 import type { BuddyEntry, PeopleRow, PeopleSection } from './roomPeople';

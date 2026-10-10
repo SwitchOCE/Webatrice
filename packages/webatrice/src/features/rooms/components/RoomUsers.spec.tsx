@@ -7,7 +7,7 @@ import type { RootState } from '../../../store';
 import RoomUsers from './RoomUsers';
 
 const hoisted = vi.hoisted(() => ({ openChat: vi.fn(), openGames: vi.fn() }));
-vi.mock('@app/features/chat-dock', () => ({ useOpenChat: () => hoisted.openChat }));
+vi.mock('@app/feature-widgets/chat-dock', () => ({ useOpenChat: () => hoisted.openChat }));
 vi.mock('@app/feature-widgets/user-games', () => ({ useUserGames: () => ({ open: hoisted.openGames }) }));
 
 const buddy = makeUser({ name: 'buddy' });

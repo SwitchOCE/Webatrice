@@ -6,7 +6,7 @@ const hoisted = vi.hoisted(() => ({ useRoom: vi.fn() }));
 
 vi.mock('./useRoom', () => ({ useRoom: hoisted.useRoom }));
 vi.mock('./components/GamesList', () => ({
-  default: () => <div data-testid="games-list" />,
+  default: ({ header }: { header?: React.ReactNode }) => <div data-testid="games-list">{header}</div>,
 }));
 vi.mock('./components/RoomChat', () => ({
   default: () => <div data-testid="room-chat" />,
