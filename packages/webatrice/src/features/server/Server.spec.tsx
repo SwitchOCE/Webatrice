@@ -1,9 +1,10 @@
 import { vi } from 'vitest';
 import { act, fireEvent, screen, within } from '@testing-library/react';
-import { Route, Routes } from 'react-router-dom';
+import { Route, Routes, useLocation } from 'react-router-dom';
 import { create } from '@bufbuild/protobuf';
 
 import { rooms } from '@cockatrice/datatrice';
+import { getExpandedChats } from '@app/hooks';
 import { makeGame, makeUser } from '@cockatrice/datatrice/testing';
 import { ServerInfo_RoomSchema } from '@cockatrice/sockatrice/generated';
 
@@ -51,6 +52,11 @@ const withBuddyGame = () => {
   };
 };
 
+function RoomStateProbe() {
+  const location = useLocation();
+  return <div>{`create:${String((location.state as { createGame?: boolean } | null)?.createGame)}`}</div>;
+}
+
 function renderHome(preloadedState: any) {
   return renderWithProviders(
     <Routes>
@@ -97,6 +103,24 @@ describe('Server (Home)', () => {
     expect(hoisted.mockWebClient.request.session.joinRoom).toHaveBeenCalledWith(1);
   });
 
+  it('Create game opens the usual room with its create dialog requested', () => {
+    renderWithProviders(
+      <Routes>
+        <Route path="/server" element={<Server />} />
+        <Route path="/room/:roomId" element={<RoomStateProbe />} />
+      </Routes>,
+      { preloadedState: connectedWithRoomsState, route: '/server' },
+    );
+    fireEvent.click(screen.getByRole('button', { name: 'HomeHero.createGame' }));
+    expect(screen.getByText('create:true')).toBeInTheDocument();
+  });
+
+  it('offers Create game only once the usual room is joined', () => {
+    const base = connectedWithRoomsState as any;
+    renderHome({ ...base, rooms: { ...base.rooms, joinedRoomIds: {} } });
+    expect(screen.queryByRole('button', { name: 'HomeHero.createGame' })).not.toBeInTheDocument();
+  });
+
   it('shows a game a buddy hosts and joins it through the room', () => {
     renderHome(withBuddyGame());
     const card = screen.getByRole('article', { name: 'Buddy game' });
@@ -108,12 +132,12 @@ describe('Server (Home)', () => {
     );
   });
 
-  it('lists online buddies with what they host and a message action', () => {
+  it('lists online buddies with what they host and opens a chat from Message', () => {
     renderHome(withBuddyGame());
     const buddies = screen.getByRole('heading', { name: 'BuddiesOnline.title' }).closest('section') as HTMLElement;
     expect(within(buddies).getByText('BuddiesOnline.hosting')).toBeInTheDocument();
     fireEvent.click(within(buddies).getByRole('button', { name: 'BuddiesOnline.message' }));
-    expect(screen.getByText('player-page')).toBeInTheDocument();
+    expect(getExpandedChats()).toContain('otherUser');
   });
 
   it('explains the empty buddy sections when there are no buddies', () => {

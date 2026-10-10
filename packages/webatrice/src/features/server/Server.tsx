@@ -19,16 +19,16 @@ const Server = () => {
       <AuthGuard />
       <div
         className={[
-          'grid h-full min-h-0 grid-cols-[minmax(0,1fr)_320px] gap-gap overflow-hidden bg-bg-base p-gap',
-          'min-[1400px]:grid-cols-[minmax(0,1fr)_372px]',
+          'flex h-full min-h-0 flex-col gap-gap overflow-y-auto bg-bg-base p-gap',
+          'lg:grid lg:grid-cols-[minmax(0,1fr)_320px] lg:overflow-hidden min-[1400px]:grid-cols-[minmax(0,1fr)_372px]',
         ].join(' ')}
       >
-        <div className="flex min-h-0 min-w-0 flex-col gap-gap overflow-y-auto">
+        <div className="flex min-w-0 shrink-0 flex-col gap-gap lg:min-h-0 lg:shrink lg:overflow-y-auto">
           <HomeHero home={home} />
           <BuddyGames home={home} />
           <RecentDecks />
         </div>
-        <div className="flex min-h-0 min-w-0 flex-col gap-gap overflow-y-auto">
+        <div className="flex min-w-0 shrink-0 flex-col gap-gap lg:min-h-0 lg:shrink lg:overflow-y-auto">
           <ServerAnnouncement message={home.message} />
           <RoomsList rooms={home.roomList} joinedRoomIds={home.joinedRoomIds} onOpen={home.openRoom} />
           <BuddiesOnline buddies={home.buddiesOnline} buddyCount={home.buddyCount} />

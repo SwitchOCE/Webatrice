@@ -90,4 +90,17 @@ describe('Room', () => {
     expect(handleCreateGame).not.toHaveBeenCalled();
     expect(screen.queryByRole('dialog', { name: 'create' })).not.toBeInTheDocument();
   });
+
+  it('opens the create game dialog when Home asks for it through the route state', () => {
+    hoisted.useRoom.mockReturnValue(resolved());
+
+    renderWithProviders(<Room />, {
+      preloadedState: connectedState,
+      route: { pathname: '/room/1', state: { createGame: true } },
+    });
+
+    expect(screen.getByRole('dialog', { name: 'create' })).toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: 'cancel' }));
+    expect(screen.queryByRole('dialog', { name: 'create' })).not.toBeInTheDocument();
+  });
 });

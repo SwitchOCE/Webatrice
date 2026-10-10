@@ -87,7 +87,7 @@ describe('onlineBuddies', () => {
 
 describe('liveRecentDecks', () => {
   const deck = (deckId: number, name: string): RecentDeck => ({
-    owner: 'a', deckId, name, format: '', colors: '', cardCount: 0, openedAt: 0,
+    scope: 'localhost:4748', owner: 'a', deckId, name, format: '', colors: '', cardCount: 0, openedAt: 0,
   });
 
   it('keeps the stored list until the deck tree is loaded', () => {

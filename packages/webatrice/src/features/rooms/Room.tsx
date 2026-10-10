@@ -1,10 +1,12 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
+import { useLocation, useNavigate } from 'react-router-dom';
 import { Plus } from 'lucide-react';
 import { Trans, useTranslation } from 'react-i18next';
 import type { CreateGameParams } from '@cockatrice/sockatrice/generated';
 
 import { AuthGuard, Button } from '@app/components';
 import { Layout } from '@app/feature-wrappers/layout';
+import type { RoomRouteState } from '@app/types';
 
 import GamesList from './components/GamesList';
 import RoomChat from './components/RoomChat';
@@ -17,7 +19,17 @@ import './Room.css';
 const Room = () => {
   const { t } = useTranslation();
   const { roomId, room, roomMessages, handleRoomSay, handleCreateGame } = useRoom();
-  const [createOpen, setCreateOpen] = useState(false);
+  const location = useLocation();
+  const navigate = useNavigate();
+  const createRequested = Boolean((location.state as RoomRouteState | null)?.createGame);
+  const [createOpen, setCreateOpen] = useState(createRequested);
+
+  useEffect(() => {
+    if (createRequested) {
+      setCreateOpen(true);
+      navigate(location.pathname, { replace: true, state: null });
+    }
+  }, [createRequested, location.pathname, navigate]);
 
   if (!room) {
     return null;

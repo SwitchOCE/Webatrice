@@ -4,6 +4,7 @@ import { getScryfallUrlByExactName, getScryfallUrlById } from '../scryfall';
 import { readLocalStorage, writeLocalStorage } from './localStorage';
 
 export interface RecentDeck {
+  scope: string;
   owner: string;
   deckId: number;
   name: string;
@@ -41,7 +42,25 @@ export const RECENT_DECKS_LIMIT = 24;
 const WUBRG = ['W', 'U', 'B', 'R', 'G'];
 const SCRYFALL_ID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
+export function recentDeckScope(endpoint: string | null | undefined): string | null {
+  if (!endpoint) {
+    return null;
+  }
+  try {
+    const url = new URL(endpoint);
+    if (url.protocol !== 'ws:' && url.protocol !== 'wss:') {
+      return null;
+    }
+    const port = url.port || (url.protocol === 'wss:' ? '443' : '80');
+    const path = url.pathname.replace(/\/+$/, '');
+    return `${url.hostname}:${port}${path}`.toLowerCase();
+  } catch {
+    return null;
+  }
+}
+
 export function recentDeckSnapshot(
+  scope: string,
   owner: string,
   deckId: number,
   deck: RecentDeckSource,
@@ -60,6 +79,7 @@ export function recentDeckSnapshot(
   }
   const commander = deck.cards.find((card) => card.isCommander);
   const entry: RecentDeck = {
+    scope,
     owner,
     deckId,
     name: deck.name,
@@ -107,7 +127,8 @@ function isRecentDeck(value: unknown): value is RecentDeck {
     return false;
   }
   const v = value as Partial<RecentDeck>;
-  return typeof v.owner === 'string'
+  return typeof v.scope === 'string' && v.scope.length > 0
+    && typeof v.owner === 'string'
     && typeof v.deckId === 'number'
     && typeof v.name === 'string'
     && typeof v.format === 'string'
@@ -128,8 +149,12 @@ export function parseRecentDecks(raw: string | null): RecentDeck[] {
   }
 }
 
+function sameScope(a: RecentDeck, b: Pick<RecentDeck, 'scope' | 'owner'>): boolean {
+  return a.scope === b.scope && a.owner === b.owner;
+}
+
 function sameDeck(a: RecentDeck, b: RecentDeck): boolean {
-  return a.owner === b.owner && a.deckId === b.deckId;
+  return sameScope(a, b) && a.deckId === b.deckId;
 }
 
 function sameContent(a: RecentDeck, b: RecentDeck): boolean {
@@ -138,35 +163,72 @@ function sameContent(a: RecentDeck, b: RecentDeck): boolean {
   return JSON.stringify(restA) === JSON.stringify(restB);
 }
 
+export function recentDecksIn(list: readonly RecentDeck[], scope: string, owner: string): RecentDeck[] {
+  return list.filter((deck) => sameScope(deck, { scope, owner }));
+}
+
 export function withRecentDeck(list: readonly RecentDeck[], entry: RecentDeck, limit = RECENT_DECKS_LIMIT): RecentDeck[] {
-  return [entry, ...list.filter((deck) => !sameDeck(deck, entry))].slice(0, limit);
+  const others = list.filter((deck) => !sameScope(deck, entry));
+  const mine = [entry, ...recentDecksIn(list, entry.scope, entry.owner).filter((deck) => !sameDeck(deck, entry))];
+  return [...mine.slice(0, limit), ...others];
 }
 
-let cache: RecentDeck[] | null = null;
+const EMPTY: RecentDeck[] = [];
 const listeners = new Set<() => void>();
+let fallbackRaw: string | null = null;
+let lastRaw: string | null = null;
+let lastParsed: RecentDeck[] = EMPTY;
 
-export function getRecentDecks(): RecentDeck[] {
-  if (cache === null) {
-    cache = parseRecentDecks(readLocalStorage(RECENT_DECKS_STORAGE_KEY));
-  }
-  return cache;
+function readRaw(): string | null {
+  return readLocalStorage(RECENT_DECKS_STORAGE_KEY) ?? fallbackRaw;
 }
 
-export function subscribeRecentDecks(listener: () => void): () => void {
-  listeners.add(listener);
-  return () => listeners.delete(listener);
-}
-
-export function recordRecentDeck(entry: RecentDeck): void {
-  const current = getRecentDecks();
-  if (current[0] && sameDeck(current[0], entry) && sameContent(current[0], entry)) {
-    return;
-  }
-  cache = withRecentDeck(current, entry);
-  writeLocalStorage(RECENT_DECKS_STORAGE_KEY, JSON.stringify(cache));
+function notify(): void {
   listeners.forEach((listener) => listener());
 }
 
+function onStorage(event: StorageEvent): void {
+  if (event.key === null || event.key === RECENT_DECKS_STORAGE_KEY) {
+    notify();
+  }
+}
+
+export function getRecentDecks(): RecentDeck[] {
+  const raw = readRaw();
+  if (raw !== lastRaw) {
+    lastRaw = raw;
+    lastParsed = raw ? parseRecentDecks(raw) : EMPTY;
+  }
+  return lastParsed;
+}
+
+export function subscribeRecentDecks(listener: () => void): () => void {
+  if (listeners.size === 0 && typeof window !== 'undefined') {
+    window.addEventListener('storage', onStorage);
+  }
+  listeners.add(listener);
+  return () => {
+    listeners.delete(listener);
+    if (listeners.size === 0 && typeof window !== 'undefined') {
+      window.removeEventListener('storage', onStorage);
+    }
+  };
+}
+
+export function recordRecentDeck(entry: RecentDeck): void {
+  const current = parseRecentDecks(readRaw());
+  const first = recentDecksIn(current, entry.scope, entry.owner)[0];
+  if (first && sameDeck(first, entry) && sameContent(first, entry)) {
+    return;
+  }
+  const raw = JSON.stringify(withRecentDeck(current, entry));
+  writeLocalStorage(RECENT_DECKS_STORAGE_KEY, raw);
+  fallbackRaw = readLocalStorage(RECENT_DECKS_STORAGE_KEY) === raw ? null : raw;
+  notify();
+}
+
 export function resetRecentDecksCache(): void {
-  cache = null;
+  fallbackRaw = null;
+  lastRaw = null;
+  lastParsed = EMPTY;
 }

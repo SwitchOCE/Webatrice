@@ -23,17 +23,15 @@ beforeEach(() => {
 });
 
 describe('Server (integration)', () => {
-  it('renders the rooms shell with the empty user count', () => {
-    const { container } = renderFeatureScreen(<Server />);
+  it('renders the Home page with an empty rooms panel', () => {
+    renderFeatureScreen(<Server />);
 
-    // Old `.server-rooms` container is gone; the rooms shell is now a
-    // <table> inside RoomsList. ServerUsers panel exposes user count as
-    // "N connected" instead of "Users connected to server:".
-    expect(container.querySelector('table')).toBeInTheDocument();
-    expect(screen.getByText('ServerUsers.count')).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: 'HomeHero.welcome' })).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: 'RoomsList.title' })).toBeInTheDocument();
+    expect(screen.getByText('RoomsList.empty')).toBeInTheDocument();
   });
 
-  it('shows a row in the rooms table for each known room', () => {
+  it('lists each known room in the rooms panel', () => {
     store.dispatch(rooms.Actions.joinRoom({
       roomInfo: create(ServerInfo_RoomSchema, {
         roomId: 1,
@@ -46,12 +44,11 @@ describe('Server (integration)', () => {
       }),
     }));
 
-    const { container } = renderFeatureScreen(<Server />);
+    renderFeatureScreen(<Server />);
 
-    // `.rooms` class no longer exists — RoomsList renders a <table> and
-    // a <tr> per room; scope to the <tbody> to skip the header cells.
-    const tbody = container.querySelector('table tbody');
-    expect(tbody?.textContent).toContain('Lobby');
+    const panel = screen.getByRole('heading', { name: 'RoomsList.title' }).closest('section');
+    expect(panel).toHaveTextContent('Lobby');
+    expect(screen.getByRole('button', { name: 'RoomsList.openLabel' })).toBeInTheDocument();
   });
 
   it('explains a rejected room join and keeps the user in the lobby', async () => {
@@ -62,7 +59,7 @@ describe('Server (integration)', () => {
     })));
 
     renderFeatureScreen(<Server />);
-    fireEvent.click(screen.getByRole('button', { name: 'Common.action.join' }));
+    fireEvent.click(screen.getByRole('button', { name: 'RoomsList.joinLabel' }));
 
     const join = findLastSessionCommand(Command_JoinRoom_ext);
     expect(join.value.roomId).toBe(4);
@@ -76,6 +73,6 @@ describe('Server (integration)', () => {
     expect(await screen.findByRole('dialog')).toHaveTextContent('RoomsList.joinError.notFound');
     fireEvent.click(screen.getByRole('button', { name: 'OK' }));
     expect(store.getState().rooms.joinRoomError).toBeNull();
-    expect(await screen.findByRole('button', { name: 'Common.action.join' })).toBeInTheDocument();
+    expect(await screen.findByRole('button', { name: 'RoomsList.joinLabel' })).toBeInTheDocument();
   });
 });

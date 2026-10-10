@@ -69,7 +69,7 @@ export default function RecentDecks() {
           </Button>
         )}
       />
-      <ul className="grid grid-cols-[repeat(auto-fill,minmax(180px,1fr))] gap-gap">
+      <ul className="grid grid-cols-[repeat(auto-fill,minmax(min(100%,180px),1fr))] gap-gap">
         {decks.map((deck) => (
           <DeckTile key={deck.deckId} deck={deck} onOpen={openDeck} />
         ))}

@@ -1,4 +1,4 @@
-import { ArrowRight } from 'lucide-react';
+import { ArrowRight, Plus } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 
 import { Button } from '@app/components';
@@ -51,10 +51,15 @@ export default function HomeHero({ home }: { home: HomeData }) {
         </h1>
         <p className="max-w-[46ch] text-[14px] text-text-secondary">{roomLine}</p>
         {room && (
-          <div className="mt-1 flex items-center gap-3">
+          <div className="mt-1 flex flex-wrap items-center gap-3">
             <Button size="lg" variant="primary" iconRight={<ArrowRight size={17} aria-hidden />} onClick={home.play}>
               {t('HomeHero.play', { room: room.info.name })}
             </Button>
+            {home.usualRoomJoined && (
+              <Button size="lg" icon={<Plus size={17} aria-hidden />} onClick={home.createGame}>
+                {t('HomeHero.createGame')}
+              </Button>
+            )}
           </div>
         )}
       </div>

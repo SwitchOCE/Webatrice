@@ -6,7 +6,7 @@ import { useWebClient } from '@cockatrice/datatrice/react';
 import type { ServerInfo_Room } from '@cockatrice/sockatrice/generated';
 import { usePreference, useReduxEffect } from '@app/hooks';
 import { useAppSelector } from '@app/store';
-import { RouteEnum } from '@app/types';
+import { RouteEnum, type RoomRouteState } from '@app/types';
 
 import {
   buddyHostedGames,
@@ -36,6 +36,7 @@ export interface HomeData {
   buddyCount: number;
   openRoom: (roomId: number) => void;
   play: () => void;
+  createGame: () => void;
 }
 
 export function useOpenRoom(): (roomId: number) => void {
@@ -72,6 +73,7 @@ export function useHome(): HomeData {
   const message = useAppSelector(server.Selectors.getMessage);
   const startupRoom = usePreference('startupRoom');
   const openRoom = useOpenRoom();
+  const navigate = useNavigate();
   useNavigateOnRoomJoined();
 
   const roomList = useMemo(() => sortRooms(roomsById), [roomsById]);
@@ -91,6 +93,13 @@ export function useHome(): HomeData {
     }
   }, [openRoom, usualRoomId]);
 
+  const createGame = useCallback(() => {
+    if (usualRoomId != null && usualRoomJoined) {
+      const state: RoomRouteState = { createGame: true };
+      navigate(generatePath(RouteEnum.ROOM, { roomId: String(usualRoomId) }), { state });
+    }
+  }, [navigate, usualRoomId, usualRoomJoined]);
+
   return {
     userName,
     serverName,
@@ -108,5 +117,6 @@ export function useHome(): HomeData {
     buddyCount: buddyNames.size,
     openRoom,
     play,
+    createGame,
   };
 }
