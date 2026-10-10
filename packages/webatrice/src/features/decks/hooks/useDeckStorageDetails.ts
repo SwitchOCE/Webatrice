@@ -6,17 +6,29 @@ import { server, type CommandFailedPayload } from '@cockatrice/datatrice';
 import { useWebClient } from '@cockatrice/datatrice/react';
 import { useCommandFailureMessage, useReduxEffect, useRequestTracker } from '@app/hooks';
 import { parseCod, patchDeckDetails } from '@app/services';
+import { onSessionEnd } from '@app/services/session';
 import { useAppSelector, type RootState } from '@app/store';
 
 import { deleteCachedDeck } from '../deckEditorCache';
 import { renameDeck, setDeckBanner, setDeckTags } from '../deckEdits';
 import { deckSaveSignature } from '../deckPersistence';
-import { getDeckSaveRegistry } from '../deckSaveRegistry';
-import type { BannerCandidate } from '../deckTags';
+import { getDeckSaveRegistry, type DeckSaveSnapshot } from '../deckSaveRegistry';
+import { storageEditConflict, type DeckStorageEdit } from '../deckStorageEdits';
 import { hydrateDeck } from '../hydrate';
 import type { HydratedDeck } from '../types';
 
-export type DeckStorageEdit = { banner: BannerCandidate | null } | { tags: readonly string[] } | { name: string };
+export type { DeckStorageEdit } from '../deckStorageEdits';
+
+const failedEdits: Map<number, DeckStorageEdit> = new Map();
+onSessionEnd(() => failedEdits.clear());
+
+function storageFailed(snapshot: DeckSaveSnapshot): boolean {
+  return snapshot.saveState === 'failed' && snapshot.failedBy === 'storage';
+}
+
+function blockedByEditor(snapshot: DeckSaveSnapshot): boolean {
+  return snapshot.pending.size > 0 || (snapshot.isModified && !storageFailed(snapshot));
+}
 
 function applyEdit(deck: HydratedDeck, xml: string, edit: DeckStorageEdit): { next: HydratedDeck; document: string } {
   if ('banner' in edit) {
@@ -117,10 +129,14 @@ export function useDeckStorageDetails(
     }, server.Types.DECK_DOWNLOAD_FAILED, [deckId, requests, describeFailure, t],
   );
 
+  const downloadFresh = (request: string) => new Promise<string | null>((resolve) => {
+    download.current = resolve;
+    requests.track(request);
+    client.request.session.deckDownload(deckId, request);
+  });
+
   const save = async (edit: DeckStorageEdit): Promise<boolean> => {
-    const current = registry.getSnapshot(deckId);
-    if (!source.current || !connected || busy.current || (current.isModified && !(error && current.saveState === 'failed'))
-      || current.pending.size > 0) {
+    if (!source.current || !connected || busy.current || blockedByEditor(registry.getSnapshot(deckId))) {
       return false;
     }
     const request = requests.begin();
@@ -128,28 +144,34 @@ export function useDeckStorageDetails(
     setSaving(true);
     setError(null);
     try {
+      const freshXml = await downloadFresh(request);
+      if (freshXml == null || !requests.isCurrent(request) || blockedByEditor(registry.getSnapshot(deckId))) {
+        return false;
+      }
       let base = source.current;
-      if (current.savedSignature != null && current.savedSignature !== deckSaveSignature(base.deck)) {
-        const freshXml = await new Promise<string | null>((resolve) => {
-          download.current = resolve;
-          requests.track(request);
-          client.request.session.deckDownload(deckId, request);
-        });
-        if (freshXml == null || !requests.isCurrent(request)) {
+      if (freshXml !== base.xml) {
+        const fresh = { xml: freshXml, deck: await hydrateDeck(parseCod(freshXml)) };
+        if (!requests.isCurrent(request)) {
           return false;
         }
-        base = { xml: freshXml, deck: await hydrateDeck(parseCod(freshXml)) };
-        const latest = registry.getSnapshot(deckId);
-        if (!requests.isCurrent(request) || latest.pending.size > 0 || latest.isModified
-          || latest.savedSignature !== current.savedSignature) {
+        const conflict = storageEditConflict(base.xml, freshXml, edit);
+        source.current = fresh;
+        base = fresh;
+        if (conflict) {
+          setDeck(fresh.deck);
+          onSaved(deckId, freshXml);
+          setError(t('DeckStorageEditDialog.changedElsewhere'));
           return false;
         }
       }
       const { next, document } = applyEdit(base.deck, base.xml, edit);
       deleteCachedDeck(deckId);
-      const saved = await registry.saveNow(deckId, next, { xml: document, colorIdentity });
+      const saved = await registry.saveNow(deckId, next, { xml: document, colorIdentity }, 'storage');
       if (saved) {
+        failedEdits.delete(deckId);
         onSaved(deckId, document);
+      } else if (storageFailed(registry.getSnapshot(deckId))) {
+        failedEdits.set(deckId, edit);
       }
       if (!requests.isCurrent(request)) {
         return false;
@@ -174,7 +196,19 @@ export function useDeckStorageDetails(
       }
     }
   };
-  const editorHasChanges = snapshot.isModified && !(error && snapshot.saveState === 'failed');
-  return { deck, error, saving, activate, editorHasChanges,
-    disabled: !connected || !deck || saving || snapshot.pending.size > 0 || editorHasChanges, save };
+
+  const discardFailed = () => {
+    failedEdits.delete(deckId);
+    registry.discardChanges(deckId);
+    setError(null);
+  };
+
+  const failed = storageFailed(snapshot);
+  const editorHasChanges = blockedByEditor(snapshot) && snapshot.pending.size === 0;
+  return {
+    deck, error, saving, activate, editorHasChanges, save,
+    failedEdit: failed ? failedEdits.get(deckId) ?? null : null,
+    discardFailed: failed ? discardFailed : undefined,
+    disabled: !connected || !deck || saving || blockedByEditor(snapshot),
+  };
 }

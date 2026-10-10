@@ -24,7 +24,7 @@ const hydrated = (): HydratedDeck => ({ ...parseCod(xml), format: 'commander',
 
 beforeEach(() => {
   clearDeckEditorCache();
-  vi.mocked(hydrateDeck).mockResolvedValue(hydrated());
+  vi.mocked(hydrateDeck).mockImplementation(async (parsed) => ({ ...hydrated(), name: parsed.name }));
 });
 
 function setup(activate = true) {
@@ -44,81 +44,132 @@ function setup(activate = true) {
   const respond = (error: { responseCode: number } | null = null) => {
     act(() => vi.mocked(client.request.session.deckUpdate).mock.calls.at(-1)![4]!(error));
   };
-  return { ...hook, client, store, onSaved, respond };
+  const lastDownload = () => vi.mocked(client.request.session.deckDownload).mock.calls.at(-1)![1]!;
+  const serve = async (deck = xml) => {
+    await act(async () => {
+      store.dispatch(server.Actions.deckDownloaded({ deckId: 7, deck, requestId: lastDownload() }));
+      await new Promise((resolve) => setTimeout(resolve, 0));
+    });
+  };
+  const ready = () => waitFor(() => expect(hook.result.current.disabled).toBe(false));
+  return { ...hook, Wrapper, client, store, onSaved, respond, serve, lastDownload, ready };
 }
 
-it('hydrates the stored file and saves only the banner bytes without altering server visibility or color identity', async () => {
-  const ctx = setup();
-  await waitFor(() => expect(ctx.result.current.disabled).toBe(false));
-  setCachedDeck(7, { deck: hydrated(), savedSignature: 'old' });
+function start(ctx: ReturnType<typeof setup>, edit: Parameters<ReturnType<typeof useDeckStorageDetails>['save']>[0]) {
   let saved!: Promise<boolean>;
   act(() => {
-    saved = ctx.result.current.save({ banner: { name: 'Swamp', providerId: 'new' } });
+    saved = ctx.result.current.save(edit);
   });
+  return () => saved;
+}
+
+it('downloads the stored file immediately before patching, even when nothing else is known to have changed', async () => {
+  const ctx = setup();
+  await ctx.ready();
+  setCachedDeck(7, { deck: hydrated(), savedSignature: 'old' });
+  const saved = start(ctx, { banner: { name: 'Swamp', providerId: 'new' } });
+  expect(ctx.client.request.session.deckDownload).toHaveBeenCalledWith(7, expect.any(String));
+  expect(ctx.client.request.session.deckUpdate).not.toHaveBeenCalled();
+  await ctx.serve();
   const expected = xml.replace('<bannerCard providerId="old">Island</bannerCard>', '<bannerCard providerId="new">Swamp</bannerCard>');
   expect(ctx.client.request.session.deckUpdate).toHaveBeenCalledWith(7, expected, undefined, 'UB', expect.any(Function));
   expect(ctx.onSaved).not.toHaveBeenCalled();
   expect(getCachedDeck(7)).toBeUndefined();
   ctx.respond();
-  await act(async () => {
-    expect(await saved).toBe(true);
-  });
+  await act(async () => expect(await saved()).toBe(true));
   expect(ctx.onSaved).toHaveBeenCalledExactlyOnceWith(7, expected);
-  expect(getCachedDeck(7)).toBeUndefined();
 });
 
 it('renames by patching only the stored deck name and uploading over the same deck', async () => {
   const ctx = setup();
-  await waitFor(() => expect(ctx.result.current.disabled).toBe(false));
-  let saved!: Promise<boolean>;
-  act(() => {
-    saved = ctx.result.current.save({ name: 'Fire & Ice' });
-  });
+  await ctx.ready();
+  const saved = start(ctx, { name: 'Fire & Ice' });
+  await ctx.serve();
   const expected = xml.replace('<deckname>Deck</deckname>', '<deckname>Fire &amp; Ice</deckname>');
   expect(ctx.client.request.session.deckUpdate).toHaveBeenCalledWith(7, expected, undefined, 'UB', expect.any(Function));
   ctx.respond();
-  await act(async () => {
-    expect(await saved).toBe(true);
-  });
+  await act(async () => expect(await saved()).toBe(true));
   expect(ctx.onSaved).toHaveBeenCalledExactlyOnceWith(7, expected);
   expect(ctx.result.current.deck?.name).toBe('Fire & Ice');
 });
 
 it('writes an empty tag list when the last tag is removed', async () => {
   const ctx = setup();
-  await waitFor(() => expect(ctx.result.current.disabled).toBe(false));
-  act(() => {
-    void ctx.result.current.save({ tags: ['Ramp'] });
-  });
+  await ctx.ready();
+  start(ctx, { tags: ['Ramp'] });
+  await ctx.serve();
   ctx.respond();
   await waitFor(() => expect(ctx.result.current.saving).toBe(false));
-  act(() => {
-    void ctx.result.current.save({ tags: [] });
-  });
+  start(ctx, { tags: [] });
+  await ctx.serve(vi.mocked(ctx.client.request.session.deckUpdate).mock.calls.at(-1)![1]);
   expect(vi.mocked(ctx.client.request.session.deckUpdate).mock.calls.at(-1)![1]).toContain('<tags/>');
 });
 
-it('keeps failures visible and retries the same edit', async () => {
+it('patches a newer stored file when only other details changed elsewhere', async () => {
   const ctx = setup();
-  await waitFor(() => expect(ctx.result.current.disabled).toBe(false));
-  let saved!: Promise<boolean>;
-  act(() => {
-    saved = ctx.result.current.save({ tags: ['Ramp'] });
-  });
-  ctx.respond({ responseCode: 3 });
-  await act(async () => {
-    expect(await saved).toBe(false);
-  });
-  expect(ctx.result.current.error).toBeTruthy();
-  expect(ctx.onSaved).not.toHaveBeenCalled();
-  act(() => {
-    saved = ctx.result.current.save({ tags: ['Ramp'] });
-  });
-  expect(ctx.client.request.session.deckUpdate).toHaveBeenCalledTimes(2);
+  await ctx.ready();
+  const newer = xml.replace('<comments>', '<tags><tag>Burn</tag></tags><comments>');
+  const saved = start(ctx, { name: 'Renamed' });
+  await ctx.serve(newer);
+  const expected = newer.replace('<deckname>Deck</deckname>', '<deckname>Renamed</deckname>');
+  expect(ctx.client.request.session.deckUpdate).toHaveBeenCalledWith(7, expected, undefined, 'UB', expect.any(Function));
   ctx.respond();
-  await act(async () => {
-    expect(await saved).toBe(true);
+  await act(async () => expect(await saved()).toBe(true));
+});
+
+it('refuses to save when the card list changed elsewhere and shows the latest version instead', async () => {
+  const ctx = setup();
+  await ctx.ready();
+  const newer = xml.replace('number="04"', 'number="09"');
+  const saved = start(ctx, { name: 'Renamed' });
+  await ctx.serve(newer);
+  await act(async () => expect(await saved()).toBe(false));
+  expect(ctx.client.request.session.deckUpdate).not.toHaveBeenCalled();
+  expect(ctx.result.current.error).toBe('DeckStorageEditDialog.changedElsewhere');
+  expect(ctx.onSaved).toHaveBeenCalledExactlyOnceWith(7, newer);
+
+  const retried = start(ctx, { name: 'Renamed' });
+  await ctx.serve(newer);
+  expect(ctx.client.request.session.deckUpdate).toHaveBeenCalledWith(
+    7, newer.replace('<deckname>Deck</deckname>', '<deckname>Renamed</deckname>'), undefined, 'UB', expect.any(Function),
+  );
+  ctx.respond();
+  await act(async () => expect(await retried()).toBe(true));
+});
+
+it('refuses when the same detail was changed elsewhere', async () => {
+  const ctx = setup();
+  await ctx.ready();
+  const saved = start(ctx, { name: 'Mine' });
+  await ctx.serve(xml.replace('<deckname>Deck</deckname>', '<deckname>Theirs</deckname>'));
+  await act(async () => expect(await saved()).toBe(false));
+  expect(ctx.client.request.session.deckUpdate).not.toHaveBeenCalled();
+  expect(ctx.result.current.deck?.name).toBe('Theirs');
+});
+
+it('keeps a failed storage save owned by storage across remounts, with retry and discard', async () => {
+  const first = setup();
+  await first.ready();
+  const saved = start(first, { tags: ['Ramp'] });
+  await first.serve();
+  first.respond({ responseCode: 3 });
+  await act(async () => expect(await saved()).toBe(false));
+  expect(first.result.current.error).toBeTruthy();
+  const registry = getDeckSaveRegistry(first.store, first.client);
+  expect(registry.getSnapshot(7)).toMatchObject({ saveState: 'failed', failedBy: 'storage' });
+  first.unmount();
+
+  const again = renderHook(() => useDeckStorageDetails(7, xml, first.onSaved, 'UB'), { wrapper: first.Wrapper });
+  act(() => {
+    void again.result.current.activate();
   });
+  await waitFor(() => expect(again.result.current.disabled).toBe(false));
+  expect(again.result.current.editorHasChanges).toBe(false);
+  expect(again.result.current.failedEdit).toEqual({ tags: ['Ramp'] });
+  act(() => again.result.current.discardFailed!());
+  expect(registry.getSnapshot(7).saveState).not.toBe('failed');
+  expect(again.result.current.failedEdit).toBeNull();
+  expect(again.result.current.discardFailed).toBeUndefined();
 });
 
 it('ignores old hydration after changing decks', async () => {
@@ -140,78 +191,70 @@ it('ignores old hydration after changing decks', async () => {
 
 it('blocks storage edits over pending editor changes', async () => {
   const ctx = setup();
-  await waitFor(() => expect(ctx.result.current.disabled).toBe(false));
+  await ctx.ready();
   act(() => getDeckSaveRegistry(ctx.store, ctx.client).markDirty(7));
   expect(ctx.result.current.editorHasChanges).toBe(true);
   await act(async () => expect(await ctx.result.current.save({ tags: ['Ramp'] })).toBe(false));
+  expect(ctx.client.request.session.deckDownload).not.toHaveBeenCalled();
   expect(ctx.client.request.session.deckUpdate).not.toHaveBeenCalled();
 });
 
-it('keeps controls disabled when an existing editor save has failed', async () => {
+it('keeps controls disabled when an editor save has failed', async () => {
   const ctx = setup();
-  await waitFor(() => expect(ctx.result.current.disabled).toBe(false));
+  await ctx.ready();
   act(() => getDeckSaveRegistry(ctx.store, ctx.client).save(7, { ...hydrated(), name: 'Unsaved editor changes' }));
   ctx.respond({ responseCode: 3 });
   expect(ctx.result.current.disabled).toBe(true);
+  expect(ctx.result.current.editorHasChanges).toBe(true);
+  expect(ctx.result.current.discardFailed).toBeUndefined();
   await act(async () => expect(await ctx.result.current.save({ tags: ['Ramp'] })).toBe(false));
   expect(ctx.client.request.session.deckUpdate).toHaveBeenCalledTimes(1);
 });
 
+it('does not upload when the editor changed the deck while the download was in flight', async () => {
+  const ctx = setup();
+  await ctx.ready();
+  const saved = start(ctx, { tags: ['Ramp'] });
+  act(() => getDeckSaveRegistry(ctx.store, ctx.client).markDirty(7));
+  await ctx.serve();
+  await act(async () => expect(await saved()).toBe(false));
+  expect(ctx.client.request.session.deckUpdate).not.toHaveBeenCalled();
+});
+
 it('does not apply late save results after disconnect', async () => {
   const ctx = setup();
-  await waitFor(() => expect(ctx.result.current.disabled).toBe(false));
-  let saved!: Promise<boolean>;
-  act(() => {
-    saved = ctx.result.current.save({ tags: ['Ramp'] });
-  });
+  await ctx.ready();
+  const saved = start(ctx, { tags: ['Ramp'] });
+  await ctx.serve();
   act(() => ctx.store.dispatch(server.Actions.updateStatus({
     status: { state: WebsocketTypes.StatusEnum.DISCONNECTED, description: null },
   })));
   ctx.respond();
-  await act(async () => expect(await saved).toBe(false));
+  await act(async () => expect(await saved()).toBe(false));
   expect(ctx.onSaved).not.toHaveBeenCalled();
 });
 
 it('updates the document cache when a successful save arrives after the row unmounts', async () => {
   const ctx = setup();
-  await waitFor(() => expect(ctx.result.current.disabled).toBe(false));
+  await ctx.ready();
   setCachedDeck(7, { deck: hydrated(), savedSignature: 'old' });
-  let saved!: Promise<boolean>;
-  act(() => {
-    saved = ctx.result.current.save({ tags: ['Ramp'] });
-  });
+  const saved = start(ctx, { tags: ['Ramp'] });
+  await ctx.serve();
   expect(getCachedDeck(7)).toBeUndefined();
   ctx.unmount();
   ctx.respond();
-  expect(await saved).toBe(false);
+  expect(await saved()).toBe(false);
   expect(ctx.onSaved).toHaveBeenCalledExactlyOnceWith(7, expect.stringContaining('<tag>Ramp</tag>'));
-  expect(getCachedDeck(7)).toBeUndefined();
 });
 
-it('downloads the newer editor save before patching cached storage details', async () => {
+it('ignores an unrelated download answer', async () => {
   const ctx = setup();
-  await waitFor(() => expect(ctx.result.current.disabled).toBe(false));
-  const newerXml = xml.replace('number="04"', 'number="09"');
-  const newerDeck = { ...hydrated(), cards: [{ ...hydrated().cards[0], quantity: 9 }] };
-  act(() => getDeckSaveRegistry(ctx.store, ctx.client).markSaved(7, deckSaveSignature(newerDeck)));
-  vi.mocked(hydrateDeck).mockResolvedValue(newerDeck);
-  let saved!: Promise<boolean>;
-  act(() => {
-    saved = ctx.result.current.save({ banner: { name: 'Swamp', providerId: 'new' } });
-  });
+  await ctx.ready();
+  start(ctx, { tags: ['Ramp'] });
+  act(() => ctx.store.dispatch(server.Actions.deckDownloaded({ deckId: 7, deck: xml, requestId: 'unrelated' })));
   expect(ctx.client.request.session.deckUpdate).not.toHaveBeenCalled();
-  expect(ctx.client.request.session.deckDownload).toHaveBeenCalledWith(7, expect.any(String));
-  const requestId = vi.mocked(ctx.client.request.session.deckDownload).mock.calls.at(-1)![1];
-  act(() => ctx.store.dispatch(server.Actions.deckDownloaded({ deckId: 7, deck: newerXml, requestId: 'unrelated' })));
-  expect(ctx.client.request.session.deckUpdate).not.toHaveBeenCalled();
-  act(() => ctx.store.dispatch(server.Actions.deckDownloaded({ deckId: 7, deck: newerXml, requestId })));
-  ctx.rerender({ id: 7, document: newerXml });
-  await waitFor(() => expect(ctx.client.request.session.deckUpdate).toHaveBeenCalled());
-  const expected = newerXml.replace('<bannerCard providerId="old">Island</bannerCard>', '<bannerCard providerId="new">Swamp</bannerCard>');
-  expect(ctx.client.request.session.deckUpdate).toHaveBeenCalledWith(7, expected, undefined, 'UB', expect.any(Function));
-  ctx.respond();
-  await act(async () => expect(await saved).toBe(true));
-  expect(ctx.onSaved).toHaveBeenCalledExactlyOnceWith(7, expected);
+  await ctx.serve();
+  expect(ctx.client.request.session.deckUpdate).toHaveBeenCalledOnce();
 });
 
 it('does not hydrate or initialize a registry entry until the first interaction', async () => {
@@ -229,36 +272,27 @@ it('does not hydrate or initialize a registry entry until the first interaction'
   expect(hydrateDeck).toHaveBeenCalledOnce();
 });
 
-it('keeps a failed freshness download visible without uploading the cached document', async () => {
+it('keeps a failed download visible without uploading the cached document', async () => {
   const ctx = setup();
-  await waitFor(() => expect(ctx.result.current.disabled).toBe(false));
-  act(() => getDeckSaveRegistry(ctx.store, ctx.client).markSaved(7, 'newer-editor-save'));
-  let saved!: Promise<boolean>;
-  act(() => {
-    saved = ctx.result.current.save({ tags: ['Ramp'] });
-  });
-  const requestId = vi.mocked(ctx.client.request.session.deckDownload).mock.calls.at(-1)![1];
+  await ctx.ready();
+  const saved = start(ctx, { tags: ['Ramp'] });
   act(() => ctx.store.dispatch(server.Actions.deckDownloadFailed({
-    deckId: 7, requestId, responseCode: 3, failure: WebsocketTypes.CommandFailure.Timeout,
+    deckId: 7, requestId: ctx.lastDownload(), responseCode: 3, failure: WebsocketTypes.CommandFailure.Timeout,
   })));
-  await act(async () => expect(await saved).toBe(false));
+  await act(async () => expect(await saved()).toBe(false));
   expect(ctx.result.current.error).toBe('CommandFailure.timeout');
   expect(ctx.result.current.saving).toBe(false);
   expect(ctx.client.request.session.deckUpdate).not.toHaveBeenCalled();
   expect(ctx.onSaved).not.toHaveBeenCalled();
 });
 
-it('cancels a freshness download when the row unmounts', async () => {
+it('cancels the download when the row unmounts', async () => {
   const ctx = setup();
-  await waitFor(() => expect(ctx.result.current.disabled).toBe(false));
-  act(() => getDeckSaveRegistry(ctx.store, ctx.client).markSaved(7, 'newer-editor-save'));
-  let saved!: Promise<boolean>;
-  act(() => {
-    saved = ctx.result.current.save({ tags: ['Ramp'] });
-  });
-  const requestId = vi.mocked(ctx.client.request.session.deckDownload).mock.calls.at(-1)![1];
+  await ctx.ready();
+  const saved = start(ctx, { tags: ['Ramp'] });
+  const requestId = ctx.lastDownload();
   ctx.unmount();
   act(() => ctx.store.dispatch(server.Actions.deckDownloaded({ deckId: 7, deck: xml, requestId })));
-  expect(await saved).toBe(false);
+  expect(await saved()).toBe(false);
   expect(ctx.client.request.session.deckUpdate).not.toHaveBeenCalled();
 });

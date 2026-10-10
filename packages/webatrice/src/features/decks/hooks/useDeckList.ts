@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useStore } from 'react-redux';
 import { useTranslation } from 'react-i18next';
 
 import { server } from '@cockatrice/datatrice';
@@ -8,8 +9,10 @@ import type { Response_DeckList, ServerInfo_DeckStorage_TreeItem } from '@cockat
 import { useBackendDeckList, useCommandFailureMessage, useReduxEffect } from '@app/hooks';
 import { emptyCod, parseCod } from '@app/services';
 import { onSessionEnd } from '@app/services/session';
+import type { RootState } from '@app/store';
 
-import { clearDeckEditorCache, deleteCachedDeck } from '../deckEditorCache';
+import { deleteCachedDeck } from '../deckEditorCache';
+import { dropCleanCachedDecks, getDeckSaveRegistry } from '../deckSaveRegistry';
 import {
   allDeckFolderPaths,
   deckFolderEntry,
@@ -84,6 +87,7 @@ export function useDeckList({ onDeckCreated, folderPath = '' }: {
   folderPath?: string;
 }): UseDeckList {
   const webClient = useWebClient();
+  const store = useStore<RootState>();
   const { t } = useTranslation();
   const describeFailure = useCommandFailureMessage();
   const [listError, setListError] = useState<string | null>(null);
@@ -102,9 +106,9 @@ export function useDeckList({ onDeckCreated, folderPath = '' }: {
     summaryCache.clear();
     documentCache.clear();
     setDocuments(new Map());
-    clearDeckEditorCache();
+    dropCleanCachedDecks(getDeckSaveRegistry(store, webClient));
     setSummaries(new Map());
-  }, []);
+  }, [store, webClient]);
   const { backendDecks, isConnected, refresh } = useBackendDeckList({ beforeRequest: clearSummaries });
 
   useReduxEffect<CommandFailedPayload>(({ payload: { failure } }) => {

@@ -2,15 +2,17 @@ import { server, type CommandFailedPayload } from '@cockatrice/datatrice';
 import type { WebClient } from '@cockatrice/sockatrice';
 import type { RootState } from '@app/store';
 
-import { clearDeckEditorCache, deleteCachedDeck, getCachedDeck, setCachedDeck } from './deckEditorCache';
+import { clearDeckEditorCache, deleteCachedDeck, getCachedDeck, retainCachedDecks, setCachedDeck } from './deckEditorCache';
 import { deckColorIdentity, deckSaveSignature, serializeDeckForSave } from './deckPersistence';
 import type { HydratedDeck } from './types';
 
 export type SaveState = 'idle' | 'dirty' | 'saving' | 'saved' | 'failed';
+export type SaveOwner = 'editor' | 'storage';
 
 export interface DeckSaveSnapshot {
   savedSignature: string | null;
   lastFailure: CommandFailedPayload | null;
+  failedBy: SaveOwner | null;
   pending: ReadonlyMap<number, string>;
   saveState: SaveState;
   isModified: boolean;
@@ -25,7 +27,9 @@ interface Entry {
 }
 
 type SessionStore = { getState: () => RootState; subscribe: (listener: () => void) => () => void };
-const EMPTY: DeckSaveSnapshot = { savedSignature: null, lastFailure: null, pending: new Map(), saveState: 'idle', isModified: false };
+const EMPTY: DeckSaveSnapshot = {
+  savedSignature: null, lastFailure: null, failedBy: null, pending: new Map(), saveState: 'idle', isModified: false,
+};
 
 export function createDeckSaveRegistry(store: SessionStore, client: WebClient) {
   const identity = () => {
@@ -112,7 +116,7 @@ export function createDeckSaveRegistry(store: SessionStore, client: WebClient) {
       entry.dirty = false;
       entry.lastSavedRequest = 0;
       entry.lastSettledRequest = nextRequest;
-      publish(entry, { savedSignature, lastFailure: null, pending: new Map() });
+      publish(entry, { savedSignature, lastFailure: null, failedBy: null, pending: new Map() });
     },
     markDirty(deckId: number) {
       const entry = entries.get(deckId);
@@ -128,11 +132,12 @@ export function createDeckSaveRegistry(store: SessionStore, client: WebClient) {
       if (entry) {
         answerWaiters(entry, false);
         entry.dirty = false;
-        publish(entry, { lastFailure: null });
+        publish(entry, { lastFailure: null, failedBy: null });
       }
     },
-    saveNow(deckId: number, deck: HydratedDeck, document?: { xml: string; colorIdentity?: string }): Promise<boolean> {
-      registry.save(deckId, deck, document);
+    saveNow(deckId: number, deck: HydratedDeck, document?: { xml: string; colorIdentity?: string }, owner: SaveOwner = 'editor'):
+      Promise<boolean> {
+      registry.save(deckId, deck, document, owner);
       return registry.waitForSave(deckId);
     },
     waitForSave(deckId: number): Promise<boolean> {
@@ -145,7 +150,7 @@ export function createDeckSaveRegistry(store: SessionStore, client: WebClient) {
       }
       return new Promise((resolve) => entry.waiters.add(resolve));
     },
-    save(deckId: number, deck: HydratedDeck, document?: { xml: string; colorIdentity?: string }) {
+    save(deckId: number, deck: HydratedDeck, document?: { xml: string; colorIdentity?: string }, owner: SaveOwner = 'editor') {
       syncSession();
       const entry = entries.get(deckId);
       if (!entry) {
@@ -174,6 +179,7 @@ export function createDeckSaveRegistry(store: SessionStore, client: WebClient) {
           if (requestId > entry.lastSettledRequest) {
             entry.lastSettledRequest = requestId;
             patch.lastFailure = error;
+            patch.failedBy = error ? owner : null;
           }
           if (!error && requestId > entry.lastSavedRequest) {
             entry.lastSavedRequest = requestId;
@@ -189,6 +195,13 @@ export function createDeckSaveRegistry(store: SessionStore, client: WebClient) {
     },
   };
   return registry;
+}
+
+export function dropCleanCachedDecks(registry: Pick<ReturnType<typeof createDeckSaveRegistry>, 'getSnapshot'>): void {
+  retainCachedDecks((deckId, entry) => {
+    const snapshot = registry.getSnapshot(deckId);
+    return snapshot.isModified || snapshot.pending.size > 0 || deckSaveSignature(entry.deck) !== entry.savedSignature;
+  });
 }
 
 const registries = new WeakMap<SessionStore, WeakMap<WebClient, ReturnType<typeof createDeckSaveRegistry>>>();

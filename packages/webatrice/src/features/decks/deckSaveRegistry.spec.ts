@@ -6,7 +6,7 @@ import { rootReducerMap, type RootState } from '@app/store';
 import { connectedState, createMockWebClient } from '../../__test-utils__';
 import { makeReduxHookWrapper } from '../../__test-utils__/makeHookWrapper';
 import { clearDeckEditorCache, getCachedDeck, setCachedDeck } from './deckEditorCache';
-import { createDeckSaveRegistry, getDeckSaveRegistry } from './deckSaveRegistry';
+import { createDeckSaveRegistry, dropCleanCachedDecks, getDeckSaveRegistry } from './deckSaveRegistry';
 import { deckSaveSignature } from './deckPersistence';
 import type { HydratedDeck } from './types';
 
@@ -131,6 +131,24 @@ describe('deckSaveRegistry', () => {
     expect(registry.getSnapshot(7).saveState).toBe('saved');
   });
 
+  it('records who owns a failure until a later save succeeds or the failure is discarded', () => {
+    const { registry, response } = setup();
+    const error = { responseCode: 1 };
+    registry.save(7, first, { xml: '<cockatrice_deck/>' }, 'storage');
+    response(0)(error);
+    expect(registry.getSnapshot(7)).toMatchObject({ saveState: 'failed', failedBy: 'storage' });
+    registry.save(7, second);
+    response(1)(error);
+    expect(registry.getSnapshot(7).failedBy).toBe('editor');
+    registry.discardChanges(7);
+    expect(registry.getSnapshot(7)).toMatchObject({ failedBy: null, lastFailure: null });
+    registry.save(7, first, undefined, 'storage');
+    response(2)(error);
+    registry.save(7, second);
+    response(3)(null);
+    expect(registry.getSnapshot(7)).toMatchObject({ failedBy: null, saveState: 'saved' });
+  });
+
   it('does not let an older failure replace a newer success or settle a response twice', () => {
     const { registry, response } = setup();
     registry.save(7, first);
@@ -204,6 +222,26 @@ describe('deckSaveRegistry', () => {
     unsubscribe();
     response(0)(null);
     expect(listener).toHaveBeenCalledTimes(1);
+  });
+});
+
+describe('dropCleanCachedDecks', () => {
+  it('drops only editor copies with nothing unsaved, failed or in flight', () => {
+    const { registry, response } = setup();
+    const clean = { deck: original, savedSignature: deckSaveSignature(original) };
+    setCachedDeck(1, clean);
+    setCachedDeck(2, { deck: first, savedSignature: deckSaveSignature(original) });
+    setCachedDeck(7, clean);
+    setCachedDeck(8, clean);
+    registry.markDirty(7);
+    registry.save(8, first);
+    dropCleanCachedDecks(registry);
+    expect([1, 2, 7, 8].map((id) => getCachedDeck(id) != null)).toEqual([false, true, true, true]);
+    response(0)({ responseCode: 1 });
+    registry.discardChanges(7);
+    setCachedDeck(7, clean);
+    dropCleanCachedDecks(registry);
+    expect([7, 8].map((id) => getCachedDeck(id) != null)).toEqual([false, true]);
   });
 });
 

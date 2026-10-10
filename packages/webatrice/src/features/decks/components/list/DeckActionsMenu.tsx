@@ -15,9 +15,10 @@ import {
 
 import { IconButton, Menu, MenuItem, MenuSeparator, type MenuRect } from '@app/components';
 
+import type { DeckStorageEditKind } from '../../deckStorageEdits';
 import type { FlatDeck } from '../../deckTree';
 
-export type DeckStorageEditKind = 'rename' | 'tags' | 'banner';
+export type { DeckStorageEditKind } from '../../deckStorageEdits';
 
 export interface DeckActions {
   onOpen: () => void;

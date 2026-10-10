@@ -22,6 +22,14 @@ export function clearDeckEditorCache(): void {
 }
 onSessionEnd(clearDeckEditorCache);
 
+export function retainCachedDecks(keep: (deckId: number, entry: CachedDeck) => boolean): void {
+  for (const [deckId, entry] of deckCache) {
+    if (!keep(deckId, entry)) {
+      deckCache.delete(deckId);
+    }
+  }
+}
+
 export function deleteCachedDeck(deckId: number): void {
   deckCache.delete(deckId);
 }

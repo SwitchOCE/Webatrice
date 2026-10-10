@@ -1,4 +1,4 @@
-import { fireEvent, render, screen, waitFor } from '@testing-library/react';
+import { fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 
 import type { FlatDeck } from '../deckTree';
 import { useDeckStorageDetails } from '../hooks/useDeckStorageDetails';
@@ -16,7 +16,8 @@ const details = (patch: Partial<Details> = {}): Details => ({
     cards: [{ name: 'Swamp', category: 'main', quantity: 1, lookupSource: 'unknown' }],
     tagsXml: '<tags><tag>Ramp</tag></tags>',
   },
-  disabled: false, editorHasChanges: false, error: null, saving: false, save, activate, ...patch,
+  disabled: false, editorHasChanges: false, error: null, saving: false, save, activate,
+  failedEdit: null, discardFailed: undefined, ...patch,
 });
 
 beforeEach(() => {
@@ -27,8 +28,9 @@ beforeEach(() => {
 function renderDialog(kind: 'rename' | 'tags' | 'banner') {
   const onClose = vi.fn();
   const onSaved = vi.fn();
-  render(<DeckStorageEditDialog kind={kind} deck={deck} xml="xml" onSaved={onSaved} onClose={onClose} />);
-  return { onClose, onSaved };
+  const view = render(<DeckStorageEditDialog kind={kind} deck={deck} xml="xml" onSaved={onSaved} onClose={onClose} />);
+  const rerender = () => view.rerender(<DeckStorageEditDialog kind={kind} deck={deck} xml="xml" onSaved={onSaved} onClose={onClose} />);
+  return { onClose, onSaved, rerender };
 }
 
 it('loads the stored deck once and renames it, closing on success', async () => {
@@ -85,4 +87,30 @@ it('shows loading until the stored deck is ready', () => {
   renderDialog('tags');
   expect(screen.getByRole('status')).toHaveTextContent('DeckStorageEditDialog.loading');
   expect(screen.getByRole('button', { name: 'DeckStorageEditDialog.save' })).toBeDisabled();
+});
+
+it('offers the failed edit again after a remount, with retry and discard', async () => {
+  const discardFailed = vi.fn();
+  vi.mocked(useDeckStorageDetails).mockReturnValue(details({ failedEdit: { name: 'Lost rename' }, discardFailed }));
+  const { onClose } = renderDialog('rename');
+  expect(screen.getByRole('textbox', { name: 'DeckStorageEditDialog.name' })).toHaveValue('Lost rename');
+  const alert = screen.getByRole('alert');
+  expect(alert).toHaveTextContent('DeckStorageEditDialog.lastSaveFailed');
+  fireEvent.click(within(alert).getByRole('button', { name: 'DeckStorageEditDialog.discard' }));
+  expect(discardFailed).toHaveBeenCalledOnce();
+  fireEvent.click(screen.getByRole('button', { name: 'DeckStorageEditDialog.retry' }));
+  await waitFor(() => expect(onClose).toHaveBeenCalled());
+  expect(save).toHaveBeenCalledWith({ name: 'Lost rename' });
+});
+
+it('replaces the draft with the latest stored version after a conflict', () => {
+  const { rerender } = renderDialog('rename');
+  fireEvent.change(screen.getByRole('textbox', { name: 'DeckStorageEditDialog.name' }), { target: { value: 'Mine' } });
+  const latest = details();
+  vi.mocked(useDeckStorageDetails).mockReturnValue({
+    ...latest, deck: { ...latest.deck!, name: 'Theirs' }, error: 'DeckStorageEditDialog.changedElsewhere',
+  });
+  rerender();
+  expect(screen.getByRole('textbox', { name: 'DeckStorageEditDialog.name' })).toHaveValue('Theirs');
+  expect(screen.getByRole('alert')).toHaveTextContent('DeckStorageEditDialog.changedElsewhere');
 });
