@@ -1969,8 +1969,6 @@
       "commands": "Command statistics"
     },
     "column": {
-      "statistic": "Statistic",
-      "value": "Value",
       "command": "Command",
       "count": "Count",
       "totalMs": "Total ms",
@@ -2008,16 +2006,19 @@
     "autoRefresh": {
       "label": "Auto-refresh",
       "tooltip": "Automatically request fresh server statistics at a fixed interval.",
-      "interval": "Refresh interval (seconds)",
+      "interval": "Every (seconds)",
       "intervalTooltip": "Seconds between automatic refreshes."
     },
     "status": {
       "updated": "Updated {time}",
-      "unavailable": "No server statistics available yet."
+      "unavailable": "No server statistics available yet.",
+      "idle": "Server statistics, on request."
     },
     "button": {
       "refresh": "Refresh server stats"
-    }
+    },
+    "title": "Developer",
+    "empty": "No statistics yet. Refresh to ask the server."
   },
   "Game": {
     "empty": "No active game. Join a game from a room to see the board.",
