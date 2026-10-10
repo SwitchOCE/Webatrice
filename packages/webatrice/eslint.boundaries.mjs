@@ -47,7 +47,10 @@ const rules = [
   // cleanup with services/session; AppShell hosts the session boundary.
   {
     from: { type: 'feature-wrappers' },
-    allow: types('components', 'dialogs', 'feature-widgets', 'hooks', 'images', 'services', 'store', 'types', 'utils')
+    allow: [
+      ...types('components', 'dialogs', 'feature-widgets', 'hooks', 'images', 'services', 'store', 'types', 'utils'),
+      { to: { type: 'features', captured: { feature: 'notifications' } } },
+    ],
   },
 
   // Features are vertical slices: they pull from root-level shared assets but nothing

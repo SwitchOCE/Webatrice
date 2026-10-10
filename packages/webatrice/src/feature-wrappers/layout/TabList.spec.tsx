@@ -3,16 +3,23 @@ import { fireEvent, screen, within } from '@testing-library/react';
 import { renderWithProviders } from '../../__test-utils__';
 
 import TabList from './TabList';
-import type { Tab } from './topBarTabs';
+import type { StripGroup, Tab } from './topBarTabs';
 
-const lobby: Tab = { key: 'server', type: 'server', title: 'Lobby', route: '/server', closeable: false };
+const account: Tab = { key: 'account', type: 'account', titleKey: 'UserMenu.account', route: '/account', closeable: false };
 const deck: Tab = {
   key: 'deck:3', type: 'deck', titleKey: 'TopBar.tab.deck', titleParams: { id: '3' }, route: '/deck/3', closeable: true,
 };
+const game: Tab = { key: 'game:7', type: 'game', title: 'Friday', route: '/game/7', closeable: true, spectating: true };
 
-function renderTabs(activeKey = 'server') {
+const groups: StripGroup[] = [
+  { key: 'games', tabs: [game] },
+  { key: 'decks', tabs: [deck] },
+  { key: 'pages', tabs: [account] },
+];
+
+function renderTabs(activeKey = 'account', unreadOf?: (tab: Tab) => number) {
   const onClose = vi.fn();
-  renderWithProviders(<TabList tabs={[lobby, deck]} activeKey={activeKey} onClose={onClose} />);
+  renderWithProviders(<TabList groups={groups} activeKey={activeKey} onClose={onClose} unreadOf={unreadOf} />);
   return onClose;
 }
 
@@ -21,30 +28,55 @@ describe('TabList', () => {
     renderTabs('deck:3');
 
     const nav = screen.getByRole('navigation', { name: 'TopBar.tabs.label' });
-    expect(within(nav).getByRole('link', { name: 'Lobby' })).toHaveAttribute('href', '/server');
-    expect(within(nav).getByRole('link', { name: 'Lobby' })).not.toHaveAttribute('aria-current');
+    expect(within(nav).getByRole('link', { name: 'UserMenu.account' })).toHaveAttribute('href', '/account');
+    expect(within(nav).getByRole('link', { name: 'UserMenu.account' })).not.toHaveAttribute('aria-current');
     expect(within(nav).getByRole('link', { name: 'TopBar.tab.deck' })).toHaveAttribute('aria-current', 'page');
+  });
+
+  it('groups tabs under their kind, in order', () => {
+    renderTabs();
+
+    expect(screen.getAllByRole('list')).toHaveLength(3);
+    const list = (name: string) => screen.getByRole('list', { name });
+    expect(list('TopBar.group.games')).toContainElement(screen.getByRole('link', { name: /Friday/ }));
+    expect(list('TopBar.group.decks')).toContainElement(screen.getByRole('link', { name: 'TopBar.tab.deck' }));
+    expect(list('TopBar.group.pages')).toContainElement(screen.getByRole('link', { name: 'UserMenu.account' }));
+  });
+
+  it('says when a game is only being watched', () => {
+    renderTabs();
+
+    expect(screen.getByRole('link', { name: /Friday/ })).toHaveAccessibleName('Friday TopBar.tabs.spectating');
+  });
+
+  it('shows the unread count in the tab name', () => {
+    renderTabs('account', (tab) => (tab.key === 'deck:3' ? 0 : tab.key === 'game:7' ? 4 : 0));
+
+    expect(screen.getByRole('link', { name: /Friday/ })).toHaveAccessibleName('Friday TopBar.tabs.spectating UnreadBadge.label');
+    expect(screen.getByRole('link', { name: /Friday/ })).toHaveTextContent('4');
+    expect(screen.getByRole('link', { name: 'TopBar.tab.deck' })).not.toHaveTextContent(/\d/);
   });
 
   it('closes a closeable tab from its Close button', () => {
     const onClose = renderTabs();
 
-    fireEvent.click(screen.getByRole('button', { name: 'TopBar.tabs.close' }));
+    const deckTab = screen.getByRole('link', { name: 'TopBar.tab.deck' }).closest('li')!;
+    fireEvent.click(within(deckTab).getByRole('button', { name: 'TopBar.tabs.close' }));
 
     expect(onClose).toHaveBeenCalledWith(deck);
   });
 
-  it('gives the pinned tab no Close button', () => {
+  it('gives a pinned tab no Close button', () => {
     renderTabs();
 
-    expect(screen.getAllByRole('button')).toHaveLength(1);
-    expect(within(screen.getByRole('link', { name: 'Lobby' }).closest('li')!).queryByRole('button')).toBeNull();
+    expect(screen.getAllByRole('button')).toHaveLength(2);
+    expect(within(screen.getByRole('link', { name: 'UserMenu.account' }).closest('li')!).queryByRole('button')).toBeNull();
   });
 
-  it('closes on middle-click, but never the pinned tab', () => {
+  it('closes on middle-click, but never a pinned tab', () => {
     const onClose = renderTabs();
 
-    fireEvent(screen.getByRole('link', { name: 'Lobby' }), new MouseEvent('auxclick', { bubbles: true, button: 1 }));
+    fireEvent(screen.getByRole('link', { name: 'UserMenu.account' }), new MouseEvent('auxclick', { bubbles: true, button: 1 }));
     expect(onClose).not.toHaveBeenCalled();
 
     fireEvent(screen.getByRole('link', { name: 'TopBar.tab.deck' }), new MouseEvent('auxclick', { bubbles: true, button: 1 }));

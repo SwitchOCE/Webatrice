@@ -1,17 +1,24 @@
 import { useCallback, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { User, LogOut, Grid3x3, PanelLeftOpen } from 'lucide-react';
+import { Grid3x3, LogOut, PanelTop } from 'lucide-react';
 
 import { server, ServerCapability } from '@cockatrice/datatrice';
 import { useAppSelector } from '@app/store';
-import { Menu, MenuCheckboxItem, MenuItem, MenuSeparator, type MenuAnchor } from '@app/components';
+import {
+  Avatar, Menu, MenuCheckboxItem, MenuGroup, MenuItem, MenuSeparator, type MenuAnchor,
+} from '@app/components';
 import type { RouteEnum } from '@app/types';
 
-import { visibleUserMenuEntries, type CapabilityCheck, type UserMenuDialog } from './userMenuEntries';
+import {
+  ACCOUNT_ROLE_KEYS, accountRole, visibleUserMenuEntries, type CapabilityCheck, type UserMenuDialog, type UserMenuEntry,
+  type UserMenuSection,
+} from './userMenuEntries';
 
 export interface UserMenuProps {
   userName: string | null;
   userLevel: number;
+  avatarUrl?: string | null;
+  serverName?: string | null;
   snapGridVisible: boolean;
   onToggleSnapGrid: () => void;
   phaseTrackPinned: boolean;
@@ -21,9 +28,21 @@ export interface UserMenuProps {
   onSignOut: () => void;
 }
 
+const focusRing = 'focus-visible:outline focus-visible:outline-2 focus-visible:outline-accent';
+
+function GroupHeading({ children }: { children: string }) {
+  return (
+    <p aria-hidden className="px-3 pb-0.5 pt-1.5 text-[10.5px] font-semibold uppercase tracking-[0.08em] text-text-muted">
+      {children}
+    </p>
+  );
+}
+
 export default function UserMenu({
   userName,
   userLevel,
+  avatarUrl,
+  serverName,
   snapGridVisible,
   onToggleSnapGrid,
   phaseTrackPinned,
@@ -50,13 +69,36 @@ export default function UserMenu({
 
   const toggle = () => {
     const rect = triggerRef.current?.getBoundingClientRect();
-    setAnchor((open) => (open || !rect ? null : { x: rect.right, y: rect.bottom + 4, align: 'end' }));
+    setAnchor((open) => (open || !rect
+      ? null
+      : { rect: { left: rect.left, top: rect.top, right: rect.right + 6, bottom: rect.bottom }, placement: 'right' }));
   };
 
   const displayName = userName ?? t('TopBar.user.signedIn');
+  const role = accountRole(userLevel);
+  const entries = visibleUserMenuEntries(userLevel, supports);
+  const section = (key: UserMenuSection) => entries.filter((entry) => entry.section === key);
+  const [account, tools, staff] = (['account', 'tools', 'staff'] as const).map(section);
+
+  const renderEntry = (entry: UserMenuEntry) => (
+    <MenuItem
+      key={entry.route ?? entry.dialog}
+      icon={<entry.icon size={15} aria-hidden className="shrink-0 text-text-muted" />}
+      onSelect={() => {
+        close();
+        if (entry.route) {
+          onNavigate(entry.route);
+        } else {
+          onOpenDialog(entry.dialog);
+        }
+      }}
+    >
+      {t(entry.label)}
+    </MenuItem>
+  );
 
   return (
-    <div className="relative">
+    <>
       <button
         ref={triggerRef}
         type="button"
@@ -69,55 +111,69 @@ export default function UserMenu({
         }}
         aria-haspopup="menu"
         aria-expanded={anchor != null}
-        className="flex items-center gap-2 px-2 py-1 rounded-md bg-bg-elevated hover:bg-border-subtle transition-colors"
+        className={[
+          'flex w-16 flex-col items-center gap-1 rounded-ui py-1.5 text-[10.5px] font-medium hover:bg-bg-elevated',
+          focusRing,
+          anchor ? 'bg-bg-elevated text-text-primary' : 'text-text-secondary',
+        ].join(' ')}
       >
-        <div className="h-6 w-6 rounded-full bg-gradient-to-br from-accent to-accent-secondary flex items-center justify-center">
-          <User size={14} className="text-white" />
-        </div>
-        <span className="text-sm font-medium text-text-primary max-w-[10rem] truncate">
-          {displayName}
-        </span>
+        <Avatar name={displayName} size={30} ring={anchor != null} src={avatarUrl ?? undefined} />
+        <span className="max-w-[60px] truncate">{displayName}</span>
       </button>
 
       {anchor && (
-        <Menu anchor={anchor} label={displayName} onClose={close} triggerRef={triggerRef} className="w-56">
-          <div className="px-3 py-2 mb-1 border-b border-border-subtle" aria-hidden>
-            <span className="text-sm font-medium text-text-primary truncate">{displayName}</span>
+        <Menu
+          anchor={anchor}
+          label={displayName}
+          onClose={close}
+          triggerRef={triggerRef}
+          className="w-[304px] !rounded-ui-lg !border-border-strong px-1.5 !py-1.5 !shadow-pop"
+        >
+          <div className="flex items-center gap-2.5 px-2.5 pb-2 pt-1" aria-hidden>
+            <Avatar name={displayName} size={32} src={avatarUrl ?? undefined} />
+            <div className="min-w-0">
+              <p className="truncate text-[13.5px] font-semibold text-text-primary">{displayName}</p>
+              <p className="truncate text-[11.5px] text-text-muted">
+                {serverName
+                  ? t('UserMenu.roleOnServer', { role: t(ACCOUNT_ROLE_KEYS[role]), server: serverName })
+                  : t(ACCOUNT_ROLE_KEYS[role])}
+              </p>
+            </div>
           </div>
-          <MenuCheckboxItem
-            checked={snapGridVisible}
-            onChange={onToggleSnapGrid}
-            icon={<Grid3x3 size={14} />}
-          >
-            {t('TopBar.game.snapGrid')}
-          </MenuCheckboxItem>
-          <MenuCheckboxItem
-            checked={!phaseTrackPinned}
-            onChange={onTogglePhaseTrackPinned}
-            icon={<PanelLeftOpen size={14} />}
-            title={phaseTrackPinned ? t('TopBar.game.phaseTrackCollapse') : t('TopBar.game.phaseTrackPin')}
-          >
-            {t('TopBar.game.phaseTrackToggle')}
-          </MenuCheckboxItem>
-          {visibleUserMenuEntries(userLevel, supports).map((entry) => (
-            <MenuItem
-              key={entry.route ?? entry.dialog}
-              icon={<entry.icon size={14} />}
-              onSelect={() => {
-                close();
-                if (entry.route) {
-                  onNavigate(entry.route);
-                } else {
-                  onOpenDialog(entry.dialog);
-                }
-              }}
+          <MenuSeparator />
+          {account.map(renderEntry)}
+          <MenuSeparator />
+          <MenuGroup label={t('UserMenu.onTheBoard')}>
+            <GroupHeading>{t('UserMenu.onTheBoard')}</GroupHeading>
+            <MenuCheckboxItem
+              checked={snapGridVisible}
+              onChange={onToggleSnapGrid}
+              icon={<Grid3x3 size={15} aria-hidden className="shrink-0 text-text-muted" />}
             >
-              {t(entry.label)}
-            </MenuItem>
-          ))}
+              {t('TopBar.game.snapGrid')}
+            </MenuCheckboxItem>
+            <MenuCheckboxItem
+              checked={!phaseTrackPinned}
+              onChange={onTogglePhaseTrackPinned}
+              icon={<PanelTop size={15} aria-hidden className="shrink-0 text-text-muted" />}
+              title={phaseTrackPinned ? t('TopBar.game.phaseTrackCollapse') : t('TopBar.game.phaseTrackPin')}
+            >
+              {t('TopBar.game.phaseTrackToggle')}
+            </MenuCheckboxItem>
+          </MenuGroup>
+          <MenuSeparator />
+          {tools.map(renderEntry)}
+          {staff.length > 0 && (
+            <MenuGroup label={t('UserMenu.staff')}>
+              <div className="my-1 rounded-ui-sm border border-dashed border-border-strong px-1 pb-1">
+                <GroupHeading>{t('UserMenu.staff')}</GroupHeading>
+                <div className="grid grid-cols-2">{staff.map(renderEntry)}</div>
+              </div>
+            </MenuGroup>
+          )}
           <MenuSeparator />
           <MenuItem
-            icon={<LogOut size={14} />}
+            icon={<LogOut size={15} aria-hidden className="shrink-0 text-text-muted" />}
             onSelect={() => {
               close();
               onSignOut();
@@ -127,6 +183,6 @@ export default function UserMenu({
           </MenuItem>
         </Menu>
       )}
-    </div>
+    </>
   );
 }

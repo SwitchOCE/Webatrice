@@ -1,15 +1,26 @@
 import { ServerInfo_User_UserLevelFlag as Level } from '@cockatrice/sockatrice/generated';
 import { RouteEnum } from '@app/types';
 
-import { isAdmin, isModerator, USER_MENU_ENTRIES, UserMenuDialog, visibleUserMenuEntries } from './userMenuEntries';
+import {
+  accountRole, isAdmin, isModerator, USER_MENU_ENTRIES, UserMenuDialog, visibleUserMenuEntries,
+} from './userMenuEntries';
 
 const routes = (userLevel: number) => visibleUserMenuEntries(userLevel).flatMap((entry) => entry.route ?? []);
 const dialogs = (userLevel: number) => visibleUserMenuEntries(userLevel).flatMap((entry) => entry.dialog ?? []);
 const registered = Level.IsUser | Level.IsRegistered;
 
 describe('userMenuEntries', () => {
-  it('offers Account, Settings, Shortcuts and My Reports to every signed-in user', () => {
-    expect(routes(registered)).toEqual([RouteEnum.ACCOUNT, RouteEnum.SETTINGS, RouteEnum.SHORTCUTS, RouteEnum.MY_REPORTS]);
+  it('offers Account, Shortcuts and My Reports to every signed-in user, leaving Settings to the rail', () => {
+    expect(routes(registered)).toEqual([RouteEnum.ACCOUNT, RouteEnum.SHORTCUTS, RouteEnum.MY_REPORTS]);
+  });
+
+  it('files every staff page under the staff section and nothing else', () => {
+    const staffRoutes = USER_MENU_ENTRIES.filter((entry) => entry.section === 'staff').map((entry) => entry.route);
+    expect(staffRoutes).toEqual([
+      RouteEnum.ADMINISTRATION, RouteEnum.LOGS, RouteEnum.CARD_ART_RULES, RouteEnum.REPORT_QUEUE, RouteEnum.MODERATION,
+      RouteEnum.DEVELOPER,
+    ]);
+    expect(USER_MENU_ENTRIES.filter((entry) => entry.dialog).every((entry) => entry.section === 'tools')).toBe(true);
   });
 
   it('adds Logs for moderators and for developers, like desktop TabSupervisor', () => {
@@ -81,5 +92,18 @@ describe('userMenuEntries: reports', () => {
 
   it('offers neither on a 3.0 server', () => {
     expect(reportRoutes(registered | Level.IsModerator, () => false)).toEqual([]);
+  });
+});
+
+describe('accountRole', () => {
+  it('names the highest role first', () => {
+    expect(accountRole(registered | Level.IsModerator | Level.IsAdmin)).toBe('admin');
+    expect(accountRole(registered | Level.IsModerator)).toBe('moderator');
+    expect(accountRole(registered | Level.IsJudge)).toBe('judge');
+  });
+
+  it('tells registered users from guests', () => {
+    expect(accountRole(registered)).toBe('registered');
+    expect(accountRole(Level.IsUser)).toBe('unregistered');
   });
 });
