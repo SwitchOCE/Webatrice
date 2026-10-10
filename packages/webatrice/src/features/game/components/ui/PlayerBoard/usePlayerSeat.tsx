@@ -4,7 +4,6 @@ import { useMenuShortcut } from '@app/feature-widgets/shortcuts';
 import { useBoardAnimations, usePreference } from '@app/hooks';
 import { useTranslation } from 'react-i18next';
 
-import { useHorizontalWheelScroll } from '../../../hooks/useHorizontalWheelScroll';
 import { useMoveTopUntil } from '../../../hooks/useMoveTopUntil';
 import { useSeatSelection, type SeatSelectionZone } from '../../../hooks/useSeatSelection';
 import {
@@ -119,8 +118,9 @@ export function usePlayerSeat({ model, commands, onOpenDeckInEditor, onSay }: Pl
     [handPileOptions, scale],
   );
 
-  const horizontalHand = usePreference('horizontalHand');
+  const horizontalHandPreference = usePreference('horizontalHand');
   const inlineHand = handPlacement === 'inline';
+  const horizontalHand = !inlineHand || horizontalHandPreference;
   const seatGrid = useMemo(
     () => buildSeatGrid({ horizontalHand, handOnTop, inlineHand }),
     [horizontalHand, handOnTop, inlineHand],
@@ -200,7 +200,6 @@ export function usePlayerSeat({ model, commands, onOpenDeckInEditor, onSay }: Pl
   // finalizing the selection.
   const boxRef = useRef<HTMLDivElement>(null);
 
-  useHorizontalWheelScroll(handRef);
   const battlefieldDisplayList = zones.battlefield.cards;
 
   const menuShortcut = useMenuShortcut();
@@ -526,6 +525,7 @@ export function usePlayerSeat({ model, commands, onOpenDeckInEditor, onSay }: Pl
     handOnTop,
     handPileOptions,
     handPlacement,
+    handRef,
     handSize,
     handZoneRef,
     horizontalHand,

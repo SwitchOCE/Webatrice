@@ -28,7 +28,8 @@ import {
 const BASE_CARD_WIDTH_PX = 72;
 const BASE_CARD_HEIGHT_PX = 102;
 
-const REFERENCE_CELL_HEIGHT_PX = 460;
+export const REFERENCE_CELL_HEIGHT_PX = 460;
+export const REFERENCE_CELL_HEIGHT_NO_HAND_PX = 320;
 
 /** Clamp keeps cards readable on tiny windows and prevents runaway sizes
  *  on ultra-wide monitors. Matches the "sensible view" ceiling desktop
@@ -52,7 +53,7 @@ function clampScale(n: number): number {
   return Math.min(CARD_SCALE_MAX, Math.max(CARD_SCALE_MIN, n));
 }
 
-function computeScale(height: number, rows: number): number {
+export function computeScale(height: number, rows: number, referenceCellHeight = REFERENCE_CELL_HEIGHT_PX): number {
   if (height <= 0) {
     return CARD_SCALE_DEFAULT;
   }
@@ -62,7 +63,7 @@ function computeScale(height: number, rows: number): number {
   // reference maps that to a scale. Width is ignored on purpose — matches
   // Cockatrice, where horizontal resizes don't change card size.
   const cellH = height / Math.max(1, rows);
-  return clampScale(cellH / REFERENCE_CELL_HEIGHT_PX);
+  return clampScale(cellH / referenceCellHeight);
 }
 
 export interface CardScaleProviderProps {
@@ -72,12 +73,14 @@ export interface CardScaleProviderProps {
    *  previews and tests. */
   containerRef?: RefObject<HTMLElement | null>;
   rows?: number;
+  referenceCellHeight?: number;
   children: ReactNode;
 }
 
 export function CardScaleProvider({
   containerRef,
   rows = 1,
+  referenceCellHeight = REFERENCE_CELL_HEIGHT_PX,
   children,
 }: CardScaleProviderProps) {
   const [scale, setScale] = useState<number>(CARD_SCALE_DEFAULT);
@@ -92,7 +95,7 @@ export function CardScaleProvider({
     }
     const measure = () => {
       const rect = el.getBoundingClientRect();
-      setScale(computeScale(rect.height, rows));
+      setScale(computeScale(rect.height, rows, referenceCellHeight));
     };
     measure();
     if (typeof ResizeObserver === 'undefined') {
@@ -101,7 +104,7 @@ export function CardScaleProvider({
     const ro = new ResizeObserver(measure);
     ro.observe(el);
     return () => ro.disconnect();
-  }, [containerRef, rows]);
+  }, [containerRef, rows, referenceCellHeight]);
 
   // Root-font-size changes (browser text-zoom) don't fire ResizeObserver
   // on the board — the CSS-computed rem baseline changes but the pixel
@@ -114,11 +117,11 @@ export function CardScaleProvider({
         return;
       }
       const rect = el.getBoundingClientRect();
-      setScale(computeScale(rect.height, rows));
+      setScale(computeScale(rect.height, rows, referenceCellHeight));
     };
     window.addEventListener('resize', onFontChange);
     return () => window.removeEventListener('resize', onFontChange);
-  }, [containerRef, rows]);
+  }, [containerRef, rows, referenceCellHeight]);
 
   // Apply the CSS vars at the document root so descendants inherit them
   // even when they portal out of the React tree (drag ghost, dialogs,

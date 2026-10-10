@@ -4,6 +4,14 @@ import { useTranslation } from 'react-i18next';
 import CardPreviewPane from '../CardPreviewPane/CardPreviewPane';
 
 export const BOARD_TRAY_HEIGHT_VAR = '--board-tray-h';
+export const TRAY_CARD_HEIGHT_VAR = '--tray-card-height';
+export const TRAY_CARD_WIDTH_VAR = '--tray-card-width';
+export const TRAY_CHROME_PX = 46;
+
+export function trayCardSize(trayHeight: number): { height: number; width: number } {
+  const height = Math.max(0, trayHeight - TRAY_CHROME_PX);
+  return { height, width: Math.round((height * 72) / 102) };
+}
 
 interface BoardTrayProps {
   gameRef: RefObject<HTMLDivElement | null>;
@@ -22,16 +30,27 @@ export default function BoardTray({ gameRef, hostRef, onMouseDown, children }: B
     if (!tray || !game) {
       return;
     }
-    const apply = () => game.style.setProperty(BOARD_TRAY_HEIGHT_VAR, `${tray.offsetHeight}px`);
+    const root = document.documentElement;
+    const apply = () => {
+      game.style.setProperty(BOARD_TRAY_HEIGHT_VAR, `${tray.offsetHeight}px`);
+      const { height, width } = trayCardSize(tray.offsetHeight);
+      root.style.setProperty(TRAY_CARD_HEIGHT_VAR, `${height}px`);
+      root.style.setProperty(TRAY_CARD_WIDTH_VAR, `${width}px`);
+    };
     apply();
+    const clear = () => {
+      game.style.removeProperty(BOARD_TRAY_HEIGHT_VAR);
+      root.style.removeProperty(TRAY_CARD_HEIGHT_VAR);
+      root.style.removeProperty(TRAY_CARD_WIDTH_VAR);
+    };
     if (typeof ResizeObserver === 'undefined') {
-      return () => game.style.removeProperty(BOARD_TRAY_HEIGHT_VAR);
+      return clear;
     }
     const ro = new ResizeObserver(apply);
     ro.observe(tray);
     return () => {
       ro.disconnect();
-      game.style.removeProperty(BOARD_TRAY_HEIGHT_VAR);
+      clear();
     };
   }, [gameRef]);
 

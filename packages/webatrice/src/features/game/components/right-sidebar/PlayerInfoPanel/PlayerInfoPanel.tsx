@@ -10,6 +10,7 @@ import { makeCardKey, useCardRegistry } from '../../../utils/CardRegistry/CardRe
 import { usePlayerSeatContext } from '../../ui/PlayerBoard/PlayerSeatContext';
 import { useCardPreviewActions } from '../../ui/CardPreviewContext';
 import { getScryfallUrlByIdOrExactName } from '@app/services';
+import { cx } from '@app/utils';
 import { ScryfallImageSize } from '@cockatrice/datatrice';
 import { CARD_WIDTH } from '../../ui/SeatCard/cardSize';
 import { useValueFlash } from '../../ui/ValueFlash/useValueFlash';
@@ -126,7 +127,7 @@ function ManaPip({
   );
 }
 
-const INFO_FONT_SIZE = `clamp(10px, calc(${CARD_WIDTH} * 16 / 72), 16px)`;
+const INFO_FONT_SIZE = `clamp(10px, calc(${CARD_WIDTH} * 14 / 72), 14px)`;
 
 const NO_MODIFIERS = (event: KeyboardEvent) => !event.altKey && !event.ctrlKey && !event.metaKey && !event.shiftKey;
 
@@ -242,7 +243,10 @@ export default function PlayerInfoPanel() {
 
   return (
     <div
-      className="relative isolate border-r border-border-subtle bg-bg-surface/70 flex flex-col p-[0.75em] gap-[0.5em] min-h-0"
+      className={cx(
+        'relative isolate flex min-h-0 flex-col gap-[0.5em] overflow-y-auto border-r border-border-subtle bg-bg-surface/70',
+        'p-[0.75em]',
+      )}
       style={{ ...seatGrid.info, fontSize: INFO_FONT_SIZE }}
     >
       <ZoneBackground zone="playerInfo" />

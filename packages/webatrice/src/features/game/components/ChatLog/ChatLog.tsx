@@ -1,4 +1,4 @@
-import { useCallback, useId, useMemo, useRef } from 'react';
+import { useCallback, useEffect, useId, useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { MessageSquare } from 'lucide-react';
 import { classifyLogTone, games, type LogSegment, type LogTone } from '@cockatrice/datatrice';
@@ -71,18 +71,22 @@ const SEGMENT_CLASS: Record<LogSegment['kind'], string> = {
  * names, numbers each get their own accent color) and alternating row
  * backgrounds so consecutive log lines are visually separable.
  */
-export default function ChatLog() {
+export interface ChatLogProps {
+  onReveal?: () => void;
+}
+
+export default function ChatLog({ onReveal }: ChatLogProps = {}) {
   const gameId = useGameId();
   const messages = useAppSelector((state) => (gameId != null ? games.Selectors.getMessages(state, gameId) : undefined));
   const getChatContext = useCallback(() => gameChatContext(messages ?? []), [messages]);
   return (
     <ReportChatScope gameId={gameId ?? undefined} getChatContext={getChatContext}>
-      <ChatLogView />
+      <ChatLogView onReveal={onReveal} />
     </ReportChatScope>
   );
 }
 
-function ChatLogView() {
+function ChatLogView({ onReveal }: ChatLogProps) {
   const { t } = useTranslation();
   const gameId = useGameId();
   const listRef = useRef<HTMLDivElement>(null);
@@ -114,18 +118,26 @@ function ChatLogView() {
   // when ChatLog is on-screen. Disabled state gates it — focusing a
   // disabled input would be a no-op, but skipping the preventDefault
   // lets Shift+Enter fall through to whatever else is listening.
+  const [focusRequest, setFocusRequest] = useState(0);
   useShortcut(
     'chat.focus',
     () => {
-      const el = inputRef.current;
-      if (!el || inputDisabled) {
+      if (inputDisabled) {
         return;
       }
-      el.focus();
-      el.select();
+      onReveal?.();
+      setFocusRequest((n) => n + 1);
     },
     { scope: ShortcutScope.GAME, enabled: !inputDisabled },
   );
+  useEffect(() => {
+    const el = inputRef.current;
+    if (focusRequest === 0 || !el) {
+      return;
+    }
+    el.focus();
+    el.select();
+  }, [focusRequest]);
   const inputTitle = chatDisabledReason ?? undefined;
   const inputPlaceholder = gameId == null
     ? t('ChatLog.unavailable')

@@ -100,7 +100,8 @@ export default function CardPreviewPane() {
               activeCard ? (
                 <div
                   className={cx(
-                    'flex h-full w-[260px] shrink-0 flex-col gap-1.5 overflow-y-auto rounded-ui border border-border-subtle',
+                    'flex h-full w-[clamp(170px,19vw,260px)] shrink-0 flex-col gap-1.5 overflow-y-auto',
+                    'rounded-ui border border-border-subtle',
                     'bg-bg-sunken/60 p-2 text-[11.5px] text-text-primary',
                   )}
                 >
@@ -164,7 +165,8 @@ export default function CardPreviewPane() {
                 mode === 'text' && (
                   <div
                     className={cx(
-                      'flex h-full w-[260px] shrink-0 items-center justify-center rounded-ui border border-dashed border-border-subtle',
+                      'flex h-full w-[clamp(170px,19vw,260px)] shrink-0 items-center justify-center',
+                      'rounded-ui border border-dashed border-border-subtle',
                       'bg-bg-sunken/60 p-2 text-center text-[11px] italic text-text-muted',
                     )}
                   >

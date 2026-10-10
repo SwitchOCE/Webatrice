@@ -47,7 +47,7 @@ export default function TrayActions() {
   const actions = buildTrayActions({ canAct: !readOnly, canRoll, deckCount });
 
   return (
-    <div className="grid w-[236px] shrink-0 grid-cols-2 gap-1" role="group" aria-label={t('BoardTray.actions')}>
+    <div className="grid w-[clamp(176px,16vw,236px)] shrink-0 grid-cols-2 gap-1" role="group" aria-label={t('BoardTray.actions')}>
       {actions.map(({ id, shortcut, disabled }) => {
         const Icon = ICON[id];
         const keys = menuShortcut(shortcut);
