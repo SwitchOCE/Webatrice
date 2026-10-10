@@ -103,6 +103,12 @@ describe('filterSections', () => {
     expect(filterSections(sections, 'sound', t)[0].count).toBe(4);
   });
 
+  it('marks a section whose own title matches, so a page section such as Shortcuts stays findable', () => {
+    const result = filterSections(sections, 'shortcut', t);
+    expect(result.map((s) => [s.section.id, s.titleMatch])).toEqual([['sound', false], ['shortcuts', true]]);
+    expect(filterSections(sections, '', t).every((s) => !s.titleMatch)).toBe(true);
+  });
+
   it('leaves out rows hidden by their condition when the preferences are given', () => {
     const preferences = { ...PREFERENCE_DEFAULTS, startupTab: StartupTab.Replays };
     expect(filterSections(sections, '', t, preferences)[0].count).toBe(3);

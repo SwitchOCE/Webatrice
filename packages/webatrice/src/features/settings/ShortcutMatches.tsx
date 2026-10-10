@@ -31,7 +31,7 @@ export default function ShortcutMatches({ page, query, hits, searching }: Shortc
     </Button>
   );
 
-  if (!searching) {
+  if (!searching || hits.length === 0) {
     return (
       <div className="flex flex-wrap items-center gap-x-6 gap-y-2 px-pad py-[calc(var(--pad)*0.75)]">
         <p className="min-w-[16rem] flex-1 text-[13px] text-text-secondary">

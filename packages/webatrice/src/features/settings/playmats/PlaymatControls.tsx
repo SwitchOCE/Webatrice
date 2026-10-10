@@ -1,9 +1,9 @@
-import { useState, type ComponentType } from 'react';
+import { useEffect, useRef, useState, type ComponentType } from 'react';
 import { useTranslation } from 'react-i18next';
 import { ChevronLeft, ChevronRight, Crop, Plus, X } from 'lucide-react';
 
 import { games } from '@cockatrice/datatrice';
-import { Button, IconButton, PlaymatCropEditor } from '@app/components';
+import { Button, IconButton } from '@app/components';
 import {
   PlaymatFallbackBehavior,
   PlaymatMode,
@@ -19,7 +19,8 @@ import { cx } from '@app/utils';
 
 import { FieldError, SelectBox, focusRing } from '../controls/fields';
 import type { CustomControlProps } from '../registry';
-import { ArtPreview, CardNameForm } from './ArtParts';
+import { ArtPreview, CardNameForm, type SubmitResult } from './ArtParts';
+import CropEditor from './CropEditor';
 import { movePlaymat } from './playmatList';
 
 const TILE = { width: 132, height: 96 };
@@ -94,6 +95,33 @@ export function PlaymatCollection({ labelId, describedBy, disabled }: CustomCont
   const [adding, setAdding] = useState(false);
   const list = settings.fallbackList;
   const editingPlaymat = editing !== null ? list[editing] : undefined;
+  const operation = useRef(0);
+  const addButton = useRef<HTMLButtonElement>(null);
+  const cropButtons = useRef(new Map<number, HTMLButtonElement>());
+  const pendingFocus = useRef<'add' | number | null>(null);
+
+  useEffect(() => () => {
+    operation.current += 1;
+  }, []);
+
+  useEffect(() => {
+    const target = pendingFocus.current;
+    if (target === null) {
+      return;
+    }
+    pendingFocus.current = null;
+    (target === 'add' ? addButton.current : cropButtons.current.get(target))?.focus();
+  });
+
+  const cancelAdd = () => {
+    operation.current += 1;
+    pendingFocus.current = 'add';
+    setAdding(false);
+  };
+  const closeCrop = () => {
+    pendingFocus.current = editing;
+    setEditing(null);
+  };
 
   const setList = (next: games.Playmat[]) => update({ fallbackList: next });
   const move = (from: number, to: number) => {
@@ -104,16 +132,21 @@ export function PlaymatCollection({ labelId, describedBy, disabled }: CustomCont
     void setList(list.filter((_, i) => i !== index));
     setEditing(null);
   };
-  const add = async (cardName: string): Promise<string | undefined> => {
+  const add = async (cardName: string): Promise<SubmitResult> => {
+    const op = ++operation.current;
+    const live = () => op === operation.current;
     setSaveError(false);
     let card: CardDTO | undefined;
     try {
       card = await CardDTO.get(cardName);
     } catch {
-      return t('PlaymatSettings.validation.lookupFailed');
+      return { ok: false, error: live() ? t('PlaymatSettings.validation.lookupFailed') : undefined };
+    }
+    if (!live()) {
+      return { ok: false };
     }
     if (!card?.name?.value || card.name.value.length > PLAYMAT_NAME_MAX_LENGTH) {
-      return t('PlaymatSettings.validation.unknownCard');
+      return { ok: false, error: t('PlaymatSettings.validation.unknownCard') };
     }
     const current = getPlaymatSettings().fallbackList;
     try {
@@ -122,11 +155,14 @@ export function PlaymatCollection({ labelId, describedBy, disabled }: CustomCont
       });
     } catch {
       setSaveError(true);
-      return undefined;
+      return { ok: false };
     }
-    setAdding(false);
-    setEditing(current.length);
-    return undefined;
+    if (live()) {
+      pendingFocus.current = current.length;
+      setAdding(false);
+      setEditing(current.length);
+    }
+    return { ok: true };
   };
 
   return (
@@ -167,6 +203,13 @@ export function PlaymatCollection({ labelId, describedBy, disabled }: CustomCont
                   <ChevronRight size={13} aria-hidden />
                 </IconButton>
                 <IconButton
+                  ref={(element) => {
+                    if (element) {
+                      cropButtons.current.set(index, element);
+                    } else {
+                      cropButtons.current.delete(index);
+                    }
+                  }}
                   size="sm"
                   className="!h-6 !w-6"
                   label={t('PlaymatSettings.collection.editCrop', { card: name })}
@@ -191,10 +234,11 @@ export function PlaymatCollection({ labelId, describedBy, disabled }: CustomCont
         })}
         <li>
           <button
+            ref={addButton}
             type="button"
             disabled={disabled}
             aria-expanded={adding}
-            onClick={() => setAdding(!adding)}
+            onClick={() => (adding ? cancelAdd() : setAdding(true))}
             className={cx(
               'flex flex-col items-center justify-center gap-1 rounded-ui border border-dashed border-border-strong',
               'text-[12px] text-text-secondary hover:border-accent hover:text-accent disabled:cursor-not-allowed disabled:opacity-45',
@@ -217,18 +261,19 @@ export function PlaymatCollection({ labelId, describedBy, disabled }: CustomCont
           maxLength={PLAYMAT_NAME_MAX_LENGTH}
           disabled={disabled}
           onSubmit={add}
-          onCancel={() => setAdding(false)}
+          onCancel={cancelAdd}
         />
       )}
       {editingPlaymat && editing !== null && (
         <div className="flex flex-col gap-2 rounded-ui border border-border-subtle bg-bg-sunken p-3">
           <span className="flex items-center gap-2 text-[12px] font-medium text-text-primary">
             {t('PlaymatSettings.collection.cropOf', { card: editingPlaymat.cardName })}
-            <Button size="sm" variant="quiet" className="ml-auto" onClick={() => setEditing(null)}>
+            <Button size="sm" variant="quiet" className="ml-auto" onClick={closeCrop}>
               {t('PlaymatSettings.collection.done')}
             </Button>
           </span>
-          <PlaymatCropEditor
+          <CropEditor
+            key={editing}
             playmat={editingPlaymat}
             onChange={(params) => void setList(list.map((entry, i) => (i === editing ? { ...entry, params } : entry)))}
           />

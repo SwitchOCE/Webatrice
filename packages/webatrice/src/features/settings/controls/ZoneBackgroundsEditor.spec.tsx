@@ -66,6 +66,26 @@ describe('ZoneBackgroundsEditor', () => {
     expect(getPreferencesSnapshot().zoneBackgrounds).toEqual({});
   });
 
+  it('returns focus to the button that opened the form or the crop editor', async () => {
+    await renderEditor();
+    const choose = within(tile('table')).getByRole('button', { name: 'SettingsAppearance.zoneBackgrounds.chooseLabel' });
+    fireEvent.click(choose);
+    fireEvent.click(screen.getByRole('button', { name: 'PlaymatSettings.collection.cancel' }));
+    expect(choose).toHaveFocus();
+
+    fireEvent.click(choose);
+    fireEvent.change(screen.getByRole('textbox'), { target: { value: 'Forest' } });
+    await act(async () => {
+      fireEvent.click(screen.getByRole('button', { name: 'SettingsAppearance.zoneBackgrounds.setLabel' }));
+    });
+    expect(within(tile('table')).getByRole('button', { name: 'SettingsAppearance.zoneBackgrounds.chooseLabel' })).toHaveFocus();
+
+    const crop = within(tile('table')).getByRole('button', { name: 'SettingsAppearance.zoneBackgrounds.editLabel' });
+    fireEvent.click(crop);
+    fireEvent.click(screen.getByRole('button', { name: 'PlaymatSettings.collection.done' }));
+    expect(crop).toHaveFocus();
+  });
+
   it('refuses a blank card name', async () => {
     await renderEditor();
     fireEvent.click(within(tile('hand')).getByRole('button', { name: 'SettingsAppearance.zoneBackgrounds.chooseLabel' }));

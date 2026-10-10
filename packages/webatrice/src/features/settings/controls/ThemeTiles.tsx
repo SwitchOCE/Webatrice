@@ -6,33 +6,28 @@ import { ThemeMode } from '@app/types';
 import { cx } from '@app/utils';
 
 import type { CustomControlProps } from '../registry';
+import { previewVars } from './themePreview';
 
 type Shade = 'light' | 'dark';
 
-const SHADES: Record<Shade, { base: string; surface: string; line: string; text: string; faint: string }> = {
-  light: { base: 'bg-zinc-100', surface: 'bg-white', line: 'border-zinc-200', text: 'bg-zinc-600', faint: 'bg-zinc-300' },
-  dark: { base: 'bg-zinc-900', surface: 'bg-zinc-800', line: 'border-zinc-700', text: 'bg-zinc-300', faint: 'bg-zinc-600' },
-};
-
 function MiniApp({ shade }: { shade: Shade }) {
-  const c = SHADES[shade];
   return (
-    <span aria-hidden className={cx('absolute inset-0 flex', c.base)}>
-      <span className={cx('w-[18%] border-r p-1.5', c.surface, c.line)}>
+    <span aria-hidden style={previewVars(shade)} className="absolute inset-0 flex bg-bg-base">
+      <span className="w-[18%] border-r border-border-subtle bg-bg-surface p-1.5">
         <span className="mb-1.5 block h-2.5 w-2.5 rounded-sm bg-accent" />
         <span className="mb-1 block h-1.5 rounded-full bg-accent/60" />
-        <span className={cx('mb-1 block h-1.5 rounded-full', c.faint)} />
-        <span className={cx('block h-1.5 rounded-full', c.faint)} />
+        <span className="mb-1 block h-1.5 rounded-full bg-text-muted/40" />
+        <span className="block h-1.5 rounded-full bg-text-muted/40" />
       </span>
       <span className="flex flex-1 flex-col gap-1.5 p-2">
-        <span className={cx('block h-2 w-1/2 rounded-full', c.text)} />
+        <span className="block h-2 w-1/2 rounded-full bg-text-primary/70" />
         <span className="flex flex-1 gap-1.5">
-          <span className={cx('flex-1 rounded-[3px] border p-1', c.surface, c.line)}>
-            <span className={cx('mb-1 block h-1.5 w-3/4 rounded-full', c.text)} />
-            <span className={cx('block h-1.5 w-1/2 rounded-full', c.faint)} />
+          <span className="flex-1 rounded-[3px] border border-border-subtle bg-bg-surface p-1">
+            <span className="mb-1 block h-1.5 w-3/4 rounded-full bg-text-secondary/50" />
+            <span className="block h-1.5 w-1/2 rounded-full bg-text-muted/40" />
           </span>
-          <span className={cx('flex-1 rounded-[3px] border p-1', c.surface, c.line)}>
-            <span className={cx('mb-1 block h-1.5 w-2/3 rounded-full', c.text)} />
+          <span className="flex-1 rounded-[3px] border border-border-subtle bg-bg-surface p-1">
+            <span className="mb-1 block h-1.5 w-2/3 rounded-full bg-text-secondary/50" />
             <span className="ml-auto mt-2 block h-2.5 w-1/2 rounded-[2px] bg-accent" />
           </span>
         </span>

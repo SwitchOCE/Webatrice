@@ -1,10 +1,11 @@
-import { useEffect, useRef, useState } from 'react';
+import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 
 import { LoadingState, usePreferences, useSettings } from '@app/hooks';
 import type { Preferences } from '@app/types';
 import { cx } from '@app/utils';
 
+import CommittedInput from './controls/CommittedInput';
 import { SelectBox, Switch, fieldBox, focusRing, textField } from './controls/fields';
 import Highlight from './Highlight';
 import type { SettingControl, SettingEntry } from './registry';
@@ -294,46 +295,5 @@ function ColorControl({ id, value, disabled, describedBy, onCommit }: ColorContr
         {shown ?? `#${value}`}
       </span>
     </span>
-  );
-}
-
-type CommittedInputProps = Omit<React.InputHTMLAttributes<HTMLInputElement>, 'value' | 'onChange'> & {
-  value: string;
-  onDraft?: (value: string) => void;
-  onCommit: (value: string) => void;
-};
-
-function CommittedInput({ value, onDraft, onCommit, ...props }: CommittedInputProps) {
-  const ref = useRef<HTMLInputElement>(null);
-  const [draft, setDraft] = useState<string | null>(null);
-  const commitRef = useRef(onCommit);
-  commitRef.current = onCommit;
-
-  useEffect(() => {
-    const input = ref.current;
-    if (!input) {
-      return;
-    }
-    const commit = () => {
-      setDraft(null);
-      commitRef.current(input.value);
-    };
-    input.addEventListener('change', commit);
-    return () => input.removeEventListener('change', commit);
-  }, []);
-
-  return (
-    <input
-      ref={ref}
-      {...props}
-      value={draft ?? value}
-      onChange={(e) => {
-        if (e.nativeEvent.type !== 'input') {
-          return;
-        }
-        setDraft(e.target.value);
-        onDraft?.(e.target.value);
-      }}
-    />
   );
 }
