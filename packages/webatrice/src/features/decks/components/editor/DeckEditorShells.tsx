@@ -6,12 +6,14 @@ import { AuthGuard } from '@app/components';
 import { Layout } from '@app/feature-wrappers/layout';
 import { RouteEnum } from '@app/types';
 
+import { deckEditorGridStyle } from './editorLayout';
+
 export function DeckEditorSkeleton({ loaded, total }: { loaded: number; total: number }) {
   const { t } = useTranslation();
   return (
     <Layout>
       <AuthGuard />
-      <div className="grid h-full min-h-0 bg-bg-base" style={{ gridTemplateColumns: '300px minmax(0,1fr) 316px' }}>
+      <div className="grid h-full min-h-0 bg-bg-base" style={deckEditorGridStyle(true)}>
         <div className="flex flex-col gap-3 border-r border-border-subtle bg-bg-surface p-pad">
           <div className="h-9 w-full animate-pulse rounded-ui bg-bg-elevated" />
           {Array.from({ length: 8 }).map((_, i) => (
@@ -34,7 +36,7 @@ export function DeckEditorSkeleton({ loaded, total }: { loaded: number; total: n
           </div>
         </div>
         <div className="flex flex-col gap-4 border-l border-border-subtle bg-bg-surface p-pad">
-          <div className="aspect-[5/7] w-[132px] animate-pulse rounded-[8px] bg-bg-elevated" />
+          <div className="aspect-[5/7] w-full animate-pulse rounded-[8px] bg-bg-elevated" />
           <div className="h-4 w-1/2 animate-pulse rounded bg-bg-elevated" />
           <div className="h-20 w-full animate-pulse rounded-ui bg-bg-elevated" />
           <div className="mt-auto flex items-center justify-center gap-2 text-xs italic text-text-muted">

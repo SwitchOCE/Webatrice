@@ -10,7 +10,7 @@ import {
   Stores,
 } from '@app/services';
 import { APP_USER } from '@app/types';
-import { cardDatabaseService } from '../../../../src/feature-widgets/card-import/CardDatabaseService';
+import { cardDatabaseService } from '../../../../src/services/cardDatabase/CardDatabaseService';
 import { resetDexie } from './resetDexie';
 
 const cardsXml = `<?xml version="1.0" encoding="UTF-8"?>

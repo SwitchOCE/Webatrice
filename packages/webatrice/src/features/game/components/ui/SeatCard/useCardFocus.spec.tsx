@@ -164,7 +164,10 @@ describe('useCardFocus', () => {
     const { preview } = renderZone();
     focus('2');
     fireEvent.keyDown(card('2'), { key: 'z' });
-    expect(preview.openBigPreview).toHaveBeenCalledWith({ name: 'Bears' });
+    expect(preview.openBigPreview).toHaveBeenCalledWith(
+      { name: 'Bears' },
+      expect.objectContaining({ left: expect.any(Number), bottom: expect.any(Number) }),
+    );
     fireEvent.keyUp(card('2'), { key: 'z' });
     expect(preview.closeBigPreview).toHaveBeenCalledTimes(1);
     fireEvent.keyDown(card('3'), { key: 'z' });

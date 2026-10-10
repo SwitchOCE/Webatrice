@@ -9,7 +9,7 @@ import {
   type Format,
   type Set,
   type Token,
-} from '@app/services';
+} from '../dexie/types';
 
 export const CardSourceId = {
   MAIN: 'main',

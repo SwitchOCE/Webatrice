@@ -26,6 +26,7 @@ export interface CardSearchDockProps {
   onAdd: (cardName: string, zone: CardSearchDockZone, providerId?: string) => void;
   onSelect?: (cardName: string) => void;
   onPreview?: (card: ScryfallSearchCard, providerId?: string) => void;
+  onHoverPreview?: (card: ScryfallSearchCard | null, providerId?: string) => void;
   onReady?: (api: CardSearchDockApi) => void;
   colorIdentity?: readonly string[];
   format?: string;
@@ -106,6 +107,7 @@ function ResultList({
   quantities,
   idFor,
   onHighlight,
+  onHover,
   onAdd,
   stale,
 }: {
@@ -114,6 +116,7 @@ function ResultList({
   quantities: Map<string, number>;
   idFor: (i: number) => string;
   onHighlight: (i: number) => void;
+  onHover?: (card: ScryfallSearchCard | null) => void;
   onAdd: (i: number, zone: DockZone) => void;
   stale: boolean;
 }) {
@@ -127,6 +130,8 @@ function ResultList({
             key={card.id}
             id={idFor(i)}
             aria-current={on || undefined}
+            onPointerEnter={onHover && (() => onHover(card))}
+            onPointerLeave={onHover && (() => onHover(null))}
             className={cx(
               'flex h-[calc(var(--row-h)+14px)] items-center gap-2.5 rounded-ui-sm px-1.5',
               on ? 'bg-accent/15 ring-1 ring-inset ring-accent/50' : 'hover:bg-bg-elevated',
@@ -161,6 +166,7 @@ function ResultGrid({
   quantities,
   idFor,
   onHighlight,
+  onHover,
   onAdd,
   stale,
 }: {
@@ -169,6 +175,7 @@ function ResultGrid({
   quantities: Map<string, number>;
   idFor: (i: number) => string;
   onHighlight: (i: number) => void;
+  onHover?: (card: ScryfallSearchCard | null) => void;
   onAdd: (i: number, zone: DockZone) => void;
   stale: boolean;
 }) {
@@ -184,6 +191,8 @@ function ResultGrid({
             key={card.id}
             id={idFor(i)}
             aria-current={on || undefined}
+            onPointerEnter={onHover && (() => onHover(card))}
+            onPointerLeave={onHover && (() => onHover(null))}
             className={cx('relative overflow-hidden rounded-ui', on ? 'ring-2 ring-accent' : 'ring-1 ring-border-subtle')}
           >
             <button
@@ -248,7 +257,7 @@ function ListMessage({ children }: { children: ReactNode }) {
 }
 
 export default function CardSearchDock({
-  onAdd, onSelect, onPreview, onReady, colorIdentity, format, deckCards, className,
+  onAdd, onSelect, onPreview, onHoverPreview, onReady, colorIdentity, format, deckCards, className,
 }: CardSearchDockProps) {
   const { t } = useTranslation();
   const dock = useCardSearchDock({ onAdd, onSelect, onPreview, colorIdentity, format, deckCards });
@@ -289,12 +298,16 @@ export default function CardSearchDock({
     { value: 'art', label: <ViewLabel icon={<LayoutGrid size={14} aria-hidden />} text={t('CardSearchDock.view.art')} /> },
   ];
 
+  const hoverResult = onHoverPreview
+    ? (card: ScryfallSearchCard | null) => onHoverPreview(card, card ? dock.printingChoices[card.name] : undefined)
+    : undefined;
   const resultsProps = {
     results: dock.results,
     highlight: dock.highlight,
     quantities: dock.quantities,
     idFor,
     onHighlight: dock.setHighlight,
+    onHover: hoverResult,
     onAdd: dock.add,
     stale: dock.stale,
   };

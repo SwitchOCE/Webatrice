@@ -29,6 +29,7 @@ export interface DeckCardGroupProps {
   deck: DeckCard[];
   selectedIndex: number;
   onSelect: (card: DeckCard) => void;
+  onPreview?: (card: DeckCard | null) => void;
   onInc: (index: number, delta: number) => void;
   onDelete: (index: number) => void;
   onSetCategory: (index: number, category: DeckCategory) => void;
@@ -61,6 +62,7 @@ export function DeckCardGroup({
   deck,
   selectedIndex,
   onSelect,
+  onPreview,
   onInc,
   onDelete,
   onSetCategory,
@@ -93,6 +95,7 @@ export function DeckCardGroup({
             card={deck[i]}
             selected={i === selectedIndex}
             onSelect={() => onSelect(deck[i])}
+            onPreview={onPreview && ((active) => onPreview(active ? deck[i] : null))}
             rowProps={grid?.getDeckRowProps(i)}
             onInc={(delta) => (delta < 0 && grid ? grid.decrementRow(i) : onInc(i, delta))}
             onDelete={() => (grid ? grid.removeRow(i) : onDelete(i))}

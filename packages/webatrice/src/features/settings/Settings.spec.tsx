@@ -188,7 +188,7 @@ describe('Settings', () => {
 
     fireEvent.input(slider, { target: { value: '40' } });
     expect(slider).toHaveValue('40');
-    expect(getPreferencesSnapshot().masterVolume).toBe(100);
+    expect(getPreferencesSnapshot().masterVolume).toBe(50);
     expect(test).not.toHaveBeenCalled();
 
     await act(async () => {

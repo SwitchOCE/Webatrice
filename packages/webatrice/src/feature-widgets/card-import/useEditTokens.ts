@@ -1,10 +1,14 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 
-import type { Token } from '@app/services';
+import {
+  cardDatabaseService,
+  CUSTOM_TOKEN_SET,
+  TokenNameConflictError,
+  writeCockatriceXml,
+  type Token,
+} from '@app/services';
 
-import { cardDatabaseService, CUSTOM_TOKEN_SET, TokenNameConflictError } from './CardDatabaseService';
 import { toCardDataError, type CardDataError } from './cardDataError';
-import { writeCockatriceXml } from './CockatriceXmlWriter';
 import { applyTokenData, createCustomToken, type TokenData } from './customTokens';
 
 export type AddTokenOutcome = 'added' | 'conflict';

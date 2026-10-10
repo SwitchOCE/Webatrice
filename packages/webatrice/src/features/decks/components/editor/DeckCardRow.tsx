@@ -14,6 +14,7 @@ export interface DeckCardRowProps {
   card: DeckCard;
   selected?: boolean;
   onSelect: () => void;
+  onPreview?: (active: boolean) => void;
   onInc: (delta: number) => void;
   onDelete: () => void;
   onSetCategory: (category: DeckCategory) => void;
@@ -30,6 +31,7 @@ export function DeckCardRow({
   card,
   selected = false,
   onSelect,
+  onPreview,
   onInc,
   onDelete,
   onSetCategory,
@@ -94,6 +96,8 @@ export function DeckCardRow({
         selected ? 'bg-accent/15 text-accent' : illegal ? 'bg-danger/10 hover:bg-danger/15' : 'text-text-primary hover:bg-bg-elevated',
       ].join(' ')}
       onClick={onSelect}
+      onPointerEnter={onPreview && (() => onPreview(true))}
+      onPointerLeave={onPreview && (() => onPreview(false))}
       onFocus={(event) => {
         if (event.target === event.currentTarget) {
           onSelect();

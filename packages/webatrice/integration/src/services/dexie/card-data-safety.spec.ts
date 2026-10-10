@@ -3,7 +3,7 @@ import { act, renderHook, waitFor } from '@testing-library/react';
 
 import { dexieService } from '@app/services';
 
-import { cardDatabaseService } from '../../../../src/feature-widgets/card-import/CardDatabaseService';
+import { cardDatabaseService } from '../../../../src/services/cardDatabase/CardDatabaseService';
 import { createCustomToken } from '../../../../src/feature-widgets/card-import/customTokens';
 import { useEditTokens } from '../../../../src/feature-widgets/card-import/useEditTokens';
 

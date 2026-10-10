@@ -32,6 +32,12 @@ export interface SoundOptions {
   volume: number;
 }
 
+export const MAX_SOUND_GAIN = 0.6;
+
+export function volumeToGain(percent: number): number {
+  return (Math.min(Math.max(percent, 0), 100) / 100) * MAX_SOUND_GAIN;
+}
+
 export function resolveSoundTheme(theme: string): string {
   return Object.prototype.hasOwnProperty.call(SOUND_THEMES, theme) ? theme : DEFAULT_SOUND_THEME;
 }
@@ -65,7 +71,7 @@ export class SoundEngine {
       audio.preload = 'auto';
       this.elements.set(url, audio);
     }
-    audio.volume = Math.min(Math.max(options.volume, 0), 100) / 100;
+    audio.volume = volumeToGain(options.volume);
     audio.currentTime = 0;
     this.current = audio;
     void audio.play()?.catch(() => undefined);

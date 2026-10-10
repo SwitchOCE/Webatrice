@@ -66,6 +66,7 @@ export interface CardSearchDockState {
   printingPrices: PriceLookup;
   printingName: string | null;
   chosenPrinting: string | undefined;
+  printingChoices: Readonly<Record<string, string>>;
   choosePrinting: (scryfallId: string | undefined) => void;
   gameChanger: GameChangerNote;
   keys: { main: string[]; side: string[] };
@@ -236,6 +237,7 @@ export function useCardSearchDock({
     printingPrices,
     printingName,
     chosenPrinting,
+    printingChoices: choices,
     choosePrinting,
     gameChanger,
     keys,

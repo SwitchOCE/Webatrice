@@ -6,10 +6,9 @@ const hoisted = vi.hoisted(() => ({
   isNameTaken: vi.fn(),
 }));
 
-vi.mock('./CardDatabaseService', () => ({
+vi.mock('@app/services', async (importOriginal) => ({
+  ...(await importOriginal<typeof import('@app/services')>()),
   cardDatabaseService: hoisted,
-  CUSTOM_TOKEN_SET: { name: { value: 'TK' } },
-  TokenNameConflictError: class extends Error {},
 }));
 
 import { createCustomToken } from './customTokens';

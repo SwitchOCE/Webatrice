@@ -1,4 +1,4 @@
-import { AllowedCount, Card, CardSourceRecords, Format, FormatException, Info, Set, Token, XmlNode } from '@app/services';
+import { AllowedCount, Card, CardSourceRecords, Format, FormatException, Info, Set, Token, XmlNode } from '../dexie/types';
 export interface ParsedCockatriceXml {
   info?: Info;
   formats?: Format[];

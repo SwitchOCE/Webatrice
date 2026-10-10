@@ -1,4 +1,4 @@
-import type { Card, Set, Token, XmlNode } from '@app/services';
+import type { Card, Set, Token, XmlNode } from '../dexie/types';
 
 function escapeXml(text: string): string {
   return text

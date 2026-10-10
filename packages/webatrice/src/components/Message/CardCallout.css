@@ -1,6 +1,6 @@
 .callout {
   font-weight: bold;
-  color: green;
+  color: rgb(var(--status-success));
 }
 
 .callout__name {

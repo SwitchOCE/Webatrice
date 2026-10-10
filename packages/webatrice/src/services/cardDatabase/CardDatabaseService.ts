@@ -1,23 +1,17 @@
-import { refreshCardDataPreferences } from '@app/hooks';
-import {
-  CardDataSettingsDTO,
-  CardSourceDTO,
-  dexieService,
-  enableAllUnknown,
-  markAllAsKnown,
-  reconcileSetPreferences,
-  SetPreferenceDTO,
-  type CardSource,
-  type CardSourceKind,
-  type CardSourceOrigin,
-  type CardSourcePayload,
-  type CardSourceRecords,
-  type Info,
-  type Set,
-  type SetPreference,
-  type Token,
-} from '@app/services';
-
+import { CardDataSettingsDTO, CardSourceDTO, SetPreferenceDTO } from '../dexie/DexieDTOs';
+import { dexieService } from '../dexie/DexieService';
+import type {
+  CardSource,
+  CardSourceKind,
+  CardSourceOrigin,
+  CardSourcePayload,
+  CardSourceRecords,
+  Info,
+  Set,
+  SetPreference,
+  Token,
+} from '../dexie/types';
+import { refreshCardDataPreferences } from './cardDataPreferences';
 import { cockatriceXmlParser } from './CockatriceXmlParser';
 import {
   CardSourceId,
@@ -27,6 +21,7 @@ import {
   sourceIdFor,
   sourceKindForFile,
 } from './mergeCardSources';
+import { enableAllUnknown, markAllAsKnown, reconcileSetPreferences } from './setPriority';
 
 export const CUSTOM_TOKEN_SET: Set = {
   name: { value: 'TK' },
@@ -123,9 +118,10 @@ class CardDatabaseService {
     return { cards, sets, tokens, formats };
   }
 
-  async addSources(inputs: readonly NewSourceInput[]): Promise<RebuildResult> {
+  async addSources(inputs: readonly NewSourceInput[], replacedIds: readonly string[] = []): Promise<RebuildResult> {
     const parsed = inputs.map(input => ({ ...input, records: cockatriceXmlParser.parseSource(input.xml, input.records) }));
-    return this.applySources(parsed, []);
+    replacedIds.forEach((id) => this.parsedCache.delete(id));
+    return this.applySources(parsed, replacedIds);
   }
 
   async removeSource(id: string): Promise<RebuildResult> {

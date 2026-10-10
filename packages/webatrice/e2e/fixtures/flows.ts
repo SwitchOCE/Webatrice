@@ -60,7 +60,7 @@ export async function registerAndReachRooms(page: Page): Promise<RegisteredSessi
   // Register against the e2e docker host — the RegisterForm mounts its
   // own KnownHosts and defaults `selectedHost` to undefined, so without
   // passing this label the dialog would pick the first entry
-  // (Chickatrice, seeded by the app) and register against the public
+  // (Rooster, seeded by the app) and register against the public
   // server instead of our local Servatrice.
   await login.register(user.username, user.password, { hostLabel: E2E_HOST_LABEL });
   await rooms.waitForRoomList();

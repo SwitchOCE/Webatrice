@@ -1,12 +1,27 @@
 import type { Config } from 'tailwindcss';
 import plugin from 'tailwindcss/plugin';
 
-/** Preflight is on: MUI's CssBaseline was removed alongside the theme,
- *  so preflight now provides the button/anchor/heading/box-sizing
- *  reset for the whole app. Matches fancy webatrice's setup exactly.
- *  Tokens mirror fancy webatrice's palette — colors are stored as
- *  space-separated RGB channels so <alpha-value> works:
- *  rgb(var(--x) / 0.5). See src/styles/tokens.css. */
+type FontSizeOptions = string | { lineHeight?: string; letterSpacing?: string; fontWeight?: string };
+type FontSizeValue = string | [string, FontSizeOptions];
+
+const ABSOLUTE_LENGTH = /^-?\d*\.?\d+(px|rem)$/;
+
+const scaled = (value: string): string => (ABSOLUTE_LENGTH.test(value) ? `calc(${value} * var(--fs-scale, 1))` : value);
+
+const fontSizeRule = (value: FontSizeValue, modifier: string | null) => {
+  const [fontSize, options] = Array.isArray(value) ? value : [value];
+  if (modifier) {
+    return { 'font-size': scaled(fontSize), 'line-height': scaled(modifier) };
+  }
+  const { lineHeight, letterSpacing, fontWeight } = typeof options === 'object' ? options : { lineHeight: options };
+  return {
+    'font-size': scaled(fontSize),
+    ...(lineHeight === undefined ? {} : { 'line-height': scaled(lineHeight) }),
+    ...(letterSpacing === undefined ? {} : { 'letter-spacing': letterSpacing }),
+    ...(fontWeight === undefined ? {} : { 'font-weight': fontWeight }),
+  };
+};
+
 export default {
   content: ['./index.html', './src/**/*.{ts,tsx}'],
   theme: {
@@ -43,6 +58,7 @@ export default {
           secondary: 'rgb(var(--text-secondary) / <alpha-value>)',
           muted: 'rgb(var(--text-muted) / <alpha-value>)',
           disabled: 'rgb(var(--text-disabled) / <alpha-value>)',
+          link: 'rgb(var(--text-link) / <alpha-value>)',
         },
         'on-accent': 'rgb(var(--text-on-accent) / <alpha-value>)',
         danger: 'rgb(var(--status-danger) / <alpha-value>)',
@@ -85,9 +101,21 @@ export default {
       },
     },
   },
+  corePlugins: { fontSize: false, lineHeight: false },
   plugins: [
     plugin(({ addVariant }) => {
       addVariant('light', ':root[data-theme="light"] &');
+    }),
+    plugin(({ matchUtilities, theme }) => {
+      matchUtilities<FontSizeValue>(
+        { text: (value, { modifier }) => fontSizeRule(value, modifier) },
+        {
+          values: theme('fontSize'),
+          modifiers: theme('lineHeight'),
+          type: ['absolute-size', 'relative-size', 'length', 'percentage'],
+        },
+      );
+      matchUtilities({ leading: (value: string) => ({ 'line-height': value }) }, { values: theme('lineHeight') });
     }),
   ],
 } satisfies Config;

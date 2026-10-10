@@ -267,7 +267,7 @@ export default function QuickFilterBar({ roomFilters, gametypeMap, passwordInBar
       <div className="flex flex-wrap items-center gap-2">
         <TextInput
           type="search"
-          wrapperClassName="w-[224px] shrink-0"
+          wrapperClassName="w-[16em] shrink-0"
           placeholder={t('QuickFilterBar.search')}
           aria-label={t('QuickFilterBar.search')}
           value={filters.gameNameFilter}

@@ -1,8 +1,7 @@
 import { useCallback, useEffect, useState } from 'react';
 
-import { DEFAULT_PICTURE_URL_TEMPLATES } from '@app/services';
+import { cardDatabaseService, DEFAULT_PICTURE_URL_TEMPLATES } from '@app/services';
 
-import { cardDatabaseService } from './CardDatabaseService';
 import { toCardDataError, type CardDataError } from './cardDataError';
 
 export interface PictureUrlTemplates {
