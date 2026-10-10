@@ -34,6 +34,7 @@ const MyReportsContent = () => {
           columns={MY_REPORT_COLUMNS}
           selectedId={selectedId}
           onSelect={select}
+          onEscape={() => select(null)}
           label={t('Reports.mine.title')}
           footer={(
             <span role="status" data-testid="report-list-status">{listStatusText(t, loadState, reports.length)}</span>

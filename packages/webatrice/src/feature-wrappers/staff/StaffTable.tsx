@@ -1,4 +1,4 @@
-import { useMemo, useState, type ReactNode } from 'react';
+import { useMemo, useState, type KeyboardEvent, type ReactNode } from 'react';
 import { ArrowDown, ArrowUp } from 'lucide-react';
 
 import { useGridRows } from '@app/hooks';
@@ -23,6 +23,7 @@ interface StaffTableProps<T> {
   rowKey: (row: T) => string;
   selectedKey?: string | null;
   onSelect?: (key: string) => void;
+  onEscape?: () => void;
   rowTestId?: (row: T) => string;
   status?: ReactNode;
   footer?: ReactNode;
@@ -41,6 +42,7 @@ export default function StaffTable<T>({
   rowKey,
   selectedKey = null,
   onSelect,
+  onEscape,
   rowTestId,
   status,
   footer,
@@ -63,6 +65,21 @@ export default function StaffTable<T>({
     onSelect: select,
     onActivate: select,
   });
+
+  const rowProps = (key: string) => {
+    const props = grid.getRowProps(key);
+    return {
+      ...props,
+      onKeyDown: (event: KeyboardEvent<HTMLElement>) => {
+        if (event.key === 'Escape' && onEscape) {
+          event.stopPropagation();
+          onEscape();
+          return;
+        }
+        props.onKeyDown(event);
+      },
+    };
+  };
 
   return (
     <div className={cx('flex min-h-0 min-w-0 flex-1 flex-col', className)}>
@@ -116,7 +133,7 @@ export default function StaffTable<T>({
               return (
                 <tr
                   key={key}
-                  {...(selectable ? grid.getRowProps(key) : {})}
+                  {...(selectable ? rowProps(key) : {})}
                   aria-selected={selectable ? selected : undefined}
                   data-testid={rowTestId?.(row)}
                   onClick={selectable ? () => select(key) : undefined}

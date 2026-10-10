@@ -65,7 +65,7 @@ describe('Administration permissions', () => {
 });
 
 describe('Administration lock', () => {
-  it('starts unlocked, and the console lock disables every function until Unlock', () => {
+  it('greys every function out while the console lock is on, until Unlock', () => {
     setup();
     expect(screen.queryByRole('button', { name: 'Administration.button.unlock' })).not.toBeInTheDocument();
 

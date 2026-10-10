@@ -198,19 +198,18 @@ describe('ReportQueue', () => {
     expect(moderator.reportList).toHaveBeenCalledTimes(2);
   });
 
-  it('resolves with an empty note, and dismisses with the note from the prompt', () => {
+  it('resolves without a note, and dismisses with the note from the prompt', () => {
     const { moderator, load, store, requestId, failed } = renderQueue();
     load();
     fireEvent.click(screen.getByTestId('report-row-2'));
-    fireEvent.click(button('Reports.queue.resolveWithNote'));
-    fireEvent.click(screen.getByRole('button', { name: 'Reports.queue.ok' }));
+    fireEvent.click(button('Reports.queue.resolve'));
     expect(moderator.reportResolve).toHaveBeenCalledWith(2, undefined, false, expect.any(String));
     act(() => {
       store.dispatch(failed('reportResolve', '2'));
     });
     expect(screen.getByTestId('report-action-status').textContent).toBe('Reports.queue.actionFailed');
 
-    fireEvent.click(screen.getByRole('button', { name: 'Reports.queue.dismiss', hidden: true }));
+    fireEvent.click(button('Reports.queue.dismiss'));
     fireEvent.change(screen.getByLabelText('Reports.queue.dismissNoteLabel'), { target: { value: ' duplicate ' } });
     fireEvent.click(screen.getByRole('button', { name: 'Reports.queue.ok' }));
     expect(moderator.reportResolve).toHaveBeenLastCalledWith(2, 'duplicate', true, expect.any(String));

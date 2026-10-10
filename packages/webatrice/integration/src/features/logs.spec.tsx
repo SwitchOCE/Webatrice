@@ -12,9 +12,9 @@ beforeEach(() => {
 
 describe('Logs (integration)', () => {
   it('renders the moderator log search form and the results tabs', () => {
-    const { container } = renderFeatureScreen(<Logs />);
+    renderFeatureScreen(<Logs />);
 
-    expect(container.querySelector('.moderator-logs')).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: 'Logs.pageTitle' })).toBeInTheDocument();
     expect(
       screen.getByRole('button', { name: /LogSearchForm\.button\.search/ }),
     ).toBeInTheDocument();

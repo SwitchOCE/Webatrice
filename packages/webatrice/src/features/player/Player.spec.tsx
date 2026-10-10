@@ -16,6 +16,10 @@ vi.mock('@cockatrice/datatrice/react', async (importOriginal) => {
 import { ModerationProvider } from '@app/feature-widgets/moderation';
 import { UserGamesProvider } from '@app/feature-widgets/user-games';
 import Player from './Player';
+import { setAdminLocked } from '@app/hooks';
+
+beforeEach(() => setAdminLocked(false));
+afterEach(() => setAdminLocked(true));
 import { ReportUserProvider } from '../../dialogs';
 
 beforeAll(() => {

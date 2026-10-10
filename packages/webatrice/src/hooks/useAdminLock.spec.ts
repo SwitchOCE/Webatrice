@@ -3,13 +3,13 @@ import { act, renderHook } from '@testing-library/react';
 import { setAdminLocked, useAdminLock, useAdminLocked } from './useAdminLock';
 
 afterEach(() => {
-  setAdminLocked(false);
+  setAdminLocked(true);
 });
 
 describe('useAdminLock', () => {
-  it('starts unlocked, as desktop opens the admin tab', () => {
+  it('starts locked until a deliberate unlock', () => {
     const { result } = renderHook(() => useAdminLocked());
-    expect(result.current).toBe(false);
+    expect(result.current).toBe(true);
   });
 
   it('shares one lock between the Administration page and every reader', () => {

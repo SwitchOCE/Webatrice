@@ -50,6 +50,7 @@ export interface ReportQueue {
   actions: ReportQueueActions;
   actionMessage: QueueActionMessage | null;
   assign: () => void;
+  resolve: () => void;
   promptResolve: (dismissed: boolean) => void;
   resolvePrompt: ResolvePrompt | null;
   submitResolvePrompt: (note: string) => void;
@@ -336,6 +337,7 @@ export function useReportQueue(): ReportQueue {
     actions,
     actionMessage,
     assign,
+    resolve: () => sendResolve(false, ''),
     promptResolve: (dismissed) => setResolvePrompt({ dismissed }),
     resolvePrompt,
     submitResolvePrompt: (note) => {

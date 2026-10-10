@@ -1,9 +1,11 @@
-import { useMemo } from 'react';
+import { useId, useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
 
 import type { ServerInfo_ChatMessage } from '@cockatrice/sockatrice/generated';
 import type { ServerStateLogs } from '@cockatrice/datatrice';
-import { sectionLabelClass, StaffDrawer, StaffTable, StaffTabs, type StaffColumn } from '@app/feature-wrappers/staff';
+import {
+  sectionLabelClass, StaffDrawer, StaffTable, staffTabIds, StaffTabs, type StaffColumn,
+} from '@app/feature-wrappers/staff';
 
 import { cx } from '@app/utils';
 
@@ -35,6 +37,7 @@ const mono = 'font-mono text-[12px]';
 const LogResults = ({ logs }: LogResultsProps) => {
   const { t } = useTranslation();
   const { value, handleChange, selectedKey, select } = useLogResults();
+  const tabsId = useId();
   const tab = LOG_TABS[value];
   const rows = useMemo(() => toRows(logs[tab]), [logs, tab]);
   const selected = rows.find((row) => row.key === selectedKey)?.log;
@@ -69,13 +72,18 @@ const LogResults = ({ logs }: LogResultsProps) => {
   return (
     <>
       <StaffTabs
-        tabs
+        tabsId={tabsId}
         label={t('Logs.title')}
         value={tab}
         onChange={(next) => handleChange(null, LOG_TABS.indexOf(next))}
         items={LOG_TABS.map((key) => ({ value: key, label: tabLabel(key) }))}
       />
-      <div className="flex min-h-0 flex-1" role="tabpanel" aria-label={t(TAB_LABEL_KEYS[tab])}>
+      <div
+        className="flex min-h-0 flex-1"
+        role="tabpanel"
+        id={staffTabIds(tabsId, tab).panel}
+        aria-labelledby={staffTabIds(tabsId, tab).tab}
+      >
         <StaffTable
           label={t(TAB_LABEL_KEYS[tab])}
           columns={columns}
@@ -83,6 +91,7 @@ const LogResults = ({ logs }: LogResultsProps) => {
           rowKey={(r) => r.key}
           selectedKey={selectedKey}
           onSelect={select}
+          onEscape={() => select(null)}
           status={rows.length === 0 ? t('Logs.empty') : undefined}
         />
         {selected && (

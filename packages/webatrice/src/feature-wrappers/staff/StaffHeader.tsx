@@ -1,8 +1,9 @@
-import type { ReactNode } from 'react';
+import { useRef, type KeyboardEvent, type ReactNode } from 'react';
 
 import { cx } from '@app/utils';
 
 import { focusRing } from './staffStyles';
+import { staffTabIds, tabKeyTarget } from './staffTabs';
 
 interface StaffHeaderProps {
   title: string;
@@ -33,23 +34,43 @@ interface StaffTabsProps<T extends string> {
   items: StaffTabItem<T>[];
   value: T;
   onChange: (value: T) => void;
-  tabs?: boolean;
+  tabsId?: string;
 }
 
-export function StaffTabs<T extends string>({ label, items, value, onChange, tabs = false }: StaffTabsProps<T>) {
+export function StaffTabs<T extends string>({ label, items, value, onChange, tabsId }: StaffTabsProps<T>) {
+  const tabs = tabsId !== undefined;
+  const buttons = useRef<(HTMLButtonElement | null)[]>([]);
+
+  const onKeyDown = (event: KeyboardEvent<HTMLButtonElement>, index: number) => {
+    const target = tabKeyTarget(event.key, index, items.length);
+    if (!tabs || target === null) {
+      return;
+    }
+    event.preventDefault();
+    onChange(items[target].value);
+    buttons.current[target]?.focus();
+  };
+
   return (
     <div
       role={tabs ? 'tablist' : 'group'}
       aria-label={label}
       className="flex shrink-0 items-center gap-1 overflow-x-auto border-b border-border-subtle px-5"
     >
-      {items.map((item) => (
+      {items.map((item, index) => (
         <button
           key={item.value}
+          ref={(element) => {
+            buttons.current[index] = element;
+          }}
           type="button"
           role={tabs ? 'tab' : undefined}
-          aria-pressed={tabs ? undefined : item.value === value}
+          id={tabs ? staffTabIds(tabsId, item.value).tab : undefined}
           aria-selected={tabs ? item.value === value : undefined}
+          aria-controls={tabs ? staffTabIds(tabsId, item.value).panel : undefined}
+          aria-pressed={tabs ? undefined : item.value === value}
+          tabIndex={tabs ? (item.value === value ? 0 : -1) : undefined}
+          onKeyDown={(event) => onKeyDown(event, index)}
           onClick={() => onChange(item.value)}
           className={cx(
             '-mb-px inline-flex h-9 shrink-0 items-center gap-1.5 border-b-2 px-2.5 text-[13px] font-medium',
