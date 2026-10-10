@@ -9,6 +9,7 @@ export type DeckHistoryReason =
   | { kind: 'banner'; name: string }
   | { kind: 'bannerCleared' }
   | { kind: 'tags' }
+  | { kind: 'playmat' }
   | { kind: 'addCard'; zone: DeckCategory; name: string }
   | { kind: 'adjustCard'; delta: number; name: string }
   | { kind: 'removeCard'; name: string }

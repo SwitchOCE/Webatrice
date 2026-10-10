@@ -5,6 +5,7 @@ import { useTranslation } from 'react-i18next';
 import { server } from '@cockatrice/datatrice';
 
 import { AuthGuard } from '@app/components';
+import { readDeckPlaymat } from '@app/services';
 import { AlertDialog } from '@app/dialogs';
 import { ShortcutScope, useShortcut } from '@app/feature-widgets/shortcuts';
 import { Layout } from '@app/feature-wrappers/layout';
@@ -27,6 +28,7 @@ import type { DecksLocationState } from './deckShortcuts';
 import { readDeckTags } from './deckTags';
 import { CardDetailDialog } from './dialogs/CardDetailDialog';
 import { ExportDeckDialog } from './dialogs/ExportDeckDialog';
+import { DeckPlaymatDialog } from './dialogs/DeckPlaymatDialog';
 import { PrintingPickerDialog, type PrintingRequest } from './dialogs/PrintingPickerDialog';
 import { ShareDeckDialog } from './dialogs/ShareDeckDialog';
 import { useDeckEditor } from './hooks/useDeckEditor';
@@ -47,6 +49,7 @@ const DeckEditor = () => {
   const [printingRequest, setPrintingRequest] = useState<PrintingRequest | null>(null);
   const [detailSnapshot, setDetailSnapshot] = useState<DeckCard | null>(null);
   const [exportOpen, setExportOpen] = useState(false);
+  const [playmatOpen, setPlaymatOpen] = useState(false);
   const { t } = useTranslation();
   const navigate = useNavigate();
   const isConnected = useAppSelector(server.Selectors.getIsConnected);
@@ -163,6 +166,11 @@ const DeckEditor = () => {
                 onChange={editor.setBanner}
               />
               <DeckTagsEditor tags={tags} onChange={editor.setTags} />
+              <button type="button" className="text-sm text-text-secondary" onClick={() => setPlaymatOpen(true)}>
+                {readDeckPlaymat(editor.deck.playmatXml)?.cardName
+                  ? t('DeckPlaymat.editNamed', { name: readDeckPlaymat(editor.deck.playmatXml)!.cardName })
+                  : t('DeckPlaymat.edit')}
+              </button>
               <DeckOnlineServices deck={editor.deck} />
             </>
           )}
@@ -228,6 +236,17 @@ const DeckEditor = () => {
             setDetailSnapshot(null);
           }}
           onAdd={(name) => editor.addCard(name)}
+        />
+      )}
+
+      {playmatOpen && (
+        <DeckPlaymatDialog
+          playmat={readDeckPlaymat(editor.deck.playmatXml)}
+          onClose={() => setPlaymatOpen(false)}
+          onSave={(playmat) => {
+            editor.setPlaymat(playmat);
+            setPlaymatOpen(false);
+          }}
         />
       )}
 

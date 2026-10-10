@@ -71,6 +71,34 @@ beforeEach(() => {
 });
 
 describe('useDeckList', () => {
+  it('retains a details save acknowledged after unmount for the next list visit', () => {
+    const webClient = createMockWebClient();
+    const preloadedState = { ...connectedState, server: { ...connectedState.server, backendDecks: deckTree() } };
+    const first = renderWithProviders(<Probe onDeckCreated={vi.fn()} />, { preloadedState, webClient });
+    act(() => first.store.dispatch(server.Actions.deckDownloaded({ deckId: 1, deck: COD('modern') })));
+    const onSaved = latest.detailsSaved;
+    first.unmount();
+    const updated = COD('modern').replace('<comments>', '<bannerCard providerId="id">Island</bannerCard><comments>');
+    act(() => onSaved(1, updated));
+    renderWithProviders(<Probe onDeckCreated={vi.fn()} />, { preloadedState, webClient });
+    expect(latest.documents.get(1)).toBe(updated);
+    expect(latest.summaries.get(1)?.bannerCard).toBe('Island');
+  });
+
+  it('retains the original document for details editing and refreshes the preview after saving', () => {
+    const { store } = setup();
+    act(() => store.dispatch(server.Actions.backendDecks({ deckList: deckTree() })));
+    const document = COD('modern');
+    act(() => store.dispatch(server.Actions.deckDownloaded({ deckId: 1, deck: document })));
+    expect(latest.documents.get(1)).toBe(document);
+    const updated = document.replace('<comments>', '<bannerCard providerId="id">Island</bannerCard><comments>');
+    act(() => latest.detailsSaved(1, updated));
+    expect(latest.documents.get(1)).toBe(updated);
+    expect(latest.summaries.get(1)?.bannerCard).toBe('Island');
+    act(() => latest.refresh());
+    expect(latest.documents.size).toBe(0);
+  });
+
   it('clears cached summaries and download requests at session end', () => {
     const webClient = createMockWebClient();
     const preloadedState = {

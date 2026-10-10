@@ -11,7 +11,7 @@ import { games } from '@cockatrice/datatrice';
 import { usePreference, useSettings } from '@app/hooks';
 import type { ZoneBackground, ZoneBackgroundZone } from '@app/types';
 
-import PlaymatCropEditor from '../playmats/PlaymatCropEditor';
+import { PlaymatCropEditor } from '@app/components';
 import type { CustomControlProps } from '../registry';
 
 import '../playmats/PlaymatSettingsPanel.css';

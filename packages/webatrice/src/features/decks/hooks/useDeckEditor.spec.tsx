@@ -1,9 +1,9 @@
 import { act, waitFor } from '@testing-library/react';
 
-import { server } from '@cockatrice/datatrice';
+import { server, games } from '@cockatrice/datatrice';
 import { Response_ResponseCode } from '@cockatrice/sockatrice/generated';
 import { WebsocketTypes } from '@cockatrice/sockatrice/types';
-import { lookupCard } from '@app/services';
+import { lookupCard, parseCod, readDeckPlaymat } from '@app/services';
 
 import { connectedState, createMockWebClient, renderWithProviders } from '../../../__test-utils__';
 import { clearDeckEditorCache, getCachedDeck, setCachedDeck, setDraftDocument } from '../deckEditorCache';
@@ -59,6 +59,27 @@ beforeEach(() => {
 });
 
 describe('useDeckEditor', () => {
+  it('authors, removes and restores playmats through editor history and persistence', async () => {
+    const { store, webClient, requestId } = setup();
+    act(() => store.dispatch(server.Actions.deckDownloaded({ deckId: 5, deck: COD, requestId: requestId() })));
+    await waitFor(() => expect(latest.loading).toBe(false));
+    const playmat = { cardName: 'Island', cardProviderId: 'id', params: { ...games.DEFAULT_PLAYMAT_PARAMS, zoom: 2 } };
+    act(() => latest.setPlaymat(playmat));
+    expect(readDeckPlaymat(latest.deck!.playmatXml)).toEqual(playmat);
+    expect(latest.history.undo.at(-1)?.reason).toEqual({ kind: 'playmat' });
+    act(() => latest.setPlaymat(null));
+    expect(readDeckPlaymat(latest.deck!.playmatXml)).toBeNull();
+    act(() => latest.undo());
+    expect(readDeckPlaymat(latest.deck!.playmatXml)).toEqual(playmat);
+    act(() => latest.redo());
+    expect(readDeckPlaymat(latest.deck!.playmatXml)).toBeNull();
+    act(() => latest.undo());
+    act(() => latest.flushSave());
+    const command = vi.mocked(webClient.request.session.deckUpdate).mock.calls.at(-1)!;
+    expect(readDeckPlaymat(parseCod(command[1]).playmatXml)).toEqual(playmat);
+    act(() => command[4]!(null));
+  });
+
   it('downloads the deck, hydrates it and seeds the session cache', async () => {
     const { webClient, store, requestId } = setup();
     expect(webClient.request.session.deckDownload).toHaveBeenCalledWith(5, expect.any(String));

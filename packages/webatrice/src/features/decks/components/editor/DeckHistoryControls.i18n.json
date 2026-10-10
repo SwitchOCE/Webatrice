@@ -17,6 +17,7 @@
       "banner": "Set banner card to {name}",
       "bannerCleared": "Cleared banner card",
       "tags": "Tags changed",
+      "playmat": "Playmat changed",
       "addCard": "Added ({zone}): {name}",
       "added": "Added {count} × \"{name}\"",
       "removed": "Removed {count} × \"{name}\"",

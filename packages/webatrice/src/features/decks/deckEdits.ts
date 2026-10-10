@@ -1,3 +1,5 @@
+import type { games } from '@cockatrice/datatrice';
+import { readDeckPlaymat, writeDeckPlaymat } from '@app/services';
 import type { BracketAssessment, DeckCategory } from '@app/types';
 import { imageCandidatesOf, primaryImageUri } from '@app/services';
 
@@ -32,6 +34,14 @@ export function setDeckTags(deck: HydratedDeck, tags: readonly string[]): Hydrat
     return deck;
   }
   return { ...deck, tagsXml: writeDeckTags(deck.tagsXml, tags) };
+}
+
+export function setDeckPlaymat(deck: HydratedDeck, playmat: games.Playmat | null): HydratedDeck {
+  const playmatXml = writeDeckPlaymat(playmat);
+  if (writeDeckPlaymat(readDeckPlaymat(deck.playmatXml)) === playmatXml) {
+    return deck;
+  }
+  return { ...deck, playmatXml };
 }
 
 export function setDeckPriceCache(

@@ -3,7 +3,7 @@ import { useTranslation } from 'react-i18next';
 import Slider from '@mui/material/Slider';
 
 import { type games } from '@cockatrice/datatrice';
-import { PlaymatImage } from '@app/components';
+import PlaymatImage from '../PlaymatImage/PlaymatImage';
 import { type Size } from '@app/utils';
 
 const PREVIEW: Size = { width: 320, height: 120 };
@@ -36,12 +36,13 @@ export default function PlaymatCropEditor({ playmat, onChange }: PlaymatCropEdit
   ];
 
   return (
-    <div className="playmat-settings__crop" role="group" aria-label={t('PlaymatSettings.crop.title')}>
-      <div className="playmat-settings__preview" style={PREVIEW} aria-label={t('PlaymatSettings.crop.preview')} role="img">
+    <div className="flex flex-col gap-1 py-2 pl-4" role="group" aria-label={t('PlaymatSettings.crop.title')}>
+      <div className="relative overflow-hidden rounded bg-bg-base" style={PREVIEW}
+        aria-label={t('PlaymatSettings.crop.preview')} role="img">
         <PlaymatImage playmat={{ ...playmat, params }} area={PREVIEW} />
       </div>
       {sliders.map(({ key, label, min, max, step, format }) => (
-        <label key={key} className="playmat-settings__slider">
+        <label key={key} className="grid grid-cols-[160px_1fr] items-center gap-3 max-w-[480px]">
           <span>{label}</span>
           <Slider
             size="small"

@@ -1,3 +1,5 @@
+import { readDeckPlaymat } from '@app/services';
+
 import { readDeckTags } from './deckTags';
 import type { HydratedDeck } from './types';
 
@@ -105,11 +107,7 @@ export function formatShareExpiry(unixSeconds: bigint | number, locale?: string)
 export function isBlankDeck(
   deck: Pick<HydratedDeck, 'name' | 'meta' | 'cards' | 'bannerCard' | 'bannerCardProviderId' | 'playmatXml' | 'tagsXml'>,
 ): boolean {
-  const playmat = deck.playmatXml
-    ? new DOMParser().parseFromString(deck.playmatXml, 'application/xml').documentElement
-    : null;
-  const hasPlaymatCard = playmat?.tagName === 'playmatCard'
-    && !!(playmat.textContent || playmat.getAttribute('providerId'));
+  const hasPlaymatCard = readDeckPlaymat(deck.playmatXml) != null;
   return deck.cards.length === 0
     && !deck.name
     && !deck.meta.description

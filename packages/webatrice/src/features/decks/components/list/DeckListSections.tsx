@@ -5,10 +5,13 @@ import type { FlatDeck } from '../../deckTree';
 import { DECK_LIST_ROW_ATTRIBUTE } from '../../hooks/useDeckDeleteFocus';
 import type { DeckListViewMode } from '../../hooks/useDeckListViewMode';
 import { DeckRow } from './DeckRow';
+import { DeckStorageDetails } from './DeckStorageDetails';
 
 export interface DeckListSectionsProps {
   sections: DeckListSection[];
   summaries: ReadonlyMap<number, DeckSummary>;
+  documents?: ReadonlyMap<number, string>;
+  onDetailsSaved?: (deckId: number, xml: string) => void;
   mode: DeckListViewMode;
   onOpen: (deck: FlatDeck) => void;
   onDelete: (deck: FlatDeck) => void;
@@ -21,6 +24,8 @@ export interface DeckListSectionsProps {
 export function DeckListSections({
   sections,
   summaries,
+  documents,
+  onDetailsSaved,
   mode,
   onOpen,
   onDelete,
@@ -51,6 +56,10 @@ export function DeckListSections({
                   onDownload={onDownload && (() => onDownload(deck))}
                   onShare={onShare && (() => onShare(deck))}
                   onTogglePublic={onTogglePublic && (() => onTogglePublic(deck))}
+                  details={documents?.has(deck.id) && onDetailsSaved && (
+                    <DeckStorageDetails deckId={deck.id} xml={documents.get(deck.id)!}
+                      colorIdentity={deck.colorIdentity} onSaved={onDetailsSaved} />
+                  )}
                 />
               </li>
             ))}

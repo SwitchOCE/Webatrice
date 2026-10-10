@@ -131,8 +131,8 @@ export function createDeckSaveRegistry(store: SessionStore, client: WebClient) {
         publish(entry, { lastFailure: null });
       }
     },
-    saveNow(deckId: number, deck: HydratedDeck): Promise<boolean> {
-      registry.save(deckId, deck);
+    saveNow(deckId: number, deck: HydratedDeck, document?: { xml: string; colorIdentity?: string }): Promise<boolean> {
+      registry.save(deckId, deck, document);
       return registry.waitForSave(deckId);
     },
     waitForSave(deckId: number): Promise<boolean> {
@@ -145,7 +145,7 @@ export function createDeckSaveRegistry(store: SessionStore, client: WebClient) {
       }
       return new Promise((resolve) => entry.waiters.add(resolve));
     },
-    save(deckId: number, deck: HydratedDeck) {
+    save(deckId: number, deck: HydratedDeck, document?: { xml: string; colorIdentity?: string }) {
       syncSession();
       const entry = entries.get(deckId);
       if (!entry) {
@@ -163,7 +163,7 @@ export function createDeckSaveRegistry(store: SessionStore, client: WebClient) {
       const requestId = ++nextRequest;
       publish(entry, { pending: new Map(pending).set(requestId, signature) });
       client.request.session.deckUpdate(
-        deckId, serializeDeckForSave(deck), undefined, deckColorIdentity(deck.cards),
+        deckId, document?.xml ?? serializeDeckForSave(deck), undefined, document?.colorIdentity ?? deckColorIdentity(deck.cards),
         (error) => {
           if (entries.get(deckId) !== entry || !entry.snapshot.pending.has(requestId)) {
             return;

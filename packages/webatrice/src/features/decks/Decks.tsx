@@ -194,6 +194,8 @@ function Decks() {
               <DeckListSections
                 sections={list.sections}
                 summaries={list.summaries}
+                documents={list.documents}
+                onDetailsSaved={list.detailsSaved}
                 mode={viewMode}
                 onOpen={(deck) => openDeckById(deck.id)}
                 onDelete={setPendingDelete}

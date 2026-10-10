@@ -1590,6 +1590,7 @@
       "banner": "Set banner card to {name}",
       "bannerCleared": "Cleared banner card",
       "tags": "Tags changed",
+      "playmat": "Playmat changed",
       "addCard": "Added ({zone}): {name}",
       "added": "Added {count} × \"{name}\"",
       "removed": "Removed {count} × \"{name}\"",
@@ -1678,6 +1679,13 @@
     "downloadDeck": "Download .cod file",
     "downloadDeckNamed": "Download {name}",
     "empty": "This folder is empty."
+  },
+  "DeckStorageDetails": {
+    "editTags": "Edit tags ...",
+    "ok": "OK",
+    "saving": "Saving deck details...",
+    "loadFailed": "Could not load deck details.",
+    "saveFailed": "Could not save deck details. Please try again."
   },
   "CardSearch": {
     "label": "Search cards",
@@ -1796,6 +1804,21 @@
       "tooLong": "This name makes the folder path too long for the server.",
       "exists": "A folder with this name already exists here."
     }
+  },
+  "DeckPlaymat": {
+    "title": "Edit Playmat",
+    "ok": "OK",
+    "numeric": "Show numeric controls",
+    "invalidParams": "Enter crop values within the displayed limits.",
+    "nameTooLong": "Card names must contain at most {max} characters.",
+    "edit": "Edit Playmat...",
+    "editNamed": "Edit Playmat ({name})",
+    "card": "Card name",
+    "printing": "Printing",
+    "defaultPrinting": "Default printing",
+    "remove": "Remove Playmat",
+    "unknownCard": "Card not found.",
+    "lookupFailed": "Could not look up this card. Please try again."
   },
   "DeleteDeckDialog": {
     "title": "Delete deck?",

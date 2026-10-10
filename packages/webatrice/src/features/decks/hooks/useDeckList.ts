@@ -15,10 +15,12 @@ import { groupDecksByFormat, summariesEqual, summarizeDeck, type DeckListSection
 import type { FlatDeck } from '../deckTree';
 
 const summaryCache: Map<number, DeckSummary> = new Map();
+const documentCache: Map<number, string> = new Map();
 const summaryRequestedCache: Set<number> = new Set();
 
 export function clearDecksListCache(): void {
   summaryCache.clear();
+  documentCache.clear();
   summaryRequestedCache.clear();
 }
 onSessionEnd(clearDecksListCache);
@@ -26,6 +28,7 @@ onSessionEnd(clearDecksListCache);
 function forgetDeck(deckId: number): void {
   deleteCachedDeck(deckId);
   summaryCache.delete(deckId);
+  documentCache.delete(deckId);
   summaryRequestedCache.delete(deckId);
 }
 
@@ -51,6 +54,8 @@ export interface UseDeckList {
   decks: FlatDeck[];
   sections: DeckListSection[];
   summaries: ReadonlyMap<number, DeckSummary>;
+  documents: ReadonlyMap<number, string>;
+  detailsSaved: (deckId: number, xml: string) => void;
   folderPaths: string[];
   decksUnder: (path: string) => FlatDeck[];
   deckTotal: number;
@@ -74,6 +79,7 @@ export function useDeckList({ onDeckCreated, folderPath = '' }: {
   const [storageError, setStorageError] = useState<string | null>(null);
 
   const [summaries, setSummaries] = useState<Map<number, DeckSummary>>(() => new Map(summaryCache));
+  const [documents, setDocuments] = useState(() => new Map(documentCache));
   const summaryRequestedRef = useRef<Set<number>>(new Set(summaryRequestedCache));
 
   const pendingMovesRef = useRef<Map<number, { deck: FlatDeck; targetPath: string; awaitingList?: boolean }>>(new Map());
@@ -83,6 +89,8 @@ export function useDeckList({ onDeckCreated, folderPath = '' }: {
     summaryRequestedRef.current = new Set();
     summaryRequestedCache.clear();
     summaryCache.clear();
+    documentCache.clear();
+    setDocuments(new Map());
     clearDeckEditorCache();
     setSummaries(new Map());
   }, []);
@@ -248,6 +256,8 @@ export function useDeckList({ onDeckCreated, folderPath = '' }: {
       }
       try {
         const next = summarizeDeck(parseCod(payload.deck));
+        documentCache.set(payload.deckId, payload.deck);
+        setDocuments((prev) => new Map(prev).set(payload.deckId, payload.deck));
         summaryCache.set(payload.deckId, next);
         setSummaries((prev) => {
           const existing = prev.get(payload.deckId);
@@ -291,6 +301,14 @@ export function useDeckList({ onDeckCreated, folderPath = '' }: {
     decks: folder.decks,
     sections,
     summaries,
+    documents,
+    detailsSaved: (deckId, xml) => {
+      const summary = summarizeDeck(parseCod(xml));
+      documentCache.set(deckId, xml);
+      summaryCache.set(deckId, summary);
+      setDocuments((prev) => new Map(prev).set(deckId, xml));
+      setSummaries((prev) => new Map(prev).set(deckId, summary));
+    },
     folderPaths,
     decksUnder: (path: string) => decksUnderFolder(root, path),
     deckTotal,

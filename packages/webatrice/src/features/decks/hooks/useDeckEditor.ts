@@ -2,7 +2,7 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { generatePath, useNavigate } from 'react-router-dom';
 
-import { server } from '@cockatrice/datatrice';
+import { server, type games } from '@cockatrice/datatrice';
 import type { CommandFailedPayload } from '@cockatrice/datatrice';
 import { useWebClient } from '@cockatrice/datatrice/react';
 import { useCommandFailureMessage, useReduxEffect, useRequestTracker } from '@app/hooks';
@@ -35,6 +35,7 @@ import {
   setDeckFormat,
   setDeckPriceCache,
   setDeckTags,
+  setDeckPlaymat,
   type CardPrinting,
 } from '../deckEdits';
 import { countDeckCards } from '../deckGrouping';
@@ -69,6 +70,7 @@ export interface UseDeckEditor {
   setFormat: (format: string) => void;
   setBanner: (banner: BannerCandidate | null) => void;
   setTags: (tags: readonly string[]) => void;
+  setPlaymat: (playmat: games.Playmat | null) => void;
   setPriceCache: (priceUsd: number | undefined, priceMissingCount: number | undefined) => void;
   setBracketAssessment: (assessment: BracketAssessment | undefined) => void;
   setPrinting: (index: number, printing: CardPrinting) => void;
@@ -395,6 +397,10 @@ export function useDeckEditor(deckId: number | null, draftToken: string | null =
     (tags: readonly string[]) => applyEdit((d) => setDeckTags(d, tags), { kind: 'tags' }),
     [applyEdit],
   );
+  const setPlaymat = useCallback(
+    (playmat: games.Playmat | null) => applyEdit((d) => setDeckPlaymat(d, playmat), { kind: 'playmat' }),
+    [applyEdit],
+  );
   const setPriceCache = useCallback(
     (priceUsd: number | undefined, priceMissingCount: number | undefined) =>
       applyEdit((d) => setDeckPriceCache(d, priceUsd, priceMissingCount)),
@@ -481,6 +487,7 @@ export function useDeckEditor(deckId: number | null, draftToken: string | null =
     setFormat,
     setBanner,
     setTags,
+    setPlaymat,
     setPriceCache,
     setBracketAssessment,
     setPrinting,

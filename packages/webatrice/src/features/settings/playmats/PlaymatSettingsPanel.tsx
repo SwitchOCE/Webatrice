@@ -10,7 +10,7 @@ import TextField from '@mui/material/TextField';
 import { games } from '@cockatrice/datatrice';
 import { CardDTO } from '@app/services';
 import { PLAYMAT_NAME_MAX_LENGTH } from '@app/types';
-import { SelectField } from '@app/components';
+import { PlaymatCropEditor, SelectField } from '@app/components';
 import {
   PlaymatFallbackBehavior,
   PlaymatMode,
@@ -22,7 +22,6 @@ import {
 } from '@app/hooks';
 
 import type { CustomControlProps } from '../registry';
-import PlaymatCropEditor from './PlaymatCropEditor';
 
 import './PlaymatSettingsPanel.css';
 

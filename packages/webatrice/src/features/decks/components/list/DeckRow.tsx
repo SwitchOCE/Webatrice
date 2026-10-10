@@ -1,3 +1,4 @@
+import type { ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Download, FileText, FolderInput, Globe, Share2, Trash2 } from 'lucide-react';
 
@@ -19,6 +20,7 @@ export interface DeckRowProps {
   onDownload?: () => void;
   onShare?: () => void;
   onTogglePublic?: () => void;
+  details?: ReactNode;
 }
 
 export function DeckRow(props: DeckRowProps) {
@@ -124,7 +126,7 @@ function DeckRowStorageActions({ deck, onMove, onDownload, onShare, onTogglePubl
   );
 }
 
-function DeckRowCard({ deck, summary, onOpen, onDelete, onMove, onDownload, onShare, onTogglePublic }: DeckRowProps) {
+function DeckRowCard({ deck, summary, onOpen, onDelete, onMove, onDownload, onShare, onTogglePublic, details }: DeckRowProps) {
   const { t } = useTranslation();
   const artUrl = deckArtUrl(summary);
   const bracket = summary?.bracketLevel;
@@ -190,6 +192,7 @@ function DeckRowCard({ deck, summary, onOpen, onDelete, onMove, onDownload, onSh
         </div>
       </button>
 
+      {details && <div className="relative px-5 pb-4">{details}</div>}
       <div className="absolute top-3 right-3 z-10 flex items-center gap-1">
         <DeckRowStorageActions
           deck={deck}
@@ -223,7 +226,7 @@ function DeckRowCard({ deck, summary, onOpen, onDelete, onMove, onDownload, onSh
   );
 }
 
-function DeckRowCompact({ deck, summary, onOpen, onDelete, onMove, onDownload, onShare, onTogglePublic }: DeckRowProps) {
+function DeckRowCompact({ deck, summary, onOpen, onDelete, onMove, onDownload, onShare, onTogglePublic, details }: DeckRowProps) {
   const { t } = useTranslation();
   const artUrl = deckArtUrl(summary);
   const bracket = summary?.bracketLevel;
@@ -231,7 +234,7 @@ function DeckRowCompact({ deck, summary, onOpen, onDelete, onMove, onDownload, o
   return (
     <div
       className={[
-        'group flex items-center gap-3 rounded-md bg-bg-surface border',
+        'group flex flex-wrap items-center gap-3 rounded-md bg-bg-surface border',
         'border-border-subtle hover:border-border-strong transition-colors',
       ].join(' ')}
     >
@@ -300,6 +303,7 @@ function DeckRowCompact({ deck, summary, onOpen, onDelete, onMove, onDownload, o
       >
         <Trash2 size={14} />
       </button>
+      {details && <div className="w-full px-3 pb-3">{details}</div>}
     </div>
   );
 }

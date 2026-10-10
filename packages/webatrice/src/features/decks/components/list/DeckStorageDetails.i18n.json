@@ -1,0 +1,9 @@
+{
+  "DeckStorageDetails": {
+    "editTags": "Edit tags ...",
+    "ok": "OK",
+    "saving": "Saving deck details...",
+    "loadFailed": "Could not load deck details.",
+    "saveFailed": "Could not save deck details. Please try again."
+  }
+}

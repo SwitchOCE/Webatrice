@@ -42,25 +42,3 @@
   text-overflow: ellipsis;
   white-space: nowrap;
 }
-
-.playmat-settings__crop {
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-  padding: 8px 0 8px 16px;
-}
-
-.playmat-settings__preview {
-  position: relative;
-  overflow: hidden;
-  border-radius: 4px;
-  background: #0d1117;
-}
-
-.playmat-settings__slider {
-  display: grid;
-  grid-template-columns: 160px 1fr;
-  align-items: center;
-  gap: 12px;
-  max-width: 480px;
-}
