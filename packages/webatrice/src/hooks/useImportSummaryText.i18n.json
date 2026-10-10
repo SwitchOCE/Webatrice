@@ -4,7 +4,7 @@
       "replays": "{count, plural, =0 {No replays were imported.} one {Imported # replay.} other {Imported # replays.}}",
       "cardFiles": "{count, plural, =0 {No card files were imported.} one {Imported # card file.} other {Imported # card files.}}"
     },
-    "duplicates": "{count, plural, one {Skipped # duplicate that is already here.} other {Skipped # duplicates that are already here.}}",
+    "duplicates": "{count, plural, one {Skipped # duplicate.} other {Skipped # duplicates.}}",
     "problem": {
       "unsupported": {
         "replays": "Not replay (.cor) files, skipped: {names}",
