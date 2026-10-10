@@ -1,4 +1,4 @@
-import { fireEvent, screen } from '@testing-library/react';
+import { fireEvent, screen, within } from '@testing-library/react';
 import type { ServerStateLogs } from '@cockatrice/datatrice';
 import { createInstance } from 'i18next';
 import ICU from 'i18next-icu';
@@ -55,9 +55,9 @@ describe('LogResults', () => {
       <I18nextProvider i18n={i18n}><LogResults logs={logs} /></I18nextProvider>,
       { preloadedState: disconnectedState },
     );
-    expect(screen.getAllByRole('tab')[0]).toHaveAccessibleName('Room Logs [2]');
-    expect(screen.getAllByRole('tab')[1]).toHaveAccessibleName('Game Logs');
-    expect(screen.getAllByRole('tab')[2]).toHaveAccessibleName('Chat Logs');
+    expect(screen.getAllByRole('tab')[0]).toHaveAccessibleName('Room logs (2)');
+    expect(screen.getAllByRole('tab')[1]).toHaveAccessibleName('Game logs');
+    expect(screen.getAllByRole('tab')[2]).toHaveAccessibleName('Chat logs');
   });
 
   it('switches to the games tab when clicked', () => {
@@ -70,5 +70,22 @@ describe('LogResults', () => {
 
     fireEvent.click(screen.getAllByRole('tab')[1]);
     expect(screen.getByText('game-log-entry')).toBeInTheDocument();
+  });
+
+  it('shows the whole message in the drawer for the chosen row and closes it again', () => {
+    const logs: ServerStateLogs = {
+      room: [makeMessage({ senderName: 'mallory', message: 'a long message', targetId: 'room-7' })],
+      game: [],
+      chat: [],
+    };
+    renderWithProviders(<LogResults logs={logs} />, { preloadedState: disconnectedState });
+
+    expect(screen.queryByRole('complementary', { name: 'Logs.details' })).toBeNull();
+    fireEvent.click(screen.getByText('a long message'));
+    const drawer = within(screen.getByRole('complementary', { name: 'Logs.details' }));
+    expect(drawer.getByText('room-7')).toBeInTheDocument();
+    expect(drawer.getByText('a long message')).toBeInTheDocument();
+    fireEvent.click(drawer.getByRole('button', { name: 'Staff.drawer.close' }));
+    expect(screen.queryByRole('complementary', { name: 'Logs.details' })).toBeNull();
   });
 });

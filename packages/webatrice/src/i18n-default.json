@@ -3049,24 +3049,24 @@
   "LogSearchForm": {
     "group": {
       "filters": "Filters",
-      "locations": "Log Locations",
-      "dateRange": "Date Range",
-      "maximumResults": "Maximum Results"
+      "locations": "Log locations",
+      "dateRange": "Date range",
+      "results": "Results"
     },
     "label": {
-      "userName": "Username",
-      "ipAddress": "IP Address",
-      "gameName": "Game Name",
-      "gameId": "GameID",
+      "userName": "User name",
+      "ipAddress": "IP address",
+      "gameName": "Game name",
+      "gameId": "Game ID",
       "message": "Message",
-      "rooms": "Main Room",
-      "games": "Game Room",
-      "chats": "Private Chat",
-      "pastDays": "Past X Days",
+      "rooms": "Main room",
+      "games": "Game room",
+      "chats": "Private chat",
+      "pastDays": "Past days",
       "today": "Today",
-      "lastHour": "Last Hour",
+      "lastHour": "Last hour",
       "days": "Days",
-      "maximumResults": "Maximum Results"
+      "maximumResults": "At most"
     },
     "description": "At least one filter is required. The more information you put in, the more specific your results will be.",
     "error": {
@@ -3074,23 +3074,23 @@
       "noDays": "You have to select a valid number of days to locate."
     },
     "button": {
-      "search": "Get User Logs",
-      "clear": "Clear Filters"
+      "search": "Get user logs",
+      "clear": "Clear filters"
     }
   },
   "Logs": {
     "tab": {
-      "rooms": "Room Logs",
-      "games": "Game Logs",
-      "chats": "Chat Logs"
+      "rooms": "Room logs",
+      "games": "Game logs",
+      "chats": "Chat logs"
     },
     "column": {
       "time": "Time",
-      "senderName": "Sender Name",
+      "senderName": "Sender",
       "senderIp": "Sender IP",
       "message": "Message",
       "targetId": "Target ID",
-      "targetName": "Target Name"
+      "targetName": "Target"
     },
     "notice": {
       "title": "Message History",
@@ -3098,7 +3098,11 @@
       "failed": "Failed to collect message history information."
     },
     "title": "Log Results",
-    "tabWithCount": "{tab} [{count}]"
+    "tabWithCount": "{tab} ({count})",
+    "pageTitle": "Logs",
+    "subtitle": "Search room, game and private chat history.",
+    "empty": "No messages to show. Search to see results.",
+    "details": "Message details"
   },
   "ModerationPage": {
     "search": {

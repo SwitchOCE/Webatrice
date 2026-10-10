@@ -33,16 +33,23 @@ interface StaffTabsProps<T extends string> {
   items: StaffTabItem<T>[];
   value: T;
   onChange: (value: T) => void;
+  tabs?: boolean;
 }
 
-export function StaffTabs<T extends string>({ label, items, value, onChange }: StaffTabsProps<T>) {
+export function StaffTabs<T extends string>({ label, items, value, onChange, tabs = false }: StaffTabsProps<T>) {
   return (
-    <div role="group" aria-label={label} className="flex shrink-0 items-center gap-1 overflow-x-auto border-b border-border-subtle px-5">
+    <div
+      role={tabs ? 'tablist' : 'group'}
+      aria-label={label}
+      className="flex shrink-0 items-center gap-1 overflow-x-auto border-b border-border-subtle px-5"
+    >
       {items.map((item) => (
         <button
           key={item.value}
           type="button"
-          aria-pressed={item.value === value}
+          role={tabs ? 'tab' : undefined}
+          aria-pressed={tabs ? undefined : item.value === value}
+          aria-selected={tabs ? item.value === value : undefined}
           onClick={() => onChange(item.value)}
           className={cx(
             '-mb-px inline-flex h-9 shrink-0 items-center gap-1.5 border-b-2 px-2.5 text-[13px] font-medium',

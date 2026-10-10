@@ -1,17 +1,17 @@
 {
   "Logs": {
     "tab": {
-      "rooms": "Room Logs",
-      "games": "Game Logs",
-      "chats": "Chat Logs"
+      "rooms": "Room logs",
+      "games": "Game logs",
+      "chats": "Chat logs"
     },
     "column": {
       "time": "Time",
-      "senderName": "Sender Name",
+      "senderName": "Sender",
       "senderIp": "Sender IP",
       "message": "Message",
       "targetId": "Target ID",
-      "targetName": "Target Name"
+      "targetName": "Target"
     },
     "notice": {
       "title": "Message History",
@@ -19,6 +19,10 @@
       "failed": "Failed to collect message history information."
     },
     "title": "Log Results",
-    "tabWithCount": "{tab} [{count}]"
+    "tabWithCount": "{tab} ({count})",
+    "pageTitle": "Logs",
+    "subtitle": "Search room, game and private chat history.",
+    "empty": "No messages to show. Search to see results.",
+    "details": "Message details"
   }
 }
