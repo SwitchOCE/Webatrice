@@ -21,7 +21,7 @@ test('moderator warns a room user and reads their warn and ban history', async (
   const moderatorPage = await moderatorCtx.newPage();
 
   const { user: target } = await registerAndJoinFirstRoom(targetPage);
-  const { rooms } = await joinFirstRoomAs(moderatorPage, E2E_MODERATOR, { unlockStaff: true });
+  const { rooms } = await joinFirstRoomAs(moderatorPage, E2E_MODERATOR);
 
   await openUserMenuEntry(moderatorPage, rooms, target.username, 'Warn user');
   const warnDialog = moderatorPage.getByRole('dialog', { name: 'Warn user for misconduct' });

@@ -3,7 +3,7 @@ import { execFileSync } from 'node:child_process';
 import type { Page } from '@playwright/test';
 
 import { expect, test } from '../fixtures/test';
-import { E2E_ADMIN, E2E_MODERATOR, reachRoomsAs, registerAndReachRooms, unlockStaffFunctions } from '../fixtures/flows';
+import { E2E_ADMIN, E2E_MODERATOR, reachRoomsAs, registerAndReachRooms, openAdministrationUnlocked } from '../fixtures/flows';
 import { randomSuffix } from '../fixtures/users';
 import { navRailLink } from '../pages';
 
@@ -37,7 +37,7 @@ test('an admin publishes a new server message from Administration', async ({ pag
   const message = `E2E server message ${randomSuffix()}`;
   runSql(`INSERT INTO cockatrice_servermessages (id_server, timest, message) VALUES (0, NOW() + INTERVAL 1 SECOND, '${message}')`);
 
-  await unlockStaffFunctions(page, E2E_ADMIN.username);
+  await openAdministrationUnlocked(page, E2E_ADMIN.username);
   await page.getByRole('button', { name: /^Update server message/ }).click();
   await expect(page.getByText('Server message updated')).toBeVisible({ timeout: 15_000 });
 

@@ -19,7 +19,7 @@ import Player from './Player';
 import { setAdminLocked } from '@app/hooks';
 
 beforeEach(() => setAdminLocked(false));
-afterEach(() => setAdminLocked(true));
+afterEach(() => setAdminLocked(false));
 import { ReportUserProvider } from '../../dialogs';
 
 beforeAll(() => {

@@ -4,7 +4,7 @@ import { WebsocketTypes } from '@cockatrice/sockatrice/types';
 
 import { useReduxEffect } from './useReduxEffect';
 
-let locked = true;
+let locked = false;
 const listeners = new Set<() => void>();
 
 function subscribe(cb: () => void): () => void {
@@ -37,7 +37,7 @@ export function useAdminLock(): [boolean, (next: boolean) => void] {
 export function useAdminLockSession(): void {
   useReduxEffect<{ status?: { state: WebsocketTypes.StatusEnum } }>(({ type, payload }) => {
     if (type === server.Types.CLEAR_STORE || payload.status?.state === WebsocketTypes.StatusEnum.DISCONNECTED) {
-      setAdminLocked(true);
+      setAdminLocked(false);
     }
   }, [server.Types.CLEAR_STORE, server.Types.UPDATE_STATUS]);
 }

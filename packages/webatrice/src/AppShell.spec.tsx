@@ -17,9 +17,9 @@ function LockProbe() {
   return <output aria-label="admin lock">{String(useAdminLocked())}</output>;
 }
 
-afterEach(() => act(() => setAdminLocked(true)));
+afterEach(() => act(() => setAdminLocked(false)));
 
-it.each(['disconnect', 'clearStore'])('resets the lock on %s before another staff login', async (teardown) => {
+it.each(['disconnect', 'clearStore'])('unlocks again on %s, as desktop opens a fresh admin tab', async (teardown) => {
   const store = createStore({ reducer: combineReducers(rootReducerMap), preloadedState: connectedState });
   await act(async () => {
     render(
@@ -31,8 +31,8 @@ it.each(['disconnect', 'clearStore'])('resets the lock on %s before another staf
       </Provider>,
     );
   });
-  act(() => setAdminLocked(false));
-  expect(screen.getByLabelText('admin lock')).toHaveTextContent('false');
+  act(() => setAdminLocked(true));
+  expect(screen.getByLabelText('admin lock')).toHaveTextContent('true');
   act(() => {
     if (teardown === 'disconnect') {
       store.dispatch(server.Actions.updateStatus({ status: { state: WebsocketTypes.StatusEnum.DISCONNECTED, description: null } }));
@@ -40,12 +40,12 @@ it.each(['disconnect', 'clearStore'])('resets the lock on %s before another staf
       store.dispatch(server.Actions.clearStore());
     }
   });
-  expect(screen.getByLabelText('admin lock')).toHaveTextContent('true');
+  expect(screen.getByLabelText('admin lock')).toHaveTextContent('false');
   act(() => {
     store.dispatch(server.Actions.updateUser({
       user: makeUser({ name: 'nextStaff', userLevel: ServerInfo_User_UserLevelFlag.IsModerator }),
     }));
     store.dispatch(server.Actions.updateStatus({ status: { state: WebsocketTypes.StatusEnum.LOGGED_IN, description: null } }));
   });
-  expect(screen.getByLabelText('admin lock')).toHaveTextContent('true');
+  expect(screen.getByLabelText('admin lock')).toHaveTextContent('false');
 });

@@ -19,7 +19,7 @@ import { useModerationMenu } from './useModerationMenu';
 import { setAdminLocked } from '@app/hooks';
 
 beforeEach(() => setAdminLocked(false));
-afterEach(() => setAdminLocked(true));
+afterEach(() => setAdminLocked(false));
 
 const MODERATOR = Flag.IsUser | Flag.IsRegistered | Flag.IsModerator;
 const ADMIN = MODERATOR | Flag.IsAdmin;

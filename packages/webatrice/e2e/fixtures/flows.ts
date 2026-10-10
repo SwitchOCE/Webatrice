@@ -91,27 +91,19 @@ export async function registerAndJoinFirstRoom(page: Page): Promise<RegisteredSe
   return session;
 }
 
-// Staff functions start locked, which hides Warn and Ban everywhere. Unlock
-// them from Administration, as a moderator does before acting on users.
-export async function unlockStaffFunctions(page: Page, userName: string): Promise<void> {
+export async function openAdministrationUnlocked(page: Page, userName: string): Promise<void> {
   await page.getByRole('button', { name: userName, exact: true }).click();
   await page.getByRole('menuitem', { name: 'Administration', exact: true }).click();
-  await page.getByRole('main').getByRole('button', { name: 'Unlock functions' }).first().click();
-  await expect(page.getByRole('button', { name: 'Lock functions' })).toBeVisible();
+  await expect(page.getByRole('main').getByRole('button', { name: 'Lock functions' }).first()).toBeVisible();
 }
 
 // Log in as an existing account and join the first room (for the seeded
-// judge and staff); `unlockStaff` unlocks the staff functions on the way.
+// judge and staff).
 export async function joinFirstRoomAs(
   page: Page,
   credentials: { username: string; password: string },
-  options: { unlockStaff?: boolean } = {},
 ): Promise<{ login: LoginPage; rooms: RoomsPage }> {
   const session = await reachRoomsAs(page, credentials);
-  if (options.unlockStaff) {
-    await unlockStaffFunctions(page, credentials.username);
-    await session.rooms.waitForRoomList();
-  }
   await joinFirstRoom(page, session.rooms);
   return session;
 }
