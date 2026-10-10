@@ -216,6 +216,7 @@ const DeckEditor = () => {
               }}
               colorIdentity={colorIdentity}
               format={editor.deck.format}
+              deckCards={editor.deck.cards}
             />
           ) : (
             <div className="p-pad">
