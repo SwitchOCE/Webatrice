@@ -1,3 +1,5 @@
+import { readFileSync } from 'node:fs';
+import { resolve } from 'node:path';
 import { combineReducers } from '@reduxjs/toolkit';
 import { act, fireEvent, screen, within } from '@testing-library/react';
 import { create } from '@bufbuild/protobuf';
@@ -6,7 +8,8 @@ import { Route, Routes } from 'react-router-dom';
 
 import { attachResponseHandlers, createStore } from '@cockatrice/datatrice';
 import { ZoneName } from '@cockatrice/sockatrice';
-import type { WebClient } from '@cockatrice/sockatrice';
+// eslint-disable-next-line @typescript-eslint/no-restricted-imports -- the test drives a real client through the replay sink
+import { WebClient } from '@cockatrice/sockatrice';
 import {
   makeCard,
   makeGameEntry,
@@ -15,7 +18,7 @@ import {
   makePlayerProperties,
   makeZoneEntry,
 } from '@cockatrice/datatrice/testing';
-import { closeReplay, getOpenedReplay, getOpenedReplays, openReplay } from '@app/services';
+import { closeReplay, getOpenedReplay, getOpenedReplays, openReplay, parseReplay } from '@app/services';
 import { rootReducerMap, type RootState } from '@app/store';
 import { ShortcutProvider } from '@app/feature-widgets/shortcuts';
 import { RouteEnum } from '@app/types';
@@ -95,6 +98,31 @@ describe('GameReplay route', () => {
 
     const replayGames = Object.values(store.getState().games.games).filter((g) => g.replay);
     expect(replayGames).toHaveLength(1);
+  });
+
+  it('seats every player of a Servatrice recording on the read-only board', () => {
+    const store = makeStore();
+    WebClient.dispose();
+    const client = new WebClient(
+      attachResponseHandlers(store),
+      { clientid: 'test', clientver: '0', clientfeatures: [] },
+      { autojoinrooms: false, keepalive: 0 },
+    );
+    try {
+      const bytes = new Uint8Array(readFileSync(resolve(__dirname, '../../../services/replay/__mocks__/two-player-game.cor')));
+      const key = openReplay(parseReplay(bytes), 'two-player-game.cor', client);
+      renderReplayRoute(key, client, store);
+
+      expect(screen.queryAllByRole('region', { name: /'s seat$/ })).toHaveLength(0);
+
+      act(() => getOpenedReplay(key)!.engine.seek(400));
+
+      const seats = screen.getAllByRole('region', { name: /'s seat$/ });
+      expect(seats.map((seat) => seat.getAttribute('aria-label'))).toEqual(['e2e_838e22f2\'s seat', 'e2e_32acb986\'s seat']);
+      expect(screen.getByTestId('game-container')).toHaveAttribute('data-readonly', 'true');
+    } finally {
+      WebClient.dispose();
+    }
   });
 
   it.each(['.game__board button', '[data-replay-zone-view="grave"]'])('toggles playback with Space while %s has focus', (selector) => {
