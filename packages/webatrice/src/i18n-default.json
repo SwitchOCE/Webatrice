@@ -732,6 +732,50 @@
       "save": "Could not save the set preferences: {error}"
     }
   },
+  "ChatDock": {
+    "region": "Private chats",
+    "window": "Chat with {name}",
+    "showProfile": "{name}: show profile",
+    "minimise": "Minimise chat with {name}",
+    "close": "Close chat with {name}",
+    "open": "Open chat with {name}",
+    "openUnread": "Open chat with {name}, {count} unread",
+    "buddy": "buddy",
+    "profile": {
+      "label": "{name} profile",
+      "loading": "Loading profile…",
+      "more": "More",
+      "moreLabel": "More actions for {name}",
+      "openPage": "Profile page",
+      "addBuddy": "Add buddy",
+      "removeBuddy": "Remove buddy",
+      "ignore": "Ignore",
+      "unignore": "Unignore",
+      "report": "Report"
+    }
+  },
+  "PrivateChat": {
+    "presence": {
+      "online": "Online",
+      "offline": "Offline"
+    },
+    "blocked": {
+      "ignoring": "You have ignored {name}; your messages are not delivered.",
+      "offline": "{name} is offline; messages cannot be delivered."
+    },
+    "notice": {
+      "ignoredByRecipient": "This user is ignoring you, they cannot see your messages in main chat and you cannot join their games.",
+      "recipientOffline": "Message not sent — {name} is offline.",
+      "chatFlood": "You are flooding the chat. Please wait a couple of seconds.",
+      "userLeft": "{name} has left the server.",
+      "userJoined": "{name} has joined the server.",
+      "notSent": "Message not sent: {reason}"
+    },
+    "log": "Private chat with {name}",
+    "input": "Message {name}",
+    "subtitle": "private chat",
+    "empty": "No messages yet — say hi."
+  },
   "KnownHostDialog": {
     "title": "{mode, select, edit {Edit} other {Add}} Known Host",
     "subtitle": "Adding a new host allows you to connect to different servers. Enter the details below to your host list."
@@ -3496,7 +3540,39 @@
     }
   },
   "People": {
-    "title": "People"
+    "title": "People",
+    "subtitle": "Conversations from this session, your buddies and the people you ignore",
+    "add": {
+      "label": "Add a player by name",
+      "placeholder": "Player name",
+      "buddy": "Add buddy",
+      "ignore": "Ignore"
+    },
+    "conversations": {
+      "title": "Conversations",
+      "empty": "No conversations yet. Private messages you send or receive appear here.",
+      "note": "The server does not keep private messages. Conversations last until you sign out."
+    },
+    "conversation": {
+      "open": "Open chat with {name}, {presence}",
+      "you": "You:",
+      "unread": "unread"
+    },
+    "buddies": {
+      "title": "Buddies",
+      "count": "{online} online · {total}",
+      "empty": "No buddies yet. Add one by name above."
+    },
+    "buddy": {
+      "message": "Message {name}",
+      "showGames": "Show games of {name}",
+      "remove": "Remove {name} from buddies"
+    },
+    "ignored": {
+      "title": "Ignored",
+      "empty": "You are not ignoring anyone.",
+      "remove": "Stop ignoring {name}"
+    }
   },
   "Player": {
     "title": "User Information",
@@ -3514,28 +3590,6 @@
       "removeIgnore": "Remove from Ignore List",
       "notFound": "User not found or still loading…"
     }
-  },
-  "PrivateChat": {
-    "presence": {
-      "online": "Online",
-      "offline": "Offline"
-    },
-    "blocked": {
-      "ignoring": "You have ignored {name}; your messages are not delivered.",
-      "offline": "{name} is offline; messages cannot be delivered."
-    },
-    "notice": {
-      "ignoredByRecipient": "This user is ignoring you, they cannot see your messages in main chat and you cannot join their games.",
-      "recipientOffline": "Message not sent — {name} is offline.",
-      "chatFlood": "You are flooding the chat. Please wait a couple of seconds.",
-      "userLeft": "{name} has left the server.",
-      "userJoined": "{name} has joined the server.",
-      "notSent": "Message not sent: {reason}"
-    },
-    "log": "Private chat with {name}",
-    "input": "Message {name}",
-    "subtitle": "private chat",
-    "empty": "No messages yet — say hi."
   },
   "Replays": {
     "action": {
