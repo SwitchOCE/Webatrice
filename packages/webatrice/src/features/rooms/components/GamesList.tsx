@@ -1,25 +1,20 @@
-import { useCallback, useMemo, useRef, useState, type CSSProperties, type ReactNode } from 'react';
-import type { ListImperativeAPI } from 'react-window';
+import { useCallback, useState, type CSSProperties, type ReactNode } from 'react';
 import { ArrowDown, ArrowUp, Gavel, Info, Link } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 
-import { games as gamesSlice, server, rooms, type Room, type Game } from '@cockatrice/datatrice';
-import { useAppSelector } from '@app/store';
-import { Menu, MenuItem, MenuSeparator, VirtualRows, type MenuAnchor } from '@app/components';
-import { useCanOverrideGameRestrictions, useGridRows, useJoinGame, useJoinGameErrorMessage, useNavigateOnGameJoined } from '@app/hooks';
+import type { Game, Room } from '@cockatrice/datatrice';
+import { Menu, MenuItem, MenuSeparator, VirtualRows } from '@app/components';
 import { AlertDialog, ConfirmDialog } from '@app/dialogs';
 
 import RoomGameInfoDialog from '../dialogs/RoomGameInfoDialog/RoomGameInfoDialog';
-import GameRow, { gameName, type RowAction } from './GameRow';
+import GameRow, { gameName } from './GameRow';
 import PasswordPopover from './PasswordPopover';
 import QuickFilterBar, { SORT_KEYS } from './QuickFilterBar';
-import { rowJoinState, type RowJoinState } from './gameRowModel';
-import { currentSortOption, SORT_OPTIONS, type SortOptionId } from './quickFilters';
 import { useElementWidth } from './useElementWidth';
 import { useGameLink } from './useGameLink';
 import { useNowSeconds } from './useNowSeconds';
-import { useOpenGames } from './useOpenGames';
 import { useRoomGameFilters } from './useRoomGameFilters';
+import { useRoomGames } from './useRoomGames';
 
 interface GamesListProps {
   room: Room;
@@ -40,110 +35,31 @@ function rowHeight(): number {
   return Math.round((Number.isFinite(parsed) && parsed > 0 ? parsed : ROW_HEIGHT_FALLBACK) * 1.5);
 }
 
-interface PendingTrigger {
-  gameId: number;
-  action: RowAction;
-  button: HTMLElement;
-}
-
-interface MoreMenu {
-  gameId: number;
-  anchor: MenuAnchor;
-  button: HTMLElement;
-}
-
 export default function GamesList({ room, header }: GamesListProps) {
   const { t } = useTranslation();
-  const roomId = room.info.roomId;
-  const overrideRestrictions = useCanOverrideGameRestrictions();
+  const games = useRoomGames(room);
   const {
-    beginJoin,
-    passwordRequired,
-    passwordGame,
-    submitPassword,
-    cancelPassword,
-    spectatorConfirmationRequired,
-    confirmSpectatorJoin,
-    cancelSpectatorJoin,
-    joinPending,
-    joinError,
-    clearJoinError,
-  } = useJoinGame();
-  const joinErrorMessage = useJoinGameErrorMessage(joinError);
-  useNavigateOnGameJoined();
-
-  const roomGames = useAppSelector((state) => rooms.Selectors.getRoomGames(state, roomId));
-  const activeGameIds = useAppSelector(gamesSlice.Selectors.getActiveGameIds);
-  const isJudgeUser = useAppSelector(server.Selectors.getIsUserJudge);
-  const roomFilters = useRoomGameFilters(roomId);
+    gameList, selectedGameId, sort, sortDescending: descending, onSort, listRef, getRowProps, onRowsRendered,
+    joinStates, handleSelect, handleActivate, onAction, onMore, moreMenu, password,
+  } = games;
+  const roomFilters = useRoomGameFilters(room.info.roomId);
   const nowSeconds = useNowSeconds();
   const gameLink = useGameLink();
   const [measureRef, width, section] = useElementWidth<HTMLElement>();
+  const [gridHeader, setGridHeader] = useState<HTMLElement | null>(null);
   const watchingColumn = width >= WATCHING_MIN_WIDTH;
   const passwordInBar = width >= PASSWORD_TOGGLE_MIN_WIDTH;
   const columns = watchingColumn ? COLUMNS_WIDE : COLUMNS_NARROW;
   const [height] = useState(rowHeight);
 
-  const [trigger, setTrigger] = useState<PendingTrigger | null>(null);
-  const [moreMenu, setMoreMenu] = useState<MoreMenu | null>(null);
-  const [infoGameId, setInfoGameId] = useState<number | null>(null);
-
-  const startJoin = useCallback((gameId: number, asSpectator: boolean, asJudge: boolean, button?: HTMLElement) => {
-    const game = roomGames[gameId];
-    if (!game) {
-      return;
-    }
-    const anchor = button ?? document.querySelector<HTMLElement>(`[data-join-game="${gameId}"]`);
-    setTrigger(anchor ? { gameId, action: asSpectator ? 'spectate' : 'join', button: anchor } : null);
-    beginJoin(roomId, game.info, asSpectator, asJudge);
-  }, [roomGames, beginJoin, roomId]);
-
-  const activateGame = useCallback((gameId: number) => startJoin(gameId, false, false), [startJoin]);
-  const { sortBy, games: gameList, selectedGameId, setSort, handleSelect, handleActivate } =
-    useOpenGames({ roomId, onActivateGame: activateGame });
-  const sort = currentSortOption(sortBy);
-  const onSort = useCallback((id: SortOptionId) => {
-    const option = SORT_OPTIONS.find((candidate) => candidate.id === id);
-    if (option) {
-      setSort(option.field, option.order);
-    }
-  }, [setSort]);
-
-  const listRef = useRef<ListImperativeAPI>(null);
-  const keys = useMemo(() => gameList.map((game) => String(game.info.gameId)), [gameList]);
-  const selectRow = useCallback((key: string) => {
-    handleSelect(Number(key));
-    listRef.current?.scrollToRow({ index: keys.indexOf(key), align: 'smart' });
-  }, [handleSelect, keys]);
-  const activateRow = useCallback((key: string) => handleActivate(Number(key)), [handleActivate]);
-  const { getRowProps, onRowsRendered } = useGridRows({
-    keys,
-    selectedKey: selectedGameId != null ? String(selectedGameId) : null,
-    onSelect: selectRow,
-    onActivate: activateRow,
-  });
-
-  const joinStates = useMemo(() => {
-    const states = new Map<number, RowJoinState>();
-    for (const game of gameList) {
-      states.set(game.info.gameId, rowJoinState(game.info, {
-        override: overrideRestrictions,
-        pending: joinPending,
-        alreadyJoined: activeGameIds.includes(game.info.gameId),
-      }));
-    }
-    return states;
-  }, [gameList, overrideRestrictions, joinPending, activeGameIds]);
-
-  const onAction = useCallback((gameId: number, action: RowAction, button: HTMLElement) => {
-    handleSelect(gameId);
-    startJoin(gameId, action === 'spectate', false, button);
-  }, [handleSelect, startJoin]);
-
-  const onMore = useCallback((gameId: number, button: HTMLElement) => {
-    handleSelect(gameId);
-    setMoreMenu({ gameId, button, anchor: { rect: button.getBoundingClientRect(), placement: 'below', align: 'end' } });
-  }, [handleSelect]);
+  const passwordGameId = password?.gameId;
+  const passwordAction = password?.action;
+  const passwordAnchor = useCallback(
+    () => (passwordGameId == null
+      ? null
+      : section?.querySelector<HTMLElement>(`[data-${passwordAction}-game="${passwordGameId}"]`) ?? null),
+    [section, passwordGameId, passwordAction],
+  );
 
   const renderGameRow = useCallback((game: Game, index: number, style: CSSProperties) => (
     <GameRow
@@ -168,12 +84,7 @@ export default function GamesList({ room, header }: GamesListProps) {
     handleSelect, handleActivate, onAction, onMore,
   ]);
 
-  const menuGame = moreMenu ? roomGames[moreMenu.gameId] : undefined;
-  const menuState = menuGame ? joinStates.get(menuGame.info.gameId) : undefined;
-  const infoGame = infoGameId != null ? roomGames[infoGameId] ?? null : null;
-  const passwordAnchor = passwordGame && trigger?.gameId === passwordGame.gameId ? trigger.button : section;
   const sortLabel = t(SORT_KEYS[sort ?? 'custom']);
-  const descending = sortBy.order.toUpperCase() === 'DESC';
 
   return (
     <section
@@ -200,6 +111,7 @@ export default function GamesList({ room, header }: GamesListProps) {
       >
         <div role="rowgroup" className="shrink-0">
           <div
+            ref={setGridHeader}
             role="row"
             aria-rowindex={1}
             className={[
@@ -256,38 +168,38 @@ export default function GamesList({ room, header }: GamesListProps) {
         )}
       </div>
 
-      {moreMenu && menuGame && menuState && (
+      {moreMenu && (
         <Menu
           anchor={moreMenu.anchor}
-          label={t('GameRow.more', { game: gameName(t, menuGame) })}
+          label={t('GameRow.more', { game: gameName(t, moreMenu.game) })}
           triggerRef={{ current: moreMenu.button }}
-          onClose={() => setMoreMenu(null)}
+          onClose={games.closeMore}
         >
-          <MenuItem icon={<Info size={14} />} onSelect={() => setInfoGameId(menuGame.info.gameId)}>
+          <MenuItem icon={<Info size={14} />} onSelect={() => games.openInfo(moreMenu.game.info.gameId)}>
             {t('GamesList.action.info')}
           </MenuItem>
           <MenuItem
             icon={<Link size={14} />}
             disabled={!gameLink.available}
             disabledReason={gameLink.unavailableReason ?? undefined}
-            onSelect={() => gameLink.copy(menuGame.info)}
+            onSelect={() => gameLink.copy(moreMenu.game.info)}
           >
             {t('GamesList.action.copyLink')}
           </MenuItem>
-          {isJudgeUser && (
+          {games.isJudgeUser && (
             <>
               <MenuSeparator />
               <MenuItem
                 icon={<Gavel size={14} />}
-                disabled={!menuState.canJoin}
-                onSelect={() => startJoin(menuGame.info.gameId, false, true)}
+                disabled={!moreMenu.state.canJoin}
+                onSelect={() => games.judge(moreMenu.game.info.gameId, 'join')}
               >
                 {t('GamesList.action.judge')}
               </MenuItem>
               <MenuItem
                 icon={<Gavel size={14} />}
-                disabled={!menuState.canSpectate}
-                onSelect={() => startJoin(menuGame.info.gameId, true, true)}
+                disabled={!moreMenu.state.canSpectate}
+                onSelect={() => games.judge(moreMenu.game.info.gameId, 'spectate')}
               >
                 {t('GamesList.action.judgeSpectate')}
               </MenuItem>
@@ -296,32 +208,39 @@ export default function GamesList({ room, header }: GamesListProps) {
         </Menu>
       )}
 
-      <RoomGameInfoDialog game={infoGame} gametypeMap={room.gametypeMap} nowSeconds={nowSeconds} onClose={() => setInfoGameId(null)} />
+      <RoomGameInfoDialog
+        game={games.infoGame}
+        gametypeMap={room.gametypeMap}
+        nowSeconds={nowSeconds}
+        onClose={games.closeInfo}
+      />
       <ConfirmDialog
         cancelDefault
         title={t('GameLink.confirm.title')}
         message={t('GameLink.full')}
         confirmLabel={t('GameLink.yes')}
         cancelLabel={t('GameLink.no')}
-        isOpen={spectatorConfirmationRequired}
-        onConfirm={confirmSpectatorJoin}
-        onCancel={cancelSpectatorJoin}
+        isOpen={games.spectatorConfirmationRequired}
+        onConfirm={games.confirmSpectatorJoin}
+        onCancel={games.cancelSpectatorJoin}
       />
-      {passwordRequired && passwordGame && (
+      {password && (
         <PasswordPopover
-          key={passwordGame.gameId}
+          key={password.gameId}
           anchor={passwordAnchor}
-          gameName={passwordGame.description || t('GameRow.untitled', { id: passwordGame.gameId })}
-          spectating={trigger?.gameId === passwordGame.gameId && trigger.action === 'spectate'}
-          onSubmit={submitPassword}
-          onCancel={cancelPassword}
+          fallback={gridHeader}
+          layoutKey={gameList}
+          gameName={password.description || t('GameRow.untitled', { id: password.gameId })}
+          spectating={password.action === 'spectate'}
+          onSubmit={games.submitPassword}
+          onCancel={games.cancelPassword}
         />
       )}
       <AlertDialog
-        isOpen={joinError !== null}
+        isOpen={games.joinError !== null}
         title={t('GamesList.error.title')}
-        message={joinErrorMessage}
-        onDismiss={clearJoinError}
+        message={games.joinErrorMessage}
+        onDismiss={games.clearJoinError}
       />
     </section>
   );

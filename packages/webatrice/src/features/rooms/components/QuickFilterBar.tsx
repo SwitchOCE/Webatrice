@@ -430,10 +430,7 @@ export default function QuickFilterBar({ roomFilters, gametypeMap, passwordInBar
             passwordInBar={passwordInBar}
             onChange={update}
             onReset={() => update(moreFiltersReset({ passwordInBar }))}
-            onDone={() => {
-              setPanel(null);
-              moreButton.current?.focus();
-            }}
+            onDone={() => setPanel(null)}
           />
         </AnchoredPopover>
       )}

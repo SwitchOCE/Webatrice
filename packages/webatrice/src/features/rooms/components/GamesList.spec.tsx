@@ -244,6 +244,20 @@ describe('GamesList', () => {
       expect(screen.queryByRole('dialog', { name: 'PasswordPopover.label' })).not.toBeInTheDocument();
     });
 
+    it('keeps the password popover open and returns focus to Join when the list changes under it', () => {
+      const { store } = setup({ games: locked() });
+
+      fireEvent.click(join(/^GameRow\.joinWithPassword/));
+      act(() => {
+        store.dispatch(roomsSlice.Actions.updateGames({ roomId: 1, games: [makeGame(4, 'Delta').info] }));
+      });
+      const popover = screen.getByRole('dialog', { name: 'PasswordPopover.label' });
+      fireEvent.keyDown(within(popover).getByLabelText('PasswordPopover.label'), { key: 'Escape' });
+
+      expect(screen.queryByRole('dialog', { name: 'PasswordPopover.label' })).not.toBeInTheDocument();
+      expect(join(/^GameRow\.joinWithPassword/)).toHaveFocus();
+    });
+
     it('closes the password popover on Escape without joining', () => {
       const { webClient } = setup({ games: locked() });
 
