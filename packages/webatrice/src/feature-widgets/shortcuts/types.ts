@@ -195,6 +195,8 @@ export type ActionId =
   | 'deck.removeCard'
   | 'deck.undo'
   | 'deck.redo'
+  | 'deck.addSearchResult'
+  | 'deck.addSearchResultToSideboard'
   | 'room.sendMessage'
   | 'replays.playPause'
   | 'replays.skipForward'

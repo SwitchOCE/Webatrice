@@ -35,6 +35,25 @@ describe('buildScryfallQuery', () => {
   });
 });
 
+describe('buildScryfallQuery with a deck scope', () => {
+  it('searches within the commander’s colour identity', () => {
+    const f = filters({ colorMode: 'withinIdentity', colors: ['R'] });
+    expect(buildScryfallQuery('', f, { identity: ['W', 'U', 'B', 'G'] })).toBe('id<=wubg');
+    expect(buildScryfallQuery('', f, { identity: [] })).toBe('id:c');
+  });
+
+  it('falls back to the picked colours when no identity is known', () => {
+    expect(buildScryfallQuery('', filters({ colorMode: 'withinIdentity', colors: ['R'] }))).toBe('c<=r');
+  });
+
+  it('adds the deck format only for known Magic formats', () => {
+    const f = filters({ legalOnly: true, types: ['Creature'] });
+    expect(buildScryfallQuery('elf', f, { format: ' Commander ' })).toBe('elf t:creature f:commander');
+    expect(buildScryfallQuery('elf', f, { format: 'house rules' })).toBe('elf t:creature');
+    expect(buildScryfallQuery('elf', filters({ legalOnly: false }), { format: 'modern' })).toBe('elf');
+  });
+});
+
 describe('hasActiveFilters', () => {
   it('ignores the advanced-panel toggle and blank text fields', () => {
     expect(hasActiveFilters(filters({ showAdvanced: true, subtype: '  ' }))).toBe(false);

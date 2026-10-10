@@ -42,8 +42,20 @@ export interface ScryfallSearchCard {
   type_line?: string;
   set?: string;
   collector_number?: string;
-  image_uris?: { small?: string; normal?: string; large?: string };
-  card_faces?: Array<{ image_uris?: { small?: string; normal?: string } }>;
+  image_uris?: { small?: string; normal?: string; large?: string; art_crop?: string };
+  card_faces?: Array<{
+    mana_cost?: string;
+    type_line?: string;
+    image_uris?: { small?: string; normal?: string; art_crop?: string };
+  }>;
+  prices?: { usd?: string | null; usd_foil?: string | null };
+  game_changer?: boolean;
+}
+
+export interface ScryfallSearchPage {
+  cards: ScryfallSearchCard[];
+  total: number;
+  nextPage: string | null;
 }
 
 export type ScryfallSearchFailure = { kind: 'failed' } | { kind: 'badQuery'; details: string };
@@ -70,16 +82,23 @@ export async function searchScryfallCards(
   if (!q) {
     return [];
   }
+  return (await searchScryfallPage(scryfallSearchUrl(q), signal)).cards;
+}
+
+export function scryfallSearchUrl(query: string): string {
   // `unique=cards` collapses printings so each card appears once, which
   // matches how the printings picker layers on top of a search result.
-  const url = `https://api.scryfall.com/cards/search?q=${encodeURIComponent(q)}&unique=cards&order=name`;
+  return `https://api.scryfall.com/cards/search?q=${encodeURIComponent(query.trim())}&unique=cards&order=name`;
+}
+
+export async function searchScryfallPage(url: string, signal?: AbortSignal): Promise<ScryfallSearchPage> {
   try {
     const res = await scheduleScryfallRequest(url, { signal });
     if (!res.ok) {
       if (res.status === 404 || res.status === 400) {
         const body = await res.json() as { object?: string; code?: string; details?: string } | null;
         if (res.status === 404 && body?.object === 'error' && body.code === 'not_found') {
-          return [];
+          return { cards: [], total: 0, nextPage: null };
         }
         if (res.status === 400 && body?.object === 'error' && body.code === 'bad_request'
           && typeof body.details === 'string') {
@@ -88,8 +107,18 @@ export async function searchScryfallCards(
       }
       throw new ScryfallSearchError({ kind: 'failed' });
     }
-    const body = (await res.json()) as { data?: ScryfallSearchCard[] };
-    return body.data ?? [];
+    const body = (await res.json()) as {
+      data?: ScryfallSearchCard[];
+      total_cards?: number;
+      has_more?: boolean;
+      next_page?: string;
+    };
+    const cards = body.data ?? [];
+    return {
+      cards,
+      total: body.total_cards ?? cards.length,
+      nextPage: body.has_more && body.next_page ? body.next_page : null,
+    };
   } catch (e) {
     if ((e as { name?: string })?.name === 'AbortError') {
       throw e;
@@ -123,4 +152,22 @@ export function searchCardAsPreview(card: ScryfallSearchCard): DeckCard {
     imageUri: searchCardImage(card),
     lookupSource: 'scryfall',
   };
+}
+
+export function searchCardArt(card: ScryfallSearchCard): string | undefined {
+  return card.image_uris?.art_crop ?? card.card_faces?.[0]?.image_uris?.art_crop ?? searchCardImage(card);
+}
+
+export function searchCardManaCost(card: ScryfallSearchCard): string {
+  return card.mana_cost || card.card_faces?.[0]?.mana_cost || '';
+}
+
+export function searchCardTypeLine(card: ScryfallSearchCard): string {
+  return card.type_line ?? card.card_faces?.[0]?.type_line ?? '';
+}
+
+export function searchCardUsd(card: ScryfallSearchCard): number | undefined {
+  const raw = card.prices?.usd ?? card.prices?.usd_foil;
+  const usd = raw == null ? NaN : Number.parseFloat(raw);
+  return Number.isFinite(usd) ? usd : undefined;
 }

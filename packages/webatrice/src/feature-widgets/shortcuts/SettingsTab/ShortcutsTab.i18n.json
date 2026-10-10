@@ -201,6 +201,8 @@
       "deck.removeCard": "Remove card",
       "deck.undo": "Undo deck edit",
       "deck.redo": "Redo deck edit",
+      "deck.addSearchResult": "Add highlighted search result",
+      "deck.addSearchResultToSideboard": "Add highlighted search result to sideboard",
       "room.sendMessage": "Send message",
       "replays.playPause": "Play/Pause",
       "replays.skipForward": "Skip forward",
