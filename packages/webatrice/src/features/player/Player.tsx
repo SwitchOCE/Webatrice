@@ -1,33 +1,19 @@
-import { useCallback, useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
 import Button from '@mui/material/Button';
 import Paper from '@mui/material/Paper';
 import Typography from '@mui/material/Typography';
 
 import { AuthGuard } from '@app/components';
-import { formatChatContext, ReportChatScope, useReportUser } from '@app/dialogs';
+import { ReportChatScope, useReportUser } from '@app/dialogs';
 import { Images } from '@app/images';
 import { Layout } from '@app/feature-wrappers/layout';
 import { MODERATION_MENU_LABEL_KEYS, useModerationMenu } from '@app/feature-widgets/moderation';
 import { useUserGames } from '@app/feature-widgets/user-games';
 import { formatAccountAge, formatUserLevel } from '@app/utils';
-import PrivateChat from './PrivateChat';
+import { PrivateChat } from '@app/feature-widgets/private-chat';
 import { usePlayer } from './usePlayer';
 
 import './Player.css';
-
-const AVATAR_DATA_URI_PREFIX = 'data:image/png;base64,';
-
-function avatarSrc(bmp: Uint8Array | undefined): string | null {
-  if (!bmp || bmp.byteLength === 0) {
-    return null;
-  }
-  let binary = '';
-  for (let i = 0; i < bmp.byteLength; i += 1) {
-    binary += String.fromCharCode(bmp[i]);
-  }
-  return AVATAR_DATA_URI_PREFIX + btoa(binary);
-}
 
 const Player = () => {
   const { t, i18n } = useTranslation();
@@ -40,6 +26,8 @@ const Player = () => {
     isIgnored,
     conversation,
     isOnline,
+    avatarUrl: avatar,
+    getChatContext,
     onAddBuddy,
     onRemoveBuddy,
     onAddIgnore,
@@ -49,15 +37,7 @@ const Player = () => {
   const moderation = useModerationMenu(name ?? '', userInfo?.userLevel);
 
   const { canReportUser, openReportUser } = useReportUser();
-  const getChatContext = useCallback(() => formatChatContext(conversation.flatMap((entry) =>
-    entry.type === 'message' ? [{
-      userName: entry.message.senderName,
-      message: entry.message.message,
-      timeReceived: entry.message.timeReceived,
-    }] : [],
-  )), [conversation]);
   const userGames = useUserGames();
-  const avatar = useMemo(() => avatarSrc(userInfo?.avatarBmp), [userInfo?.avatarBmp]);
   const countryCode = userInfo?.country?.toUpperCase() ?? '';
 
   return (

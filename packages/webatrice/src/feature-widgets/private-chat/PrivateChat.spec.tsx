@@ -52,10 +52,11 @@ describe('PrivateChat', () => {
   });
 
   it('renders messages and notices in conversation order', () => {
-    const { container } = renderChat({
+    renderChat({
       entries: [message('bob', 'hey'), notice(1, 'userLeft'), message('me', 'still there?'), notice(2, 'recipientOffline')],
     });
-    const rows = Array.from(container.querySelectorAll('.space-y-2 > div')).map((row) => row.textContent);
+    const log = screen.getByRole('log', { name: 'PrivateChat.log' });
+    const rows = Array.from(log.children).map((row) => row.textContent).filter(Boolean);
     expect(rows).toEqual(['bob: hey', 'PrivateChat.notice.userLeft', 'me: still there?', 'PrivateChat.notice.recipientOffline']);
   });
 

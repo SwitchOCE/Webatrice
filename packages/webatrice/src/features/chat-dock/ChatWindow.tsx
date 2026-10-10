@@ -1,0 +1,115 @@
+import { useEffect, useRef, type ReactNode } from 'react';
+import { useTranslation } from 'react-i18next';
+import { ChevronDown, Minus, X } from 'lucide-react';
+
+import { Avatar, IconButton } from '@app/components';
+import { ReportChatScope } from '@app/dialogs';
+import { PrivateChat, usePeer } from '@app/feature-widgets/private-chat';
+import { dispatchChatDock } from '@app/hooks';
+import { useMarkRead } from '@app/features/notifications';
+import { cx } from '@app/utils';
+
+import ProfileCard from './ProfileCard';
+import { usePopover } from './usePopover';
+
+interface ChatWindowProps {
+  name: string;
+  focusSeq: number | null;
+  above?: ReactNode;
+}
+
+export default function ChatWindow({ name, focusSeq, above }: ChatWindowProps) {
+  const { t } = useTranslation();
+  const peer = usePeer(name);
+  const { markChatRead } = useMarkRead();
+  const inputRef = useRef<HTMLInputElement>(null);
+  const profile = usePopover();
+
+  useEffect(() => {
+    markChatRead(name);
+  }, [markChatRead, name, peer.conversation.length]);
+
+  useEffect(() => {
+    if (focusSeq !== null) {
+      inputRef.current?.focus();
+    }
+  }, [focusSeq]);
+
+  const status = peer.isOnline ? t('PrivateChat.presence.online') : t('PrivateChat.presence.offline');
+
+  return (
+    <div className="relative flex w-[300px] flex-col gap-1.5">
+      {profile.open && (
+        <div className="absolute bottom-full right-0 mb-1.5">
+          <ProfileCard ref={profile.popoverRef} name={name} peer={peer} onDone={profile.close} />
+        </div>
+      )}
+      {above}
+      <section
+        aria-label={t('ChatDock.window', { name })}
+        className={cx(
+          'pointer-events-auto flex flex-col overflow-hidden rounded-t-ui-lg',
+          'border border-b-0 border-border-strong bg-bg-surface shadow-pop',
+        )}
+        style={{ height: 'min(420px, calc(100vh - var(--chat-dock-bottom, 0px) - 140px))' }}
+      >
+        <header className="flex shrink-0 items-center gap-2 bg-bg-elevated px-2.5 py-2">
+          <button
+            ref={profile.triggerRef}
+            type="button"
+            aria-expanded={profile.open}
+            aria-haspopup="dialog"
+            aria-label={t('ChatDock.showProfile', { name })}
+            onClick={profile.toggle}
+            className={cx(
+              'flex min-w-0 flex-1 items-center gap-2',
+              'rounded-ui-sm text-left focus-visible:outline focus-visible:outline-2 focus-visible:outline-accent',
+            )}
+          >
+            <span className="relative shrink-0">
+              <Avatar name={name} size={28} src={peer.avatarUrl ?? undefined} />
+              <span
+                aria-hidden
+                className={cx(
+                  'absolute -bottom-0.5 -right-0.5 h-2.5 w-2.5 rounded-full border-2 border-bg-elevated',
+                  peer.isOnline ? 'bg-success' : 'bg-text-muted',
+                )}
+              />
+            </span>
+            <span className="min-w-0">
+              <span className="block truncate text-[13px] font-semibold text-text-primary">{name}</span>
+              <span className="block truncate text-[11px] text-text-muted">
+                {peer.isABuddy ? `${status} · ${t('ChatDock.buddy')}` : status}
+              </span>
+            </span>
+            <ChevronDown
+              size={14}
+              aria-hidden
+              className={cx('ml-auto shrink-0 text-text-muted transition-transform', profile.open && 'rotate-180')}
+            />
+          </button>
+          <IconButton label={t('ChatDock.minimise', { name })} size="sm" onClick={() => dispatchChatDock({ type: 'minimise', name })}>
+            <Minus size={15} />
+          </IconButton>
+          <IconButton label={t('ChatDock.close', { name })} size="sm" onClick={() => dispatchChatDock({ type: 'close', name })}>
+            <X size={15} />
+          </IconButton>
+        </header>
+        <div className="min-h-0 flex-1">
+          <ReportChatScope getChatContext={peer.getChatContext}>
+            <PrivateChat
+              compact
+              inputRef={inputRef}
+              peerName={name}
+              selfName={peer.currentUser?.name ?? null}
+              entries={peer.conversation}
+              isOnline={peer.isOnline}
+              isIgnored={peer.isIgnored}
+              onSend={peer.onSendMessage}
+            />
+          </ReportChatScope>
+        </div>
+      </section>
+    </div>
+  );
+}

@@ -6,6 +6,7 @@ import { Flag, Library, MessageSquare, UserRoundPlus, UserRoundMinus, VolumeX, V
 import { server, ServerCapability } from '@cockatrice/datatrice';
 import { ServerInfo_User_UserLevelFlag } from '@cockatrice/sockatrice/generated';
 import { useReportUser } from '@app/dialogs';
+import { useOpenChat } from '@app/hooks';
 import { useAppSelector } from '@app/store';
 import { RouteEnum } from '@app/types';
 import { Menu, MenuItem, MenuSeparator, MENU_ITEM_CLASS, type MenuAnchor } from '../Menu';
@@ -49,22 +50,17 @@ export default function UserActionsMenu({
     && ((ownUser?.userLevel ?? 0) & ServerInfo_User_UserLevelFlag.IsRegistered) !== 0;
   const isOnline = useAppSelector((state) => server.Selectors.getIsUserOnline(state, name));
   const canChat = !isSelf && isOnline && !isIgnored;
+  const openChat = useOpenChat();
 
   return (
     <Menu anchor={anchor} label={t('UserActionsMenu.label', { name })} onClose={onClose} triggerRef={triggerRef}>
-      {canChat ? <NavLink
-        to={generatePath(RouteEnum.PLAYER, { name })}
-        onClick={onClose}
-        className={MENU_ITEM_CLASS}
-        role="menuitem"
-        tabIndex={-1}
+      <MenuItem
+        disabled={!canChat}
+        onSelect={() => openChat(name)}
+        icon={<MessageSquare size={14} />}
       >
-        <MessageSquare size={14} /> {t('UserActionsMenu.privateChat')}
-      </NavLink> : (
-        <MenuItem disabled onSelect={onClose} icon={<MessageSquare size={14} />}>
-          {t('UserActionsMenu.privateChat')}
-        </MenuItem>
-      )}
+        {t('UserActionsMenu.privateChat')}
+      </MenuItem>
       {showPublicDecks && isSelf && (
         <MenuItem
           onSelect={onClose}

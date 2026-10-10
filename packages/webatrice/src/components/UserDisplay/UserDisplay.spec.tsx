@@ -3,6 +3,7 @@ import userEvent from '@testing-library/user-event';
 import { ServerInfo_User_UserLevelFlag as Level } from '@cockatrice/sockatrice/generated';
 import { renderWithProviders, connected31State, connectedState, makeUser, createMockWebClient } from '../../__test-utils__';
 import { ReportChatScope, ReportUserProvider } from '../../dialogs';
+import { dispatchChatDock, getChatDockState } from '../../hooks/useChatDock';
 import UserDisplay from './UserDisplay';
 import { UserMenuSlotProvider, type UserMenuSlotProps } from './UserMenuSlot';
 
@@ -53,7 +54,10 @@ describe('UserDisplay', () => {
     fireEvent.contextMenu(screen.getByRole('link', { name: user.name }));
     const chat = screen.getByRole('menuitem', { name: 'UserActionsMenu.privateChat' });
     if (kind === 'online') {
-      expect(chat).toHaveAttribute('href', '/player/alice');
+      expect(chat).not.toHaveAttribute('aria-disabled');
+      fireEvent.click(chat);
+      expect(getChatDockState().chats).toEqual([{ name: 'alice', expanded: true }]);
+      dispatchChatDock({ type: 'reset' });
     } else {
       expect(chat).toHaveAttribute('aria-disabled', 'true');
     }
