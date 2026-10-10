@@ -58,16 +58,32 @@ describe('RoomChat', () => {
     expect(screen.getByRole('combobox', { name: 'RoomChat.input' })).toBeInTheDocument();
   });
 
-  it('prefixes chat history lines with their server time', () => {
+  it('stamps chat history lines with their server time, keeping the full date in the title', () => {
     const timeOf = BigInt(new Date(2026, 9, 3, 9, 5, 7).getTime());
     const { container } = renderChat([
       makeMessage({ messageType: Event_RoomSay_RoomMessageType.ChatHistory, timeOf }),
     ]);
-    expect(container.querySelector('time')).toHaveTextContent('[3 Oct 2026 09:05:07]');
+    const time = container.querySelector('time');
+    expect(time).toHaveTextContent('09:05');
+    expect(time).toHaveAttribute('title', '3 Oct 2026 09:05:07');
   });
 
-  it('shows no timestamp on live messages', () => {
-    const { container } = renderChat([makeMessage({ timeOf: 5n })]);
+  it('stamps live messages with their arrival time', () => {
+    const timeReceived = new Date(2026, 9, 3, 20, 4).getTime();
+    const { container } = renderChat([makeMessage({ timeOf: 5n, timeReceived })]);
+    const time = container.querySelector('time');
+    expect(time).toHaveTextContent('20:04');
+    expect(time).not.toHaveAttribute('title');
+  });
+
+  it('shows the room welcome without a sender or time, and drops empty lines', () => {
+    const { container } = renderChat([
+      makeMessage({ message: 'Welcome to Main', messageType: Event_RoomSay_RoomMessageType.Welcome }),
+      makeMessage({ message: '', id: 2 }),
+    ]);
+    const log = screen.getByRole('log');
+    expect(log.children).toHaveLength(1);
+    expect(log).toHaveTextContent('Welcome to Main');
     expect(container.querySelector('time')).not.toBeInTheDocument();
   });
 

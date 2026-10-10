@@ -66,4 +66,13 @@ describe('useRoom', () => {
 
     expect(webClient.request.rooms.roomSay).not.toHaveBeenCalled();
   });
+
+  it('handleCreateGame creates the game in this room', () => {
+    const { result, webClient } = setup(connectedWithRoomsState, '1');
+    const params = { description: 'pod' } as never;
+
+    result.current.handleCreateGame(params);
+
+    expect(webClient.request.rooms.createGame).toHaveBeenCalledWith(1, params);
+  });
 });
