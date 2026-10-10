@@ -2,14 +2,18 @@ import { useEffect, useRef, type ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
 import { ChevronDown, Minus, X } from 'lucide-react';
 
+import { server } from '@cockatrice/datatrice';
+
 import { Avatar, IconButton } from '@app/components';
 import { ReportChatScope } from '@app/dialogs';
-import { CountryFlag, PrivateChat, usePeer } from '@app/feature-widgets/private-chat';
-import { dispatchChatDock } from '@app/hooks';
-import { useMarkRead } from '@app/features/notifications';
+import { dispatchChatDock, useMarkRead } from '@app/hooks';
+import { useAppDispatch } from '@app/store';
 import { cx } from '@app/utils';
 
+import { CountryFlag } from './CountryFlag';
+import PrivateChat from './PrivateChat';
 import ProfileCard from './ProfileCard';
+import { usePeer } from './usePeer';
 import { usePopover } from './usePopover';
 
 interface ChatWindowProps {
@@ -24,6 +28,11 @@ export default function ChatWindow({ name, focusSeq, above }: ChatWindowProps) {
   const { markChatRead } = useMarkRead();
   const inputRef = useRef<HTMLInputElement>(null);
   const profile = usePopover();
+  const dispatch = useAppDispatch();
+
+  useEffect(() => {
+    dispatch(server.Actions.privateChatOpened({ userName: name }));
+  }, [dispatch, name]);
 
   useEffect(() => {
     markChatRead(name);

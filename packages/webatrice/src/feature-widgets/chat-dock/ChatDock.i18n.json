@@ -11,7 +11,8 @@
     "profile": {
       "label": "{name} profile",
       "loading": "Loading profile…",
-      "showGames": "Show games",
+      "more": "More",
+      "moreLabel": "More actions for {name}",
       "openPage": "Profile page",
       "addBuddy": "Add buddy",
       "removeBuddy": "Remove buddy",

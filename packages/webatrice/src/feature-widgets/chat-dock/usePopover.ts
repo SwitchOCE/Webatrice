@@ -13,8 +13,9 @@ export function usePopover() {
       return undefined;
     }
     popoverRef.current?.querySelector<HTMLElement>('button:not(:disabled)')?.focus();
+    const inMenu = (target: EventTarget | null) => target instanceof Element && target.closest('[role="menu"]') !== null;
     const onKey = (event: KeyboardEvent) => {
-      if (event.key === 'Escape') {
+      if (event.key === 'Escape' && !inMenu(event.target)) {
         event.stopPropagation();
         setOpen(false);
         triggerRef.current?.focus();
@@ -22,7 +23,7 @@ export function usePopover() {
     };
     const onPointer = (event: PointerEvent) => {
       const target = event.target as Node;
-      if (!popoverRef.current?.contains(target) && !triggerRef.current?.contains(target)) {
+      if (!popoverRef.current?.contains(target) && !triggerRef.current?.contains(target) && !inMenu(event.target)) {
         setOpen(false);
       }
     };

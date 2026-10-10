@@ -1,7 +1,7 @@
 import type { CSSProperties } from 'react';
 import { useTranslation } from 'react-i18next';
 
-import { useUnreadCounts } from '@app/features/notifications';
+import { useUnreadCounts } from '@app/hooks';
 
 import ChatBar from './ChatBar';
 import ChatWindow from './ChatWindow';

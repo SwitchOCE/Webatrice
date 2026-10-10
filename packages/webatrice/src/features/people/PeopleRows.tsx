@@ -3,7 +3,7 @@ import { Gamepad2, MessageSquare, UserRoundMinus, Volume2 } from 'lucide-react';
 
 import { Avatar, IconButton, UserBadges } from '@app/components';
 import { useUserGames } from '@app/feature-widgets/user-games';
-import { CountryFlag } from '@app/feature-widgets/private-chat';
+import { CountryFlag } from '@app/feature-widgets/chat-dock';
 import { cx } from '@app/utils';
 
 import type { ConversationSummary } from './conversationSummaries';

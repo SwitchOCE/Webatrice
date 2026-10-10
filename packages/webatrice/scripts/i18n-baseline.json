@@ -4214,7 +4214,7 @@
       "count": 2
     },
     {
-      "file": "src/feature-widgets/private-chat/PrivateChat.tsx",
+      "file": "src/feature-widgets/chat-dock/PrivateChat.tsx",
       "prefix": "PrivateChat.notice.",
       "count": 1
     },

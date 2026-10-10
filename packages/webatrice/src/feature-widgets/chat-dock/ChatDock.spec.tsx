@@ -6,6 +6,7 @@ import { Event_UserMessageSchema } from '@cockatrice/sockatrice/generated';
 import { connectedState, makeUser, renderWithProviders } from '../../__test-utils__';
 import { getSettings, settingsStore } from '../../hooks/useSettings';
 import { dispatchChatDock, getChatDockState } from '../../hooks/useChatDock';
+import { UserGamesProvider } from '../user-games';
 import ChatDock from './ChatDock';
 import { readBoardTrayHeight } from './useChatDockController';
 
@@ -108,6 +109,17 @@ describe('ChatDock', () => {
     fireEvent.keyDown(document, { key: 'Escape' });
     expect(screen.queryByRole('dialog', { name: 'ChatDock.profile.label' })).not.toBeInTheDocument();
     expect(trigger).toHaveFocus();
+  });
+
+  it('offers the shared user menu entries, such as Show games, under More', () => {
+    renderWithProviders(<UserGamesProvider><ChatDock /></UserGamesProvider>, { preloadedState: state });
+    open('alice');
+    fireEvent.click(screen.getByRole('button', { name: 'ChatDock.showProfile' }));
+    fireEvent.click(screen.getByRole('button', { name: 'ChatDock.profile.more' }));
+    const menu = screen.getByRole('menu', { name: 'ChatDock.profile.moreLabel' });
+    expect(within(menu).getByRole('menuitem', { name: 'UserGamesDialog.menu.showGames' })).toBeInTheDocument();
+    fireEvent.keyDown(menu, { key: 'Escape' });
+    expect(screen.getByRole('dialog', { name: 'ChatDock.profile.label' })).toBeInTheDocument();
   });
 
   it('collapses open windows when a game opens', () => {

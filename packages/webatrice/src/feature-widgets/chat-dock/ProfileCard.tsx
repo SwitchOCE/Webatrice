@@ -1,12 +1,12 @@
-import { forwardRef } from 'react';
+import { forwardRef, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { generatePath, useNavigate } from 'react-router-dom';
-import { Flag, Gamepad2, UserCircle, UserRoundMinus, UserRoundPlus, Volume2, VolumeX } from 'lucide-react';
+import { Flag, MoreHorizontal, UserCircle, UserRoundMinus, UserRoundPlus, Volume2, VolumeX } from 'lucide-react';
 
-import { Avatar, Button, UserBadges } from '@app/components';
+import { Avatar, Button, Menu, UserBadges, useUserMenuSlot, type MenuAnchor } from '@app/components';
 import { useReportUser } from '@app/dialogs';
-import { CountryFlag, type PeerViewModel } from '@app/feature-widgets/private-chat';
-import { useUserGames } from '@app/feature-widgets/user-games';
+import { CountryFlag } from './CountryFlag';
+import type { PeerViewModel } from './usePeer';
 import { RouteEnum } from '@app/types';
 import { formatAccountAge, formatUserLevel } from '@app/utils';
 
@@ -19,7 +19,9 @@ interface ProfileCardProps {
 const ProfileCard = forwardRef<HTMLDivElement, ProfileCardProps>(function ProfileCard({ name, peer, onDone }, ref) {
   const { t, i18n } = useTranslation();
   const navigate = useNavigate();
-  const userGames = useUserGames();
+  const Slot = useUserMenuSlot();
+  const moreRef = useRef<HTMLButtonElement>(null);
+  const [moreAnchor, setMoreAnchor] = useState<MenuAnchor | null>(null);
   const { canReportUser, openReportUser } = useReportUser();
   const info = peer.userInfo;
   const act = (fn: () => void) => () => {
@@ -53,9 +55,16 @@ const ProfileCard = forwardRef<HTMLDivElement, ProfileCardProps>(function Profil
         </div>
       </div>
       <div className="mt-3 grid grid-cols-2 gap-1.5">
-        {userGames && (
-          <Button size="sm" icon={<Gamepad2 size={13} />} disabled={!peer.isOnline} onClick={act(() => userGames.open(name))}>
-            {t('ChatDock.profile.showGames')}
+        {Slot && (
+          <Button
+            ref={moreRef}
+            size="sm"
+            icon={<MoreHorizontal size={13} />}
+            aria-haspopup="menu"
+            aria-expanded={moreAnchor !== null}
+            onClick={(event) => setMoreAnchor({ rect: event.currentTarget.getBoundingClientRect(), placement: 'below' })}
+          >
+            {t('ChatDock.profile.more')}
           </Button>
         )}
         <Button
@@ -94,6 +103,23 @@ const ProfileCard = forwardRef<HTMLDivElement, ProfileCardProps>(function Profil
           </Button>
         )}
       </div>
+      {Slot && moreAnchor && (
+        <Menu
+          anchor={moreAnchor}
+          label={t('ChatDock.profile.moreLabel', { name })}
+          onClose={() => setMoreAnchor(null)}
+          triggerRef={moreRef}
+        >
+          <Slot
+            userName={name}
+            userLevel={info?.userLevel}
+            onClose={() => {
+              setMoreAnchor(null);
+              onDone();
+            }}
+          />
+        </Menu>
+      )}
     </div>
   );
 });

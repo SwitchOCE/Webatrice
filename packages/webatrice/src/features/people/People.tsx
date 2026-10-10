@@ -4,7 +4,7 @@ import { Info, UserRoundPlus, VolumeX } from 'lucide-react';
 
 import { AuthGuard, Button, PageTitle, Panel, TextInput } from '@app/components';
 import { Layout } from '@app/feature-wrappers/layout';
-import { useUnreadCounts } from '@app/features/notifications';
+import { useUnreadCounts } from '@app/hooks';
 import { cx } from '@app/utils';
 
 import { BuddyRow, ConversationRow, IgnoredRow } from './PeopleRows';

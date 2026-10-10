@@ -10,7 +10,7 @@ import { Layout } from '@app/feature-wrappers/layout';
 import { MODERATION_MENU_LABEL_KEYS, useModerationMenu } from '@app/feature-widgets/moderation';
 import { useUserGames } from '@app/feature-widgets/user-games';
 import { formatAccountAge, formatUserLevel } from '@app/utils';
-import { PrivateChat } from '@app/feature-widgets/private-chat';
+import { PrivateChat } from '@app/feature-widgets/chat-dock';
 import { usePlayer } from './usePlayer';
 
 import './Player.css';

@@ -678,6 +678,50 @@
       "save": "Could not save the set preferences: {error}"
     }
   },
+  "ChatDock": {
+    "region": "Private chats",
+    "window": "Chat with {name}",
+    "showProfile": "{name}: show profile",
+    "minimise": "Minimise chat with {name}",
+    "close": "Close chat with {name}",
+    "open": "Open chat with {name}",
+    "openUnread": "Open chat with {name}, {count} unread",
+    "buddy": "buddy",
+    "profile": {
+      "label": "{name} profile",
+      "loading": "Loading profile…",
+      "more": "More",
+      "moreLabel": "More actions for {name}",
+      "openPage": "Profile page",
+      "addBuddy": "Add buddy",
+      "removeBuddy": "Remove buddy",
+      "ignore": "Ignore",
+      "unignore": "Unignore",
+      "report": "Report"
+    }
+  },
+  "PrivateChat": {
+    "presence": {
+      "online": "Online",
+      "offline": "Offline"
+    },
+    "blocked": {
+      "ignoring": "You have ignored {name}; your messages are not delivered.",
+      "offline": "{name} is offline; messages cannot be delivered."
+    },
+    "notice": {
+      "ignoredByRecipient": "This user is ignoring you, they cannot see your messages in main chat and you cannot join their games.",
+      "recipientOffline": "Message not sent — {name} is offline.",
+      "chatFlood": "You are flooding the chat. Please wait a couple of seconds.",
+      "userLeft": "{name} has left the server.",
+      "userJoined": "{name} has joined the server.",
+      "notSent": "Message not sent: {reason}"
+    },
+    "log": "Private chat with {name}",
+    "input": "Message {name}",
+    "subtitle": "private chat",
+    "empty": "No messages yet — say hi."
+  },
   "KnownHostDialog": {
     "title": "{mode, select, edit {Edit} other {Add}} Known Host",
     "subtitle": "Adding a new host allows you to connect to different servers. Enter the details below to your host list."
@@ -802,28 +846,6 @@
       "promoteFailed": "Failed to promote user.",
       "demoteFailed": "Failed to demote user."
     }
-  },
-  "PrivateChat": {
-    "presence": {
-      "online": "Online",
-      "offline": "Offline"
-    },
-    "blocked": {
-      "ignoring": "You have ignored {name}; your messages are not delivered.",
-      "offline": "{name} is offline; messages cannot be delivered."
-    },
-    "notice": {
-      "ignoredByRecipient": "This user is ignoring you, they cannot see your messages in main chat and you cannot join their games.",
-      "recipientOffline": "Message not sent — {name} is offline.",
-      "chatFlood": "You are flooding the chat. Please wait a couple of seconds.",
-      "userLeft": "{name} has left the server.",
-      "userJoined": "{name} has joined the server.",
-      "notSent": "Message not sent: {reason}"
-    },
-    "log": "Private chat with {name}",
-    "input": "Message {name}",
-    "subtitle": "private chat",
-    "empty": "No messages yet — say hi."
   },
   "ShortcutsTab": {
     "title": "Keyboard Shortcuts",
@@ -1080,12 +1102,22 @@
     "last": "Last: {ms} ms",
     "median": "Median: {ms} ms",
     "p95": "95th percentile: {ms} ms",
-    "max": "Maximum: {ms} ms"
+    "max": "Maximum: {ms} ms",
+    "short": "{ms} ms"
+  },
+  "NavRail": {
+    "label": "Main navigation",
+    "home": "Webatrice home",
+    "place": {
+      "play": "Play",
+      "decks": "Decks",
+      "replays": "Replays",
+      "people": "People",
+      "settings": "Settings"
+    }
   },
   "TopBar": {
     "replays": {
-      "button": "Replays",
-      "title": "Watch and manage replays",
       "tab": "Replays"
     },
     "replayTab": "Replay",
@@ -1104,24 +1136,36 @@
       "disconnected": "Disconnected",
       "stale": "Server not responding"
     },
-    "decks": {
-      "button": "Decks",
-      "title": "View your decks"
-    },
     "user": {
       "signedIn": "Signed in",
       "signOut": "Sign out"
     },
     "game": {
       "snapGrid": "Snap grid",
-      "phaseTrackToggle": "Toggle auto-hide phase tracker",
+      "phaseTrackToggle": "Auto-hide phase tracker",
       "phaseTrackCollapse": "Collapse the phase track into an auto-hiding HUD",
       "phaseTrackPin": "Keep the phase track always visible"
     },
     "tabs": {
       "label": "Open tabs",
-      "close": "Close {title}"
+      "close": "Close {title}",
+      "spectating": "Spectating"
+    },
+    "rail": {
+      "hide": "Hide the navigation rail",
+      "show": "Show the navigation rail"
+    },
+    "group": {
+      "rooms": "Rooms",
+      "games": "Games",
+      "decks": "Decks",
+      "replays": "Replays",
+      "chats": "Chats",
+      "pages": "Page"
     }
+  },
+  "UnreadBadge": {
+    "label": "{count} unread"
   },
   "UserMenu": {
     "account": "Account",
@@ -1135,7 +1179,17 @@
     "cardArtRules": "Card Art Rules",
     "developer": "Developer",
     "importCards": "Import cards",
-    "debugLog": "View debug log"
+    "debugLog": "Debug log",
+    "onTheBoard": "On the board",
+    "staff": "Staff tools",
+    "roleOnServer": "{role} · {server}",
+    "role": {
+      "admin": "Administrator",
+      "moderator": "Moderator",
+      "judge": "Judge",
+      "registered": "Registered user",
+      "unregistered": "Unregistered user"
+    }
   },
   "Account": {
     "action": {
@@ -1299,27 +1353,6 @@
     },
     "validation": {
       "tooLong": "At most {max} characters"
-    }
-  },
-  "ChatDock": {
-    "region": "Private chats",
-    "window": "Chat with {name}",
-    "showProfile": "{name}: show profile",
-    "minimise": "Minimise chat with {name}",
-    "close": "Close chat with {name}",
-    "open": "Open chat with {name}",
-    "openUnread": "Open chat with {name}, {count} unread",
-    "buddy": "buddy",
-    "profile": {
-      "label": "{name} profile",
-      "loading": "Loading profile…",
-      "showGames": "Show games",
-      "openPage": "Profile page",
-      "addBuddy": "Add buddy",
-      "removeBuddy": "Remove buddy",
-      "ignore": "Ignore",
-      "unignore": "Unignore",
-      "report": "Report"
     }
   },
   "DeckEditor": {
