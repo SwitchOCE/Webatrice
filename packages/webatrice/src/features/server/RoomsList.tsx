@@ -1,20 +1,13 @@
-import { useMemo } from 'react';
+import { Lock } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
-import { generatePath, useNavigate } from 'react-router-dom';
-import { LogIn, ArrowRight } from 'lucide-react';
 
-import { useWebClient } from '@cockatrice/datatrice/react';
 import { rooms as roomsSlice, type JoinRoomError, type Room } from '@cockatrice/datatrice';
 import { Response_ResponseCode } from '@cockatrice/sockatrice/generated';
+import { Button, Chip, Panel } from '@app/components';
 import { AlertDialog } from '@app/dialogs';
 import { useCommandFailureMessage } from '@app/hooks';
 import { useAppDispatch, useAppSelector } from '@app/store';
-import { RouteEnum } from '@app/types';
 import { getRoomPermissionDisplay } from '@app/utils';
-
-const HEADER_CELL_CLASS =
-  'text-left px-3 py-2 text-xs font-semibold uppercase tracking-wider text-text-muted '
-  + 'border-b border-border-subtle';
 
 const JOIN_ERROR_KEYS: Partial<Record<Response_ResponseCode, string>> = {
   [Response_ResponseCode.RespNameNotFound]: 'RoomsList.joinError.notFound',
@@ -28,136 +21,65 @@ function joinErrorMessage(error: JoinRoomError, t: (key: string, params?: Record
 }
 
 interface RoomsListProps {
-  rooms: Record<number, Room>;
-  joinedRooms: Room[];
+  rooms: Room[];
+  joinedRoomIds: Readonly<Record<number, boolean>>;
+  onOpen: (roomId: number) => void;
 }
 
-/** Tailwind rewrite of the pre-redo MUI `<Table>` roomsList. Same data
- *  hookups + join flow as before — clicking a joined room navigates
- *  straight to it; clicking a non-joined room fires the join command
- *  and the JOIN_ROOM reduxEffect in Server.tsx handles the redirect. */
-export default function RoomsList({ rooms, joinedRooms }: RoomsListProps) {
+export default function RoomsList({ rooms, joinedRoomIds, onOpen }: RoomsListProps) {
   const { t } = useTranslation();
-  const navigate = useNavigate();
   const dispatch = useAppDispatch();
-  const webClient = useWebClient();
   const joinError = useAppSelector(roomsSlice.Selectors.getJoinRoomError);
   const describeFailure = useCommandFailureMessage();
 
-  const joinedRoomIds = useMemo(
-    () => new Set(joinedRooms.map((room) => room.info.roomId)),
-    [joinedRooms],
-  );
-
-  const onClick = (roomId: number) => {
-    if (joinedRoomIds.has(roomId)) {
-      navigate(generatePath(RouteEnum.ROOM, { roomId: String(roomId) }));
-    } else {
-      webClient.request.session.joinRoom(roomId);
-    }
-  };
-
-  const roomList = Object.values(rooms);
-
   return (
-    <section className="flex h-full flex-col bg-bg-surface border border-border-subtle rounded-lg overflow-hidden">
-      <div className="shrink-0 flex items-center justify-between px-4 py-3 border-b border-border-subtle">
-        <div>
-          <h2 className="font-modern text-lg font-semibold text-text-primary">{t('RoomsList.title')}</h2>
-          <p className="text-xs text-text-muted mt-0.5 tabular-nums">
-            {t('RoomsList.available', { count: roomList.length })}
-          </p>
-        </div>
-      </div>
-
-      <div className="flex-1 min-h-0 overflow-y-auto">
-        <table className="w-full text-sm border-separate" style={{ borderSpacing: 0 }}>
-          <thead className="sticky top-0 z-10 bg-bg-elevated">
-            <tr>
-              <th className={HEADER_CELL_CLASS}>
-                {t('RoomsList.column.name')}
-              </th>
-              <th className={HEADER_CELL_CLASS}>
-                {t('RoomsList.column.description')}
-              </th>
-              <th className={`${HEADER_CELL_CLASS} w-32`}>
-                {t('RoomsList.column.permissions')}
-              </th>
-              <th className={`${HEADER_CELL_CLASS} w-20 tabular-nums`}>
-                {t('RoomsList.column.players')}
-              </th>
-              <th className={`${HEADER_CELL_CLASS} w-20 tabular-nums`}>
-                {t('RoomsList.column.games')}
-              </th>
-              <th className="border-b border-border-subtle w-28" aria-hidden />
-            </tr>
-          </thead>
-          <tbody>
-            {roomList.length === 0 && (
-              <tr>
-                <td colSpan={6} className="px-4 py-8 text-center text-sm text-text-muted">
-                  {t('RoomsList.empty')}
-                </td>
-              </tr>
-            )}
-            {roomList.map((room) => {
-              const { description, gameCount, name, playerCount, roomId } = room.info;
-              const joined = joinedRoomIds.has(roomId);
-              return (
-                <tr
-                  key={roomId}
-                  className="hover:bg-bg-elevated transition-colors"
+    <Panel title={t('RoomsList.title')} count={t('RoomsList.count', { count: rooms.length })} flush className="shrink-0">
+      {rooms.length === 0 ? (
+        <p className="px-pad py-4 text-[13px] text-text-muted">{t('RoomsList.empty')}</p>
+      ) : (
+        <ul className="flex flex-col">
+          {rooms.map((room) => {
+            const { description, gameCount, name, playerCount, roomId } = room.info;
+            const joined = Boolean(joinedRoomIds[roomId]);
+            const permission = getRoomPermissionDisplay(room.info);
+            return (
+              <li key={roomId} className="flex items-center gap-3 border-b border-border-subtle/60 px-pad py-2 last:border-b-0">
+                <span className="flex min-w-0 flex-1 flex-col" title={description || undefined}>
+                  <span className="flex min-w-0 items-center gap-1.5 text-[13.5px] font-semibold text-text-primary">
+                    <span className="truncate">{name}</span>
+                    {permission !== 'none' && (
+                      <Lock
+                        size={12}
+                        className="shrink-0 text-text-muted"
+                        role="img"
+                        aria-label={t('RoomsList.restricted', { level: permission })}
+                      />
+                    )}
+                    {joined && <Chip tone="accent">{t('RoomsList.joined')}</Chip>}
+                  </span>
+                  <span className="text-[11.5px] tabular-nums text-text-muted">
+                    {t('RoomsList.summary', { games: gameCount, people: playerCount })}
+                  </span>
+                </span>
+                <Button
+                  size="sm"
+                  variant={joined ? 'secondary' : 'ghost'}
+                  onClick={() => onOpen(roomId)}
+                  aria-label={joined ? t('RoomsList.openLabel', { room: name }) : t('RoomsList.joinLabel', { room: name })}
                 >
-                  <td className="px-3 py-2 border-b border-border-subtle/50 text-text-primary font-medium whitespace-nowrap">
-                    {name}
-                  </td>
-                  <td className="px-3 py-2 border-b border-border-subtle/50 text-text-secondary truncate max-w-0">
-                    <div className="truncate" title={description}>{description}</div>
-                  </td>
-                  <td className="px-3 py-2 border-b border-border-subtle/50 text-text-muted lowercase whitespace-nowrap">
-                    {getRoomPermissionDisplay(room.info)}
-                  </td>
-                  <td className="px-3 py-2 border-b border-border-subtle/50 text-text-primary tabular-nums whitespace-nowrap">
-                    {playerCount}
-                  </td>
-                  <td className="px-3 py-2 border-b border-border-subtle/50 text-text-primary tabular-nums whitespace-nowrap">
-                    {gameCount}
-                  </td>
-                  <td className="px-3 py-2 border-b border-border-subtle/50 text-right whitespace-nowrap">
-                    <button
-                      type="button"
-                      onClick={() => onClick(roomId)}
-                      className={[
-                        'inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md text-sm font-semibold transition-colors',
-                        joined
-                          ? 'bg-bg-elevated text-text-secondary hover:text-text-primary border border-border-subtle'
-                          : 'bg-accent text-on-accent hover:bg-accent-hover shadow-glow',
-                      ].join(' ')}
-                    >
-                      {joined ? (
-                        <>
-                          <ArrowRight size={14} /> {t('RoomsList.open')}
-                        </>
-                      ) : (
-                        <>
-                          <LogIn size={14} /> {t('Common.action.join')}
-                        </>
-                      )}
-                    </button>
-                  </td>
-                </tr>
-              );
-            })}
-          </tbody>
-        </table>
-      </div>
-
+                  {joined ? t('RoomsList.open') : t('Common.action.join')}
+                </Button>
+              </li>
+            );
+          })}
+        </ul>
+      )}
       <AlertDialog
         isOpen={joinError !== null}
         title={t('RoomsList.joinError.title')}
         message={joinError ? describeFailure(joinError.failure, joinErrorMessage(joinError, t)) : ''}
         onDismiss={() => dispatch(roomsSlice.Actions.clearJoinRoomError())}
       />
-    </section>
+    </Panel>
   );
 }

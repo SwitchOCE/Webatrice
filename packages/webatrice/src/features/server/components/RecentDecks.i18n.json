@@ -1,0 +1,11 @@
+{
+  "RecentDecks": {
+    "title": "Recent decks",
+    "where": "opened in this browser",
+    "allDecks": "All decks",
+    "newDeck": "New deck",
+    "empty": "Decks you open in the editor appear here.",
+    "cards": "{count, plural, one {# card} other {# cards}}",
+    "bracket": "· Bracket {level}"
+  }
+}

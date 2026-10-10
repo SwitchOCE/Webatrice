@@ -341,6 +341,36 @@
       "retry": "Try again"
     }
   },
+  "GameCard": {
+    "untitled": "Game #{id}, no description",
+    "hostedBy": "Hosted by",
+    "moreFormats": "+{count}",
+    "players": "{taken} / {max} players",
+    "restriction": {
+      "none": "Anyone can join",
+      "password": "Password",
+      "buddiesOnly": "Buddies only",
+      "registeredOnly": "Registered users",
+      "openDecklists": "Open decklists"
+    },
+    "spectators": {
+      "notAllowed": "Spectators not allowed",
+      "watching": "{count} watching",
+      "canChat": "can chat",
+      "seeHands": "see hands",
+      "password": "password"
+    },
+    "blocked": {
+      "started": "This game has started",
+      "full": "Every seat is taken"
+    },
+    "join": "Join",
+    "spectate": "Spectate",
+    "joinLabel": "Join {name}",
+    "joinPasswordLabel": "Join {name} (asks for the password)",
+    "joinBlockedLabel": "Join {name}: {reason}",
+    "spectateLabel": "Spectate {name}"
+  },
   "GameLink": {
     "anchor": {
       "plain": "Join game",
@@ -3592,24 +3622,58 @@
       "unknown": "Failed to join the server room due to an unknown error: {code}."
     },
     "title": "Rooms",
-    "available": "{count, plural, other {# available}}",
-    "column": {
-      "name": "Name",
-      "description": "Description",
-      "permissions": "Permissions",
-      "players": "Players",
-      "games": "Games"
-    },
+    "count": "{count, plural, other {# on this server}}",
+    "summary": "{games, plural, one {# game} other {# games}} · {people, plural, one {# person} other {# people}}",
+    "restricted": "Restricted: {level}",
+    "joined": "Joined",
     "empty": "No rooms available.",
-    "open": "Open"
+    "open": "Open",
+    "openLabel": "Open {room}",
+    "joinLabel": "Join {room}"
   },
-  "Server": {
-    "announcements": "Server Announcements"
+  "BuddiesOnline": {
+    "title": "Buddies online",
+    "count": "{online} of {total}",
+    "hosting": "Hosting",
+    "untitledGame": "game #{id}",
+    "online": "Online",
+    "showGames": "Show {name}'s games",
+    "message": "Message {name}",
+    "empty": "None of your buddies is online.",
+    "noBuddies": "You have no buddies yet. Add one from a player's menu."
   },
-  "ServerUsers": {
-    "title": "Players Online",
-    "count": "{count, plural, other {# connected}}",
-    "empty": "No one connected."
+  "BuddyGames": {
+    "title": "Hosted by your buddies",
+    "whereOne": "in {room}, open seats first",
+    "whereMany": "in the {count} rooms you joined, open seats first",
+    "allGames": "All games in {room}",
+    "empty": "None of your buddies is hosting a game in your rooms right now.",
+    "emptyNoBuddies": "Add buddies from a player's menu to see the games they host here.",
+    "emptyNotJoined": "Join a room to see the games your buddies host there.",
+    "passwordTitle": "Join game",
+    "errorTitle": "Couldn't join the game"
+  },
+  "HomeHero": {
+    "online": "{count, plural, other {# online}}",
+    "games": "{count, plural, one {# game} other {# games}}",
+    "welcome": "Welcome back, {name}",
+    "usualRoomJoined": "{room}, your usual room, has {games, plural, one {# game} other {# games}}; {open, plural, =0 {none has an open seat right now} one {# has an open seat right now} other {# have open seats right now}}.",
+    "usualRoom": "{room}, your usual room, has {games, plural, one {# game} other {# games}}.",
+    "noRooms": "This server has no rooms yet.",
+    "play": "Play in {room}"
+  },
+  "RecentDecks": {
+    "title": "Recent decks",
+    "where": "opened in this browser",
+    "allDecks": "All decks",
+    "newDeck": "New deck",
+    "empty": "Decks you open in the editor appear here.",
+    "cards": "{count, plural, one {# card} other {# cards}}",
+    "bracket": "· Bracket {level}"
+  },
+  "ServerAnnouncement": {
+    "title": "From the server",
+    "empty": "No announcement from this server."
   },
   "Settings": {
     "title": "Settings",

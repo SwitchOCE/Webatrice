@@ -39,3 +39,4 @@ export * from './useAnimationPreferences';
 export * from './useApplyCardPresentation';
 export * from './useUnreadCounts';
 export * from './useMarkRead';
+export * from './useRecentDecks';
