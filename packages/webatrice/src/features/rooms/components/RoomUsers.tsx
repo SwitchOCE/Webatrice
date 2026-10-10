@@ -1,3 +1,4 @@
+import { Fragment } from 'react';
 import { List, type RowComponentProps } from 'react-window';
 import { ChevronDown, ChevronRight, MessageSquare, Swords } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
@@ -78,13 +79,15 @@ function PeopleRowView({ ariaAttributes, index, style, rows, roomName, toggle }:
   const row = rows[index];
   return (
     <div style={style} {...ariaAttributes}>
-      {row.kind === 'section' && (
-        <SectionHeader section={row.section} open={row.open} count={row.count} roomName={roomName} onToggle={toggle} />
-      )}
-      {row.kind === 'buddy' && <BuddyRow entry={row.entry} roomName={roomName} />}
-      {row.kind === 'person' && <PersonRow user={row.user} muted={row.muted} />}
-      {row.kind === 'preview' && <EveryonePreview users={row.users} more={row.more} onOpen={() => toggle('everyone')} />}
-      {row.kind === 'empty' && <EmptyRow section={row.section} />}
+      <Fragment key={row.key}>
+        {row.kind === 'section' && (
+          <SectionHeader section={row.section} open={row.open} count={row.count} roomName={roomName} onToggle={toggle} />
+        )}
+        {row.kind === 'buddy' && <BuddyRow entry={row.entry} roomName={roomName} />}
+        {row.kind === 'person' && <PersonRow user={row.user} muted={row.muted} />}
+        {row.kind === 'preview' && <EveryonePreview users={row.users} more={row.more} onOpen={() => toggle('everyone')} />}
+        {row.kind === 'empty' && <EmptyRow section={row.section} />}
+      </Fragment>
     </div>
   );
 }
