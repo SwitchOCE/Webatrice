@@ -84,6 +84,47 @@ export function patchCard(deck: HydratedDeck, index: number, patch: Partial<Deck
   });
 }
 
+export function rowIdentity(card: DeckCard): string {
+  return `${card.category}:${card.name.toLowerCase()}:${card.scryfallId ?? ''}`;
+}
+
+function mergeIntoTwin(deck: HydratedDeck, index: number): HydratedDeck {
+  const row = deck.cards[index];
+  const identity = rowIdentity(row);
+  const twin = deck.cards.findIndex((c, i) => i !== index && rowIdentity(c) === identity);
+  if (twin < 0) {
+    return deck;
+  }
+  return withCards(deck, (cards) => {
+    cards[twin] = {
+      ...cards[twin],
+      quantity: cards[twin].quantity + row.quantity,
+      ...(row.isCommander ? { isCommander: true } : {}),
+    };
+    cards.splice(index, 1);
+  });
+}
+
+export function mergeDuplicateRows(cards: readonly DeckCard[]): DeckCard[] {
+  const merged: DeckCard[] = [];
+  const at = new Map<string, number>();
+  for (const card of cards) {
+    const identity = rowIdentity(card);
+    const twin = at.get(identity);
+    if (twin == null) {
+      at.set(identity, merged.length);
+      merged.push(card);
+    } else {
+      merged[twin] = {
+        ...merged[twin],
+        quantity: merged[twin].quantity + card.quantity,
+        ...(card.isCommander ? { isCommander: true } : {}),
+      };
+    }
+  }
+  return merged.length === cards.length ? [...cards] : merged;
+}
+
 export function removeCard(deck: HydratedDeck, index: number): HydratedDeck {
   return withCards(deck, (cards) => {
     cards.splice(index, 1);
@@ -102,7 +143,7 @@ export function adjustCardQuantity(deck: HydratedDeck, index: number, delta: num
 }
 
 export function setCardCategory(deck: HydratedDeck, index: number, category: DeckCategory): HydratedDeck {
-  return deck.cards[index]?.category === category ? deck : patchCard(deck, index, { category });
+  return deck.cards[index]?.category === category ? deck : mergeIntoTwin(patchCard(deck, index, { category }), index);
 }
 
 export interface CardPrinting {
@@ -128,13 +169,13 @@ export function setCardPrinting(deck: HydratedDeck, index: number, printing: Car
   ) {
     return deck;
   }
-  return patchCard(deck, index, {
+  return mergeIntoTwin(patchCard(deck, index, {
     set: printing.set,
     collectorNumber: printing.collectorNumber,
     scryfallId: printing.scryfallId,
     imageUri: primaryImageUri({ imageUris }),
     imageUris,
-  });
+  }), index);
 }
 
 export function setCardCommander(deck: HydratedDeck, index: number, isCommander: boolean): HydratedDeck {
