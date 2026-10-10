@@ -8,7 +8,9 @@
       "closeTitle": "Close the replay"
     },
     "timeline": {
-      "label": "Replay timeline"
+      "label": "Replay timeline",
+      "turns": "Turns",
+      "turn": "T{turn}"
     },
     "controls": {
       "play": "Play",

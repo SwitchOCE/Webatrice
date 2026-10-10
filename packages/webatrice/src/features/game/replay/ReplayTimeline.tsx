@@ -4,15 +4,18 @@ import { useTranslation } from 'react-i18next';
 import { BIG_SKIP_MS, SMALL_SKIP_MS, createTimelineHistogram } from '@app/services';
 
 import { formatReplayTime } from './formatReplayTime';
+import type { TurnMark } from './replayTurnMarks';
 
 export interface ReplayTimelineProps {
   timeline: readonly number[];
   currentTime: number;
   maxTime: number;
   onSeek: (time: number) => void;
+  turnMarks?: readonly TurnMark[];
+  className?: string;
 }
 
-function ReplayTimeline({ timeline, currentTime, maxTime, onSeek }: ReplayTimelineProps) {
+function ReplayTimeline({ timeline, currentTime, maxTime, onSeek, turnMarks, className }: ReplayTimelineProps) {
   const { t } = useTranslation();
 
   const silhouette = useMemo(() => {
@@ -52,29 +55,54 @@ function ReplayTimeline({ timeline, currentTime, maxTime, onSeek }: ReplayTimeli
     onSeek(Math.min(maxTime, Math.max(0, target)));
   };
 
+  const marks = maxTime > 0 && turnMarks?.length ? turnMarks : [];
+
   return (
-    <div
-      className="replay-timeline"
-      role="slider"
-      tabIndex={0}
-      aria-label={t('GameReplay.timeline.label')}
-      aria-valuemin={0}
-      aria-valuemax={maxTime}
-      aria-valuenow={currentTime}
-      aria-valuetext={`${formatReplayTime(currentTime)} / ${formatReplayTime(maxTime)}`}
-      data-testid="replay-timeline"
-      onClick={handleClick}
-      onKeyDown={handleKeyDown}
-    >
-      <svg
-        className="replay-timeline__histogram"
-        viewBox={`0 0 ${silhouette.width} 100`}
-        preserveAspectRatio="none"
-        aria-hidden
+    <div className={className ?? 'replay-timeline__frame'}>
+      <div
+        className="replay-timeline"
+        role="slider"
+        tabIndex={0}
+        aria-label={t('GameReplay.timeline.label')}
+        aria-valuemin={0}
+        aria-valuemax={maxTime}
+        aria-valuenow={currentTime}
+        aria-valuetext={`${formatReplayTime(currentTime)} / ${formatReplayTime(maxTime)}`}
+        data-testid="replay-timeline"
+        onClick={handleClick}
+        onKeyDown={handleKeyDown}
       >
-        <path d={silhouette.path} />
-      </svg>
-      <div className="replay-timeline__progress" style={{ width: `${progress * 100}%` }} />
+        <svg
+          className="replay-timeline__histogram"
+          viewBox={`0 0 ${silhouette.width} 100`}
+          preserveAspectRatio="none"
+          aria-hidden
+        >
+          <path d={silhouette.path} />
+        </svg>
+        <div className="replay-timeline__progress" style={{ width: `${progress * 100}%` }} />
+        {marks.map((mark) => (
+          <span
+            key={mark.turn}
+            className="replay-timeline__tick"
+            data-testid="replay-turn-tick"
+            style={{ left: `${(mark.time / maxTime) * 100}%` }}
+          />
+        ))}
+      </div>
+      {marks.length > 0 && (
+        <ol className="replay-timeline__turns" aria-label={t('GameReplay.timeline.turns')}>
+          {marks.map((mark) => (
+            <li
+              key={mark.turn}
+              className={mark.time <= currentTime ? 'replay-timeline__turn replay-timeline__turn--played' : 'replay-timeline__turn'}
+              style={{ left: `${(mark.time / maxTime) * 100}%` }}
+            >
+              {t('GameReplay.timeline.turn', { turn: mark.turn })}
+            </li>
+          ))}
+        </ol>
+      )}
     </div>
   );
 }

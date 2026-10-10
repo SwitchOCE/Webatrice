@@ -1,43 +1,95 @@
+import { useEffect, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
+import { FileUp, KeyRound, Upload } from 'lucide-react';
 
+import { Button, PageTitle } from '@app/components';
 import { AlertDialog, ConfirmDialog, PromptDialog } from '@app/dialogs';
 import { Layout } from '@app/feature-wrappers/layout';
+import { REPLAY_FILE_EXTENSION } from '@app/services';
 
-import LocalReplays from './LocalReplays';
+import ReplayDetail from './ReplayDetail';
+import ReplayList from './ReplayList';
 import ReplayShareCodeDialog from './ReplayShareCodeDialog';
-import ServerReplays from './ServerReplays';
-import { splitReplayName } from './replayFiles';
-import { useLocalReplays } from './useLocalReplays';
-import { useServerReplays } from './useServerReplays';
-
-import './Replays.css';
+import { useReplayLibrary } from './useReplayLibrary';
+import { useReplayPreview } from './useReplayPreview';
 
 function Replays() {
   const { t } = useTranslation();
-  const serverReplays = useServerReplays();
-  const local = useLocalReplays(serverReplays.librarySaves);
-  const notice = local.notice ?? serverReplays.notice;
-  const dismissNotice = local.notice ? local.dismissNotice : serverReplays.dismissNotice;
-  const renaming = local.prompt?.kind === 'rename' ? local.prompt.entry : null;
+  const library = useReplayLibrary();
+  const preview = useReplayPreview();
+  const watchInputRef = useRef<HTMLInputElement>(null);
+  const importInputRef = useRef<HTMLInputElement>(null);
+  const { server, local } = library;
+  const notice = local.notice ?? server.notice;
+  const dismissNotice = local.notice ? local.dismissNotice : server.dismissNotice;
+
+  const previewKey = library.previewSource?.key;
+  const { reset } = preview;
+  useEffect(() => {
+    reset();
+  }, [previewKey, reset]);
+
+  const fileCount = library.items.filter((item) => item.kind === 'file').length
+    + library.items
+      .filter((item) => item.kind === 'match')
+      .flatMap((item) => item.games)
+      .filter((game) => game.localEntryId != null).length;
 
   return (
-    <Layout className="replays">
-      <div className="replays__panes">
-        <LocalReplays model={local} />
-        <ServerReplays model={serverReplays} localFolderId={local.folderId} />
-      </div>
-
-      <PromptDialog
-        isOpen={local.prompt != null}
-        title={renaming
-          ? (renaming.kind === 'folder' ? t('Replays.local.renameFolderTitle') : t('Replays.local.renameFileTitle'))
-          : t('Replays.action.newFolder')}
-        label={renaming ? t('Replays.local.newName') : t('Replays.local.newFolderName')}
-        initialValue={renaming ? splitReplayName(renaming.name).base : ''}
-        validate={(value) => (value.trim() ? null : t('Replays.local.nameRequired'))}
-        onSubmit={local.submitPrompt}
-        onCancel={local.cancelPrompt}
+    <Layout className="flex flex-col">
+      <PageTitle
+        title={t('Replays.title')}
+        subtitle={server.availability === 'available'
+          ? t('Replays.subtitle', { matches: server.matches.length, files: fileCount })
+          : t('Replays.subtitleLocal', { files: fileCount })}
+        actions={(
+          <>
+            <Button icon={<KeyRound size={14} />} disabled={server.availability !== 'available'} onClick={server.openSubmitPrompt}>
+              {t('Replays.action.submitCode')}
+            </Button>
+            <Button icon={<FileUp size={14} />} onClick={() => watchInputRef.current?.click()}>
+              {t('Replays.action.openFile')}
+            </Button>
+            <Button icon={<Upload size={14} />} onClick={() => importInputRef.current?.click()}>
+              {t('Replays.action.import')}
+            </Button>
+          </>
+        )}
       />
+      <input
+        ref={watchInputRef}
+        type="file"
+        accept={REPLAY_FILE_EXTENSION}
+        hidden
+        data-testid="replay-watch-file"
+        onChange={(event) => {
+          const file = event.target.files?.[0];
+          event.target.value = '';
+          if (file) {
+            local.watchFile(file);
+          }
+        }}
+      />
+      <input
+        ref={importInputRef}
+        type="file"
+        accept={REPLAY_FILE_EXTENSION}
+        multiple
+        hidden
+        data-testid="replay-import-files"
+        onChange={(event) => {
+          const files = Array.from(event.target.files ?? []);
+          event.target.value = '';
+          if (files.length) {
+            local.importFiles(files);
+          }
+        }}
+      />
+
+      <div className="flex min-h-0 flex-1 gap-gap px-pad pb-pad">
+        <ReplayList library={library} />
+        <ReplayDetail library={library} preview={preview} />
+      </div>
 
       <ConfirmDialog
         isOpen={local.deleteConfirmOpen}
@@ -50,25 +102,25 @@ function Replays() {
       />
 
       <ConfirmDialog
-        isOpen={serverReplays.deleteConfirmOpen}
+        isOpen={server.deleteConfirmOpen}
         title={t('Replays.server.deleteTitle')}
         message={t('Replays.server.deleteMessage')}
         confirmLabel={t('Replays.action.delete')}
         destructive
-        onConfirm={serverReplays.confirmDelete}
-        onCancel={serverReplays.cancelDelete}
+        onConfirm={server.confirmDelete}
+        onCancel={server.cancelDelete}
       />
 
       <PromptDialog
-        isOpen={serverReplays.submitPromptOpen}
+        isOpen={server.submitPromptOpen}
         title={t('Replays.action.submitCode')}
         label={t('Replays.share.codeLabel')}
         validate={(value) => (value.trim() ? null : t('Replays.share.codeRequired'))}
-        onSubmit={(value) => serverReplays.submitShareCode(value.trim())}
-        onCancel={serverReplays.closeSubmitPrompt}
+        onSubmit={(value) => server.submitShareCode(value.trim())}
+        onCancel={server.closeSubmitPrompt}
       />
 
-      <ReplayShareCodeDialog code={serverReplays.shareCode} onClose={serverReplays.closeShareCode} />
+      <ReplayShareCodeDialog code={server.shareCode} onClose={server.closeShareCode} />
 
       <AlertDialog
         isOpen={notice != null}
