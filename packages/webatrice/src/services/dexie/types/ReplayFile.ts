@@ -2,6 +2,12 @@ export const REPLAY_LIBRARY_ROOT = 0;
 
 export type ReplayFileKind = 'folder' | 'replay';
 
+export interface ReplayOrigin {
+  endpoint: string;
+  gameId: number;
+  replayId: number;
+}
+
 export class ReplayFile {
   id?: number;
   parentId: number;
@@ -9,6 +15,7 @@ export class ReplayFile {
   name: string;
   size: number;
   modifiedAt: string;
+  origin?: ReplayOrigin;
 }
 
 export class ReplayData {

@@ -1,16 +1,21 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { generatePath, useNavigate } from 'react-router-dom';
 
+import { server } from '@cockatrice/datatrice';
 import { useWebClient } from '@cockatrice/datatrice/react';
+import type { WebClient } from '@cockatrice/sockatrice';
 import type { GameReplay } from '@cockatrice/sockatrice/generated';
 import {
   ReplayEngine,
+  allocateReplayGameId,
   getOpenedReplay,
   openReplay,
   parseReplay,
   type OpenedReplay,
   type ReplayGameTarget,
 } from '@app/services';
+import { onSessionEnd } from '@app/services/session';
+import { useAppSelector } from '@app/store';
 import { RouteEnum } from '@app/types';
 
 export interface PreviewSource {
@@ -32,18 +37,25 @@ export interface ReplayPreviewState {
 }
 
 export const PREVIEW_CACHE_SIZE = 8;
-const PREVIEW_GAME_ID_BASE = -100000;
 
 const parsedReplays = new Map<string, GameReplay>();
-let nextPreviewSerial = 1;
 
-export function cachedReplay(key: string): GameReplay | undefined {
-  return parsedReplays.get(key);
+export function connectedEndpoint(webClient: Pick<WebClient, 'socket'>): string {
+  return webClient.socket.connectedEndpoint ?? '';
 }
 
-export function rememberReplay(key: string, replay: GameReplay): void {
-  parsedReplays.delete(key);
-  parsedReplays.set(key, replay);
+export function previewScope(sessionEpoch: number, endpoint: string): string {
+  return `${sessionEpoch}@${endpoint}`;
+}
+
+export function cachedReplay(scope: string, key: string): GameReplay | undefined {
+  return parsedReplays.get(`${scope}/${key}`);
+}
+
+export function rememberReplay(scope: string, key: string, replay: GameReplay): void {
+  const id = `${scope}/${key}`;
+  parsedReplays.delete(id);
+  parsedReplays.set(id, replay);
   while (parsedReplays.size > PREVIEW_CACHE_SIZE) {
     parsedReplays.delete(parsedReplays.keys().next().value!);
   }
@@ -53,8 +65,10 @@ export function clearReplayCache(): void {
   parsedReplays.clear();
 }
 
+onSessionEnd(clearReplayCache);
+
 export function createPreviewReplay(key: string, replay: GameReplay, title: string, target: ReplayGameTarget): OpenedReplay {
-  const gameId = PREVIEW_GAME_ID_BASE - nextPreviewSerial++;
+  const gameId = allocateReplayGameId();
   const gameInfo = replay.gameInfo!;
   const engine = new ReplayEngine(replay, {
     rewind: () => target.loadReplayGame(gameId, gameInfo),
@@ -67,12 +81,15 @@ export function createPreviewReplay(key: string, replay: GameReplay, title: stri
 export function useReplayPreview(): ReplayPreviewState {
   const webClient = useWebClient();
   const navigate = useNavigate();
+  const sessionEpoch = useAppSelector(server.Selectors.selectSessionEpoch);
   const [status, setStatus] = useState<PreviewStatus>('idle');
   const [key, setKey] = useState<string | null>(null);
   const [opened, setOpened] = useState<OpenedReplay | undefined>(undefined);
   const [error, setError] = useState<string | null>(null);
   const openedRef = useRef<OpenedReplay | undefined>(undefined);
   const requestRef = useRef(0);
+  const scopeRef = useRef('');
+  scopeRef.current = previewScope(sessionEpoch, connectedEndpoint(webClient));
 
   const dispose = useCallback(() => {
     const current = openedRef.current;
@@ -94,9 +111,18 @@ export function useReplayPreview(): ReplayPreviewState {
     setStatus('idle');
   }, [dispose]);
 
+  useEffect(() => {
+    if (status !== 'idle') {
+      reset();
+    }
+  // A new session (or server) invalidates whatever was previewed under the old one.
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [sessionEpoch]);
+
   const load = useCallback((source: PreviewSource) => {
     dispose();
     const request = requestRef.current;
+    const scope = scopeRef.current;
     setOpened(undefined);
     setKey(source.key);
     setError(null);
@@ -110,7 +136,7 @@ export function useReplayPreview(): ReplayPreviewState {
       setOpened(preview);
       setStatus('ready');
     };
-    const cached = cachedReplay(source.key);
+    const cached = cachedReplay(scope, source.key);
     if (cached) {
       ready(cached);
       return;
@@ -118,7 +144,9 @@ export function useReplayPreview(): ReplayPreviewState {
     source.fetch()
       .then((bytes) => {
         const replay = parseReplay(bytes);
-        rememberReplay(source.key, replay);
+        if (scopeRef.current === scope) {
+          rememberReplay(scope, source.key, replay);
+        }
         ready(replay);
       })
       .catch((err: unknown) => {

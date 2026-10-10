@@ -3,7 +3,7 @@ import { useTranslation } from 'react-i18next';
 
 import { BIG_SKIP_MS, SMALL_SKIP_MS, createTimelineHistogram } from '@app/services';
 
-import { formatReplayTime } from './formatReplayTime';
+import { formatReplayTime } from '@app/utils';
 import type { TurnMark } from './replayTurnMarks';
 
 export interface ReplayTimelineProps {

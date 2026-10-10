@@ -2,6 +2,8 @@ import { ScryfallImageSize } from '@cockatrice/datatrice';
 
 import { cleanScryfallName, scryfallCardUrl, scryfallNamedUrl } from './client';
 
+export const CARD_BACK_URL = 'https://backs.scryfall.io/normal/0/a/0aeebaf5-8c7d-4636-9e82-8c27447861f7.jpg';
+
 export function getScryfallUrlById(
   providerId: string,
   size: ScryfallImageSize = ScryfallImageSize.Small,

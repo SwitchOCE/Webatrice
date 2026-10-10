@@ -60,6 +60,7 @@ describe('replay playback of a recorded game', () => {
     expect(new Set(joined).size).toBe(2);
     expect(game.messages.some((m) => m.message === 'The game has started.')).toBe(true);
     expect(screen.queryByTestId('game-log-timer')).not.toBeInTheDocument();
+    fireEvent.click(screen.getByRole('tab', { name: /players/i }));
     const rows = screen.getAllByTestId(/^player-list-item-/);
     for (const row of rows) {
       fireEvent.contextMenu(row);

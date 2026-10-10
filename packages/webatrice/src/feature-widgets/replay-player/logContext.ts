@@ -1,7 +1,7 @@
 import type { TFunction } from 'i18next';
 import type { LogParamsByKind, LogPlayer, LogSegment } from '@cockatrice/datatrice';
 import { ZoneName } from '@cockatrice/sockatrice';
-import { phaseLabel } from '../PhaseTrack/phaseLabels';
+import { phaseLabel } from '@app/utils';
 import { translatedLog } from './logTranslation';
 
 export function createLogContext(t: TFunction) {

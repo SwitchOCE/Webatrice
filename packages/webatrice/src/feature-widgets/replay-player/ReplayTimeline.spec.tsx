@@ -1,6 +1,6 @@
 import { fireEvent, screen, within } from '@testing-library/react';
 
-import { renderWithProviders } from '../../../__test-utils__';
+import { renderWithProviders } from '../../__test-utils__';
 import ReplayTimeline from './ReplayTimeline';
 
 it('renders a bounded silhouette for a long replay and still seeks across its full duration', () => {

@@ -9,7 +9,7 @@ import {
 
 import { createReplayTimeline } from '@app/services';
 
-import { buildReplay, sayContainer } from '../../../services/replay/__mocks__/fixtures';
+import { buildReplay, sayContainer } from '../../services/replay/__mocks__/fixtures';
 import { createTurnMarks, turnAt } from './replayTurnMarks';
 
 function activePlayerContainer(secondsElapsed: number, activePlayerId = 0): GameEventContainer {

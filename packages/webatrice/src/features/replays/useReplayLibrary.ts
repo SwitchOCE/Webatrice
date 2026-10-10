@@ -17,7 +17,7 @@ import {
   type ReplaySource,
 } from './replayLibrary';
 import { useLocalLibrary, type LocalLibrary } from './useLocalLibrary';
-import type { PreviewSource } from './useReplayPreview';
+import { connectedEndpoint, type PreviewSource } from './useReplayPreview';
 import { useServerReplays, type ServerReplays } from './useServerReplays';
 
 export interface ReplayLibrary {
@@ -56,7 +56,11 @@ export function useReplayLibrary(): ReplayLibrary {
   const [gameIndex, setGameIndex] = useState(0);
   const [now] = useState(() => Date.now());
 
-  const items = useMemo(() => buildReplayItems(serverReplays.matches, local.entries), [serverReplays.matches, local.entries]);
+  const endpoint = connectedEndpoint(webClient);
+  const items = useMemo(
+    () => buildReplayItems(serverReplays.matches, local.entries, endpoint),
+    [serverReplays.matches, local.entries, endpoint],
+  );
   const visible = useMemo(() => filterReplayItems(items, source, query), [items, source, query]);
   const groups = useMemo(() => groupByDay(visible, now), [visible, now]);
   const counts = useMemo(() => sourceCounts(items), [items]);

@@ -22,7 +22,7 @@ import { useGameId } from '../ui/GameIdContext';
 
 import { GAME_FOCUS_RING } from '../ui/focusRing';
 import { usePhaseBar } from './usePhaseBar';
-import { phaseLabel } from './phaseLabels';
+import { phaseLabel } from '@app/utils';
 
 type PhaseTone = 'success' | 'info' | 'danger';
 

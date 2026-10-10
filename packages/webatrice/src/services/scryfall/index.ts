@@ -8,6 +8,7 @@ export {
 } from './cardDetail';
 export { cleanScryfallName } from './client';
 export {
+  CARD_BACK_URL,
   getScryfallUrl,
   getScryfallUrlByExactName,
   getScryfallUrlById,

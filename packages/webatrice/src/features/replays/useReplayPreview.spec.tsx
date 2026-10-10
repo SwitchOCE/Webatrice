@@ -3,7 +3,9 @@ import { Route, Routes } from 'react-router-dom';
 import { toBinary } from '@bufbuild/protobuf';
 
 import { GameReplaySchema } from '@cockatrice/sockatrice/generated';
-import { closeReplay, getOpenedReplays } from '@app/services';
+import { server } from '@cockatrice/datatrice';
+import { closeReplay, getOpenedReplays, openReplay } from '@app/services';
+import { endSession } from '@app/services/session';
 import { RouteEnum } from '@app/types';
 
 import { createMockWebClient, renderWithProviders } from '../../__test-utils__';
@@ -89,6 +91,42 @@ describe('useReplayPreview', () => {
 
     expect(view.state.key).toBe('fast');
     expect(view.webClient.loadReplayGame).toHaveBeenCalledTimes(1);
+  });
+
+  it('scopes the cache to the session: a new session epoch fetches again, and ending the session empties it', async () => {
+    const view = setup();
+    const fetch = vi.fn().mockResolvedValue(bytes());
+    const source = { key: 'server:70', title: 'Game 7', fetch };
+
+    act(() => view.state.load(source));
+    await waitFor(() => expect(view.state.status).toBe('ready'));
+
+    act(() => {
+      view.store.dispatch(server.Actions.disconnected());
+    });
+    expect(view.state.status).toBe('idle');
+    act(() => view.state.load(source));
+    expect(view.state.status).toBe('loading');
+    await waitFor(() => expect(view.state.status).toBe('ready'));
+    expect(fetch).toHaveBeenCalledTimes(2);
+
+    act(() => view.state.reset());
+    endSession();
+    act(() => view.state.load(source));
+    await waitFor(() => expect(view.state.status).toBe('ready'));
+    expect(fetch).toHaveBeenCalledTimes(3);
+  });
+
+  it('never hands a preview the game id of a replay opened in a tab', async () => {
+    const view = setup();
+    const full = getOpenedReplays().length ? [] : [openReplay(buildReplay([sayContainer(0)]), 'tab', view.webClient)];
+    act(() => view.state.load({ key: 'server:70', title: 'Game 7', fetch: () => Promise.resolve(bytes()) }));
+    await waitFor(() => expect(view.state.status).toBe('ready'));
+    const tabIds = full.map((key) => getOpenedReplays().find((r) => r.key === key)!.gameId);
+
+    expect(tabIds).not.toContain(view.state.opened!.gameId);
+    const later = openReplay(buildReplay([sayContainer(0)]), 'later', view.webClient);
+    expect(getOpenedReplays().find((r) => r.key === later)!.gameId).not.toBe(view.state.opened!.gameId);
   });
 
   it('opens the full replay at the preview position when watching from a time', async () => {

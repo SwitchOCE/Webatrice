@@ -1,21 +1,20 @@
-import { useMemo } from 'react';
+import { useEffect, useMemo, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Pause, Play, RotateCcw, RotateCw, SkipBack, SkipForward } from 'lucide-react';
 
+import { games } from '@cockatrice/datatrice';
 import { Button, Chip, IconButton, Kbd } from '@app/components';
+import { usePreference } from '@app/hooks';
 import { BIG_SKIP_MS, SMALL_SKIP_MS, type OpenedReplay } from '@app/services';
+import { useAppSelector } from '@app/store';
+import { formatReplayTime } from '@app/utils';
 
-import ChatLog from '../../components/ChatLog/ChatLog';
-import { CardPreviewProvider, createCardPreviewStore } from '../../components/ui/CardPreviewContext';
-import { GameIdProvider } from '../../components/ui/GameIdContext';
-import { GameReadOnlyProvider } from '../../components/ui/GameReadOnlyContext';
-import { ReplayRewindProvider } from '../../components/ui/ReplayRewindContext';
-import ReplayTimeline from '../ReplayTimeline';
-import { formatReplayTime } from '../formatReplayTime';
-import { createTurnMarks, turnAt } from '../replayTurnMarks';
-import { useReplayPlayback } from '../useReplayPlayback';
+import { GameLogRows } from './GameLogRows';
 import PreviewBoard from './PreviewBoard';
+import ReplayTimeline from './ReplayTimeline';
+import { createTurnMarks, turnAt } from './replayTurnMarks';
 import { usePreviewBoardModel } from './usePreviewBoardModel';
+import { useReplayPlayback } from './useReplayPlayback';
 
 export interface ReplayPreviewProps {
   opened: OpenedReplay;
@@ -27,9 +26,19 @@ function ReplayPreview({ opened, onWatchFrom }: ReplayPreviewProps) {
   const playback = useReplayPlayback(opened);
   const model = usePreviewBoardModel(opened.gameId);
   const turnMarks = useMemo(() => createTurnMarks(opened.replay, opened.engine.timeline), [opened]);
-  const previewStore = useMemo(() => createCardPreviewStore(), []);
+  const messages = useAppSelector((state) => games.Selectors.getMessages(state, opened.gameId));
+  const players = useAppSelector((state) => games.Selectors.getPlayers(state, opened.gameId));
+  const stampGameTime = usePreference('useGameTime');
+  const logRef = useRef<HTMLDivElement>(null);
   const { state } = playback;
   const turn = turnAt(turnMarks, state.currentTime);
+
+  useEffect(() => {
+    const list = logRef.current;
+    if (list) {
+      list.scrollTop = list.scrollHeight;
+    }
+  }, [messages]);
 
   return (
     <div className="flex min-h-0 flex-1 flex-col gap-3" data-testid="replay-preview">
@@ -41,16 +50,14 @@ function ReplayPreview({ opened, onWatchFrom }: ReplayPreviewProps) {
           <span className="border-b border-border-subtle px-3 py-2 text-[11px] font-semibold uppercase tracking-[0.08em] text-text-muted">
             {t('ReplayPreview.logAt', { time: formatReplayTime(state.currentTime) })}
           </span>
-          <div className="min-h-0 flex-1">
-            <GameIdProvider value={opened.gameId}>
-              <GameReadOnlyProvider value>
-                <ReplayRewindProvider value={opened.engine.getRewindCount}>
-                  <CardPreviewProvider store={previewStore}>
-                    <ChatLog />
-                  </CardPreviewProvider>
-                </ReplayRewindProvider>
-              </GameReadOnlyProvider>
-            </GameIdProvider>
+          <div
+            ref={logRef}
+            role="log"
+            aria-label={t('ReplayPreview.logAt', { time: formatReplayTime(state.currentTime) })}
+            className="scrollable min-h-0 flex-1 overflow-y-auto py-1 text-xs"
+            data-testid="replay-preview-log"
+          >
+            <GameLogRows messages={messages ?? []} players={players} stampGameTime={stampGameTime} />
           </div>
         </div>
       </div>

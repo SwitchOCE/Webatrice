@@ -43,38 +43,46 @@ export interface DayGroupItems {
   items: ReplayItem[];
 }
 
-const FILE_NAME = /^replay_(\d+)\.cor$/i;
-
-export function replayIdFromFileName(name: string): number | undefined {
-  const match = FILE_NAME.exec(name);
-  return match ? Number(match[1]) : undefined;
-}
-
 export function itemDate(item: ReplayItem): number {
   return item.kind === 'match' ? item.startedAt ?? 0 : item.modifiedAt;
 }
 
-export function isSavedLocally(item: MatchItem): boolean {
-  return item.games.some((game) => game.localEntryId != null);
+export function savedGameCount(item: MatchItem): number {
+  return item.games.filter((game) => game.localEntryId != null).length;
 }
 
-export function buildReplayItems(matches: readonly ServerInfo_ReplayMatch[], entries: readonly ReplayFileDTO[]): ReplayItem[] {
+export function isSavedLocally(item: MatchItem): boolean {
+  return savedGameCount(item) > 0;
+}
+
+export function isFullySaved(item: MatchItem): boolean {
+  return item.games.length > 0 && savedGameCount(item) === item.games.length;
+}
+
+export function buildReplayItems(
+  matches: readonly ServerInfo_ReplayMatch[],
+  entries: readonly ReplayFileDTO[],
+  endpoint: string,
+): ReplayItem[] {
   const folders = new Map(entries.filter((e) => e.kind === 'folder' && e.id != null).map((e) => [e.id!, e]));
   const folderOf = (entry: ReplayFileDTO) =>
     entry.parentId === REPLAY_LIBRARY_ROOT ? undefined : folders.get(entry.parentId)?.name;
   const files = entries.filter((e) => e.kind === 'replay' && e.id != null);
-  const byReplayId = new Map<number, ReplayFileDTO>();
+  const byOrigin = new Map<string, ReplayFileDTO>();
   for (const file of files) {
-    const replayId = replayIdFromFileName(file.name);
-    if (replayId != null && !byReplayId.has(replayId)) {
-      byReplayId.set(replayId, file);
+    const origin = file.origin;
+    if (origin && origin.endpoint === endpoint) {
+      const id = `${origin.gameId}/${origin.replayId}`;
+      if (!byOrigin.has(id)) {
+        byOrigin.set(id, file);
+      }
     }
   }
   const linked = new Set<number>();
 
   const matchItems = matches.map<MatchItem>((match) => {
     const games = match.replayList.map<LibraryGame>((replay) => {
-      const entry = byReplayId.get(replay.replayId);
+      const entry = byOrigin.get(`${match.gameId}/${replay.replayId}`);
       if (entry?.id != null) {
         linked.add(entry.id);
       }
@@ -85,7 +93,9 @@ export function buildReplayItems(matches: readonly ServerInfo_ReplayMatch[], ent
         localEntryId: entry?.id,
       };
     });
-    const savedEntry = games.map((g) => (g.localEntryId != null ? byReplayId.get(g.replayId) : undefined)).find((e) => e);
+    const savedEntry = games
+      .map((g) => (g.localEntryId != null ? byOrigin.get(`${match.gameId}/${g.replayId}`) : undefined))
+      .find((e) => e);
     return {
       kind: 'match',
       id: `match:${match.gameId}`,

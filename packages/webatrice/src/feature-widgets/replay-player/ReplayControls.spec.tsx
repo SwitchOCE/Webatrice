@@ -2,7 +2,7 @@ import { fireEvent, screen, within } from '@testing-library/react';
 
 import { BIG_SKIP_MS, SMALL_SKIP_MS } from '@app/services';
 
-import { renderWithProviders } from '../../../__test-utils__';
+import { renderWithProviders } from '../../__test-utils__';
 import ReplayControls from './ReplayControls';
 import type { ReplayPlayback } from './useReplayPlayback';
 

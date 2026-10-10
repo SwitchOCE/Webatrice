@@ -1,5 +1,5 @@
 import { dexieService } from '../DexieService';
-import { REPLAY_LIBRARY_ROOT, ReplayFile, type ReplayData } from '../types/ReplayFile';
+import { REPLAY_LIBRARY_ROOT, ReplayFile, type ReplayData, type ReplayOrigin } from '../types/ReplayFile';
 
 export class ReplayNameTakenError extends Error {
   constructor(name: string) {
@@ -45,7 +45,7 @@ export class ReplayFileDTO extends ReplayFile {
     return row?.data;
   }
 
-  static addReplay(parentId: number, name: string, data: Uint8Array): Promise<number> {
+  static addReplay(parentId: number, name: string, data: Uint8Array, origin?: ReplayOrigin): Promise<number> {
     return dexieService.readWrite([dexieService.replays, dexieService.replayData], async () => {
       if (parentId !== REPLAY_LIBRARY_ROOT) {
         const parent = await ReplayFileDTO.get(parentId);
@@ -60,6 +60,7 @@ export class ReplayFileDTO extends ReplayFile {
         name: uniqueName(name, siblings.map((s) => s.name)),
         size: data.byteLength,
         modifiedAt: new Date().toISOString(),
+        ...(origin ? { origin } : {}),
       };
       const id = (await dexieService.replays.add(entry)) as number;
       await dexieService.replayData.put({ id, data });
