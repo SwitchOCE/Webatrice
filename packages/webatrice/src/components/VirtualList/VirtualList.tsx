@@ -13,10 +13,12 @@ interface VirtualRowsData<T> {
 
 interface VirtualRowsProps<T> {
   items: T[];
-  rowHeight: number;
+  rowHeight: number | ((index: number, data: VirtualRowsData<T>) => number);
   className?: string;
   renderRow: RenderRow<T>;
   role?: AriaRole;
+  'aria-label'?: string;
+  defaultHeight?: number;
   listRef?: Ref<ListImperativeAPI>;
   onRowsRendered?: ListProps<VirtualRowsData<T>>['onRowsRendered'];
 }
@@ -28,10 +30,13 @@ function RowsRow<T>({ ariaAttributes, index, style, items, renderRow, listItems 
   return <div style={style} {...ariaAttributes}>{renderRow(items[index], index, style)}</div>;
 }
 
-export function VirtualRows<T>({ items, rowHeight, className = '', renderRow, role, listRef, onRowsRendered }: VirtualRowsProps<T>) {
+export function VirtualRows<T>({
+  items, rowHeight, className = '', renderRow, role, listRef, onRowsRendered, ...listProps
+}: VirtualRowsProps<T>) {
   return (
     <div className="virtual-list">
       <List<VirtualRowsData<T>>
+        {...listProps}
         className={`virtual-list__list ${className}`}
         {...(role ? { role } : {})}
         listRef={listRef}

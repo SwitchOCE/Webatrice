@@ -1,4 +1,4 @@
-import type { ReactNode } from 'react';
+import { memo, type ReactNode } from 'react';
 import { Eye, EyeOff, Lock, ShieldCheck } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 
@@ -47,7 +47,7 @@ function Meta({ icon, children }: { icon: ReactNode; children: ReactNode }) {
   );
 }
 
-export default function GameCard({
+function GameCard({
   game,
   gametypeMap,
   overrideRestrictions = false,
@@ -179,3 +179,5 @@ export default function GameCard({
     </article>
   );
 }
+
+export default memo(GameCard);

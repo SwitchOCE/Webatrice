@@ -40,7 +40,7 @@ export default function GamesList({ room, header }: GamesListProps) {
   const games = useRoomGames(room);
   const {
     gameList, selectedGameId, sort, sortDescending: descending, onSort, listRef, getRowProps, onRowsRendered,
-    joinStates, handleSelect, handleActivate, onAction, onMore, moreMenu, password,
+    handleSelect, handleActivate, onAction, onMore, moreMenu, password,
   } = games;
   const roomFilters = useRoomGameFilters(room.info.roomId);
   const nowSeconds = useNowSeconds();
@@ -65,13 +65,13 @@ export default function GamesList({ room, header }: GamesListProps) {
   const renderGameRow = useCallback((game: Game, index: number, style: CSSProperties) => (
     <GameRow
       key={game.info.gameId}
-      game={game}
+      roomId={room.info.roomId}
+      gameId={game.info.gameId}
       index={index}
       style={style}
       columns={columns}
       selected={game.info.gameId === selectedGameId}
-      rowProps={getRowProps(String(game.info.gameId))}
-      state={joinStates.get(game.info.gameId)!}
+      getRowProps={getRowProps}
       nowSeconds={nowSeconds}
       gametypeMap={room.gametypeMap}
       watchingColumn={watchingColumn}
@@ -81,7 +81,7 @@ export default function GamesList({ room, header }: GamesListProps) {
       onMore={onMore}
     />
   ), [
-    columns, selectedGameId, getRowProps, joinStates, nowSeconds, room.gametypeMap, watchingColumn,
+    columns, selectedGameId, getRowProps, nowSeconds, room.info.roomId, room.gametypeMap, watchingColumn,
     handleSelect, handleActivate, onAction, onMore,
   ]);
 

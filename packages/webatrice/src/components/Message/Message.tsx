@@ -1,5 +1,5 @@
 import { NavLink, generatePath } from 'react-router-dom';
-import { Fragment, useMemo, type ReactNode } from 'react';
+import { Fragment, memo, useMemo, type ReactNode } from 'react';
 
 import { CALLOUT_BOUNDARY_REGEX, CARD_CALLOUT_REGEX, RouteEnum, URL_REGEX } from '@app/types';
 import { GAME_LINK_REGEX, containsGameLink, parseMention, segmentText, tokenizeChat, type ChatHighlight } from '@app/utils';
@@ -54,7 +54,7 @@ interface PlayerLinkProps {
   label?: string;
 }
 
-export const PlayerLink = ({ name, label = name }: PlayerLinkProps) => {
+export const PlayerLink = memo(function PlayerLink({ name, label = name }: PlayerLinkProps) {
   const {
     menu,
     isABuddy,
@@ -89,7 +89,7 @@ export const PlayerLink = ({ name, label = name }: PlayerLinkProps) => {
       )}
     </>
   );
-};
+});
 
 const parseChunks = (chunk: string, index: number): ReactNode => parseChunk(chunk, index);
 
@@ -185,4 +185,4 @@ export function MessageText({ text, highlight }: { text: string; highlight: Mess
   return <>{chunks}</>;
 }
 
-export default Message;
+export default memo(Message);
