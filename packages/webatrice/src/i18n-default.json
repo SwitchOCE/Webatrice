@@ -1,4 +1,7 @@
 {
+  "RouteLoading": {
+    "loading": "Loading…"
+  },
   "Common": {
     "disconnect": "Disconnect",
     "label": {
@@ -334,15 +337,15 @@
   },
   "ErrorFallback": {
     "returnToLobby": "Return to lobby",
-    "route": {
-      "title": "Something went wrong",
-      "message": "This page hit an unexpected error. Your connection to the server is unaffected.",
-      "retry": "Try again"
-    },
     "chunk": {
       "title": "A new version is available",
       "message": "Reload to get the latest version of Webatrice and open this page.",
       "reload": "Reload"
+    },
+    "route": {
+      "title": "Something went wrong",
+      "message": "This page hit an unexpected error. Your connection to the server is unaffected.",
+      "retry": "Try again"
     }
   },
   "GameCard": {
@@ -4341,6 +4344,9 @@
       "password": "Password"
     }
   },
+  "ReconnectingHome": {
+    "status": "Reconnecting — showing your last session. Actions will be available when live data arrives."
+  },
   "RoomsList": {
     "joinError": {
       "title": "Error",
@@ -5143,11 +5149,5 @@
       "log": "end step",
       "title": "End step / cleanup"
     }
-  },
-  "RouteLoading": {
-    "loading": "Loading…"
-  },
-  "ReconnectingHome": {
-    "status": "Reconnecting — showing your last session. Actions will be available when live data arrives."
   }
 }

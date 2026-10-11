@@ -58,7 +58,7 @@ describe('deck operations: error paths', () => {
     );
   });
 
-  it('deckNewDir on ContextError does not dispatch createServerDeckDir', () => {
+  it('deckNewDir on ContextError reports deckNewDirFailed instead of createServerDeckDir', () => {
     connectAndLogin();
 
     SessionCommands.deckNewDir('/missing/parent', 'Child');
@@ -70,8 +70,8 @@ describe('deck operations: error paths', () => {
     })));
 
     expect(getMockResponse().session.createServerDeckDir).not.toHaveBeenCalled();
-    expect(consoleError.current).toHaveBeenCalledWith(
-      `Command_DeckNewDir.ext failed with response code: ${Data.Response_ResponseCode.RespContextError}`,
+    expect(getMockResponse().session.deckNewDirFailed).toHaveBeenCalledWith(
+      '/missing/parent', 'Child', Data.Response_ResponseCode.RespContextError, undefined,
     );
   });
 
