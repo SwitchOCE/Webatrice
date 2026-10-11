@@ -34,7 +34,8 @@ describe('ZoneBackground', () => {
     const background = screen.getByTestId('zone-background-stack');
     expect(background).toHaveStyle({ zIndex: '-1' });
     await waitFor(() => expect(background.querySelector('img')).not.toBeNull());
-    expect(background.querySelector('img')).toHaveAttribute('src', expect.stringContaining('/cards/uuid-1?format=image&version=large'));
+    expect(background.querySelector('img'))
+      .toHaveAttribute('src', expect.stringContaining('/cards/named?exact=Island&format=image&version=art_crop'));
     expect(screen.queryByTestId('zone-background-hand')).not.toBeInTheDocument();
   });
 });

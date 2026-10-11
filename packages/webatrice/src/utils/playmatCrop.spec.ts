@@ -1,4 +1,6 @@
-import { CROP_LABEL_KEYS, CROP_SLIDERS, computeArtSourceRect, coverFitRect, playmatImageBox } from './playmatCrop';
+import {
+  CROP_LABEL_KEYS, CROP_SLIDERS, computeArtSourceRect, computeArtWindowRect, coverFitRect, playmatArtBox, playmatImageBox,
+} from './playmatCrop';
 
 const CARD = { width: 672, height: 936 };
 const DEFAULTS = { marginPctL: 0.07, marginPctR: 0.07, verticalOffset: 0.33, zoom: 1 };
@@ -59,6 +61,49 @@ describe('playmatImageBox', () => {
   it('returns null for an empty area or crop', () => {
     expect(playmatImageBox(CARD, DEFAULTS, { width: 0, height: 300 })).toBeNull();
     expect(playmatImageBox(CARD, { ...DEFAULTS, marginPctL: 0.95, marginPctR: 0.95 }, { width: 100, height: 100 })).toBeNull();
+  });
+});
+
+const ART = { width: 626, height: 457 };
+
+describe('computeArtWindowRect', () => {
+  it('takes the area aspect across the trimmed width, placed by the vertical offset', () => {
+    const rect = computeArtWindowRect(ART, DEFAULTS, 3);
+    expect(rect.width).toBeCloseTo(538.36);
+    expect(rect.height).toBeCloseTo(538.36 / 3);
+    expect(rect.x).toBeCloseTo(43.82);
+    expect(rect.y).toBeCloseTo(0.33 * (457 - 538.36 / 3));
+  });
+
+  it('fits the height first when the area is taller than the trimmed art', () => {
+    const rect = computeArtWindowRect(ART, { ...DEFAULTS, verticalOffset: 1 }, 1);
+    expect(rect).toMatchObject({ width: 457, height: 457, y: 0 });
+    expect(rect.x).toBeCloseTo(43.82 + (538.36 - 457) / 2);
+  });
+
+  it('zooms into the window and never zooms out past the art', () => {
+    expect(computeArtWindowRect(ART, { ...DEFAULTS, zoom: 2 }, 3).width).toBeCloseTo(538.36 / 2);
+    expect(computeArtWindowRect(ART, { ...DEFAULTS, zoom: 0.1 }, 3)).toEqual(computeArtWindowRect(ART, DEFAULTS, 3));
+    expect(computeArtWindowRect(ART, { ...DEFAULTS, zoom: 9 }, 3)).toEqual(computeArtWindowRect(ART, { ...DEFAULTS, zoom: 4 }, 3));
+  });
+
+  it('collapses when the margins leave nothing visible', () => {
+    expect(computeArtWindowRect(ART, { ...DEFAULTS, marginPctL: 0.95, marginPctR: 0.95 }, 3).width).toBe(0);
+  });
+});
+
+describe('playmatArtBox', () => {
+  it('scales the art so the window fills the area exactly', () => {
+    const box = playmatArtBox(ART, { marginPctL: 0, marginPctR: 0, verticalOffset: 0.5, zoom: 1 }, { width: 1252, height: 313 })!;
+    expect(box.x).toBeCloseTo(0);
+    expect(box.width).toBeCloseTo(1252);
+    expect(box.height).toBeCloseTo(914);
+    expect(box.y).toBeCloseTo(-0.5 * (914 - 313));
+  });
+
+  it('returns null for an empty area or window', () => {
+    expect(playmatArtBox(ART, DEFAULTS, { width: 300, height: 0 })).toBeNull();
+    expect(playmatArtBox(ART, { ...DEFAULTS, marginPctL: 0.95, marginPctR: 0.95 }, { width: 100, height: 100 })).toBeNull();
   });
 });
 
