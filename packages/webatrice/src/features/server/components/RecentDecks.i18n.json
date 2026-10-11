@@ -4,11 +4,11 @@
     "where": "opened in this browser",
     "allDecks": "All decks",
     "newDeck": "New deck",
-    "empty": "No recent decks yet. Start a new deck, or bring your decks over from Cockatrice or another site.",
+    "empty": "Coming from desktop Cockatrice? Bring your decks, replays and custom sets over in one go, or start a new deck.",
     "cards": "{count, plural, one {# card} other {# cards}}",
     "bracket": "· Bracket {level}",
     "emptySaved": "{count, plural, one {You have # deck saved on this server.} other {You have # decks saved on this server.}} Open one and it shows up here.",
     "openDecks": "Open your decks",
-    "importDeck": "Import decks"
+    "importDeck": "Import from Cockatrice"
   }
 }

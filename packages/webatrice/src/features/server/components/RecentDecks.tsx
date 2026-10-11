@@ -81,10 +81,10 @@ function RecentDecksEmpty({ savedDecks }: { savedDecks: number }) {
       icon={<Layers size={17} />}
       actions={(
         <>
-          {newDeck}
-          <Button size="sm" icon={<FileUp size={14} aria-hidden />} onClick={() => openDecks('migrate')}>
+          <Button size="sm" variant="primary" icon={<FileUp size={14} aria-hidden />} onClick={() => openDecks('migrate')}>
             {t('RecentDecks.importDeck')}
           </Button>
+          {newDeck}
         </>
       )}
     >
