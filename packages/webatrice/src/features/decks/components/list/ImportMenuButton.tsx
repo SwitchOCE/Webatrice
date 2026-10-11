@@ -39,7 +39,7 @@ export function ImportMenuButton({ onMigrate, onImport, isConnected, className }
           label={t('ImportMenu.label')}
           triggerRef={triggerRef}
           onClose={() => setRect(null)}
-          className="w-64"
+          className="w-72"
         >
           <MenuItem icon={<FolderOpen size={14} />} onSelect={onMigrate}>{t('ImportMenu.fromCockatrice')}</MenuItem>
           <MenuItem

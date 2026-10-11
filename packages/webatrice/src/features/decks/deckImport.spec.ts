@@ -68,7 +68,15 @@ describe('resolveImportEntries', () => {
     expect(rows[0]).toMatchObject({ lookup: { found: true }, hintDropped: true });
     const deck: ParsedDeck = { name: 'D', meta: { v: 1, updatedAt: 'x' }, cards: [], format: '' };
     const card = parseCod(buildImportedDeckCod(deck, rows, { name: '', format: '', t })).cards[0];
-    expect(card).toMatchObject({ name: 'Sol Ring', set: 'c21', collectorNumber: '263', scryfallId: 'id-sol' });
+    expect(card).toEqual({ name: 'Sol Ring', quantity: 1, category: 'main' });
+  });
+
+  it('writes only the printing the source named, never a looked-up default', async () => {
+    vi.mocked(lookupCards).mockResolvedValue(new Map([['Sol Ring', solRing]]));
+    const rows = await resolveImportEntries([{ name: 'Sol Ring', quantity: 1, category: 'main' }]);
+    const deck: ParsedDeck = { name: 'D', meta: { v: 1, updatedAt: 'x' }, cards: [], format: '' };
+    expect(parseCod(buildImportedDeckCod(deck, rows, { name: '', format: '', t })).cards[0])
+      .toEqual({ name: 'Sol Ring', quantity: 1, category: 'main' });
   });
 });
 

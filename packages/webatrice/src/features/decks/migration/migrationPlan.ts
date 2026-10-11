@@ -192,3 +192,22 @@ export function planDeckImport(
   plan.folders.sort((a, b) => joinDeckPath(a.parent, a.name).split('/').length - joinDeckPath(b.parent, b.name).split('/').length);
   return plan;
 }
+
+export function groupByFolder<T extends { folder: string[]; name: string }>(items: readonly T[]): Array<{ folder: string; decks: T[] }> {
+  const groups = new Map<string, T[]>();
+  for (const item of items) {
+    const key = item.folder.join('/');
+    groups.set(key, [...(groups.get(key) ?? []), item]);
+  }
+  const collator = new Intl.Collator(undefined, { numeric: true, sensitivity: 'base' });
+  return Array.from(groups, ([folder, decks]) => ({ folder, decks: [...decks].sort((a, b) => collator.compare(a.name, b.name)) }))
+    .sort((a, b) => collator.compare(a.folder, b.folder));
+}
+
+export function groupByReason<R extends string>(items: ReadonlyArray<{ name: string; reason: R }>): Array<{ reason: R; names: string[] }> {
+  const groups = new Map<R, string[]>();
+  for (const item of items) {
+    groups.set(item.reason, [...(groups.get(item.reason) ?? []), item.name]);
+  }
+  return Array.from(groups, ([reason, names]) => ({ reason, names }));
+}

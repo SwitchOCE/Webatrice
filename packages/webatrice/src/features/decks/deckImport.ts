@@ -69,11 +69,14 @@ export async function resolveImportEntries(entries: readonly ImportEntry[]): Pro
   return resolveWithLookups(entries, await lookupImportEntries(entries));
 }
 
-function rowCard({ entry, lookup, hintDropped }: ResolvedImportRow): DeckCard {
-  const row: ParsedCard = hintDropped
+function sourceCard({ entry, hintDropped }: ResolvedImportRow): ParsedCard {
+  return hintDropped
     ? { name: entry.name, quantity: entry.quantity, category: entry.category, isCommander: entry.isCommander, zonePath: entry.zonePath }
     : entry;
-  return assembleDeckCard(row, lookup);
+}
+
+function rowCard(row: ResolvedImportRow): DeckCard {
+  return assembleDeckCard(sourceCard(row), row.lookup);
 }
 
 export function resolvedImportColorIdentity(rows: readonly ResolvedImportRow[]): string {
@@ -101,7 +104,7 @@ export function buildImportedDeckCod(
   return serializeCod({
     name: name.trim() || deck.name || t('DeckImport.defaultName'),
     meta: deck.meta,
-    cards: rows.map(rowCard),
+    cards: rows.map(sourceCard),
     format: format.trim().toLowerCase(),
     bannerCard: deck.bannerCard,
     bannerCardProviderId: deck.bannerCardProviderId,

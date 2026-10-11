@@ -113,7 +113,7 @@ export function useDeckMigration() {
   const [choice, setChoice] = useState<ConflictChoice>('skip');
   const [includeReplays, setIncludeReplays] = useState(true);
   const [includeCustomSets, setIncludeCustomSets] = useState(true);
-  const [progress, setProgress] = useState({ done: 0, total: 0, current: '' });
+  const [progress, setProgress] = useState({ done: 0, total: 0, current: '', creatingFolder: false });
   const [result, setResult] = useState<MigrationResult | null>(null);
   const [error, setError] = useState<string | null>(null);
 
@@ -263,7 +263,7 @@ export function useDeckMigration() {
       ...plan.uploads.map((upload) => ({ kind: 'upload' as const, upload })),
     ];
     const failures = new Map<number, { reason: DeckFailure; code?: number }>();
-    setProgress({ done: 0, total: plan.uploads.length, current: '' });
+    setProgress({ done: 0, total: plan.uploads.length, current: '', creatingFolder: false });
     let uploaded = 0;
 
     const task = async (step: Step, index: number): Promise<TaskOutcome> => {
@@ -271,6 +271,7 @@ export function useDeckMigration() {
         return 'stop';
       }
       if (step.kind === 'folder') {
+        setProgress((p) => ({ ...p, current: [step.folder.parent, step.folder.name].filter(Boolean).join('/'), creatingFolder: true }));
         const key = JSON.stringify([step.folder.parent, step.folder.name]);
         const response = awaitResponse(folders.current, key, FOLDER_TIMEOUT_MS);
         webClient.request.session.deckNewDir(step.folder.parent, step.folder.name);
@@ -279,7 +280,7 @@ export function useDeckMigration() {
       }
       const scannedDeck = byId.get(step.upload.id)!;
       const deck = scannedDeck.deck!;
-      setProgress({ done: uploaded, total: plan.uploads.length, current: step.upload.name });
+      setProgress({ done: uploaded, total: plan.uploads.length, current: step.upload.name, creatingFolder: false });
       const rows = resolveWithLookups(deck.cards, lookups ?? { hinted: new Map(), byName: new Map() });
       const xml = buildImportedDeckCod(deck, rows, { name: step.upload.name, format: deck.format, t });
       const requestId = `deck-migration-${++requestSeq.current}`;
@@ -315,7 +316,7 @@ export function useDeckMigration() {
       if (failure) {
         outcome.failed.push({ name: step.upload.name, ...failure });
       }
-      setProgress({ done: uploaded, total: plan.uploads.length, current: '' });
+      setProgress({ done: uploaded, total: plan.uploads.length, current: '', creatingFolder: false });
     };
 
     const ran = await runPaced(steps, task, settled, { ...SERVER_PACING, isCancelled: () => cancelled.current });

@@ -10,7 +10,7 @@ import { DeckDialogFrame } from '../dialogs/DeckDialogFrame';
 import { DECK_FILE_ACCEPT } from '../deckFiles';
 import { currentDesktopOs, DESKTOP_DATA_FOLDERS, type DesktopOs } from './desktopPaths';
 import { dragHasFiles, fromDataTransfer, fromInputFiles, type SourceFile } from './fileSources';
-import type { ConflictChoice } from './migrationPlan';
+import { groupByFolder, groupByReason, type ConflictChoice } from './migrationPlan';
 import { useDeckMigration, type DeckMigration, type DeckPreview } from './useDeckMigration';
 
 export interface MigrationDialogProps {
@@ -265,15 +265,6 @@ function ScanStep({ migration }: { migration: DeckMigration }) {
   );
 }
 
-function groupByFolder(previews: readonly DeckPreview[]): Array<{ folder: string; decks: DeckPreview[] }> {
-  const groups = new Map<string, DeckPreview[]>();
-  for (const preview of previews) {
-    const key = preview.folder.join('/');
-    groups.set(key, [...(groups.get(key) ?? []), preview]);
-  }
-  return Array.from(groups, ([folder, decks]) => ({ folder, decks })).sort((a, b) => a.folder.localeCompare(b.folder));
-}
-
 function DeckRow({ preview, migration }: { preview: DeckPreview; migration: DeckMigration }) {
   const { t } = useTranslation();
   const checked = migration.selected.has(preview.id);
@@ -308,8 +299,54 @@ function DeckRow({ preview, migration }: { preview: DeckPreview; migration: Deck
 
 function PreviewStep({ migration }: { migration: DeckMigration }) {
   const { t } = useTranslation();
-  const groups = useMemo(() => groupByFolder(migration.previews), [migration.previews]);
   const sources = migration.sources!;
+  const groups = useMemo(() => groupByFolder(migration.previews), [migration.previews]);
+  const options = (
+    <section aria-label={t('DeckMigration.preview.options')} className="flex flex-col gap-3">
+      {migration.previews.length > 0 && (
+        <div className="grid gap-3 sm:grid-cols-2">
+          <TextInput
+            icon={<Folder size={14} aria-hidden />}
+            label={t('DeckMigration.preview.destination')}
+            value={migration.destination}
+            maxLength={80}
+            disabled={!migration.canStoreDecks}
+            placeholder={t('DeckMigration.preview.destinationTop')}
+            onChange={(event) => migration.setDestination(event.target.value)}
+          />
+          <div className="flex flex-col gap-1">
+            <span className="text-[12px] font-medium text-text-secondary">{t('DeckMigration.preview.sameName')}</span>
+            <Segmented<ConflictChoice>
+              label={t('DeckMigration.preview.sameName')}
+              value={migration.choice}
+              onChange={migration.setChoice}
+              items={[
+                { value: 'skip', label: t('DeckMigration.preview.skip') },
+                { value: 'keepBoth', label: t('DeckMigration.preview.keepBoth') },
+              ]}
+            />
+          </div>
+        </div>
+      )}
+      {sources.replays.length > 0 && (
+        <Checkbox
+          checked={migration.includeReplays}
+          onChange={migration.setIncludeReplays}
+          label={t('DeckMigration.preview.replays', { count: sources.replays.length })}
+        />
+      )}
+      {sources.customSets.length > 0 && (
+        <Checkbox
+          checked={migration.includeCustomSets}
+          onChange={migration.setIncludeCustomSets}
+          label={t('DeckMigration.preview.customSets', { count: sources.customSets.length })}
+        />
+      )}
+      {sources.cardDatabase.length > 0 && (
+        <p className="text-xs text-text-muted">{t('DeckMigration.preview.cardDatabase', { files: sources.cardDatabase.join(', ') })}</p>
+      )}
+    </section>
+  );
   const readable = migration.previews.filter((p) => !p.problem);
   const uploadCount = migration.canStoreDecks ? migration.plan.uploads.length : 0;
   const nothing = uploadCount === 0
@@ -324,6 +361,7 @@ function PreviewStep({ migration }: { migration: DeckMigration }) {
         })}
       </p>
       <div className="mt-3 flex min-h-0 flex-1 flex-col gap-4 overflow-y-auto pr-1">
+        {options}
         {migration.previews.length > 0 && (
           <section aria-label={t('DeckMigration.preview.decks')} className="flex flex-col gap-2">
             <div className="flex flex-wrap items-center justify-between gap-2">
@@ -352,47 +390,7 @@ function PreviewStep({ migration }: { migration: DeckMigration }) {
                 </div>
               ))}
             </div>
-            <div className="grid gap-3 sm:grid-cols-2">
-              <TextInput
-                icon={<Folder size={14} aria-hidden />}
-                label={t('DeckMigration.preview.destination')}
-                value={migration.destination}
-                maxLength={80}
-                disabled={!migration.canStoreDecks}
-                placeholder={t('DeckMigration.preview.destinationTop')}
-                onChange={(event) => migration.setDestination(event.target.value)}
-              />
-              <div className="flex flex-col gap-1">
-                <span className="text-[12px] font-medium text-text-secondary">{t('DeckMigration.preview.sameName')}</span>
-                <Segmented<ConflictChoice>
-                  label={t('DeckMigration.preview.sameName')}
-                  value={migration.choice}
-                  onChange={migration.setChoice}
-                  items={[
-                    { value: 'skip', label: t('DeckMigration.preview.skip') },
-                    { value: 'keepBoth', label: t('DeckMigration.preview.keepBoth') },
-                  ]}
-                />
-              </div>
-            </div>
           </section>
-        )}
-        {sources.replays.length > 0 && (
-          <Checkbox
-            checked={migration.includeReplays}
-            onChange={migration.setIncludeReplays}
-            label={t('DeckMigration.preview.replays', { count: sources.replays.length })}
-          />
-        )}
-        {sources.customSets.length > 0 && (
-          <Checkbox
-            checked={migration.includeCustomSets}
-            onChange={migration.setIncludeCustomSets}
-            label={t('DeckMigration.preview.customSets', { count: sources.customSets.length })}
-          />
-        )}
-        {sources.cardDatabase.length > 0 && (
-          <p className="text-xs text-text-muted">{t('DeckMigration.preview.cardDatabase', { files: sources.cardDatabase.join(', ') })}</p>
         )}
       </div>
       <div className="mt-4 flex shrink-0 items-center justify-end gap-2">
@@ -407,11 +405,15 @@ function PreviewStep({ migration }: { migration: DeckMigration }) {
 
 function ProgressStep({ migration }: { migration: DeckMigration }) {
   const { t } = useTranslation();
-  const { done, total, current } = migration.progress;
+  const { done, total, current, creatingFolder } = migration.progress;
   return (
     <div className="mt-6 flex flex-col gap-4">
       <ProgressBar done={done} total={total} label={t('DeckMigration.progress.decks', { done, total })} />
-      {current && <span className="truncate text-xs text-text-muted">{current}</span>}
+      {current && (
+        <span className="truncate text-xs text-text-muted">
+          {creatingFolder ? t('DeckMigration.progress.folders', { name: current }) : current}
+        </span>
+      )}
       <p className="text-sm text-text-secondary">{t('DeckMigration.progress.keepOpen')}</p>
       <div className="flex justify-end">
         <Button onClick={migration.cancel}>{t('DeckMigration.progress.stop')}</Button>
@@ -437,11 +439,14 @@ function SummaryStep({ migration, onClose }: { migration: DeckMigration; onClose
             <h3 className="text-sm font-semibold text-text-primary">
               {t('DeckMigration.summary.decks', { count: decks.imported.length })}
             </h3>
-            {decks.skipped.length > 0 && (
-              <ul className="text-xs text-text-muted">
-                {decks.skipped.map((s, i) => <li key={i}>{s.name}: {t(PROBLEM_KEYS[s.reason])}</li>)}
-              </ul>
-            )}
+            {groupByReason(decks.skipped).map(({ reason, names }) => (
+              <details key={reason} className="text-xs text-text-muted">
+                <summary className="cursor-pointer">
+                  {t('DeckMigration.summary.skippedGroup', { count: names.length, reason: t(PROBLEM_KEYS[reason]) })}
+                </summary>
+                <p className="mt-1 pl-4">{names.join(', ')}</p>
+              </details>
+            ))}
             {decks.failed.length > 0 && (
               <ul className="text-xs text-danger">
                 {decks.failed.map((f, i) => <li key={i}>{f.name}: {t(FAILURE_KEYS[f.reason], { code: f.code ?? '' })}</li>)}

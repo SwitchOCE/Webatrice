@@ -2651,7 +2651,8 @@
       "replays": "Import {count, plural, one {# replay} other {# replays}} into this browser",
       "customSets": "Import {count, plural, one {# custom set file} other {# custom set files}} into this browser's card database",
       "cardDatabase": "Not needed: {files}. Webatrice gets its card data from Scryfall.",
-      "import": "{count, plural, =0 {Import} one {Import # deck} other {Import # decks}}"
+      "import": "{count, plural, =0 {Import} one {Import # deck} other {Import # decks}}",
+      "options": "Import options"
     },
     "zone": {
       "tokens": "{count, plural, one {# token} other {# tokens}}",
@@ -2661,8 +2662,8 @@
       "unreadable": "Couldn't read this file",
       "empty": "No cards in this file",
       "tooLarge": "Too large for the server (over 2 MB)",
-      "exists": "Skipped: already on the server",
-      "pathTooLong": "Skipped: folder path too long for the server"
+      "exists": "skipped, already on the server",
+      "pathTooLong": "skipped, folder path too long for the server"
     },
     "failure": {
       "flood": "The server is busy; try again in a minute",
@@ -2672,7 +2673,8 @@
     "progress": {
       "decks": "Importing decks: {done} of {total}",
       "keepOpen": "Keep this window open until the import finishes. The server accepts a few decks per second, so large libraries take a few minutes.",
-      "stop": "Stop after this deck"
+      "stop": "Stop after this deck",
+      "folders": "Creating folder {name}"
     },
     "summary": {
       "decks": "{count, plural, =0 {No decks imported.} one {Imported # deck.} other {Imported # decks.}}",
@@ -2682,7 +2684,8 @@
       "renamed": "Decks whose names were already taken were imported with a number after the name.",
       "again": "Run the import again to finish: decks that are already on the server are skipped.",
       "more": "Import more",
-      "done": "Done"
+      "done": "Done",
+      "skippedGroup": "{count, plural, one {# deck} other {# decks}}: {reason}"
     },
     "error": {
       "nothingFound": "No decks, replays or custom sets were found there. Choose your Cockatrice folder or its decks folder."

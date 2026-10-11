@@ -6,7 +6,9 @@ import {
 } from '@cockatrice/sockatrice/generated';
 
 import type { SourceFile } from './fileSources';
-import { classifySources, planDeckImport, scanDeckSource, targetPathOf, type ScannedDeck } from './migrationPlan';
+import {
+  classifySources, groupByFolder, groupByReason, planDeckImport, scanDeckSource, targetPathOf, type ScannedDeck,
+} from './migrationPlan';
 
 function source(path: string, text = '', size?: number): SourceFile {
   const file = new File([text], path.split('/').pop()!);
@@ -108,5 +110,19 @@ describe('planDeckImport', () => {
 
   it('turns slashes in folder names into dashes', () => {
     expect(targetPathOf('Desk/top', ['A/B'])).toBe('Desk-top/A-B');
+  });
+});
+
+describe('grouping', () => {
+  it('groups decks by folder in natural order', () => {
+    const decks = [{ name: 'Burn 10', folder: ['Modern'] }, { name: 'Burn 2', folder: ['Modern'] }, { name: 'Zur', folder: [] }];
+    expect(groupByFolder(decks).map((g) => [g.folder, g.decks.map((d) => d.name)])).toEqual([
+      ['', ['Zur']], ['Modern', ['Burn 2', 'Burn 10']],
+    ]);
+  });
+
+  it('groups skipped decks by reason', () => {
+    expect(groupByReason([{ name: 'A', reason: 'exists' }, { name: 'B', reason: 'empty' }, { name: 'C', reason: 'exists' }]))
+      .toEqual([{ reason: 'exists', names: ['A', 'C'] }, { reason: 'empty', names: ['B'] }]);
   });
 });
