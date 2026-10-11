@@ -16,6 +16,7 @@
     "editTags": "Edit tags",
     "bannerCard": "Banner card…",
     "playmat": "Playmat…",
-    "bracketHint": "Last bracket estimate; see Deck stats"
+    "bracketHint": "Last bracket estimate; see Deck stats",
+    "resetLayout": "Reset layout"
   }
 }

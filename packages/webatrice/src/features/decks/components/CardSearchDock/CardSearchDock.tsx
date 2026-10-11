@@ -32,6 +32,7 @@ export interface CardSearchDockProps {
   format?: string;
   deckCards?: readonly DeckCard[];
   className?: string;
+  headerAction?: ReactNode;
 }
 
 export interface CardSearchDockApi {
@@ -257,7 +258,7 @@ function ListMessage({ children }: { children: ReactNode }) {
 }
 
 export default function CardSearchDock({
-  onAdd, onSelect, onPreview, onHoverPreview, onReady, colorIdentity, format, deckCards, className,
+  onAdd, onSelect, onPreview, onHoverPreview, onReady, colorIdentity, format, deckCards, className, headerAction,
 }: CardSearchDockProps) {
   const { t } = useTranslation();
   const dock = useCardSearchDock({ onAdd, onSelect, onPreview, colorIdentity, format, deckCards });
@@ -332,6 +333,7 @@ export default function CardSearchDock({
             label={t('CardSearchDock.view.label')}
             className="ml-auto shrink-0"
           />
+          {headerAction}
         </div>
         <label
           className={cx(
