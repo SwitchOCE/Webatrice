@@ -51,4 +51,5 @@ export { GameLinkButton, GameLinkJoinHost, renderGameLinks, requestGameLinkJoin 
 export { default as PlaymatCropEditor } from './PlaymatCropEditor/PlaymatCropEditor';
 
 export * from './ds';
+export { UserAvatarProvider } from './UserAvatarProvider/UserAvatarProvider';
 export * from './GameCard';

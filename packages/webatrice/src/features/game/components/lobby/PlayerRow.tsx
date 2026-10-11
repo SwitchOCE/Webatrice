@@ -1,5 +1,6 @@
-import { User, Crown, CheckCircle2 } from 'lucide-react';
+import { Crown, CheckCircle2 } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
+import { Avatar } from '@app/components';
 import BracketBadge from './BracketBadge';
 
 export default function PlayerRow({
@@ -38,9 +39,7 @@ export default function PlayerRow({
           : 'bg-bg-surface border-border-subtle',
       ].join(' ')}
     >
-      <div className="h-11 w-11 rounded-full bg-gradient-to-br from-accent-secondary to-accent flex items-center justify-center">
-        <User size={20} className="text-white" />
-      </div>
+      <Avatar name={playerName} size={44} />
       <div className="flex-1 min-w-0">
         <div className="flex items-center gap-2 min-w-0">
           <span className="text-base font-semibold text-text-primary truncate">{playerName}</span>

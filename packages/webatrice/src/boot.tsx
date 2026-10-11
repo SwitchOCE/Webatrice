@@ -8,7 +8,7 @@ import { StyledEngineProvider } from '@mui/material/styles';
 
 import { DatatriceProvider, WebClientProvider } from '@cockatrice/datatrice/react';
 import { extensions } from '@app/store';
-import { AppThemeProvider } from '@app/components';
+import { AppThemeProvider, UserAvatarProvider } from '@app/components';
 import { bootColorScheme, debugLog, followBootColorScheme, initAnalytics, installConsoleCapture } from '@app/services';
 import { CLIENT_CONFIG, CLIENT_OPTIONS } from './clientConfig';
 import AppShell from './AppShell';
@@ -41,7 +41,9 @@ const App = () => (
         <StyledEngineProvider injectFirst>
           <AppThemeProvider>
             <Suspense fallback="loading">
-              <AppShell />
+              <UserAvatarProvider>
+                <AppShell />
+              </UserAvatarProvider>
             </Suspense>
           </AppThemeProvider>
         </StyledEngineProvider>
