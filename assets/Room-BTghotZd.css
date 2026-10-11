@@ -1,0 +1,1 @@
+.room-view__grid{grid-template-rows:minmax(0,1fr) clamp(168px,23vh,240px);grid-template-columns:minmax(0,1fr) 300px}
