@@ -50,10 +50,16 @@ describe('StaffConsole', () => {
     expect(screen.queryByRole('region', { name: 'Staff.lock.region' })).not.toBeInTheDocument();
   });
 
-  it('hides the tools an older server does not support', () => {
+  it('keeps the tools a 3.0 server can serve and marks the 3.1-only ones instead of linking them', () => {
     setup(IsRegistered | IsModerator, '3.0.0 (2024-01-01)', '/logs');
     const nav = screen.getByRole('navigation', { name: 'Staff.nav' });
-    expect(within(nav).getAllByRole('link').map((link) => link.textContent)).toEqual(['Staff.tool.logs', 'Staff.tool.administration']);
+    expect(within(nav).getAllByRole('link').map((link) => link.textContent)).toEqual([
+      'Staff.tool.moderation', 'Staff.tool.logs', 'Staff.tool.administration',
+    ]);
+    const unavailable = nav.querySelectorAll('[aria-disabled="true"]');
+    expect([...unavailable].map((item) => item.textContent)).toEqual([
+      'Staff.tool.reportsStaff.needsServer', 'Staff.tool.cardArtRulesStaff.needsServer',
+    ]);
   });
 
   it('locks and unlocks the shared administration lock', () => {

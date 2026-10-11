@@ -10,6 +10,7 @@ import {
   ServerInfo_ModeratorLoginSchema,
   ServerInfo_UserAltSchema,
   ServerInfo_UserSessionSchema,
+  ServerInfo_UserSchema,
   ServerInfo_User_UserLevelFlag,
 } from '@cockatrice/sockatrice/generated';
 import { WebsocketTypes } from '@cockatrice/sockatrice/types';
@@ -73,10 +74,38 @@ describe('Moderation gating', () => {
     expectNothingSent(webClient);
   });
 
-  it('is unavailable on a 3.0 server, which has no investigation commands', () => {
-    const { webClient } = setup(MODERATOR, '/moderation?user=bad', '3.0.0 ()');
-    expect(screen.getByText('server-page')).toBeInTheDocument();
+  it('stays open on a 3.0 server and looks the user up with the 3.0 user info command instead', () => {
+    const { webClient, store } = setup(MODERATOR, '/moderation?user=bad', '3.0.0 ()');
+    expect(screen.queryByText('server-page')).not.toBeInTheDocument();
     expectNothingSent(webClient);
+    expect(webClient.request.session.getUserInfo).toHaveBeenCalledWith('bad');
+
+    ['alts', 'sessions', 'staff'].forEach((section) => {
+      const region = screen.getByRole('region', { name: new RegExp(`${section}\\.title`) });
+      expect(within(region).getByText('ModerationPage.needsServer')).toBeInTheDocument();
+    });
+    expect(screen.queryByRole('button', { name: /staff\.refresh/ })).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: /action\.removeAvatar/ })).not.toBeInTheDocument();
+
+    act(() => {
+      store.dispatch(server.Actions.getUserInfo({
+        userInfo: create(ServerInfo_UserSchema, { name: 'bad', userLevel: IsRegistered, country: 'de', clientid: 'c-42' }),
+      }));
+    });
+    const details = screen.getByRole('region', { name: 'ModerationPage.info.title' });
+    expect(within(details).getByText('DE')).toBeInTheDocument();
+    expect(within(details).getByText('c-42')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Staff.sanctions.warn' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'ModerationPage.recordAction.banHistory' })).toBeInTheDocument();
+  });
+
+  it('reports a failed 3.0 lookup in the details', () => {
+    const { store } = setup(MODERATOR, '/moderation?user=ghost', '3.0.0 ()');
+    act(() => {
+      store.dispatch(server.Actions.getUserInfoFailed({ userName: 'ghost', responseCode: Response_ResponseCode.RespNameNotFound }));
+    });
+    const details = screen.getByRole('region', { name: 'ModerationPage.info.title' });
+    expect(within(details).getAllByText('ModerationPage.info.loadError').length).toBeGreaterThan(0);
   });
 
   it('offers Reset Password only to admins (Servatrice serves it in the admin family)', () => {

@@ -1,9 +1,9 @@
 import { PlayBadgeMode, PREFERENCE_DEFAULTS, RouteEnum } from '@app/types';
 
-import { NAV_PLACES, placeBadges, placeForPath } from './navPlaces';
+import { NAV_PLACES, placeBadges, placeForPath, railPlaces } from './navPlaces';
 
 describe('NAV_PLACES', () => {
-  it('lists Play, Decks, Replays, People and Settings in rail order', () => {
+  it('lists the fixed places, Play, Decks, Replays, People and Settings, in rail order', () => {
     expect(NAV_PLACES.map(({ key, route }) => [key, route])).toEqual([
       ['play', RouteEnum.SERVER],
       ['decks', RouteEnum.DECKS],
@@ -32,10 +32,27 @@ describe('placeForPath', () => {
     expect(placeForPath(path)).toBe(place);
   });
 
-  it('lights nothing for account and staff pages', () => {
+  it('lights Staff for every staff page', () => {
+    ['/report-queue', '/moderation', '/logs', '/administration', '/card-art-rules', '/developer'].forEach((path) => {
+      expect([path, placeForPath(path)]).toEqual([path, 'staff']);
+    });
+  });
+
+  it('lights nothing for account pages', () => {
     expect(placeForPath('/account')).toBeNull();
-    expect(placeForPath('/report-queue')).toBeNull();
     expect(placeForPath('/shortcuts')).toBeNull();
+  });
+});
+
+describe('railPlaces', () => {
+  it('is the fixed places without a staff home', () => {
+    expect(railPlaces(null).map(({ key }) => key)).toEqual(['play', 'decks', 'replays', 'people', 'settings']);
+  });
+
+  it('puts Staff before Settings, opening the staff home', () => {
+    const places = railPlaces(RouteEnum.MODERATION);
+    expect(places.map(({ key }) => key)).toEqual(['play', 'decks', 'replays', 'people', 'staff', 'settings']);
+    expect(places.find(({ key }) => key === 'staff')?.route).toBe(RouteEnum.MODERATION);
   });
 });
 
@@ -59,5 +76,12 @@ describe('placeBadges', () => {
     const none = { rooms: {}, games: {}, chats: {}, mentions: { rooms: {}, games: {} } };
     expect(placeBadges(none, PlayBadgeMode.Mentions)).toEqual({ play: 0, people: 0 });
     expect(placeBadges(none, PlayBadgeMode.All)).toEqual({ play: 0, people: 0 });
+  });
+
+  it('badges Staff with the unresolved reports once the queue is loaded', () => {
+    const none = { rooms: {}, games: {}, chats: {}, mentions: { rooms: {}, games: {} } };
+    expect(placeBadges(none, PlayBadgeMode.Mentions, 4)).toEqual({ play: 0, people: 0, staff: 4 });
+    expect(placeBadges(none, PlayBadgeMode.Mentions, 0)).toEqual({ play: 0, people: 0 });
+    expect(placeBadges(none, PlayBadgeMode.Mentions, null)).toEqual({ play: 0, people: 0 });
   });
 });

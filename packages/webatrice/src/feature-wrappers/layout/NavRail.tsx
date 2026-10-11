@@ -13,7 +13,7 @@ import UnreadBadge from './UnreadBadge';
 import UserMenu from './UserMenu';
 import { useNavRailController } from './hooks/useNavRailController';
 import { useNavRailHidden } from './hooks/useNavRailHidden';
-import { NAV_PLACES, PLACE_LABEL_KEYS } from './navPlaces';
+import { PLACE_LABEL_KEYS } from './navPlaces';
 import { RAIL_TOGGLE_ID } from './railToggle';
 import { UserMenuDialog } from './userMenuEntries';
 
@@ -22,7 +22,7 @@ const focusRing = 'focus-visible:outline focus-visible:outline-2 focus-visible:o
 export default function NavRail() {
   const { t } = useTranslation();
   const [hidden, setHidden] = useNavRailHidden();
-  const { current, badges, account, openDialog, closeDialog } = useNavRailController();
+  const { places, current, badges, account, openDialog, closeDialog } = useNavRailController();
 
   return (
     <div
@@ -49,7 +49,7 @@ export default function NavRail() {
       {!hidden && (
         <nav aria-label={t('NavRail.label')} className="py-3">
           <ul className="flex flex-col items-center gap-1">
-            {NAV_PLACES.map(({ key, icon: Icon, route }) => {
+            {places.map(({ key, icon: Icon, route }) => {
               const active = current === key;
               return (
                 <li key={key}>
