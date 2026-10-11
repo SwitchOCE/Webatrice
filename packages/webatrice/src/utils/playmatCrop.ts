@@ -46,9 +46,24 @@ export function coverFitRect(area: Rect, source: Size): Rect {
   return { x: area.x, y: area.y + (area.height - height) / 2, width: area.width, height };
 }
 
-export function playmatImageBox(card: Size, params: games.PlaymatParams, area: Size): Rect | null {
-  const source = computeArtSourceRect(card, params);
-  if (source.width <= 0 || area.width <= 0 || area.height <= 0) {
+export function computeArtWindowRect(art: Size, params: games.PlaymatParams, aspect: number): Rect {
+  const visibleW = visibleWidth(art, params);
+  if (visibleW <= 0 || !(aspect > 0)) {
+    return { x: 0, y: 0, width: 0, height: 0 };
+  }
+  const zoom = Math.min(MAX_ZOOM, Math.max(1, params.zoom));
+  const width = Math.min(visibleW, art.height * aspect) / zoom;
+  const height = width / aspect;
+  const offset = Math.min(1, Math.max(0, params.verticalOffset));
+  const x = Math.min(
+    Math.max(0, params.marginPctL * art.width + (visibleW - width) / 2),
+    Math.max(0, art.width - width),
+  );
+  return { x, y: offset * Math.max(0, art.height - height), width, height };
+}
+
+function boxForSource(image: Size, source: Rect, area: Size): Rect | null {
+  if (source.width <= 0 || source.height <= 0 || area.width <= 0 || area.height <= 0) {
     return null;
   }
   const target = coverFitRect({ x: 0, y: 0, ...area }, source);
@@ -56,9 +71,17 @@ export function playmatImageBox(card: Size, params: games.PlaymatParams, area: S
   return {
     x: target.x - source.x * scale,
     y: target.y - source.y * scale,
-    width: card.width * scale,
-    height: card.height * scale,
+    width: image.width * scale,
+    height: image.height * scale,
   };
+}
+
+export function playmatImageBox(card: Size, params: games.PlaymatParams, area: Size): Rect | null {
+  return boxForSource(card, computeArtSourceRect(card, params), area);
+}
+
+export function playmatArtBox(art: Size, params: games.PlaymatParams, area: Size): Rect | null {
+  return area.height > 0 ? boxForSource(art, computeArtWindowRect(art, params, area.width / area.height), area) : null;
 }
 
 export type CropKey = keyof games.PlaymatParams;

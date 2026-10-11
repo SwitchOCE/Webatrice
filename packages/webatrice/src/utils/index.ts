@@ -27,7 +27,9 @@ export {
   asDecimal,
   asPercent,
   computeArtSourceRect,
+  computeArtWindowRect,
   coverFitRect,
+  playmatArtBox,
   playmatImageBox,
 } from './playmatCrop';
 export type { Rect, Size } from './playmatCrop';

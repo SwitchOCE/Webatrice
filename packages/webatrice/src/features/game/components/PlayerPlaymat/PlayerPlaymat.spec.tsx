@@ -10,9 +10,10 @@ import { CardDTO, SettingDTO } from '@app/services';
 
 import PlayerPlaymat from './PlayerPlaymat';
 
+const ISLAND_ID = '0e3a9b16-4e6d-4c3e-9b1a-6f0f8f1d2c3b';
 const island = create(ServerInfo_PlayerProperties_PlaymatParamsSchema, {
   cardName: 'Island',
-  cardProviderId: 'uuid-1',
+  cardProviderId: ISLAND_ID,
   marginPctL: 0,
   marginPctR: 0,
   verticalOffset: 0,
@@ -51,10 +52,10 @@ describe('PlayerPlaymat', () => {
     vi.restoreAllMocks();
   });
 
-  it('loads the announced printing\'s art, hidden until it can be cropped', async () => {
+  it('loads the art crop of the announced printing, hidden until it can be cropped', async () => {
     render();
     await waitFor(() => expect(image()).not.toBeNull());
-    expect(image()).toHaveAttribute('src', expect.stringContaining('/cards/uuid-1?format=image&version=large'));
+    expect(image()).toHaveAttribute('src', expect.stringContaining(`/cards/${ISLAND_ID}?format=image&version=art_crop`));
     expect(image().style.visibility).toBe('hidden');
   });
 
@@ -64,10 +65,11 @@ describe('PlayerPlaymat', () => {
     render();
     await waitFor(() => expect(image()).not.toBeNull());
     Object.defineProperty(image(), 'naturalWidth', { value: 600 });
-    Object.defineProperty(image(), 'naturalHeight', { value: 900 });
+    Object.defineProperty(image(), 'naturalHeight', { value: 400 });
     fireEvent.load(image());
 
-    expect(image().style).toMatchObject({ left: '0px', top: '-350px', width: '1000px', height: '1500px' });
+    expect(image().style).toMatchObject({ left: '0px', top: '0px', width: '1000px' });
+    expect(parseFloat(image().style.height)).toBeCloseTo(400 * 1000 / 600);
   });
 
   it('renders nothing without a playmat', () => {
@@ -105,7 +107,11 @@ it('uses configured image sources and retries them on the battlefield', async ()
     setPreferences: new Map(), setLongNames: new Map() });
   vi.spyOn(CardDTO, 'get').mockResolvedValue(undefined);
   render();
-  await waitFor(() => expect(image()).toHaveAttribute('src', 'https://images.test/Island.jpg'));
+  await waitFor(() => expect(image().src).toContain(`/cards/${ISLAND_ID}?format=image&version=art_crop`));
   fireEvent.error(image());
-  expect(image().src).toContain('/cards/uuid-1?format=image&version=large');
+  expect(image().src).toContain('/cards/named?exact=Island&format=image&version=art_crop');
+  fireEvent.error(image());
+  expect(image()).toHaveAttribute('src', 'https://images.test/Island.jpg');
+  fireEvent.error(image());
+  expect(image().src).toContain(`/cards/${ISLAND_ID}?format=image&version=large`);
 });

@@ -1,61 +1,19 @@
-import { useEffect, useMemo, useState } from 'react';
-import { ScryfallImageSize, type games } from '@cockatrice/datatrice';
-import { useCardImageUrls, useImageCandidates } from '@app/hooks';
-import { CardDTO, getScryfallUrl, printingsOf, type CardImageSubject } from '@app/services';
-import { playmatImageBox, type Size } from '@app/utils';
+import { useState } from 'react';
+import { type games } from '@cockatrice/datatrice';
+import { playmatArtBox, playmatImageBox, type Size } from '@app/utils';
+
+import { usePlaymatImage } from './usePlaymatImage';
 
 interface Props { playmat: games.Playmat; area: Size | null }
 
 export default function PlaymatImage({ playmat, area }: Props) {
-  const { cardName, cardProviderId } = playmat;
-  const [lookup, setLookup] = useState<{ name: string; card: CardDTO | undefined }>();
+  const { src, onError, isArtCrop, landscapeCard } = usePlaymatImage(playmat);
   const [loaded, setLoaded] = useState<{ src: string; size: Size }>();
-  useEffect(() => {
-    let active = true;
-    void CardDTO.get(cardName).then(
-      (card) => {
-        if (active) {
-          setLookup({ name: cardName, card });
-        }
-      },
-      () => {
-        if (active) {
-          setLookup({ name: cardName, card: undefined });
-        }
-      },
-    );
-    return () => {
-      active = false;
-    };
-  }, [cardName]);
-  const card = lookup?.name === cardName ? lookup.card : undefined;
-  const subject = useMemo<CardImageSubject | undefined>(() => {
-    if (lookup?.name !== cardName) {
-      return undefined;
-    }
-    if (!card) {
-      return { name: { value: cardName } };
-    }
-    const printings = printingsOf(card);
-    return { ...card, set: [
-      ...printings.filter((printing) => printing.uuid === cardProviderId),
-      ...printings.filter((printing) => printing.uuid !== cardProviderId),
-    ] };
-  }, [lookup, card, cardName, cardProviderId]);
-  const preferred = card && printingsOf(card).find((printing) => printing.uuid === cardProviderId);
-  const candidates = useCardImageUrls(subject, preferred?.value, ScryfallImageSize.Large);
-  const urls = useMemo(() => {
-    if (!candidates.length || !cardProviderId || preferred) {
-      return candidates;
-    }
-    const providerUrl = getScryfallUrl({ providerId: cardProviderId, name: cardName }, ScryfallImageSize.Large);
-    return [...candidates.slice(0, -1), providerUrl, ...candidates.slice(-1)].filter((url): url is string => !!url);
-  }, [candidates, cardProviderId, cardName, preferred]);
-  const { src, onError } = useImageCandidates(urls);
   const size = loaded?.src === src ? loaded?.size : undefined;
-  const sideways = card?.landscapeOrientation?.value === '1';
+  const sideways = landscapeCard && !isArtCrop;
   const upright = size && (sideways ? { width: size.height, height: size.width } : size);
-  const box = upright && area ? playmatImageBox(upright, playmat.params, area) : null;
+  const frame = isArtCrop ? playmatArtBox : playmatImageBox;
+  const box = upright && area ? frame(upright, playmat.params, area) : null;
   if (!src) {
     return null;
   }
