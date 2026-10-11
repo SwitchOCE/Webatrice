@@ -3,12 +3,11 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { act, fireEvent, screen, waitFor, within } from '@testing-library/react';
 
 import { Decks, clearDeckEditorCache, clearDecksListCache } from '@app/features/decks';
-import { parseCod } from '@app/services';
+import { dexieService, parseCod } from '@app/services';
 import { RouteEnum } from '@app/types';
 import {
   Command_DeckDel_ext,
   Command_DeckDelDir_ext,
-  Command_DeckDownload_ext,
   Command_DeckList_ext,
   Command_DeckNewDir_ext,
   Command_DeckUpload_ext,
@@ -46,8 +45,9 @@ function renderDecks() {
 
 const NOW_SECONDS = Math.floor(Date.now() / 1000);
 
-beforeEach(() => {
+beforeEach(async () => {
   vi.useRealTimers();
+  await dexieService.deckSummaries.clear();
   clearDecksListCache();
   clearDeckEditorCache();
   window.localStorage.clear();
@@ -391,9 +391,10 @@ describe('Decks (integration)', () => {
   it('imports a pasted decklist after resolving its cards, keeping unknown cards', async () => {
     await loadTree();
 
-    fireEvent.click(screen.getByRole('button', { name: /Decks\.list\.import/ }));
+    fireEvent.click(screen.getByRole('button', { name: 'ImportMenu.import' }));
+    fireEvent.click(screen.getByRole('menuitem', { name: 'ImportMenu.pasteOrOpen' }));
     expect(screen.getByRole('heading', { name: 'ImportDeckDialog.title' })).toBeInTheDocument();
-    const nameInput = screen.getAllByRole('textbox')[0];
+    const nameInput = screen.getByRole('textbox', { name: 'ImportDeckDialog.deckName' });
     fireEvent.change(nameInput, { target: { value: 'Pasted' } });
     fireEvent.change(screen.getByPlaceholderText('ImportDeckDialog.placeholder'), {
       target: { value: 'Deck\n2 Sol Ring\n1 Mystery Card\n\nSideboard\n1 Lightning Bolt\nnot a card line' },
@@ -402,25 +403,27 @@ describe('Decks (integration)', () => {
 
     expect(await screen.findByText('ImportDeckDialog.review.matched')).toBeInTheDocument();
     expect(screen.getByText('ImportDeckDialog.review.missing')).toBeInTheDocument();
-    expect(screen.getAllByText('ImportDeckDialog.review.unknown')).toHaveLength(1);
+    expect(screen.getAllByText('ImportDeckDialog.review.unknown')).toHaveLength(2);
     fireEvent.click(screen.getByRole('button', { name: 'ImportDeckDialog.importCards' }));
 
     const { value } = findLastSessionCommand(Command_DeckUpload_ext);
     expect(value.deckId).toBe(0);
     const parsed = parseCod(value.deckList);
     expect(parsed.name).toBe('Pasted');
-    expect(parsed.format).toBe('commander');
+    expect(parsed.format).toBe('');
     expect(parsed.cards.map((c) => [c.name, c.quantity, c.category])).toEqual([
       ['Sol Ring', 2, 'main'],
       ['Mystery Card', 1, 'main'],
       ['Lightning Bolt', 1, 'sideboard'],
+      ['not a card line', 1, 'sideboard'],
     ]);
   });
 
-  it('imports a .cod file as-is, preserving its metadata and format', async () => {
+  it('reviews a .cod file before importing, preserving its metadata and format', async () => {
     await loadTree();
 
-    fireEvent.click(screen.getByRole('button', { name: /Decks\.list\.import/ }));
+    fireEvent.click(screen.getByRole('button', { name: 'ImportMenu.import' }));
+    fireEvent.click(screen.getByRole('menuitem', { name: 'ImportMenu.pasteOrOpen' }));
     const file = new File(
       [codXml({
         name: 'From Desktop',
@@ -435,8 +438,10 @@ describe('Decks (integration)', () => {
     fireEvent.change(input, { target: { files: [file] } });
 
     expect(await screen.findByText('desktop.cod')).toBeInTheDocument();
-    expect(screen.getByText('ImportDeckDialog.file.cachedPrice')).toBeInTheDocument();
-    fireEvent.click(screen.getByRole('button', { name: 'ImportDeckDialog.importFile' }));
+    expect(screen.getByText('ImportDeckDialog.review.matched')).toBeInTheDocument();
+    expect(within(screen.getByRole('dialog')).getByText('Lightning Bolt')).toBeInTheDocument();
+    expect(findAllSessionCommands(Command_DeckUpload_ext)).toHaveLength(0);
+    fireEvent.click(screen.getByRole('button', { name: 'ImportDeckDialog.importCards' }));
 
     await waitFor(() => expect(findAllSessionCommands(Command_DeckUpload_ext)).toHaveLength(1));
     const { value } = findLastSessionCommand(Command_DeckUpload_ext);
@@ -451,20 +456,28 @@ describe('Decks (integration)', () => {
   });
 
   it('refresh drops the cached summaries and re-requests the tree and every deck', async () => {
-    await loadTree();
+    const items = [deckFile(1, 'Older Deck'), deckFile(2, 'Newer Deck')];
+    await loadTree(items);
     await waitFor(() => expect(sentDeckDownloadIds()).toHaveLength(2));
     act(() => {
       respondToDeckDownload(1, codXml({ name: 'Older Deck', format: 'modern' }));
       respondToDeckDownload(2, codXml({ name: 'Newer Deck', format: 'modern' }));
     });
 
+    await waitFor(async () => expect(await dexieService.deckSummaries.count()).toBe(2));
     const listRequestsBefore = findAllSessionCommands(Command_DeckList_ext).length;
     fireEvent.click(screen.getByRole('button', { name: 'Decks.list.refreshLabel' }));
     expect(findAllSessionCommands(Command_DeckList_ext)).toHaveLength(listRequestsBefore + 1);
     act(() => {
-      respondToDeckList([deckFile(1, 'Older Deck'), deckFile(2, 'Newer Deck')]);
+      respondToDeckList(items);
     });
-    await waitFor(() => expect(findAllSessionCommands(Command_DeckDownload_ext)).toHaveLength(4));
+    await waitFor(() => expect(sentDeckDownloadIds().sort()).toEqual([1, 1, 2, 2]));
+    act(() => {
+      respondToDeckDownload(1, codXml({ name: 'Older Deck', format: 'legacy' }));
+      respondToDeckDownload(2, codXml({ name: 'Newer Deck', format: 'vintage' }));
+    });
+    expect(await within(tile('Older Deck')).findByText(/^DeckFormat\.legacy/)).toBeInTheDocument();
+    expect(within(tile('Newer Deck')).getByText(/^DeckFormat\.vintage/)).toBeInTheDocument();
   });
 
   it('switches between grid and list and remembers the choice', async () => {

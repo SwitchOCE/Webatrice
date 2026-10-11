@@ -134,6 +134,12 @@ export function useDeckList({ onDeckCreated, folderPath = '' }: {
 
   const clearSummaries = useCallback(() => {
     setListError(null);
+    if (scope) {
+      const listed = server.Selectors.getBackendDecks(store.getState());
+      for (const deck of decksUnderFolder(listed?.root, '')) {
+        void invalidateDeckSummary(scope, deck.id);
+      }
+    }
     summaryRequestedCache.clear();
     summaryVersions.clear();
     summaryCache.clear();
@@ -141,7 +147,7 @@ export function useDeckList({ onDeckCreated, folderPath = '' }: {
     setDocuments(new Map());
     dropCleanCachedDecks(getDeckSaveRegistry(store, webClient));
     setSummaries(new Map());
-  }, [store, webClient]);
+  }, [scope, store, webClient]);
   const { backendDecks, isConnected, refresh } = useBackendDeckList({ beforeRequest: clearSummaries });
 
   useReduxEffect<CommandFailedPayload>(({ payload: { failure } }) => {

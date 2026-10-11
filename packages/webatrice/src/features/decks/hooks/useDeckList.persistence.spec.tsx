@@ -167,3 +167,44 @@ it('discards a pending cache read after the session ends', async () => {
   expect(view.webClient.request.session.deckDownload).not.toHaveBeenCalled();
   expect(latest.summaries.size).toBe(0);
 });
+
+it('refresh downloads persisted decks even when their listing timestamps are unchanged', async () => {
+  await seed();
+  const view = setup();
+  await waitFor(() => expect(latest.summaries.size).toBe(2));
+  expect(view.webClient.request.session.deckDownload).not.toHaveBeenCalled();
+  act(() => latest.refresh());
+  expect(latest.summaries.size).toBe(0);
+  expect(latest.documents.size).toBe(0);
+  expect(view.webClient.request.session.deckList).toHaveBeenCalledExactlyOnceWith();
+  act(() => view.store.dispatch(server.Actions.backendDecks({ deckList: listing() })));
+  await waitFor(() => expect(vi.mocked(view.webClient.request.session.deckDownload).mock.calls).toEqual([[2], [1]]));
+  act(() => {
+    view.store.dispatch(server.Actions.deckDownloaded({ deckId: 1, deck: xml('vintage') }));
+    view.store.dispatch(server.Actions.deckDownloaded({ deckId: 2, deck: xml('pauper') }));
+  });
+  expect(latest.summaries.get(1)?.format).toBe('vintage');
+  expect(latest.summaries.get(2)?.format).toBe('pauper');
+  await waitFor(async () => expect((await dexieService.deckSummaries.toArray()).map((row) => row.summary.format))
+    .toEqual(['vintage', 'pauper']));
+});
+
+it.each(['success', 'failure'])('refresh discards a pending pre-refresh download: %s', async (outcome) => {
+  const view = setup();
+  await waitFor(() => expect(vi.mocked(view.webClient.request.session.deckDownload).mock.calls).toEqual([[2], [1]]));
+  act(() => latest.refresh());
+  act(() => view.store.dispatch(server.Actions.backendDecks({ deckList: listing() })));
+  await act(async () => {
+    view.store.dispatch(outcome === 'success'
+      ? server.Actions.deckDownloaded({ deckId: 1, deck: xml('old') })
+      : server.Actions.deckDownloadFailed({ deckId: 1, responseCode: 17 }));
+  });
+  await waitFor(() => expect(vi.mocked(view.webClient.request.session.deckDownload).mock.calls).toEqual([[2], [1], [1]]));
+  expect(latest.summaries.has(1)).toBe(false);
+  expect(latest.documents.has(1)).toBe(false);
+  expect(await dexieService.deckSummaries.count()).toBe(0);
+  act(() => view.store.dispatch(server.Actions.deckDownloaded({ deckId: 1, deck: xml('new') })));
+  await waitFor(async () => expect(await dexieService.deckSummaries.count()).toBe(1));
+  expect(latest.summaries.get(1)?.format).toBe('new');
+  expect(latest.documents.get(1)).toBe(xml('new'));
+});
