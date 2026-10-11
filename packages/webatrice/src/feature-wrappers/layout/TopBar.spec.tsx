@@ -21,7 +21,6 @@ import { buildReplay, sayContainer } from '../../services/replay/__mocks__/fixtu
 import { getSettings, settingsStore } from '../../hooks/useSettings';
 import NavRail from './NavRail';
 import TopBar from './TopBar';
-import { server } from '@cockatrice/datatrice';
 
 const TABS_KEY = 'webatrice.stickyTabs';
 const OWNER_KEY = 'webatrice.stickyTabs.owner';
@@ -54,21 +53,14 @@ const play = () => screen.getByRole('link', { name: 'NavRail.place.play' });
 const strip = () => screen.getByRole('navigation', { name: 'TopBar.tabs.label' });
 
 describe('TopBar identity changes', () => {
-  it('keeps an empty chat registered while navigating, then unregisters it on tab close', () => {
-    const { store } = renderTopBar('/player/empty-chat');
-    expect(store.getState().server.messages['empty-chat']).toEqual([]);
+  it('leaves private chats out of the strip and out of saved tabs', () => {
+    renderTopBar('/player/alice');
+
+    expect(within(strip()).queryByRole('link', { name: 'alice' })).not.toBeInTheDocument();
+    expect(within(strip()).queryByText('TopBar.group.chats')).not.toBeInTheDocument();
     fireEvent.click(play());
-    act(() => {
-      store.dispatch(server.Actions.userLeft({ name: 'empty-chat' }));
-    });
-    expect(store.getState().server.privateChatNotices['empty-chat']).toHaveLength(1);
-    const tab = screen.getByRole('link', { name: 'empty-chat' }).parentElement!;
-    fireEvent.click(within(tab).getByRole('button', { name: 'TopBar.tabs.close' }));
-    act(() => {
-      store.dispatch(server.Actions.userJoined({ user: makeUser({ name: 'empty-chat' }) }));
-    });
-    expect(store.getState().server.messages['empty-chat']).toBeUndefined();
-    expect(store.getState().server.privateChatNotices['empty-chat']).toBeUndefined();
+    expect(screen.queryByRole('link', { name: 'alice' })).not.toBeInTheDocument();
+    expect(JSON.parse(window.localStorage.getItem(TABS_KEY) ?? '[]')).toEqual([]);
   });
 
   afterEach(() => {
@@ -520,14 +512,14 @@ describe('TopBar sticky tabs', () => {
     window.localStorage.clear();
   });
 
-  it('keeps a player tab after leaving it, and saves it without its handlers', () => {
-    renderTopBar('/player/alice');
+  it('keeps a Shortcuts tab after leaving it, and saves it without its handlers', () => {
+    renderTopBar(RouteEnum.SHORTCUTS);
 
     fireEvent.click(play());
 
-    expect(screen.getByRole('link', { name: 'alice' })).not.toHaveAttribute('aria-current');
+    expect(screen.getByRole('link', { name: 'UserMenu.shortcuts' })).not.toHaveAttribute('aria-current');
     expect(persisted()).toContainEqual({
-      key: 'player:alice', type: 'player', title: 'alice', route: '/player/alice', closeable: true,
+      key: 'shortcuts', type: 'shortcuts', titleKey: 'UserMenu.shortcuts', route: RouteEnum.SHORTCUTS, closeable: true,
     });
   });
 
@@ -543,26 +535,26 @@ describe('TopBar sticky tabs', () => {
     const { renderWithProviders: renderFresh } = await import('../../__test-utils__');
     const { default: FreshTopBar } = await import('./TopBar');
     const { default: FreshNavRail } = await import('./NavRail');
-    renderFresh(<><FreshNavRail /><FreshTopBar /></>, { preloadedState: connectedState, route: '/player/zed' });
+    renderFresh(<><FreshNavRail /><FreshTopBar /></>, { preloadedState: connectedState, route: RouteEnum.SHORTCUTS });
     fireEvent.click(play());
 
-    const close = within(screen.getByRole('link', { name: 'zed' }).closest('li')!)
+    const close = within(screen.getByRole('link', { name: 'UserMenu.shortcuts' }).closest('li')!)
       .getByRole('button', { name: 'TopBar.tabs.close' });
     close.focus();
     fireEvent.click(close);
 
     expect(within(strip()).queryAllByRole('link')).toEqual([]);
-    expect(screen.getByRole('button', { name: 'TopBar.rail.hide' })).toHaveFocus();
+    expect(screen.getByRole('button', { name: 'NavRail.toggle.hide' })).toHaveFocus();
   });
 
   it('drops a sticky tab from the strip and from storage when it closes', () => {
-    renderTopBar('/player/carol');
+    renderTopBar(RouteEnum.SHORTCUTS);
 
-    const carol = screen.getByRole('link', { name: 'carol' }).closest('li')!;
-    fireEvent.click(within(carol).getByRole('button', { name: 'TopBar.tabs.close' }));
+    const shortcuts = screen.getByRole('link', { name: 'UserMenu.shortcuts' }).closest('li')!;
+    fireEvent.click(within(shortcuts).getByRole('button', { name: 'TopBar.tabs.close' }));
 
-    expect(screen.queryByRole('link', { name: 'carol' })).not.toBeInTheDocument();
-    expect(persisted().map(({ key }) => key)).not.toContain('player:carol');
+    expect(screen.queryByRole('link', { name: 'UserMenu.shortcuts' })).not.toBeInTheDocument();
+    expect(persisted().map(({ key }) => key)).not.toContain('shortcuts');
     expect(screen.getByTestId('location')).toHaveTextContent(RouteEnum.SERVER);
   });
 
@@ -602,7 +594,7 @@ describe('TopBar sticky tabs', () => {
     renderFresh(<FreshTopBar />, { preloadedState: connectedState, route: RouteEnum.SERVER });
 
     expect(screen.getByRole('link', { name: 'TopBar.tab.publicDecks' })).toHaveAttribute('href', '/decks/public/ann');
-    expect(screen.getByRole('link', { name: 'bob' })).toBeInTheDocument();
+    expect(screen.queryByRole('link', { name: 'bob' })).not.toBeInTheDocument();
     expect(screen.queryByRole('link', { name: 'Decks von ann' })).not.toBeInTheDocument();
     expect(screen.queryByRole('link', { name: 'Bogus' })).not.toBeInTheDocument();
     expect(screen.queryByRole('link', { name: 'TopBar.tab.player' })).not.toBeInTheDocument();

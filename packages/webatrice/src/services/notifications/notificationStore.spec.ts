@@ -46,6 +46,22 @@ describe('notificationReducer', () => {
     expect(notificationReducer(cleared, { type: 'clear', scope: 'rooms', key: 3 })).toBe(cleared);
   });
 
+  it('counts mentions per room and game beside the unread counts and clears them together', () => {
+    const state = apply(
+      { type: 'bump', scope: 'rooms', key: 3, mention: true },
+      { type: 'bump', scope: 'rooms', key: 3 },
+      { type: 'bump', scope: 'games', key: 7, mention: true },
+      { type: 'bump', scope: 'games', key: 7, mention: true },
+      { type: 'bump', scope: 'chats', key: 'bob', mention: true },
+    );
+    expect(state.rooms).toEqual({ 3: 2 });
+    expect(state.mentions).toEqual({ rooms: { 3: 1 }, games: { 7: 2 } });
+
+    const cleared = notificationReducer(state, { type: 'clear', scope: 'games', key: 7 });
+    expect(cleared.mentions).toEqual({ rooms: { 3: 1 }, games: {} });
+    expect(notificationReducer(cleared, { type: 'clear', scope: 'rooms', key: 3 }).mentions).toEqual({ rooms: {}, games: {} });
+  });
+
   it('marks one entry or all entries read, keeping the state when nothing changes', () => {
     const state = apply({ type: 'append', entry: mention, time: 1, read: false }, { type: 'append', entry: report, time: 1, read: false });
     const one = notificationReducer(state, { type: 'markEntryRead', id: 2 });
@@ -67,7 +83,9 @@ describe('selectUnreadCounts', () => {
       { type: 'bump', scope: 'games', key: 7 },
     );
     const counts = selectUnreadCounts(state);
-    expect(counts).toEqual({ rooms: { 3: 1 }, games: { 7: 1 }, chats: { bob: 1 }, notifications: 3, total: 4 });
+    expect(counts).toEqual({
+      rooms: { 3: 1 }, games: { 7: 1 }, chats: { bob: 1 }, mentions: { rooms: {}, games: {} }, notifications: 3, total: 4,
+    });
     expect(selectUnreadCounts(state)).toBe(counts);
   });
 });

@@ -34,16 +34,11 @@
       "close": "Close {title}",
       "spectating": "Spectating"
     },
-    "rail": {
-      "hide": "Hide the navigation rail",
-      "show": "Show the navigation rail"
-    },
     "group": {
       "rooms": "Rooms",
       "games": "Games",
       "decks": "Decks",
       "replays": "Replays",
-      "chats": "Chats",
       "pages": "Page"
     }
   }
