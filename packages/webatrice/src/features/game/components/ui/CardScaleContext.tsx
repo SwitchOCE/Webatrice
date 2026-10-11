@@ -5,6 +5,7 @@ import {
   useLayoutEffect,
   useMemo,
   useState,
+  type CSSProperties,
   type ReactNode,
   type RefObject,
 } from 'react';
@@ -149,16 +150,21 @@ export function useCardScale(): CardScaleContextValue {
  * The `.game` root wraps the play area AND the sidebar; the CSS vars
  * cascade to card-sized descendants only, and non-card UI ignores them.
  */
-export function useCardScaleStyle(): React.CSSProperties {
+export function cardScaleVars(scale: number): CSSProperties {
+  return {
+    '--card-width': `${BASE_CARD_WIDTH_PX * scale}px`,
+    '--card-height': `${BASE_CARD_HEIGHT_PX * scale}px`,
+    '--card-gap-px': `${18 * scale}px`,
+    '--card-stack-offset-px': `${13.5 * scale}px`,
+  } as CSSProperties;
+}
+
+export function SeatCardScaleProvider({ scale, children }: { scale: number; children: ReactNode }) {
+  const value = useMemo(() => ({ scale }), [scale]);
+  return <CardScaleContext.Provider value={value}>{children}</CardScaleContext.Provider>;
+}
+
+export function useCardScaleStyle(): CSSProperties {
   const { scale } = useCardScale();
-  return useMemo(
-    () =>
-      ({
-        '--card-width': `${BASE_CARD_WIDTH_PX * scale}px`,
-        '--card-height': `${BASE_CARD_HEIGHT_PX * scale}px`,
-        '--card-gap-px': `${18 * scale}px`,
-        '--card-stack-offset-px': `${13.5 * scale}px`,
-      }) as React.CSSProperties,
-    [scale],
-  );
+  return useMemo(() => cardScaleVars(scale), [scale]);
 }

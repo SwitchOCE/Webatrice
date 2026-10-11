@@ -86,7 +86,7 @@ describe('PlayerBoard characterization — seats and hidden zones', () => {
     expect(document.querySelectorAll('[data-card][data-zone="hand"]')).toHaveLength(2);
 
     expect(screen.getByTitle('Hand — 2 cards')).toBeEnabled();
-    expect(screen.getByTitle('Hand — 5 cards')).toBeDisabled();
+    expect(screen.getByRole('img', { name: 'Hand, 5 cards' })).toBeInTheDocument();
   });
 
   it('renders library counts from cardCount, never from the (empty) hidden order', () => {

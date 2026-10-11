@@ -1,6 +1,6 @@
 import { forwardRef, type HTMLAttributes } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Heart, Skull, Sparkles } from 'lucide-react';
+import { Hand, Heart, Skull, Sparkles } from 'lucide-react';
 import { ScryfallImageSize } from '@cockatrice/datatrice';
 import { CardImage } from '@app/components';
 import { getScryfallUrlByIdOrExactName } from '@app/services';
@@ -8,12 +8,14 @@ import { getScryfallUrlByIdOrExactName } from '@app/services';
 import { useCardPreviewActions } from '../CardPreviewContext';
 import { usePlayerSeatContext } from '../PlayerBoard/PlayerSeatContext';
 import { useSeatPiles } from './useSeatPiles';
+import { INFO_GAP_EM } from '../seatFit';
+
+const PILE_ROW_STYLE = { gap: `${INFO_GAP_EM}em` };
 import {
   CARD_BACK_URL,
   CARD_CORNER_RADIUS,
   CARD_HEIGHT,
   CARD_SIDEWAYS_HEIGHT,
-  CARD_SIDEWAYS_WIDTH,
   CARD_WIDTH,
 } from '../SeatCard/cardSize';
 import Card from '../SeatCard/SeatCard';
@@ -66,7 +68,7 @@ const LargeZoneBox = forwardRef<
         const draggable = !!onPointerDown;
         const { setHoveredCard } = useCardPreviewActions();
         return (
-          <div className="flex justify-center">
+          <div className="flex w-full justify-center">
             <div
               ref={ref}
               data-pile-count={count}
@@ -80,8 +82,8 @@ const LargeZoneBox = forwardRef<
               onMouseEnter={topCard ? () => setHoveredCard(topCard) : undefined}
               className={`relative rounded-md border border-border-subtle bg-bg-base/60 overflow-hidden select-none ${GAME_FOCUS_RING}`}
               style={{
-                width: CARD_SIDEWAYS_WIDTH,
-                height: CARD_SIDEWAYS_HEIGHT,
+                width: '100%',
+                height: CARD_WIDTH,
                 cursor: draggable ? 'grab' : undefined,
                 touchAction: draggable ? 'none' : undefined,
               }}
@@ -103,19 +105,13 @@ const LargeZoneBox = forwardRef<
                   src={getScryfallUrlByIdOrExactName(topCard, ScryfallImageSize.Large)}
                   name={topCard.name}
                   draggable={false}
-                  className="pointer-events-none select-none absolute top-1/2 left-1/2"
-                  style={{
-                    width: CARD_WIDTH,
-                    height: CARD_HEIGHT,
-                    borderRadius: CARD_CORNER_RADIUS,
-                    transform: 'translate(-50%, -50%) rotate(-90deg)',
-                  }}
+                  className="pointer-events-none select-none absolute inset-0 h-full w-full object-cover"
                 />
               )}
-              <div className="absolute inset-0 flex items-center justify-center gap-[0.35em] pointer-events-none">
-                {!topCard && <Icon size="2.5em" className="text-text-muted shrink-0" />}
+              <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
+                {!topCard && <Icon size="1.5em" className="text-text-muted shrink-0" />}
                 <span
-                  className="text-over-art-text font-modern font-bold tabular-nums text-[3em]"
+                  className="text-over-art-text font-modern font-bold tabular-nums text-[2.25em] leading-none"
                   style={{ textShadow: OVER_ART_SHADOW }}
                 >
                   {count}
@@ -150,7 +146,7 @@ const CardBackZone = forwardRef<
         const { t } = useTranslation();
         const draggable = !!onPointerDown;
         return (
-          <div className="flex justify-center">
+          <div className="flex w-full justify-center">
             <div
               ref={ref}
               data-pile-count={count}
@@ -159,7 +155,7 @@ const CardBackZone = forwardRef<
               onPointerDown={onPointerDown}
               className={`relative rounded-md overflow-hidden border border-border-strong shadow-inner select-none ${GAME_FOCUS_RING}`}
               style={{
-                width: CARD_SIDEWAYS_WIDTH,
+                width: '100%',
                 height: CARD_SIDEWAYS_HEIGHT,
                 cursor: draggable ? 'grab' : undefined,
                 touchAction: draggable ? 'none' : undefined,
@@ -226,10 +222,62 @@ const CardBackZone = forwardRef<
       }
       );
 
+const HAND_FAN = [-12, 0, 12] as const;
+const HAND_TILE_STYLE = { minHeight: CARD_WIDTH, maxHeight: `calc(${CARD_HEIGHT} * 1.6)` };
+
+function HandTile() {
+  const { t } = useTranslation();
+  const { handCount } = usePlayerSeatContext();
+  const label = t('ZoneStack.hand', { count: handCount });
+  const backs = HAND_FAN.slice(0, Math.min(HAND_FAN.length, handCount));
+  return (
+    <div
+      role="img"
+      aria-label={label}
+      title={label}
+      data-hand-tile
+      className="relative flex w-full flex-1 items-center overflow-hidden rounded-md border border-accent/60 bg-accent-soft select-none"
+      style={HAND_TILE_STYLE}
+    >
+      <span aria-hidden className="relative h-full flex-1">
+        {backs.map((angle, i) => (
+          <img
+            key={angle}
+            src={CARD_BACK_URL}
+            alt=""
+            draggable={false}
+            className="pointer-events-none absolute top-1/2 shadow-md"
+            style={{
+              height: '78%',
+              aspectRatio: '72 / 102',
+              left: `${18 + i * 14}%`,
+              borderRadius: CARD_CORNER_RADIUS,
+              transform: `translate(-50%, -50%) rotate(${angle}deg)`,
+            }}
+          />
+        ))}
+      </span>
+      <span aria-hidden className="flex flex-col items-center px-[0.6em]">
+        <Hand size="1.1em" className="text-accent" />
+        <span className="font-modern text-[2.6em] font-bold leading-none tabular-nums text-text-primary">{handCount}</span>
+      </span>
+    </div>
+  );
+}
+
 export default function ZoneStack() {
-  const { playerId } = usePlayerSeatContext();
+  const { playerId, handPlacement } = usePlayerSeatContext();
   const { library, graveyard, exile } = useSeatPiles();
 
+  return (
+    <>
+      <HandTile />
+      {handPlacement !== 'tray' && <SeatPiles playerId={playerId} library={library} graveyard={graveyard} exile={exile} />}
+    </>
+  );
+}
+
+function SeatPiles({ playerId, library, graveyard, exile }: { playerId: number } & ReturnType<typeof useSeatPiles>) {
   return (
     <>
       <div>
@@ -243,33 +291,35 @@ export default function ZoneStack() {
         />
         {library.popup}
       </div>
-      <div>
-        <LargeZoneBox
-          ref={graveyard.ref}
-          icon={Skull}
-          label={graveyard.zoneLabel}
-          count={graveyard.count}
-          topCard={graveyard.topCard}
-          arrowAnchorPlayerId={playerId}
-          arrowAnchorZone={graveyard.arrowAnchorZone}
-          pileProps={graveyard.pileProps}
-          onPointerDown={graveyard.onPointerDown}
-        />
-        {graveyard.popup}
-      </div>
-      <div>
-        <LargeZoneBox
-          ref={exile.ref}
-          icon={Sparkles}
-          label={exile.zoneLabel}
-          count={exile.count}
-          topCard={exile.topCard}
-          arrowAnchorPlayerId={playerId}
-          arrowAnchorZone={exile.arrowAnchorZone}
-          pileProps={exile.pileProps}
-          onPointerDown={exile.onPointerDown}
-        />
-        {exile.popup}
+      <div className="grid grid-cols-2" style={PILE_ROW_STYLE}>
+        <div className="min-w-0">
+          <LargeZoneBox
+            ref={graveyard.ref}
+            icon={Skull}
+            label={graveyard.zoneLabel}
+            count={graveyard.count}
+            topCard={graveyard.topCard}
+            arrowAnchorPlayerId={playerId}
+            arrowAnchorZone={graveyard.arrowAnchorZone}
+            pileProps={graveyard.pileProps}
+            onPointerDown={graveyard.onPointerDown}
+          />
+          {graveyard.popup}
+        </div>
+        <div className="min-w-0">
+          <LargeZoneBox
+            ref={exile.ref}
+            icon={Sparkles}
+            label={exile.zoneLabel}
+            count={exile.count}
+            topCard={exile.topCard}
+            arrowAnchorPlayerId={playerId}
+            arrowAnchorZone={exile.arrowAnchorZone}
+            pileProps={exile.pileProps}
+            onPointerDown={exile.onPointerDown}
+          />
+          {exile.popup}
+        </div>
       </div>
     </>
   );

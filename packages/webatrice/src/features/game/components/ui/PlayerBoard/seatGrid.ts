@@ -2,6 +2,7 @@ import type { CSSProperties } from 'react';
 
 import { CARD_HEIGHT, CARD_WIDTH } from '../SeatCard/cardSize';
 import { HAND_ROW_CARD_RATIO, HAND_ROW_PAD_PX } from '../seatFit';
+import { INFO_COLUMN_MIN_PX, INFO_COLUMN_PAD_PX, STACK_COLUMN_PAD_PX, STACK_COLUMN_RATIO, VERTICAL_HAND_RATIO } from '../seatScale';
 
 type Placement = Pick<CSSProperties, 'gridColumn' | 'gridRow'>;
 
@@ -13,9 +14,9 @@ export interface SeatGrid {
   battlefield: Placement;
 }
 
-const INFO_COLUMN = `calc(${CARD_HEIGHT} + 1.5em)`;
-const STACK_COLUMN = `calc((${CARD_WIDTH} + 1rem) * 1.2)`;
-const VERTICAL_HAND_COLUMN = `calc(${CARD_WIDTH} * 1.5)`;
+const INFO_COLUMN = `max(calc(${CARD_HEIGHT} + ${INFO_COLUMN_PAD_PX}px), ${INFO_COLUMN_MIN_PX}px)`;
+const STACK_COLUMN = `calc((${CARD_WIDTH} + ${STACK_COLUMN_PAD_PX}px) * ${STACK_COLUMN_RATIO})`;
+const VERTICAL_HAND_COLUMN = `calc(${CARD_WIDTH} * ${VERTICAL_HAND_RATIO})`;
 const HAND_ROW = `calc(${CARD_HEIGHT} * ${HAND_ROW_CARD_RATIO} + ${HAND_ROW_PAD_PX}px)`;
 
 export function seatGrid({

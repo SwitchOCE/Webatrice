@@ -17,9 +17,9 @@ export const INFO_PADDING_EM = 0.75;
 export const INFO_GAP_EM = 0.5;
 export const LIFE_TILE_EM = 6.2;
 export const MANA_PIP_EM = 2;
-export const MANA_GRID_COLUMNS = 3;
+export const MANA_GRID_COLUMNS = 4;
 export const MANA_GRID_GAP_PX = 4;
-export const SEAT_PILES = 3;
+export const SEAT_PILE_ROWS = 3;
 
 export const HAND_ROW_CARD_RATIO = 0.6;
 export const HAND_ROW_PAD_PX = 8;
@@ -34,9 +34,9 @@ export function infoFontPx(scale: number): number {
 
 export function infoColumnHeightPx(scale: number): number {
   const rows = Math.ceil(MANA_COLORS.length / MANA_GRID_COLUMNS);
-  const em = 2 * INFO_PADDING_EM + INFO_GAP_EM + LIFE_TILE_EM + rows * MANA_PIP_EM;
+  const em = 2 * INFO_PADDING_EM + LIFE_TILE_EM + rows * MANA_PIP_EM + (1 + SEAT_PILE_ROWS) * INFO_GAP_EM;
   const manaGaps = Math.max(0, rows - 1) * MANA_GRID_GAP_PX;
-  return em * infoFontPx(scale) + manaGaps + SEAT_PILES * SEAT_CARD_WIDTH_PX * scale;
+  return em * infoFontPx(scale) + manaGaps + SEAT_PILE_ROWS * SEAT_CARD_WIDTH_PX * scale;
 }
 
 export function handRowHeightPx(scale: number): number {

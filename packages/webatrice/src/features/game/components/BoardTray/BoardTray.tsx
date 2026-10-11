@@ -1,8 +1,6 @@
 import { useCallback, useEffect, useRef, type MouseEvent, type ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
 
-import CardPreviewPane from '../CardPreviewPane/CardPreviewPane';
-
 export const TRAY_CARD_HEIGHT_VAR = '--tray-card-height';
 export const TRAY_CARD_WIDTH_VAR = '--tray-card-width';
 export const TRAY_CHROME_PX = 46;
@@ -113,7 +111,6 @@ export default function BoardTray({ hostRef, onMouseDown, children }: BoardTrayP
       className="game__tray flex shrink-0 gap-2 border-t border-border-subtle bg-bg-surface p-2"
       style={TRAY_STYLE}
     >
-      <CardPreviewPane />
       <div ref={setHost} className="flex min-h-0 min-w-0 flex-1" data-testid="board-tray-seat" />
       {children}
     </div>

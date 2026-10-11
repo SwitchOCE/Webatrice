@@ -9,6 +9,23 @@ import { useCardPreviewPopup } from '../CardPreviewPopup/useCardPreviewPopup';
 export type PreviewMode = 'image' | 'text' | 'both';
 
 const CARD_PREVIEW_MODE_STORAGE_KEY = 'webatrice.cardPreviewMode';
+const CARD_PREVIEW_HIDDEN_STORAGE_KEY = 'webatrice.cardPreviewHidden';
+
+function readPersistedHidden(): boolean {
+  try {
+    return window.localStorage.getItem(CARD_PREVIEW_HIDDEN_STORAGE_KEY) === '1';
+  } catch {
+    return false;
+  }
+}
+
+function persistHidden(hidden: boolean): void {
+  try {
+    window.localStorage.setItem(CARD_PREVIEW_HIDDEN_STORAGE_KEY, hidden ? '1' : '0');
+  } catch {
+    return;
+  }
+}
 
 function readPersistedPreviewMode(): PreviewMode {
   if (typeof window === 'undefined') {
@@ -67,6 +84,14 @@ export function useCardPreviewPane() {
     }
   }, [mode]);
 
+  const [hidden, setHidden] = useState(readPersistedHidden);
+  const toggleHidden = useCallback(() => {
+    setHidden((was) => {
+      persistHidden(!was);
+      return !was;
+    });
+  }, []);
+
   const [overrideStack, setOverrideStack] = useState<NamedCard[]>([]);
   const override = overrideStack.length > 0 ? overrideStack[overrideStack.length - 1] : null;
   const hoveredKey = hoveredCard ? detailTargetKey(hoveredCard) : null;
@@ -112,7 +137,7 @@ export function useCardPreviewPane() {
   );
 
   useEffect(() => {
-    const needsDetail = mode === 'text' || mode === 'both';
+    const needsDetail = !hidden && (mode === 'text' || mode === 'both');
     if (!needsDetail || !activeCard) {
       setDetail(null);
       setDetailFetchState('idle');
@@ -134,7 +159,7 @@ export function useCardPreviewPane() {
       });
     return () => controller.abort();
     // eslint-disable-next-line react-hooks/exhaustive-deps -- refetch only when the card identity (`activeKey`) changes
-  }, [mode, activeKey]);
+  }, [mode, activeKey, hidden]);
 
   const imageUrl = activeCard
     ? (!override && hoveredCard?.imageUri)
@@ -145,6 +170,8 @@ export function useCardPreviewPane() {
   return {
     mode,
     setMode,
+    hidden,
+    toggleHidden,
     activeCard,
     override,
     hoveredCard,

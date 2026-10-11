@@ -1,6 +1,6 @@
 import { useLayoutEffect, useRef, useState, type KeyboardEvent } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Hand, Heart, MoreVertical } from 'lucide-react';
+import { Heart, MoreVertical } from 'lucide-react';
 import { useAnimationPreference } from '@app/hooks';
 
 import { isContextMenuKey, ManaSymbols, type MenuAnchor } from '@app/components';
@@ -73,8 +73,8 @@ function ManaPip({
     <div
       className={['relative rounded-full', clickable ? GAME_FOCUS_RING : ''].join(' ')}
       style={{
-        width: `${MANA_PIP_EM}em`,
-        height: `${MANA_PIP_EM}em`,
+        width: '100%',
+        aspectRatio: '1',
         cursor: clickable ? 'pointer' : undefined,
       }}
       title={label}
@@ -102,7 +102,7 @@ function ManaPip({
       }
     >
       {hasScryfallSvg ? (
-        <ManaSymbols cost={`{${symbol}}`} size={`${MANA_PIP_EM}em`} />
+        <ManaSymbols cost={`{${symbol}}`} size="100%" className="absolute inset-0" />
       ) : (
         // Solid tinted disc for symbols without a Scryfall SVG (e.g.
         // "O" = Cockatrice's Other/storm). Full-opacity fill with a
@@ -142,10 +142,11 @@ const INFO_COLUMN_STYLE = {
   padding: `${INFO_PADDING_EM}em`,
   gap: `${INFO_GAP_EM}em`,
 };
-const MANA_GRID_STYLE = {
-  gridTemplateColumns: `repeat(${MANA_GRID_COLUMNS}, minmax(0, 1fr))`,
-  gap: `${MANA_GRID_GAP_PX}px`,
+const MANA_GRID_STYLE = { gap: `${MANA_GRID_GAP_PX}px` };
+const MANA_PIP_SLOT_STYLE = {
+  width: `min(${MANA_PIP_EM}em, calc((100% - ${(MANA_GRID_COLUMNS - 1) * MANA_GRID_GAP_PX}px) / ${MANA_GRID_COLUMNS}))`,
 };
+const INFO_STACK_STYLE = { gap: `${INFO_GAP_EM}em` };
 
 const NO_MODIFIERS = (event: KeyboardEvent) => !event.altKey && !event.ctrlKey && !event.metaKey && !event.shiftKey;
 
@@ -199,8 +200,6 @@ export default function PlayerInfoPanel() {
   const {
     counterCommands,
     deck,
-    handCount,
-    handPlacement,
     isSelf,
     life,
     lifeControl,
@@ -217,7 +216,6 @@ export default function PlayerInfoPanel() {
   const commander = deck.find((c) => c.commander);
   const backdrop = seat.avatarUrl
     ?? (commander ? getScryfallUrlByIdOrExactName(commander, ScryfallImageSize.ArtCrop) : null);
-  const handCountLabel = t('HandZone.button', { count: handCount });
   const { pending, pickArrowAt } = usePendingTargetContext();
   const arrowPicking = pending?.kind === 'arrow';
   const registry = useCardRegistry();
@@ -386,35 +384,14 @@ export default function PlayerInfoPanel() {
           <ValueFlashOverlay flash={lifeFlash} kind="change" />
         </div>
         <PlayerMenuButton />
-        {handPlacement === 'hidden' && (
-          <button
-            type="button"
-            disabled
-            title={handCountLabel}
-            aria-label={handCountLabel}
-            className={[
-              'absolute bottom-[0.3em] right-[0.3em] z-20 flex items-center gap-[0.3em] rounded px-[0.35em] py-[0.1em]',
-              'bg-over-art-backdrop/60 text-[0.8em] font-bold tabular-nums text-over-art-text',
-            ].join(' ')}
-          >
-            <Hand size="1em" aria-hidden />
-            {handCount}
-          </button>
-        )}
       </div>
 
 
-      {/* Below the life total: mana pool sits as the first item of
-         the zone column — same `justify-evenly` distribution as
-         library / graveyard / exile so it reads as one of the
-         stacked column items rather than a separate block. */}
-      <div className="flex-1 min-w-0 flex flex-col justify-evenly min-h-0">
-        {/* Mana pool — 3 × 2 grid of pips (WUB / RGC). Grid keeps
-          the block compact so the info column stays narrow. */}
+      <div className="flex min-h-0 min-w-0 flex-1 flex-col" style={INFO_STACK_STYLE}>
         <div
           role="group"
           aria-label={t('PlayerInfoPanel.manaPool')}
-          className="shrink-0 grid justify-items-center"
+          className="flex shrink-0 flex-wrap justify-center"
           style={MANA_GRID_STYLE}
           onKeyDown={(e) => {
             if (!isSelf || (e.key !== 'ArrowLeft' && e.key !== 'ArrowRight')) {
@@ -450,27 +427,10 @@ export default function PlayerInfoPanel() {
                 }
               />
             );
-            // 7 pips in a 3-col grid → the last one wraps to a new
-            // row alone in column 1. Span the full row and center
-            // it via flex so the odd-one-out sits under the middle
-            // column instead of hugging the left edge.
-            const isLastInPartialRow =
-            MANA_COLORS.length % MANA_GRID_COLUMNS !== 0 &&
-            i === MANA_COLORS.length - 1;
-            if (isLastInPartialRow) {
-              return (
-                <div
-                  key={m.symbol}
-                  style={{ gridColumn: `span ${MANA_GRID_COLUMNS}` }}
-                >
-                  {pip}
-                </div>
-              );
-            }
-            return <div key={m.symbol}>{pip}</div>;
+            return <div key={m.symbol} style={MANA_PIP_SLOT_STYLE}>{pip}</div>;
           })}
         </div>
-        {handPlacement !== 'tray' && <ZoneStack />}
+        <ZoneStack />
       </div>
     </div>
   );

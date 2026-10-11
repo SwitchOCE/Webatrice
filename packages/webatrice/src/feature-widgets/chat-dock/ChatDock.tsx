@@ -32,7 +32,7 @@ export default function ChatDock() {
       role="region"
       aria-label={t('ChatDock.region')}
       style={style}
-      className="pointer-events-none fixed z-20 flex items-end gap-2"
+      className="pointer-events-none fixed z-20 flex items-end justify-end gap-2"
     >
       {bars.length > 0 && (
         <div className="pointer-events-auto flex shrink items-end gap-1.5 overflow-x-auto" style={{ minWidth: CHAT_CHIP_WIDTH_PX }}>

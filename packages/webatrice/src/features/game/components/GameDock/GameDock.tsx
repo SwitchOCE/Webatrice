@@ -9,6 +9,7 @@ import { cx } from '@app/utils';
 
 import PlayerList from '../right-sidebar/PlayerList/PlayerList';
 import ChatLog from '../ChatLog/ChatLog';
+import CardPreviewPane from '../CardPreviewPane/CardPreviewPane';
 import GameInviteControls from '../GameInviteControls/GameInviteControls';
 import GameMenu from '../GameMenu/GameMenu';
 import { useGameId } from '../ui/GameIdContext';
@@ -232,7 +233,12 @@ export default function GameDock({ collapsed, tab, onCollapse, onSelectTab }: Ga
         collapsed ? 'items-center' : 'overflow-hidden',
       )}
     >
-      {collapsed ? rail : tablist}
+      {collapsed ? rail : (
+        <>
+          <CardPreviewPane />
+          {tablist}
+        </>
+      )}
 
       {panels}
 

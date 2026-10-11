@@ -17,9 +17,9 @@ describe('seatFit', () => {
     expect(infoFontPx(2)).toBe(14);
   });
 
-  it('budgets the info column as its em chrome plus three sideways piles', () => {
+  it('budgets the info column as its em chrome plus three card-high pile rows', () => {
     const pile = 72;
-    expect(infoColumnHeightPx(1) - infoColumnHeightPx(0.75)).toBeCloseTo(3 * pile * 0.25 + (14 - 10.5) * 14.2, 5);
+    expect(infoColumnHeightPx(1) - infoColumnHeightPx(0.75)).toBeCloseTo(3 * pile * 0.25 + (14 - 10.5) * 13.7, 5);
   });
 
   it('needs the taller of the play area and the info column, plus the seat border', () => {

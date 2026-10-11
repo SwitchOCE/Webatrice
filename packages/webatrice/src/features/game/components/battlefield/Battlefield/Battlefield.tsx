@@ -383,6 +383,7 @@ export default function Battlefield() {
                   data-card
                   data-zone="battlefield"
                   data-card-id={c.id}
+                  data-slot-col={c.slot.col}
                   data-selected={selected || undefined}
                   // Arrow interaction: the useGameArrowInteractions hook
                   // hit-tests via `data-card-owner` + `data-card-zone`
