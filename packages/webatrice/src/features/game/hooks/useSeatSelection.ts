@@ -33,6 +33,19 @@ export interface SeatSelectionApi {
   clearAllSelection: () => void;
 }
 
+function haveSameOrderedKeys(previous: ReadonlySet<string>, next: ReadonlySet<string>): boolean {
+  if (previous.size !== next.size) {
+    return false;
+  }
+  const previousKeys = previous.values();
+  for (const key of next) {
+    if (previousKeys.next().value !== key) {
+      return false;
+    }
+  }
+  return true;
+}
+
 export function useSeatSelection(playerId: number, cards: SeatSelectableCards): SeatSelectionApi {
   const game = useGameSelectionState();
   const [localKeys, setLocalKeys] = useState<ReadonlySet<string>>(EMPTY_SELECTION);
@@ -65,7 +78,7 @@ export function useSeatSelection(playerId: number, cards: SeatSelectableCards): 
         const byId = new Map(zoneCards.map((card) => [card.id, card] as const));
         const keys = new Set<string>();
         next.ids.forEach((id) => keys.add(keyOf(next.zone, byId.get(id) ?? { id })));
-        setSelectedCardKeys(keys);
+        setSelectedCardKeys((previous) => haveSameOrderedKeys(previous, keys) ? previous : keys);
         return;
       }
       const own = new Set<string>();

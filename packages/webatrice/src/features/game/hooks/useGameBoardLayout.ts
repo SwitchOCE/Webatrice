@@ -1,4 +1,6 @@
 import { useMemo } from 'react';
+import { lruMemoize } from '@reduxjs/toolkit';
+import { shallowEqual } from 'react-redux';
 
 import { GameEntry, games } from '@cockatrice/datatrice';
 import { PREFERENCE_DEFAULTS } from '@app/types';
@@ -46,28 +48,30 @@ export function useGameBoardLayout(
   rotation = 0,
   minPlayersForMultiColumn: number = PREFERENCE_DEFAULTS.minPlayersForMultiColumnLayout,
 ): GameBoardLayout {
+  const selectPlayerIds = useMemo(() => lruMemoize(
+    (entry: GameEntry | undefined) => entry ? games.seatedPlayersOf(entry).map((p) => p.properties.playerId) : [],
+    { resultEqualityCheck: shallowEqual },
+  ), []);
+  const players = selectPlayerIds(game);
+  const isSpectator = game?.spectator;
+  const localPlayerId = game?.localPlayerId;
+  const judge = game?.judge;
+  const omniscient = game?.info?.spectatorsOmniscient === true;
   return useMemo<GameBoardLayout>(() => {
-    if (!game) {
+    if (localPlayerId === undefined || isSpectator === undefined || judge === undefined) {
       return EMPTY_LAYOUT;
     }
-
-    // Active players (non-spectator, non-conceded) in server seat/join order,
-    // sourced from the store's seatOrder via seatedPlayersOf — only the id is
-    // needed to seat cells (names are a presentation concern owned by consumers).
-    const players = games.seatedPlayersOf(game).map((p) => p.properties.playerId);
 
     const n = players.length;
     if (n === 0) {
       return EMPTY_LAYOUT;
     }
 
-    const isSpectator = game.spectator;
-    const localPlayerId = game.localPlayerId;
+    const access = { spectator: isSpectator, localPlayerId, judge };
 
     // A seated player always sees their own hand; other hands are revealed only when
     // the server marks the game omniscient (spectators_see_everything). More than one
     // visible hand renders inline per board, otherwise a single bottom bar.
-    const omniscient = game.info?.spectatorsOmniscient === true;
     const visibleHand = new Set<number>();
     for (const playerId of players) {
       if ((!isSpectator && playerId === localPlayerId) || omniscient) {
@@ -77,7 +81,7 @@ export function useGameBoardLayout(
     const handMode: 'bar' | 'inline' = visibleHand.size > 1 ? 'inline' : 'bar';
     const bottomHand =
       handMode === 'bar' && visibleHand.has(localPlayerId)
-        ? { playerId: localPlayerId, canAct: computeCanAct(game, localPlayerId) }
+        ? { playerId: localPlayerId, canAct: computeCanAct(access, localPlayerId) }
         : undefined;
 
     const columns = n >= minPlayersForMultiColumn ? 2 : 1;
@@ -109,7 +113,7 @@ export function useGameBoardLayout(
         playerId,
         isLocal: !isSpectator && playerId === localPlayerId,
         mirrored: row < rows - 1,
-        canAct: computeCanAct(game, playerId),
+        canAct: computeCanAct(access, playerId),
         showHand: handMode === 'inline' && visibleHand.has(playerId),
         row,
         col,
@@ -117,5 +121,5 @@ export function useGameBoardLayout(
     });
 
     return { cells, columns, rows, handMode, bottomHand };
-  }, [game, rotation, minPlayersForMultiColumn]);
+  }, [players, isSpectator, localPlayerId, judge, omniscient, rotation, minPlayersForMultiColumn]);
 }

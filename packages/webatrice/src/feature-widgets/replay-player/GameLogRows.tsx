@@ -1,4 +1,4 @@
-import type { ReactNode } from 'react';
+import { memo, type ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
 
 import { classifyLogTone, games, type GameMessage, type LogSegment, type LogTone, type PlayerEntry } from '@cockatrice/datatrice';
@@ -48,21 +48,92 @@ export interface GameLogRowsProps {
   renderSender?: (senderName: string) => ReactNode;
 }
 
-export function GameLogRows({ messages, players, stampGameTime, onCardHover, onCardBigPreview, renderSender }: GameLogRowsProps) {
+interface GameLogRowContentProps {
+  message: GameMessage;
+  senderName: string | undefined;
+  stampGameTime: boolean;
+  onCardHover?: (card: { name: string } | null) => void;
+  onCardBigPreview?: (card: { name: string }, open: boolean) => void;
+  renderSender?: (senderName: string) => ReactNode;
+}
+
+const GameLogRowContent = memo(function GameLogRowContent({
+  message: m,
+  senderName,
+  stampGameTime,
+  onCardHover,
+  onCardBigPreview,
+  renderSender,
+}: GameLogRowContentProps) {
   const { t } = useTranslation();
+  const name = senderName || t('GameLog.player.number', { id: m.playerId });
+  const stamp = stampGameTime && m.gameSeconds !== undefined
+    ? `[${formatElapsedSeconds(m.gameSeconds)}]`
+    : m.timeReceived
+      ? `[${formatWallClock(m.timeReceived)}]`
+      : null;
+
+  if (m.kind === 'event') {
+    const formatted = m.descriptor ? formatLogDescriptor(m.descriptor, t) : { text: m.message, segments: m.segments };
+    return (
+      <>
+        {stamp && <span className="text-text-muted font-normal not-italic tabular-nums mr-1.5">{stamp}</span>}
+        {formatted.segments && formatted.segments.length > 0
+          ? formatted.segments.map((seg, si) => (
+            seg.kind === 'card' ? (
+              <span
+                key={si}
+                className={SEGMENT_CLASS.card}
+                onMouseEnter={() => onCardHover?.({ name: seg.text })}
+                onMouseLeave={() => onCardHover?.(null)}
+                onMouseDown={(e) => {
+                  if (e.button === 1) {
+                    e.preventDefault();
+                    onCardBigPreview?.({ name: seg.text }, true);
+                  }
+                }}
+                onMouseUp={(e) => {
+                  if (e.button === 1) {
+                    onCardBigPreview?.({ name: seg.text }, false);
+                  }
+                }}
+              >
+                {seg.text}
+              </span>
+            ) : (
+              <span key={si} className={SEGMENT_CLASS[seg.kind]}>{seg.text}</span>
+            )
+          ))
+          : formatted.text}
+      </>
+    );
+  }
+
+  return (
+    <>
+      {stamp && <span className="text-text-muted font-normal tabular-nums mr-1.5">{stamp}</span>}
+      <span className="font-semibold text-accent">
+        {senderName && renderSender ? renderSender(senderName) : name}:
+      </span>{' '}
+      <span>{renderGameLinks(m.message)}</span>
+    </>
+  );
+});
+
+export const GameLogRows = memo(function GameLogRows({
+  messages,
+  players,
+  stampGameTime,
+  onCardHover,
+  onCardBigPreview,
+  renderSender,
+}: GameLogRowsProps) {
   return (
     <>
       {messages.map((m, idx) => {
         const senderName = m.senderName ?? players?.[m.playerId]?.properties.userInfo?.name;
-        const name = senderName || t('GameLog.player.number', { id: m.playerId });
-        const stamp = stampGameTime && m.gameSeconds !== undefined
-          ? `[${formatElapsedSeconds(m.gameSeconds)}]`
-          : m.timeReceived
-            ? `[${formatWallClock(m.timeReceived)}]`
-            : null;
         const stripe = stripeClass(idx);
         if (m.kind === 'event') {
-          const formatted = m.descriptor ? formatLogDescriptor(m.descriptor, t) : { text: m.message, segments: m.segments };
           const tone = m.descriptor ? games.logTone(m.descriptor.kind) : classifyLogTone(m.message);
           return (
             <div
@@ -71,47 +142,30 @@ export function GameLogRows({ messages, players, stampGameTime, onCardHover, onC
               data-log-kind={m.descriptor?.kind}
               className={['px-3 py-0.5 leading-snug break-words', TONE_CLASS[tone], stripe].join(' ')}
             >
-              {stamp && <span className="text-text-muted font-normal not-italic tabular-nums mr-1.5">{stamp}</span>}
-              {formatted.segments && formatted.segments.length > 0
-                ? formatted.segments.map((seg, si) => (
-                  seg.kind === 'card' ? (
-                    <span
-                      key={si}
-                      className={SEGMENT_CLASS.card}
-                      onMouseEnter={() => onCardHover?.({ name: seg.text })}
-                      onMouseLeave={() => onCardHover?.(null)}
-                      onMouseDown={(e) => {
-                        if (e.button === 1) {
-                          e.preventDefault();
-                          onCardBigPreview?.({ name: seg.text }, true);
-                        }
-                      }}
-                      onMouseUp={(e) => {
-                        if (e.button === 1) {
-                          onCardBigPreview?.({ name: seg.text }, false);
-                        }
-                      }}
-                    >
-                      {seg.text}
-                    </span>
-                  ) : (
-                    <span key={si} className={SEGMENT_CLASS[seg.kind]}>{seg.text}</span>
-                  )
-                ))
-                : formatted.text}
+              <GameLogRowContent
+                message={m}
+                senderName={senderName}
+                stampGameTime={stampGameTime}
+                onCardHover={onCardHover}
+                onCardBigPreview={onCardBigPreview}
+                renderSender={renderSender}
+              />
             </div>
           );
         }
         return (
           <div key={logRowKey(m)} className={['px-3 py-0.5 text-text-primary leading-snug break-words', stripe].join(' ')}>
-            {stamp && <span className="text-text-muted font-normal tabular-nums mr-1.5">{stamp}</span>}
-            <span className="font-semibold text-accent">
-              {senderName && renderSender ? renderSender(senderName) : name}:
-            </span>{' '}
-            <span>{renderGameLinks(m.message)}</span>
+            <GameLogRowContent
+              message={m}
+              senderName={senderName}
+              stampGameTime={stampGameTime}
+              onCardHover={onCardHover}
+              onCardBigPreview={onCardBigPreview}
+              renderSender={renderSender}
+            />
           </div>
         );
       })}
     </>
   );
-}
+});

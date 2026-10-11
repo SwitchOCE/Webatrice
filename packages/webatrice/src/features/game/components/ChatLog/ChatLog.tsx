@@ -69,6 +69,17 @@ function ChatLogView({ onReveal, visible }: ChatLogProps) {
   const stampGameTime = usePreference('useGameTime');
   const readOnly = useGameReadOnly();
   const inputDisabled = gameId == null || !canChat || readOnly;
+  const handleCardBigPreview = useCallback((card: { name: string }, open: boolean) => {
+    if (open) {
+      openBigPreview(card);
+    } else {
+      closeBigPreview();
+    }
+  }, [closeBigPreview, openBigPreview]);
+  const renderSender = useCallback(
+    (senderName: string) => (!readOnly ? <PlayerLink name={senderName} /> : senderName),
+    [readOnly],
+  );
 
   // Cockatrice-parity focus-chat shortcut (Shift+Enter). Registered
   // GLOBAL so it fires regardless of route, but only actually mounted
@@ -137,8 +148,8 @@ function ChatLogView({ onReveal, visible }: ChatLogProps) {
           players={players}
           stampGameTime={stampGameTime}
           onCardHover={setHoveredCard}
-          onCardBigPreview={(card, open) => (open ? openBigPreview(card) : closeBigPreview())}
-          renderSender={(senderName) => (!readOnly ? <PlayerLink name={senderName} /> : senderName)}
+          onCardBigPreview={handleCardBigPreview}
+          renderSender={renderSender}
         />
       </div>
 

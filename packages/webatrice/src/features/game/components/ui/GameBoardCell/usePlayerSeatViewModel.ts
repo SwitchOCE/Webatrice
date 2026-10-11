@@ -1,8 +1,9 @@
 import { useMemo } from 'react';
+import { lruMemoize } from '@reduxjs/toolkit';
 import { useTranslation } from 'react-i18next';
 import type { TFunction } from 'i18next';
 
-import { games } from '@cockatrice/datatrice';
+import { games, type PlayerEntry } from '@cockatrice/datatrice';
 import { ZoneName, isBuiltinZone } from '@cockatrice/sockatrice';
 import type { ServerInfo_Card } from '@cockatrice/sockatrice/generated';
 import { parseCod } from '@app/services';
@@ -43,6 +44,25 @@ const EMPTY_BATTLEFIELD_CARDS: BattlefieldCardViewModel[] = [];
 const EMPTY_DECK: SeatDeckCard[] = [];
 
 type ZoneCards = { order: number[]; byId: Record<number, ServerInfo_Card> };
+type ForeignCard = { id: number; card: ServerInfo_Card; ownerPlayerId: number };
+
+function foreignCardsOf(playerId: number, allPlayers: Record<number, PlayerEntry> | undefined): ForeignCard[] {
+  const cards: ForeignCard[] = [];
+  for (const [ownerIdStr, otherPlayer] of Object.entries(allPlayers ?? {})) {
+    const ownerPlayerId = Number(ownerIdStr);
+    const table = otherPlayer.zones[ZoneName.TABLE];
+    if (ownerPlayerId === playerId || !table) {
+      continue;
+    }
+    for (const id of table.order) {
+      const card = table.byId[id];
+      if (card && card.attachCardId >= 0 && card.attachZone === ZoneName.TABLE && card.attachPlayerId === playerId) {
+        cards.push({ id, card, ownerPlayerId });
+      }
+    }
+  }
+  return cards;
+}
 
 export function zoneToSeatCards(zone: ZoneCards | undefined): PlayerCardViewModel[] {
   if (!zone) {
@@ -109,7 +129,7 @@ export function projectBattlefieldCard(
 export function projectBattlefield(
   playerId: number,
   tableZone: ZoneCards | undefined,
-  allPlayers: Record<number, { zones: Record<string, ZoneCards | undefined> } | undefined> | undefined,
+  foreignCards: readonly ForeignCard[],
 ): BattlefieldCardViewModel[] {
   const own = tableZone
     ? tableZone.order.reduce<BattlefieldCardViewModel[]>((acc, id) => {
@@ -128,20 +148,7 @@ export function projectBattlefield(
     }, [])
     : EMPTY_BATTLEFIELD_CARDS;
 
-  const foreignChildren: BattlefieldCardViewModel[] = [];
-  for (const [ownerIdStr, otherPlayer] of Object.entries(allPlayers ?? {})) {
-    const otherOwnerId = Number(ownerIdStr);
-    const otherTable = otherPlayer?.zones[ZoneName.TABLE];
-    if (otherOwnerId === playerId || !otherTable) {
-      continue;
-    }
-    for (const cid of otherTable.order) {
-      const c = otherTable.byId[cid];
-      if (c && c.attachCardId >= 0 && c.attachZone === ZoneName.TABLE && c.attachPlayerId === playerId) {
-        foreignChildren.push(projectBattlefieldCard(cid, c, otherOwnerId));
-      }
-    }
-  }
+  const foreignChildren = foreignCards.map(({ id, card, ownerPlayerId }) => projectBattlefieldCard(id, card, ownerPlayerId));
   return foreignChildren.length === 0 ? own : own.concat(foreignChildren);
 }
 
@@ -204,23 +211,28 @@ export function usePlayerSeatViewModel(cell: BoardCell, totalPlayers: number): P
   const activePlayerId = useAppSelector((state) =>
     gameId != null ? games.Selectors.getActivePlayerId(state, gameId) : undefined,
   );
-  const seatedPlayers = useAppSelector((state) =>
-    gameId != null ? games.Selectors.getSeatedPlayers(state, gameId) : undefined,
-  );
-  const allPlayers = useAppSelector((state) =>
-    gameId != null ? games.Selectors.getPlayers(state, gameId) : undefined,
-  );
-
-  const revealTargets = useMemo(
-    () =>
+  const selectRevealTargets = useMemo(() => lruMemoize(
+    (seatedPlayers: PlayerEntry[] | undefined) =>
       (seatedPlayers ?? [])
         .filter((p) => p.properties.playerId !== playerId)
         .map((p) => ({
           playerId: p.properties.playerId,
           name: p.properties.userInfo?.name ?? t('GameLog.player.number', { id: p.properties.playerId }),
         })),
-    [seatedPlayers, playerId, t],
-  );
+    { resultEqualityCheck: (a, b) => a.length === b.length
+      && a.every((target, i) => target.playerId === b[i].playerId && target.name === b[i].name) },
+  ), [playerId, t]);
+  const revealTargets = useAppSelector((state) => selectRevealTargets(
+    gameId != null ? games.Selectors.getSeatedPlayers(state, gameId) : undefined,
+  ));
+  const selectForeignCards = useMemo(() => lruMemoize(
+    (players: Record<number, PlayerEntry> | undefined) => foreignCardsOf(playerId, players),
+    { resultEqualityCheck: (a, b) => a.length === b.length
+      && a.every((entry, i) => entry.id === b[i].id && entry.card === b[i].card && entry.ownerPlayerId === b[i].ownerPlayerId) },
+  ), [playerId]);
+  const foreignCards = useAppSelector((state) => selectForeignCards(
+    gameId != null ? games.Selectors.getPlayers(state, gameId) : undefined,
+  ));
 
   const realName = player?.properties.userInfo?.name;
   const avatarBmp = player?.properties.userInfo?.avatarBmp;
@@ -302,8 +314,8 @@ export function usePlayerSeatViewModel(cell: BoardCell, totalPlayers: number): P
     [sideboardCount, sideboardRevealed],
   );
   const battlefield = useMemo(
-    () => ({ cards: projectBattlefield(playerId, tableZone, allPlayers) }),
-    [playerId, tableZone, allPlayers],
+    () => ({ cards: projectBattlefield(playerId, tableZone, foreignCards) }),
+    [playerId, tableZone, foreignCards],
   );
 
   const allZones = player?.zones;
