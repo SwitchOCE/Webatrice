@@ -519,6 +519,16 @@ describe('SessionResponseImpl forwards', () => {
     const { impl, dispatch } = setup();
     impl.createServerDeckDir('/parent', 'newdir');
     expect(dispatch).toHaveBeenCalledWith(ServerActions.deckNewDir({ path: '/parent', dirName: 'newdir' }));
+    impl.createServerDeckDir('/parent', 'newdir', 'req-1');
+    expect(dispatch).toHaveBeenCalledWith(ServerActions.deckNewDir({ path: '/parent', dirName: 'newdir', requestId: 'req-1' }));
+  });
+
+  it('deckNewDirFailed dispatches the failure with its request identity', () => {
+    const { impl, dispatch } = setup();
+    impl.deckNewDirFailed('/parent', 'newdir', 18, undefined, 'req-2');
+    expect(dispatch).toHaveBeenCalledWith(ServerActions.deckNewDirFailed({
+      path: '/parent', dirName: 'newdir', responseCode: 18, failure: undefined, requestId: 'req-2',
+    }));
   });
 
   it('deleteServerDeckDir maps method name to deckDelDir action', () => {

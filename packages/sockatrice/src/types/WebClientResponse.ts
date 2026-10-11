@@ -128,7 +128,7 @@ export interface ISessionResponse {
   updateServerDeck?(deckId: number, treeItem: ServerInfo_DeckStorage_TreeItem | undefined): void;
   updateServerDeckFailed?(deckId: number, responseCode: number, failure?: CommandFailure): void;
   downloadServerDeck(deckId: number, response: Response_DeckDownload, requestId?: RequestId): void;
-  createServerDeckDir(path: string, dirName: string): void;
+  createServerDeckDir(path: string, dirName: string, requestId?: RequestId): void;
   deleteServerDeckDir(path: string): void;
   replayList(matchList: ServerInfo_ReplayMatch[], requestId?: RequestId): void;
   replayAdded(matchInfo: ServerInfo_ReplayMatch): void;
@@ -154,6 +154,7 @@ deckShareCreated?(response: Response_DeckShareCreate, requestId?: RequestId): vo
   deckListFailed?(responseCode: number, failure?: CommandFailure): void;
   deckDownloadFailed?(deckId: number, responseCode: number, failure?: CommandFailure, requestId?: RequestId): void;
   deckUploadFailed?(path: string, responseCode: number, failure?: CommandFailure, requestId?: RequestId): void;
+  deckNewDirFailed?(path: string, dirName: string, responseCode: number, failure?: CommandFailure, requestId?: RequestId): void;
   replayListFailed?(responseCode: number, failure?: CommandFailure, requestId?: RequestId): void;
 }
 

@@ -270,8 +270,8 @@ export class SessionResponseImpl implements WebsocketTypes.ISessionResponse {
     this.store.dispatch(ServerActions.deckUpdateFailed({ deckId, responseCode, failure }));
   }
 
-  createServerDeckDir(path: string, dirName: string): void {
-    this.store.dispatch(ServerActions.deckNewDir({ path, dirName }));
+  createServerDeckDir(path: string, dirName: string, requestId?: string): void {
+    this.store.dispatch(ServerActions.deckNewDir({ path, dirName, ...(requestId ? { requestId } : {}) }));
   }
 
   deleteServerDeckDir(path: string): void {
@@ -314,6 +314,12 @@ export class SessionResponseImpl implements WebsocketTypes.ISessionResponse {
 
   deckUploadFailed(path: string, responseCode: number, failure?: WebsocketTypes.CommandFailure, requestId?: string): void {
     this.store.dispatch(ServerActions.deckUploadFailed({ path, responseCode, failure, requestId }));
+  }
+
+  deckNewDirFailed(
+    path: string, dirName: string, responseCode: number, failure?: WebsocketTypes.CommandFailure, requestId?: string,
+  ): void {
+    this.store.dispatch(ServerActions.deckNewDirFailed({ path, dirName, responseCode, failure, requestId }));
   }
 
   replayListFailed(responseCode: number, failure?: WebsocketTypes.CommandFailure, requestId?: string): void {

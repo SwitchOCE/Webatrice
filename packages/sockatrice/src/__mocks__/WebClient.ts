@@ -96,6 +96,7 @@ const session = {
   deckListFailed: vi.fn(),
   deckDownloadFailed: vi.fn(),
   deckUploadFailed: vi.fn(),
+  deckNewDirFailed: vi.fn(),
   replayListFailed: vi.fn(),
 };
 

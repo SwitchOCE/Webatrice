@@ -42,6 +42,7 @@ const SignalActions = {
   deckListFailed: createAction<CommandFailedPayload>('server/deckListFailed'),
   deckDownloadFailed: createAction<CommandFailedPayload & { deckId: number }>('server/deckDownloadFailed'),
   deckUploadFailed: createAction<CommandFailedPayload & { path: string; requestId?: string }>('server/deckUploadFailed'),
+  deckNewDirFailed: createAction<CommandFailedPayload & { path: string; dirName: string }>('server/deckNewDirFailed'),
   replayListFailed: createAction<CommandFailedPayload>('server/replayListFailed'),
   deckUpdateFailed: createAction<CommandFailedPayload & { deckId: number }>('server/deckUpdateFailed'),
   deckShareCreated: createAction<{ share: Response_DeckShareCreate; requestId?: string }>('server/deckShareCreated'),
