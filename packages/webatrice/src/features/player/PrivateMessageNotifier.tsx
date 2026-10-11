@@ -49,7 +49,7 @@ export default function PrivateMessageNotifier() {
       toast: !shown,
       read,
     });
-  });
+  }, (action) => action.type === server.Types.USER_MESSAGE);
 
   return null;
 }

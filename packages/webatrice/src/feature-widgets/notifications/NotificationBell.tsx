@@ -11,7 +11,7 @@ const MAX_BADGE = 99;
 export default function NotificationBell() {
   const { t } = useTranslation();
   const { open, setOpen } = useNotificationDrawer();
-  const { notifications } = useUnreadCounts();
+  const notifications = useUnreadCounts((counts) => counts.notifications);
   const label = notifications > 0
     ? t('NotificationCentre.bell.labelUnread', { count: notifications })
     : t('NotificationCentre.bell.label');

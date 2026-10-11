@@ -26,6 +26,27 @@ const input = (overrides: Partial<RoomPeopleInput> = {}): RoomPeopleInput => ({
 });
 
 describe('buildRoomPeople', () => {
+  afterEach(() => vi.restoreAllMocks());
+
+  it.each(['en', 'sv'])('reuses one collator across sections with stable base-sensitivity ties (%s)', (locale) => {
+    const names = ['z', 'ä', 'A', 'a', 'Å', 'b'];
+    const users = names.map((name) => makeUser({ name }));
+    const expected = [...names].sort((a, b) => a.localeCompare(b, locale, { sensitivity: 'base' }));
+    const collators = vi.spyOn(Intl, 'Collator');
+    const comparisons = vi.spyOn(String.prototype, 'localeCompare');
+    const people = buildRoomPeople(input({
+      locale, roomUsers: byName(...users), buddyList: byName(...users), onlineUsers: {},
+    }));
+    expect(people.everyone.map((user) => user.name)).toEqual(expected);
+    expect(people.buddies.map((entry) => entry.user.name)).toEqual(expected);
+    expect(collators).toHaveBeenCalledExactlyOnceWith(locale, { sensitivity: 'base' });
+    expect(comparisons).not.toHaveBeenCalled();
+    collators.mockClear();
+    const offline = buildRoomPeople(input({ locale, roomUsers: {}, buddyList: byName(...users), onlineUsers: {} }));
+    expect(offline.offlineBuddies.map((user) => user.name)).toEqual(expected);
+    expect(collators).toHaveBeenCalledTimes(1);
+  });
+
   it('lists online buddies in this room first, then online buddies elsewhere, and offline buddies apart', () => {
     const people = buildRoomPeople(input());
 

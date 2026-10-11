@@ -58,7 +58,7 @@ export function usePeople(): People {
   const locale = useAppSelector((state) => state.server.locale);
   const joinedGames = useAppSelector((state) => state.games.games);
   const overrideRestrictions = useCanOverrideGameRestrictions();
-  const unread = useUnreadCounts().chats;
+  const unread = useUnreadCounts((counts) => counts.chats);
   const joinFlow = useJoinFriendGame();
   const [query, setQuery] = useState('');
   const [open, setOpen] = useState<Record<PeopleSection, boolean>>({ offline: false, others: false, ignored: false });

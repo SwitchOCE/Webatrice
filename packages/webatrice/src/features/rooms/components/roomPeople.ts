@@ -55,7 +55,8 @@ export function hostedGames(games: Readonly<Record<number, Game>>): Map<string, 
 export function buildRoomPeople({ roomUsers, buddyList, onlineUsers, games, query = '', locale }: RoomPeopleInput): RoomPeople {
   const needle = query.trim().toLowerCase();
   const matches = (user: ServerInfo_User) => !needle || user.name.toLowerCase().includes(needle);
-  const byName = (a: ServerInfo_User, b: ServerInfo_User) => a.name.localeCompare(b.name, locale, { sensitivity: 'base' });
+  const collator = new Intl.Collator(locale, { sensitivity: 'base' });
+  const byName = (a: ServerInfo_User, b: ServerInfo_User) => collator.compare(a.name, b.name);
   const hosts = hostedGames(games);
   const members = Object.values(roomUsers);
 
