@@ -41,6 +41,13 @@ test('two clients create+join, load decks, draw, play, end turn', async ({ newCo
     joinerGame.deckSelect.waitForOpen(),
   ]);
 
+  const info = await joinerGame.deckSelect.openLobbyGameInfo();
+  await expect(info.getByRole('heading', { name: gameDescription })).toBeVisible();
+  await expect(info.getByText(/^2 of 2 taken$/)).toBeVisible();
+  await expect(info.getByText(/^registered players$/i)).toBeVisible();
+  await info.getByRole('button', { name: /^close$/i }).last().click();
+  await expect(info).toBeHidden();
+
   await Promise.all([
     (async () => {
       await hostGame.deckSelect.loadDeckFile(DECK_PATH);

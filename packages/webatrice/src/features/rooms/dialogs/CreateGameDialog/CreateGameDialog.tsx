@@ -1,7 +1,7 @@
 import { useEffect, useId, useMemo, useRef, useState, type ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
 import type { TFunction } from 'i18next';
-import { Check, ChevronDown, ChevronRight, Eye, Heart, Lock, Swords, Users, UsersRound } from 'lucide-react';
+import { Check, ChevronDown, ChevronRight, Crown, Eye, Heart, Lock, Swords, UsersRound } from 'lucide-react';
 
 import { server, type GametypeMap } from '@cockatrice/datatrice';
 import type { CreateGameParams } from '@cockatrice/sockatrice/generated';
@@ -15,7 +15,6 @@ import {
   MAX_PLAYERS_RANGE,
   STARTING_LIFE_RANGE,
   advancedSettingCount,
-  findCommanderGameType,
   isPresetAvailable,
   type CreateGamePreset,
   type CreateGameSummary,
@@ -37,8 +36,8 @@ const FOCUS_RING = 'focus-visible:outline focus-visible:outline-2 focus-visible:
 const PRESET_ICONS: Record<PresetId, ReactNode> = {
   commanderPod: <UsersRound size={18} aria-hidden />,
   oneVsOne: <Swords size={18} aria-hidden />,
-  casualOpen: <Users size={18} aria-hidden />,
   friendsOnly: <Heart size={18} aria-hidden />,
+  duelCommander: <Crown size={18} aria-hidden />,
 };
 
 function presetName(t: TFunction, id: PresetId): string {
@@ -47,28 +46,10 @@ function presetName(t: TFunction, id: PresetId): string {
       return t('CreateGameDialog.preset.commanderPod.name');
     case 'oneVsOne':
       return t('CreateGameDialog.preset.oneVsOne.name');
-    case 'casualOpen':
-      return t('CreateGameDialog.preset.casualOpen.name');
     case 'friendsOnly':
       return t('CreateGameDialog.preset.friendsOnly.name');
-  }
-}
-
-function presetLine(t: TFunction, id: PresetId, commanderFormat: string | null, available: boolean): string {
-  switch (id) {
-    case 'commanderPod':
-      return t('CreateGameDialog.preset.commanderPod.line', {
-        hasFormat: commanderFormat ? 'yes' : 'no',
-        format: commanderFormat ?? '',
-      });
-    case 'oneVsOne':
-      return t('CreateGameDialog.preset.oneVsOne.line');
-    case 'casualOpen':
-      return t('CreateGameDialog.preset.casualOpen.line');
-    case 'friendsOnly':
-      return available
-        ? t('CreateGameDialog.preset.friendsOnly.line')
-        : t('CreateGameDialog.preset.friendsOnly.needsAccount');
+    case 'duelCommander':
+      return t('CreateGameDialog.preset.duelCommander.name');
   }
 }
 
@@ -105,7 +86,7 @@ function summaryText(t: TFunction, summary: CreateGameSummary): string {
 function PresetCard({
   preset,
   name,
-  line,
+  note,
   group,
   checked,
   customised,
@@ -114,7 +95,7 @@ function PresetCard({
 }: {
   preset: CreateGamePreset;
   name: string;
-  line: string;
+  note: string | null;
   group: string;
   checked: boolean;
   customised: boolean;
@@ -142,7 +123,7 @@ function PresetCard({
         onChange={() => onPick(preset)}
         onClick={() => onPick(preset)}
         aria-labelledby={`${id}-name`}
-        aria-describedby={customised ? `${id}-line ${id}-customised` : `${id}-line`}
+        aria-describedby={[note && `${id}-note`, customised && `${id}-customised`].filter(Boolean).join(' ') || undefined}
       />
       <span className={cx('flex items-center gap-2', checked ? 'text-accent' : 'text-text-secondary')}>
         {PRESET_ICONS[preset.id]}
@@ -154,7 +135,7 @@ function PresetCard({
         {checked && <Check size={14} className={customised ? undefined : 'ml-auto'} aria-hidden />}
       </span>
       <span id={`${id}-name`} className="text-[13.5px] font-semibold text-text-primary">{name}</span>
-      <span id={`${id}-line`} className="text-[12px] leading-snug text-text-muted">{line}</span>
+      {note && <span id={`${id}-note`} className="text-[12px] leading-snug text-text-muted">{note}</span>}
     </label>
   );
 }
@@ -166,7 +147,8 @@ function CreateGameDialog({ isOpen, roomName, gametypeMap, onCancel, onSubmit }:
   const advancedId = useId();
   const isRegistered = useAppSelector(server.Selectors.getIsUserRegistered);
   const isJudge = useAppSelector(server.Selectors.getIsUserJudge);
-  const [advancedOpen, setAdvancedOpen] = useState(false);
+  const [advancedOpen, setAdvancedOpen] = useState(true);
+  const revealAdvanced = useRef(false);
   const advancedRef = useRef<HTMLDivElement>(null);
   const maxPlayersRef = useRef<HTMLInputElement>(null);
   const lifeRef = useRef<HTMLInputElement>(null);
@@ -188,10 +170,17 @@ function CreateGameDialog({ isOpen, roomName, gametypeMap, onCancel, onSubmit }:
     () => Object.entries(gametypeMap).map(([id, name]) => ({ id: Number(id), name })),
     [gametypeMap],
   );
-  const commanderFormat = useMemo(() => {
-    const id = findCommanderGameType(gametypeMap);
-    return id != null ? gametypeMap[id] : null;
-  }, [gametypeMap]);
+
+  useEffect(() => {
+    if (isOpen) {
+      setAdvancedOpen(true);
+    }
+  }, [isOpen]);
+
+  const toggleAdvanced = () => {
+    revealAdvanced.current = !advancedOpen;
+    setAdvancedOpen(!advancedOpen);
+  };
 
   const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -213,7 +202,8 @@ function CreateGameDialog({ isOpen, roomName, gametypeMap, onCancel, onSubmit }:
   }, [focusField, advancedOpen]);
 
   useEffect(() => {
-    if (advancedOpen) {
+    if (advancedOpen && revealAdvanced.current) {
+      revealAdvanced.current = false;
       advancedRef.current?.scrollIntoView?.({ block: 'nearest' });
     }
   }, [advancedOpen]);
@@ -252,7 +242,7 @@ function CreateGameDialog({ isOpen, roomName, gametypeMap, onCancel, onSubmit }:
                   key={preset.id}
                   preset={preset}
                   name={presetName(t, preset.id)}
-                  line={presetLine(t, preset.id, commanderFormat, available)}
+                  note={available ? null : t('CreateGameDialog.preset.needsAccount')}
                   group={presetGroup}
                   checked={pickedPreset === preset.id}
                   customised={pickedPreset === preset.id && customised}
@@ -320,14 +310,13 @@ function CreateGameDialog({ isOpen, roomName, gametypeMap, onCancel, onSubmit }:
             type="button"
             aria-expanded={advancedOpen}
             aria-controls={advancedId}
-            onClick={() => setAdvancedOpen((open) => !open)}
+            onClick={toggleAdvanced}
             className={cx('flex w-full flex-wrap items-center gap-x-2 rounded-ui px-3.5 py-2.5 text-left', FOCUS_RING)}
           >
             {advancedOpen
               ? <ChevronDown size={16} aria-hidden className="text-text-muted" />
               : <ChevronRight size={16} aria-hidden className="text-text-muted" />}
             <span className="text-[13.5px] font-semibold text-text-primary">{t('CreateGameDialog.advanced.title')}</span>
-            <span className="text-[12px] text-text-muted">{t('CreateGameDialog.advanced.hint')}</span>
             <span className="ml-auto text-[12px] text-accent">
               {advancedOpen
                 ? t('CreateGameDialog.advanced.hide')

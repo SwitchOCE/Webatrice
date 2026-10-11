@@ -4,22 +4,18 @@
     "startFrom": "Start from",
     "preset": {
       "commanderPod": {
-        "name": "Commander pod",
-        "line": "{hasFormat, select, yes {4 seats · 40 life · {format}} other {4 seats · 40 life · this room has no Commander format}}"
+        "name": "Commander pod"
       },
       "oneVsOne": {
-        "name": "1v1, best of 3",
-        "line": "2 seats · 20 life · best of 3 is agreed in chat; you sideboard between games"
-      },
-      "casualOpen": {
-        "name": "Casual, open to all",
-        "line": "4 seats · guests welcome · watchers can chat"
+        "name": "Competitive 1v1"
       },
       "friendsOnly": {
-        "name": "Friends only",
-        "line": "Buddies only · no watchers",
-        "needsAccount": "Needs a registered account"
+        "name": "Friends only"
       },
+      "duelCommander": {
+        "name": "Duel Commander"
+      },
+      "needsAccount": "Needs a registered account",
       "customised": "Customised"
     },
     "label": {
@@ -54,7 +50,6 @@
     },
     "advanced": {
       "title": "Advanced",
-      "hint": "seats, life, who can join, spectators, hosting",
       "show": "{count, plural, one {Show # setting} other {Show # settings}}",
       "hide": "Hide"
     },

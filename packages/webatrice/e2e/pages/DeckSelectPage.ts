@@ -46,6 +46,13 @@ export class DeckSelectPage {
     return this.page.getByTestId('lobby-deck-view');
   }
 
+  async openLobbyGameInfo(): Promise<Locator> {
+    await this.lobby.getByRole('button', { name: /^game info$/i }).click();
+    const dialog = this.page.getByRole('dialog').filter({ hasText: /who can join/i });
+    await expect(dialog).toBeVisible();
+    return dialog;
+  }
+
   async waitForOpen(): Promise<void> {
     await expect(this.lobby.or(this.dialog)).toBeVisible({ timeout: 30_000 });
   }

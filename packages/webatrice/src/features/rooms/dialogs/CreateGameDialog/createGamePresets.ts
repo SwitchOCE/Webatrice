@@ -22,14 +22,14 @@ export interface CreateGameForm {
   gameTypeId: number | null;
 }
 
-export type PresetId = 'commanderPod' | 'oneVsOne' | 'casualOpen' | 'friendsOnly';
+export type PresetId = 'commanderPod' | 'oneVsOne' | 'friendsOnly' | 'duelCommander';
 
 type PresetFields = Partial<Omit<CreateGameForm, 'description' | 'password' | 'gameTypeId' | 'joinAsJudge'>>;
 
 export interface CreateGamePreset {
   id: PresetId;
   fields: PresetFields;
-  format: 'commander' | 'any' | 'keep';
+  format: 'commander' | 'other' | 'any' | 'keep';
   needsRegistration: boolean;
 }
 
@@ -56,23 +56,16 @@ export const CREATE_GAME_PRESETS: readonly CreateGamePreset[] = [
     needsRegistration: false,
   },
   {
-    id: 'casualOpen',
-    fields: {
-      maxPlayers: 4,
-      onlyRegistered: false,
-      onlyBuddies: false,
-      spectatorsAllowed: true,
-      spectatorsCanTalk: true,
-      shareDecklistsOnLoad: false,
-    },
-    format: 'any',
-    needsRegistration: false,
-  },
-  {
     id: 'friendsOnly',
     fields: { onlyBuddies: true, spectatorsAllowed: false, spectatorsCanTalk: false },
     format: 'keep',
     needsRegistration: true,
+  },
+  {
+    id: 'duelCommander',
+    fields: { ...OPEN_TABLE, maxPlayers: 2, startingLifeTotal: 30 },
+    format: 'other',
+    needsRegistration: false,
   },
 ];
 
@@ -98,6 +91,7 @@ export function defaultCreateGameForm(isRegistered: boolean): CreateGameForm {
 }
 
 const COMMANDER_NAMES = new Set(['commander', 'edh']);
+const OTHER_NAME = 'other';
 
 export function findCommanderGameType(gametypeMap: Record<number, string>): number | null {
   const entries = Object.entries(gametypeMap).map(([id, name]) => ({ id: Number(id), name: name.trim().toLowerCase() }));
@@ -107,6 +101,11 @@ export function findCommanderGameType(gametypeMap: Record<number, string>): numb
   }
   const word = entries.find(({ name }) => name.split(/[^a-z]+/).some((part) => COMMANDER_NAMES.has(part)));
   return word ? word.id : null;
+}
+
+export function findOtherGameType(gametypeMap: Record<number, string>): number | null {
+  const match = Object.entries(gametypeMap).find(([, name]) => name.trim().toLowerCase() === OTHER_NAME);
+  return match ? Number(match[0]) : null;
 }
 
 export function findGameTypeByName(gametypeMap: Record<number, string>, name: string | null): number | null {
@@ -140,6 +139,9 @@ type PresetContext = { gametypeMap: Record<number, string>; isRegistered: boolea
 function presetFormat(preset: CreateGamePreset, gametypeMap: Record<number, string>): number | null | undefined {
   if (preset.format === 'commander') {
     return findCommanderGameType(gametypeMap);
+  }
+  if (preset.format === 'other') {
+    return findOtherGameType(gametypeMap);
   }
   return preset.format === 'any' ? null : undefined;
 }

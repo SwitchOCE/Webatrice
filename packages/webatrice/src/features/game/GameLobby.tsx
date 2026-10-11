@@ -1,4 +1,4 @@
-import { useMemo } from 'react';
+import { useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import {
   CheckCircle2,
@@ -9,12 +9,13 @@ import {
   FastForward,
   LogOut,
   Eye,
+  Info,
   Lock,
   Unlock,
   Undo2,
 } from 'lucide-react';
 
-import { AuthGuard } from '@app/components';
+import { AuthGuard, Button } from '@app/components';
 import { ConfirmDialog } from '@app/dialogs';
 import { Layout } from '@app/feature-wrappers/layout';
 import { rooms } from '@cockatrice/datatrice';
@@ -34,6 +35,9 @@ import { GameIdProvider } from './components/ui/GameIdContext';
 import GameInviteControls from './components/GameInviteControls/GameInviteControls';
 import LobbyDeckView from './components/lobby/LobbyDeckView';
 import { useLobbyDeckView } from './components/lobby/useLobbyDeckView';
+import { lobbyGameFacts } from './components/lobby/lobbyGameInfo';
+import LobbyGameInfoDialog from './dialogs/LobbyGameInfoDialog/LobbyGameInfoDialog';
+import { playerName } from './utils/playerName';
 
 export default function GameLobby({ gameId }: { gameId: number }) {
   const { t } = useTranslation();
@@ -72,6 +76,7 @@ export default function GameLobby({ gameId }: { gameId: number }) {
     forceStartConfirmOpen, setForceStartConfirmOpen, confirmForceStart, kickPlayer,
   } = useLobbyDeckSelect(gameId);
   const deckView = useLobbyDeckView(gameId);
+  const [infoOpen, setInfoOpen] = useState(false);
 
   const myBracket = myPickedDeckId != null ? bracketByDeckId.get(myPickedDeckId) : undefined;
   const myDeckName =
@@ -88,9 +93,14 @@ export default function GameLobby({ gameId }: { gameId: number }) {
       );
   }, [game]);
 
+  const facts = useMemo(
+    () => (game ? lobbyGameFacts(game.info, { gametypeMap: room?.gametypeMap, seated: seatedPlayers.length }) : null),
+    [game, room?.gametypeMap, seatedPlayers.length],
+  );
+
   // Reconnect / stale-state guard. The lobby is only meaningful for
   // pre-started games where we have a local player row on the wire.
-  if (!game) {
+  if (!game || !facts) {
     return (
       <Layout>
         <AuthGuard />
@@ -106,6 +116,8 @@ export default function GameLobby({ gameId }: { gameId: number }) {
   const totalSeats = game.info.maxPlayers || seatedPlayers.length;
   const emptySeats = Math.max(0, totalSeats - seatedPlayers.length);
   const iAmSeated = !!localPlayer && !isSpectator && !isJudge;
+  const host = game.players[game.hostId];
+  const title = game.info.description || t('GameLobby.gameNumber', { id: gameId });
 
   return (
     <Layout>
@@ -116,13 +128,16 @@ export default function GameLobby({ gameId }: { gameId: number }) {
             <div className="max-w-xl mx-auto py-10 px-6 flex flex-col gap-8">
               {/* Header */}
               <div className="text-center">
-                <h1 className="font-modern text-2xl font-semibold text-text-primary">
-                  {game.info.description || t('GameLobby.gameNumber', { id: gameId })}
-                </h1>
+                <h1 className="font-modern text-2xl font-semibold text-text-primary">{title}</h1>
                 {roomFormatLabel && (
                   <p className="text-sm text-text-muted mt-1">{roomFormatLabel}</p>
                 )}
-                <GameInviteControls gameId={gameId} className="justify-center mt-3" />
+                <div className="mt-3 flex flex-wrap items-center justify-center gap-1.5">
+                  <Button size="sm" icon={<Info size={13} aria-hidden />} onClick={() => setInfoOpen(true)}>
+                    {t('LobbyGameInfoDialog.open')}
+                  </Button>
+                  <GameInviteControls gameId={gameId} />
+                </div>
               </div>
 
               {/* Players */}
@@ -376,6 +391,13 @@ export default function GameLobby({ gameId }: { gameId: number }) {
             <ChatLog />
           </aside>
         </div>
+        <LobbyGameInfoDialog
+          isOpen={infoOpen}
+          title={title}
+          hostName={host ? playerName(host, t) : t('GameLog.player.number', { id: game.hostId })}
+          facts={facts}
+          onClose={() => setInfoOpen(false)}
+        />
         <ConfirmDialog
           isOpen={forceStartConfirmOpen}
           title={t('GameLobby.forceStart.title')}
