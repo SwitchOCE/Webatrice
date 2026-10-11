@@ -12,6 +12,13 @@
       "zoneBackgrounds": "Zone backgrounds",
       "signIn": "Sign-in screen"
     },
+    "themeName": {
+      "label": "Current theme",
+      "description": "Colours, surfaces and accent. Each theme has a light and a dark palette; the palette setting below picks which one you see.",
+      "midnight": "Midnight",
+      "graphite": "Graphite",
+      "carbon": "Carbon"
+    },
     "themeMode": {
       "label": "Active theme palette",
       "description": "System follows your operating system's light or dark setting as it changes.",
