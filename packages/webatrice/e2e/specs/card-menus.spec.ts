@@ -65,7 +65,7 @@ test('"View related cards" shows the related card in the card-info pane', async 
 
   await game.chooseCardMenuPath(game.cardsOnBoard().first(), t('CardMenu.viewRelated'), 'Human');
 
-  await expect(game.tray.locator('img[src*="00000000-0000-4000-8000-0000000e2e03"]').first())
+  await expect(page.getByTestId('card-preview-pane').locator('img[src*="00000000-0000-4000-8000-0000000e2e03"]').first())
     .toBeVisible({ timeout: 15_000 });
 
   await game.leaveGame();
