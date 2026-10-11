@@ -4,9 +4,9 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { useTranslation } from 'react-i18next';
 import { Lock, LockOpen, MessageSquareText, Power, RefreshCw, ShieldCheck, Film } from 'lucide-react';
 
-import { Button, ModGuard, TextInput } from '@app/components';
+import { Button, TextInput } from '@app/components';
 import { AlertDialog } from '@app/dialogs';
-import { sectionLabelClass, StaffConsole, StaffHeader } from '@app/feature-wrappers/staff';
+import { sectionLabelClass, StaffConsole, StaffHeader, StaffToolGuard } from '@app/feature-wrappers/staff';
 import { cx } from '@app/utils';
 
 import {
@@ -215,9 +215,9 @@ const AdministrationContent = () => {
 
 const Administration = () => (
   <StaffConsole>
-    <ModGuard>
+    <StaffToolGuard tool="administration">
       <AdministrationContent />
-    </ModGuard>
+    </StaffToolGuard>
   </StaffConsole>
 );
 

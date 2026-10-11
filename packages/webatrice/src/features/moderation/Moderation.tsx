@@ -2,7 +2,7 @@ import { useEffect, useState, type FormEvent, type ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
 import { ImageOff, KeyRound, RefreshCw, Search } from 'lucide-react';
 
-import { Button, IconButton, ModGuard, TextInput } from '@app/components';
+import { Button, IconButton, TextInput } from '@app/components';
 import { AlertDialog, ConfirmDialog } from '@app/dialogs';
 import {
   sectionLabelClass,
@@ -10,6 +10,7 @@ import {
   StaffDrawer,
   StaffHeader,
   StaffTable,
+  StaffToolGuard,
   UserSanctionButtons,
 } from '@app/feature-wrappers/staff';
 
@@ -222,9 +223,9 @@ const ModerationContent = () => {
 
 const Moderation = () => (
   <StaffConsole>
-    <ModGuard>
+    <StaffToolGuard tool="moderation">
       <ModerationContent />
-    </ModGuard>
+    </StaffToolGuard>
   </StaffConsole>
 );
 

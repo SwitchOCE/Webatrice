@@ -1,8 +1,9 @@
-import { server, type ServerCapability } from '@cockatrice/datatrice';
+
+import { versionSupports } from '@app/feature-wrappers/staff';
 
 import { MODERATION_PART_COMMANDS, moderationParts } from './moderationParts';
 
-const on = (version: string) => (capability: ServerCapability) => server.serverSupports(version, capability);
+const on = versionSupports;
 
 describe('moderationParts', () => {
   it('keeps lookup, warn, ban and the histories on a 3.0 server and drops the 3.1 investigation tools', () => {
@@ -19,6 +20,10 @@ describe('moderationParts', () => {
 
   it('offers every part on a 3.1 server', () => {
     expect(Object.values(moderationParts(on('3.1.0'))).every(Boolean)).toBe(true);
+  });
+
+  it('offers nothing when the server version is unknown', () => {
+    expect(Object.values(moderationParts(on(null))).some(Boolean)).toBe(false);
   });
 
   it('lists the commands each part sends', () => {

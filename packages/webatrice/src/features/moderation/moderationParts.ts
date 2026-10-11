@@ -1,7 +1,7 @@
 import { useMemo } from 'react';
 
 import { server } from '@cockatrice/datatrice';
-import { commandsSupported, type CapabilityCheck, type StaffCommand } from '@app/feature-wrappers/staff';
+import { commandsSupported, versionSupports, type CapabilityCheck, type StaffCommand } from '@app/feature-wrappers/staff';
 import { useAppSelector } from '@app/store';
 
 export type ModerationPart =
@@ -32,5 +32,5 @@ export function moderationParts(supports: CapabilityCheck): ModerationParts {
 
 export function useModerationParts(): ModerationParts {
   const version = useAppSelector(server.Selectors.getVersion);
-  return useMemo(() => moderationParts((capability) => server.serverSupports(version, capability)), [version]);
+  return useMemo(() => moderationParts(versionSupports(version)), [version]);
 }

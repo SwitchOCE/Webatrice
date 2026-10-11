@@ -15,11 +15,15 @@ import { SessionScope } from '../../SessionScope';
 import { rootReducerMap, type RootState } from '../../store';
 import { ToastProvider } from '../../components/Toast/ToastContext';
 import { ServerInfo_User_UserLevelFlag as Level } from '@cockatrice/sockatrice/generated';
-import { createMockWebClient, connectedState, makeUser } from '../../__test-utils__';
+import { createMockWebClient, connected31State, makeUser } from '../../__test-utils__';
 import { LOG_SEARCH_DEFAULTS, type LogSearchFormValues } from './LogSearchForm/logSearchFormSchema';
 import { toViewLogHistoryParams, useLogs } from './useLogs';
 
 const reducer = combineReducers(rootReducerMap);
+
+function withLevel(userLevel: number): Partial<RootState> {
+  return { ...connected31State, server: { ...(connected31State.server as any), user: makeUser({ userLevel }) } };
+}
 
 const testI18n = i18n.createInstance();
 testI18n.use(initReactI18next).init({
@@ -29,7 +33,7 @@ testI18n.use(initReactI18next).init({
   interpolation: { escapeValue: false },
 });
 
-function setup(preloadedState: Partial<RootState> = connectedState) {
+function setup(preloadedState: Partial<RootState> = withLevel(Level.IsUser | Level.IsRegistered | Level.IsModerator)) {
   const webClient = createMockWebClient();
   const store = createStore<RootState>({ reducer: reducer as any, preloadedState });
   function Wrapper({ children }: { children: ReactNode }) {
@@ -47,10 +51,6 @@ function setup(preloadedState: Partial<RootState> = connectedState) {
   return { ...view, webClient, store };
 }
 
-const withLevel = (userLevel: number): Partial<RootState> => ({
-  ...connectedState,
-  server: { ...(connectedState.server as any), user: makeUser({ userLevel }) },
-});
 
 const search = (overrides: Partial<LogSearchFormValues>): LogSearchFormValues => ({
   ...LOG_SEARCH_DEFAULTS,
@@ -87,6 +87,14 @@ describe('useLogs', () => {
     const { result } = setup();
     expect(result.current.logs).toEqual({ room: [], game: [], chat: [] });
     expect(result.current.notice).toBeNull();
+  });
+
+  it('sends nothing for a user who may not read logs', () => {
+    const { result, webClient } = setup(withLevel(Level.IsUser | Level.IsRegistered));
+    result.current.onSubmit(search({ userName: 'alice' }));
+
+    expect(webClient.request.moderator.viewLogHistory).not.toHaveBeenCalled();
+    expect(webClient.request.developer.viewLogHistory).not.toHaveBeenCalled();
   });
 
   it('sends viewLogHistory with the completed search', () => {
@@ -187,9 +195,9 @@ describe('useLogs', () => {
     // useAppDispatch() captures the store's original dispatch at render time,
     // so a post-render vi.spyOn would never see the cleanup call.
     const stateWithLogs = {
-      ...connectedState,
+      ...withLevel(Level.IsUser | Level.IsRegistered | Level.IsModerator),
       server: {
-        ...(connectedState.server as any),
+        ...(withLevel(Level.IsUser | Level.IsRegistered | Level.IsModerator).server as any),
         logs: { room: [{ message: 'entry' }], game: [], chat: [] },
       },
     };
@@ -272,7 +280,11 @@ describe('log request ownership', () => {
     const { result, store, webClient } = setup();
     act(() => result.current.onSubmit(search({ userName: 'alice' })));
     const oldId = vi.mocked(webClient.request.moderator.viewLogHistory).mock.calls[0][1];
-    act(() => store.dispatch(server.Actions.clearStore()));
+    act(() => {
+      store.dispatch(server.Actions.clearStore());
+      store.dispatch(server.Actions.updateInfo({ info: { name: 'Servatrice', version: '3.1.0' } }));
+      store.dispatch(server.Actions.updateUser({ user: makeUser({ userLevel: Level.IsUser | Level.IsRegistered | Level.IsModerator }) }));
+    });
     act(() => result.current.onSubmit(search({ userName: 'alice' })));
     const requestId = vi.mocked(webClient.request.moderator.viewLogHistory).mock.calls[1][1];
     act(() => store.dispatch(server.Actions.moderatorCommandFailed({

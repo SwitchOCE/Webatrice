@@ -7,6 +7,7 @@ import type { ServerInfo_ChatMessage, ViewLogHistoryParams } from '@cockatrice/s
 import type { WebsocketTypes } from '@cockatrice/sockatrice/types';
 import { useCommandFailureMessage, useReduxEffect, useRequestTracker, useUserCapabilities } from '@app/hooks';
 import { useAppDispatch, useAppSelector } from '@app/store';
+import { useStaffToolAvailable } from '@app/feature-wrappers/staff';
 
 import { logDateRangeHours, type LogSearchFormValues } from './LogSearchForm/logSearchFormSchema';
 
@@ -51,6 +52,7 @@ export function useLogs(): Logs {
   const [notices, setNotices] = useState<LogsNotice[]>([]);
   const requests = useRequestTracker();
   const { developerOnlyLogs: developer } = useUserCapabilities();
+  const available = useStaffToolAvailable('logs');
 
   useEffect(() => {
     return () => {
@@ -80,6 +82,9 @@ export function useLogs(): Logs {
   }, server.Types.MODERATOR_COMMAND_FAILED, [describeFailure, requests, t]);
 
   const onSubmit = useCallback((values: LogSearchFormValues) => {
+    if (!available) {
+      return;
+    }
     const requestId = requests.begin();
     requests.track(requestId);
     if (developer) {
@@ -87,7 +92,7 @@ export function useLogs(): Logs {
     } else {
       webClient.request.moderator.viewLogHistory(toViewLogHistoryParams(values), requestId);
     }
-  }, [developer, requests, webClient]);
+  }, [available, developer, requests, webClient]);
 
   const dismissNotice = useCallback(() => setNotices((queue) => queue.slice(1)), []);
 

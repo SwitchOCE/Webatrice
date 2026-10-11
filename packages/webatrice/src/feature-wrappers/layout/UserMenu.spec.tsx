@@ -6,7 +6,7 @@ import { ServerInfo_User_UserLevelFlag as Level } from '@cockatrice/sockatrice/g
 import { connectedState, renderWithProviders } from '../../__test-utils__';
 import { RouteEnum } from '@app/types';
 
-import { staffToolStates } from '../staff/staffTools';
+import { staffToolStates, versionSupports } from '../staff/staffTools';
 
 import UserMenu, { type UserMenuProps } from './UserMenu';
 import { UserMenuDialog } from './userMenuEntries';
@@ -104,7 +104,7 @@ describe('UserMenu', () => {
 
   it('keeps a tool the server cannot serve visible but disabled, with the reason', () => {
     const userLevel = Level.IsUser | Level.IsRegistered | Level.IsModerator;
-    const props = renderMenu({ userLevel, staffTools: staffToolStates(userLevel, () => false) });
+    const props = renderMenu({ userLevel, staffTools: staffToolStates(userLevel, versionSupports('3.0.0 ()')) });
     fireEvent.click(trigger());
 
     const reports = screen.getByRole('menuitem', { name: 'UserMenu.reportQueue' });

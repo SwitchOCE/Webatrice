@@ -52,6 +52,9 @@ const failed = (
 ) =>
   server.Actions.moderatorCommandFailed({ command, responseCode, target, failure });
 
+const lookupRequestId = (webClient: ReturnType<typeof createMockWebClient>) =>
+  (webClient.request.session.getUserInfo as unknown as Mock).mock.calls.at(-1)?.[1] as string;
+
 async function investigate(name: string) {
   fireEvent.change(screen.getByRole('searchbox', { name: /search\.placeholder/ }), { target: { value: name } });
   await act(async () => {
@@ -74,11 +77,19 @@ describe('Moderation gating', () => {
     expectNothingSent(webClient);
   });
 
+  it('sends a moderator away without sending anything when the server version is unknown', () => {
+    const { webClient } = setup(MODERATOR, '/moderation?user=bad', 'unknown');
+    expect(screen.getByText('server-page')).toBeInTheDocument();
+    expectNothingSent(webClient);
+    expect(webClient.request.session.getUserInfo).not.toHaveBeenCalled();
+  });
+
   it('stays open on a 3.0 server and looks the user up with the 3.0 user info command instead', () => {
     const { webClient, store } = setup(MODERATOR, '/moderation?user=bad', '3.0.0 ()');
     expect(screen.queryByText('server-page')).not.toBeInTheDocument();
     expectNothingSent(webClient);
-    expect(webClient.request.session.getUserInfo).toHaveBeenCalledWith('bad');
+    expect(webClient.request.session.getUserInfo).toHaveBeenCalledWith('bad', expect.any(String));
+    const requestId = lookupRequestId(webClient);
 
     ['alts', 'sessions', 'staff'].forEach((section) => {
       const region = screen.getByRole('region', { name: new RegExp(`${section}\\.title`) });
@@ -90,6 +101,7 @@ describe('Moderation gating', () => {
     act(() => {
       store.dispatch(server.Actions.getUserInfo({
         userInfo: create(ServerInfo_UserSchema, { name: 'bad', userLevel: IsRegistered, country: 'de', clientid: 'c-42' }),
+        requestId,
       }));
     });
     const details = screen.getByRole('region', { name: 'ModerationPage.info.title' });
@@ -99,10 +111,37 @@ describe('Moderation gating', () => {
     expect(screen.getByRole('button', { name: 'ModerationPage.recordAction.banHistory' })).toBeInTheDocument();
   });
 
-  it('reports a failed 3.0 lookup in the details', () => {
-    const { store } = setup(MODERATOR, '/moderation?user=ghost', '3.0.0 ()');
+  it('resolves a 3.0 lookup whose answer carries the canonical casing of the name', () => {
+    const { webClient, store } = setup(MODERATOR, '/moderation?user=alice', '3.0.0 ()');
     act(() => {
-      store.dispatch(server.Actions.getUserInfoFailed({ userName: 'ghost', responseCode: Response_ResponseCode.RespNameNotFound }));
+      store.dispatch(server.Actions.getUserInfo({
+        userInfo: create(ServerInfo_UserSchema, { name: 'Alice', userLevel: IsRegistered, clientid: 'c-7' }),
+        requestId: lookupRequestId(webClient),
+      }));
+    });
+    const details = screen.getByRole('region', { name: 'ModerationPage.info.title' });
+    expect(within(details).getByText('c-7')).toBeInTheDocument();
+    expect(within(details).queryByText('ModerationPage.value.loading')).not.toBeInTheDocument();
+  });
+
+  it('ignores user info answers to other requests', () => {
+    const { store } = setup(MODERATOR, '/moderation?user=bad', '3.0.0 ()');
+    act(() => {
+      store.dispatch(server.Actions.getUserInfo({
+        userInfo: create(ServerInfo_UserSchema, { name: 'bad', userLevel: IsRegistered, clientid: 'c-42' }),
+      }));
+    });
+    const details = screen.getByRole('region', { name: 'ModerationPage.info.title' });
+    expect(within(details).queryByText('c-42')).not.toBeInTheDocument();
+    expect(within(details).getAllByText('ModerationPage.value.loading').length).toBeGreaterThan(0);
+  });
+
+  it('reports a failed 3.0 lookup in the details', () => {
+    const { webClient, store } = setup(MODERATOR, '/moderation?user=ghost', '3.0.0 ()');
+    act(() => {
+      store.dispatch(server.Actions.getUserInfoFailed({
+        userName: 'ghost', responseCode: Response_ResponseCode.RespNameNotFound, requestId: lookupRequestId(webClient),
+      }));
     });
     const details = screen.getByRole('region', { name: 'ModerationPage.info.title' });
     expect(within(details).getAllByText('ModerationPage.info.loadError').length).toBeGreaterThan(0);

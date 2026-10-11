@@ -2,18 +2,18 @@ import { useEffect, useId, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { RefreshCw } from 'lucide-react';
 
-import { Button, CapabilityGuard, Checkbox, DeveloperGuard } from '@app/components';
+import { Button, Checkbox } from '@app/components';
 import {
   fieldClass,
   labelClass,
   sectionLabelClass,
   StaffConsole,
+  StaffToolGuard,
   StaffDrawer,
   StaffHeader,
   StaffTable,
   type StaffColumn,
 } from '@app/feature-wrappers/staff';
-import { ServerCapability } from '@cockatrice/datatrice';
 import { cx } from '@app/utils';
 
 import { buildCommandRows, buildStatRows, type CommandRow } from './serverStatsRows';
@@ -115,11 +115,9 @@ const DeveloperContent = () => {
 
 const Developer = () => (
   <StaffConsole>
-    <DeveloperGuard>
-      <CapabilityGuard capability={ServerCapability.DEVELOPER_ROLE}>
-        <DeveloperContent />
-      </CapabilityGuard>
-    </DeveloperGuard>
+    <StaffToolGuard tool="developer">
+      <DeveloperContent />
+    </StaffToolGuard>
   </StaffConsole>
 );
 
