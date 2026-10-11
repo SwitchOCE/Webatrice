@@ -74,7 +74,7 @@ function FilterSelect<T extends string>({ label, value, onChange, options, icon,
         value={value}
         onChange={(e) => onChange(e.target.value as T)}
         className={cx(
-          'h-full w-full appearance-none rounded-ui border border-border-control/70 bg-bg-sunken pr-8 text-[13px] text-text-primary',
+          'h-full w-full appearance-none rounded-ui border border-border-control bg-bg-sunken pr-8 text-[13px] text-text-primary',
           'focus:border-accent focus:outline-none focus-visible:ring-2 focus-visible:ring-accent/25',
           icon ? 'pl-8' : 'pl-2.5',
         )}
@@ -97,7 +97,7 @@ function ColourFilter({ colours, mode, onColours, onMode }: {
     <span
       role="group"
       aria-label={t('DeckGridToolbar.colours')}
-      className="inline-flex h-9 shrink-0 items-center gap-1.5 rounded-ui border border-border-control/70 bg-bg-sunken pl-2.5 pr-1"
+      className="inline-flex h-9 shrink-0 items-center gap-1.5 rounded-ui border border-border-control bg-bg-sunken pl-2.5 pr-1"
     >
       <span className="text-[12px] text-text-muted" aria-hidden>{t('DeckGridToolbar.colours')}</span>
       {IDENTITY_COLOURS.map((c) => {

@@ -160,7 +160,7 @@ export default function ReportThread({
         </div>
         <form className="flex items-center gap-2" onSubmit={send}>
           <label className={cx(
-            'flex h-9 min-w-0 flex-1 items-center gap-2 rounded-ui border border-border-control/70 bg-bg-sunken px-2.5',
+            'flex h-9 min-w-0 flex-1 items-center gap-2 rounded-ui border border-border-control bg-bg-sunken px-2.5',
             'text-text-muted focus-within:border-accent focus-within:ring-2 focus-within:ring-accent/25',
             !canComment && 'opacity-60',
           )}

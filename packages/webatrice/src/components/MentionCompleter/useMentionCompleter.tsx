@@ -119,7 +119,7 @@ export function useMentionCompleter({ names, value, onValueChange, inputRef }: M
               {...option}
               className={[
                 'h-7 cursor-pointer truncate px-3 leading-7',
-                option['aria-selected'] ? 'bg-accent text-white' : 'text-text-primary hover:bg-bg-base',
+                option['aria-selected'] ? 'bg-accent text-on-accent' : 'text-text-primary hover:bg-bg-base',
               ].join(' ')}
             >
               @{name}

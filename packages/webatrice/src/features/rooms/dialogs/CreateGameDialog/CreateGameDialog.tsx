@@ -270,7 +270,7 @@ function CreateGameDialog({ isOpen, roomName, gametypeMap, onCancel, onSubmit }:
                   value={form.gameTypeId ?? ''}
                   onChange={(e) => update('gameTypeId', e.target.value === '' ? null : Number(e.target.value))}
                   className={cx(
-                    'h-9 w-full min-w-0 appearance-none truncate rounded-ui border border-border-control/70 bg-bg-sunken',
+                    'h-9 w-full min-w-0 appearance-none truncate rounded-ui border border-border-control bg-bg-sunken',
                     'pl-2.5 pr-8 text-[13px] text-text-primary focus:border-accent',
                     FOCUS_RING,
                   )}

@@ -243,7 +243,7 @@ export const TextInput = forwardRef<HTMLInputElement, TextInputProps>(function T
       {label && <span className="text-[12px] font-medium text-text-secondary">{label}</span>}
       <span
         className={cx(
-          'flex h-9 min-w-0 items-center gap-2 rounded-ui border border-border-control/70 bg-bg-sunken px-2.5 text-text-muted',
+          'flex h-9 min-w-0 items-center gap-2 rounded-ui border border-border-control bg-bg-sunken px-2.5 text-text-muted',
           'focus-within:border-accent focus-within:ring-2 focus-within:ring-accent/25',
         )}
       >
@@ -296,7 +296,7 @@ export function Toggle({
         aria-hidden
         className={cx(
           'relative mt-0.5 inline-flex h-5 w-9 shrink-0 rounded-full transition-colors',
-          checked ? 'bg-accent' : 'bg-bg-elevated ring-1 ring-inset ring-border-control/70',
+          checked ? 'bg-accent' : 'bg-bg-elevated ring-1 ring-inset ring-border-control',
         )}
       >
         <span

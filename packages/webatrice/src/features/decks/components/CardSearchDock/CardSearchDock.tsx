@@ -337,7 +337,7 @@ export default function CardSearchDock({
         </div>
         <label
           className={cx(
-            'flex h-9 items-center gap-2 rounded-ui border border-border-control/70 bg-bg-sunken px-2.5 text-text-muted',
+            'flex h-9 items-center gap-2 rounded-ui border border-border-control bg-bg-sunken px-2.5 text-text-muted',
             'focus-within:border-accent focus-within:ring-2 focus-within:ring-accent/25',
           )}
         >

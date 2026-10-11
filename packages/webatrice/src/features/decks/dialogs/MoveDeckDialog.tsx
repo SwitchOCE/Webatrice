@@ -59,7 +59,7 @@ export function MoveDeckDialog({ deck, folderPaths, onCancel, onMove }: MoveDeck
             type="submit"
             disabled={targets.length === 0}
             className={[
-              'inline-flex items-center gap-1.5 px-4 py-1.5 rounded-md text-sm font-semibold bg-accent text-white',
+              'inline-flex items-center gap-1.5 px-4 py-1.5 rounded-md text-sm font-semibold bg-accent text-on-accent',
               'hover:bg-accent-hover disabled:opacity-40',
             ].join(' ')}
           >

@@ -7,7 +7,7 @@ import { DialogShell } from '@app/dialogs';
 import { formatAccountAge } from '@app/utils';
 
 const MODAL_BUTTON_PRIMARY =
-  'px-3 py-1.5 rounded-md text-sm font-semibold bg-accent text-white '
+  'px-3 py-1.5 rounded-md text-sm font-semibold bg-accent text-on-accent '
   + 'hover:bg-accent-hover shadow-glow board-motion transition-colors '
   + 'disabled:opacity-50 disabled:cursor-not-allowed';
 

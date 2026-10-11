@@ -187,7 +187,7 @@ function SourceStep({ migration, onPasteInstead }: { migration: DeckMigration; o
             />
             <span
               className={[
-                'inline-flex h-9 cursor-pointer items-center gap-2 rounded-ui bg-accent px-3.5 text-[13px] font-semibold text-white',
+                'inline-flex h-9 cursor-pointer items-center gap-2 rounded-ui bg-accent px-3.5 text-[13px] font-semibold text-on-accent',
                 'hover:bg-accent-hover peer-focus-visible:outline peer-focus-visible:outline-2 peer-focus-visible:outline-offset-2',
                 'peer-focus-visible:outline-accent',
               ].join(' ')}

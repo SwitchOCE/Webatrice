@@ -114,10 +114,10 @@ function RoomChatView({ roomId, roomName, messages, users, onSay }: RoomChatProp
             <div
               key={`${m.timeReceived}-${idx}`}
               className={cx(
-                'flex items-baseline gap-2 text-[13px] leading-relaxed text-text-primary',
+                'flex items-baseline gap-2 text-[13px] leading-relaxed',
                 '[&_a.link]:font-semibold [&_a.link]:text-accent [&_a.link:hover]:underline [&_strong]:mr-1',
                 isAlertLine(m, highlight) && '-mx-2 rounded-ui-sm bg-warning/10 px-2',
-                isChatHistory(m) && 'opacity-70',
+                isChatHistory(m) ? 'text-text-secondary' : 'text-text-primary',
               )}
             >
               <time dateTime={time.dateTime} title={time.full} className="shrink-0 text-[11px] tabular-nums text-text-muted">

@@ -269,7 +269,7 @@ function ColorControl({ id, value, disabled, describedBy, onCommit }: ColorContr
   return (
     <span
       className={cx(
-        'inline-flex h-9 items-center gap-2 rounded-ui border border-border-control/70 bg-bg-sunken pl-1.5 pr-2.5',
+        'inline-flex h-9 items-center gap-2 rounded-ui border border-border-control bg-bg-sunken pl-1.5 pr-2.5',
         'focus-within:outline focus-within:outline-2 focus-within:outline-offset-2 focus-within:outline-accent',
         disabled && 'opacity-45',
       )}

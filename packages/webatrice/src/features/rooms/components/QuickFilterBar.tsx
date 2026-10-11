@@ -113,7 +113,7 @@ function QuickSelect({
         FOCUS,
         active
           ? 'border-accent/60 bg-accent/10 text-accent'
-          : 'border-border-control/70 bg-bg-sunken text-text-primary hover:border-accent/60',
+          : 'border-border-control bg-bg-sunken text-text-primary hover:border-accent/60',
       )}
     >
       <span className={active ? 'text-accent' : 'text-text-muted'}>{label}</span>
@@ -132,14 +132,14 @@ function ToggleChip({ on, onChange, children }: { on: boolean; onChange: (on: bo
       className={cx(
         'inline-flex h-9 shrink-0 items-center gap-2 rounded-ui border px-2.5 text-[13px] font-medium',
         FOCUS,
-        on ? 'border-accent/60 bg-accent/10 text-accent' : 'border-border-control/70 text-text-secondary hover:text-text-primary',
+        on ? 'border-accent/60 bg-accent/10 text-accent' : 'border-border-control text-text-secondary hover:text-text-primary',
       )}
     >
       <span
         aria-hidden
         className={cx(
           'relative inline-flex h-4 w-7 rounded-full',
-          on ? 'bg-accent' : 'bg-bg-elevated ring-1 ring-inset ring-border-control/70',
+          on ? 'bg-accent' : 'bg-bg-elevated ring-1 ring-inset ring-border-control',
         )}
       >
         <span className={cx('absolute top-0.5 h-3 w-3 rounded-full', on ? 'left-[14px] bg-on-accent' : 'left-0.5 bg-text-muted')} />
@@ -162,7 +162,7 @@ function PlayersPanel({ filters, onChange }: { filters: GameFilters; onChange: (
     }
   };
   const inputClass = [
-    'h-9 w-full rounded-ui border border-border-control/70 bg-bg-sunken px-2.5 text-[13px] tabular-nums text-text-primary',
+    'h-9 w-full rounded-ui border border-border-control bg-bg-sunken px-2.5 text-[13px] tabular-nums text-text-primary',
     'focus:border-accent focus:outline-none focus:ring-2 focus:ring-accent/25',
   ].join(' ');
 
@@ -184,7 +184,7 @@ function PlayersPanel({ filters, onChange }: { filters: GameFilters; onChange: (
               className={cx(
                 'h-7 rounded-full border px-2.5 text-[12px] font-medium',
                 FOCUS,
-                on ? 'border-accent/60 bg-accent/10 text-accent' : 'border-border-control/70 text-text-secondary hover:text-text-primary',
+                on ? 'border-accent/60 bg-accent/10 text-accent' : 'border-border-control text-text-secondary hover:text-text-primary',
               )}
             >
               {t(PRESET_KEYS[preset.id])}

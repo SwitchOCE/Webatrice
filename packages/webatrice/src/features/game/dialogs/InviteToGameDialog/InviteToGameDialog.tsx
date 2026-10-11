@@ -103,7 +103,7 @@ export default function InviteToGameDialog({ isOpen, onlyBuddies, excludeNames, 
             disabled={!selectedName}
             onClick={() => selectedName && invite(selectedName)}
             className={[
-              'px-4 py-1.5 rounded-md text-sm font-semibold bg-accent text-white hover:bg-accent-hover',
+              'px-4 py-1.5 rounded-md text-sm font-semibold bg-accent text-on-accent hover:bg-accent-hover',
               'disabled:opacity-50 disabled:cursor-not-allowed board-motion transition-colors',
             ].join(' ')}
           >
