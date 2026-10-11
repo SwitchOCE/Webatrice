@@ -89,6 +89,7 @@ export const Types = {
   DECK_LIST_FAILED: a.deckListFailed.type,
   DECK_DOWNLOAD_FAILED: a.deckDownloadFailed.type,
   DECK_UPLOAD_FAILED: a.deckUploadFailed.type,
+  DECK_NEW_DIR_FAILED: a.deckNewDirFailed.type,
   REPLAY_LIST_FAILED: a.replayListFailed.type,
   DECK_VISIBILITY_CHANGED: a.deckVisibilityChanged.type,
   DECK_SHARE_CREATED: a.deckShareCreated.type,

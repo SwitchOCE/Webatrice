@@ -79,9 +79,17 @@ it('creates folders, uploads with pacing, retries a flood and summarises every l
     started = migration.start();
   });
 
-  await waitFor(() => expect(webClient.request.session.deckNewDir).toHaveBeenCalledWith('', 'Burn'));
+  await waitFor(() => expect(webClient.request.session.deckNewDir).toHaveBeenCalledTimes(1));
+  const dir = vi.mocked(webClient.request.session.deckNewDir).mock.calls[0];
+  expect(dir.slice(0, 2)).toEqual(['', 'Burn']);
   act(() => {
-    store.dispatch(server.Actions.deckNewDir({ path: '', dirName: 'Burn' }));
+    store.dispatch(server.Actions.deckNewDirFailed({ path: '', dirName: 'Burn', responseCode: 18, requestId: dir[2] }));
+  });
+  await waitFor(() => expect(webClient.request.session.deckNewDir).toHaveBeenCalledTimes(2));
+  act(() => {
+    store.dispatch(server.Actions.deckNewDir({
+      path: '', dirName: 'Burn', requestId: vi.mocked(webClient.request.session.deckNewDir).mock.calls[1][2],
+    }));
   });
 
   await waitFor(() => expect(webClient.request.session.deckUpload).toHaveBeenCalledTimes(1));
@@ -109,8 +117,54 @@ it('creates folders, uploads with pacing, retries a flood and summarises every l
     failed: [],
     notStarted: 0,
   });
+  expect(migration.result?.stoppedLegs).toEqual([]);
   expect(migration.result?.replays?.imported).toHaveLength(1);
   expect(vi.mocked(importReplayFiles).mock.calls[0][1]?.relativePathOf?.(SOURCES[1].file)).toBe('Cockatrice/replays/replay_1.cor');
+});
+
+it('reports the decks under a folder the server refused instead of uploading them', async () => {
+  const { webClient, store } = await previewed();
+  act(() => migration.setDestination(''));
+  let started!: Promise<void>;
+  act(() => {
+    started = migration.start();
+  });
+  await waitFor(() => expect(webClient.request.session.deckNewDir).toHaveBeenCalledTimes(1));
+  act(() => {
+    store.dispatch(server.Actions.deckNewDirFailed({
+      path: '', dirName: 'Burn', responseCode: 3, requestId: vi.mocked(webClient.request.session.deckNewDir).mock.calls[0][2],
+    }));
+  });
+  await act(() => started);
+
+  expect(webClient.request.session.deckUpload).not.toHaveBeenCalled();
+  expect(migration.result?.decks?.failed).toEqual([{ name: 'burn', reason: 'folder', folder: 'Burn', code: 3 }]);
+  expect(migration.stage).toBe('done');
+});
+
+it('stops between legs when cancelled during the replay import, and reports what was left', async () => {
+  const { webClient } = await previewed();
+  vi.mocked(importReplayFiles).mockImplementation(async (_files, options) => {
+    migration.cancel();
+    expect(options?.isCancelled?.()).toBe(true);
+    return { imported: [], skipped: [], failed: [] };
+  });
+  await act(() => migration.start());
+
+  expect(webClient.request.session.deckNewDir).not.toHaveBeenCalled();
+  expect(migration.stage).toBe('done');
+  expect(migration.result?.stoppedLegs).toEqual(['replays']);
+  expect(migration.result?.decks).toMatchObject({ imported: [], notStarted: 1, stopped: 'cancelled' });
+});
+
+it('reaches the summary with the error when a local leg fails', async () => {
+  await previewed(connectedState);
+  vi.mocked(importReplayFiles).mockRejectedValue(new Error('disk full'));
+  await act(() => migration.start());
+
+  expect(migration.stage).toBe('done');
+  expect(migration.result?.replays).toBeNull();
+  expect(migration.result?.legErrors).toEqual([{ leg: 'replays', detail: 'disk full' }]);
 });
 
 it('imports replays only, and no decks, for an unregistered user', async () => {

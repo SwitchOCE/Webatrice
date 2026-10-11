@@ -237,6 +237,29 @@ export async function lookupCards(
   return out;
 }
 
+export function printingKey(hint: LookupHint): string {
+  return JSON.stringify([hint.name, hint.set?.toLowerCase() ?? '', hint.collectorNumber ?? '', hint.scryfallId ?? '']);
+}
+
+export function printingRounds(hints: readonly LookupHint[]): LookupHint[][] {
+  const rounds: LookupHint[][] = [];
+  const seen = new Set<string>();
+  for (const hint of hints) {
+    const key = printingKey(hint);
+    if (seen.has(key)) {
+      continue;
+    }
+    seen.add(key);
+    const round = rounds.find((r) => !r.some((other) => other.name === hint.name));
+    if (round) {
+      round.push(hint);
+    } else {
+      rounds.push([hint]);
+    }
+  }
+  return rounds;
+}
+
 /**
  * Return every Scryfall printing for `name` (exact match), sorted
  * newest-first. Used by the printings picker — Dexie only knows the

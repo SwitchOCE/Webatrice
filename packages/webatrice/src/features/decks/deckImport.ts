@@ -1,6 +1,6 @@
 import type { TFunction } from 'i18next';
 
-import { lookupCards, serializeCod, type LookupResult } from '@app/services';
+import { lookupCards, printingKey, printingRounds, serializeCod, type LookupHint, type LookupResult } from '@app/services';
 import type { DeckCategory, ParsedCard, ParsedDeck } from '@app/types';
 
 import { deckColorIdentity } from './deckPersistence';
@@ -23,14 +23,13 @@ function hasHint(entry: ImportEntry): boolean {
   return Boolean(entry.set || entry.collectorNumber || entry.scryfallId);
 }
 
-function uniqueByName<T extends { name: string }>(items: readonly T[]): T[] {
-  const seen = new Map<string, T>();
-  for (const item of items) {
-    if (!seen.has(item.name)) {
-      seen.set(item.name, item);
-    }
-  }
-  return Array.from(seen.values());
+function hintOf(entry: ImportEntry): LookupHint {
+  return {
+    name: entry.name,
+    ...(entry.set ? { set: entry.set } : {}),
+    ...(entry.collectorNumber ? { collectorNumber: entry.collectorNumber } : {}),
+    ...(entry.scryfallId ? { scryfallId: entry.scryfallId } : {}),
+  };
 }
 
 export interface ImportLookups {
@@ -39,25 +38,25 @@ export interface ImportLookups {
 }
 
 export async function lookupImportEntries(entries: readonly ImportEntry[]): Promise<ImportLookups> {
-  const hints = uniqueByName(entries).map((e) => ({
-    name: e.name,
-    set: e.set,
-    collectorNumber: e.collectorNumber,
-    ...(e.scryfallId ? { scryfallId: e.scryfallId } : {}),
-  }));
-  const hinted = await lookupCards(hints);
-  const misses = uniqueByName(entries.filter((e) => hasHint(e) && !hinted.get(e.name)?.found));
-  const byName = misses.length ? await lookupCards(misses.map((e) => e.name)) : new Map<string, LookupResult>();
+  const hinted = new Map<string, LookupResult>();
+  for (const round of printingRounds(entries.map(hintOf))) {
+    const found = await lookupCards(round);
+    for (const hint of round) {
+      hinted.set(printingKey(hint), found.get(hint.name) ?? unknownLookup(hint.name));
+    }
+  }
+  const missedNames = new Set(entries.filter((e) => hasHint(e) && !hinted.get(printingKey(hintOf(e)))?.found).map((e) => e.name));
+  const byName = missedNames.size ? await lookupCards([...missedNames]) : new Map<string, LookupResult>();
   return { hinted, byName };
 }
 
 export function resolveWithLookups(entries: readonly ImportEntry[], { hinted, byName }: ImportLookups): ResolvedImportRow[] {
   return entries.map((entry) => {
-    const hit = hinted.get(entry.name);
+    const hit = hinted.get(printingKey(hintOf(entry)));
     if (hit?.found) {
       return { entry, lookup: hit };
     }
-    const named = byName.get(entry.name);
+    const named = hasHint(entry) ? byName.get(entry.name) : undefined;
     if (named?.found) {
       return { entry, lookup: named, hintDropped: true };
     }

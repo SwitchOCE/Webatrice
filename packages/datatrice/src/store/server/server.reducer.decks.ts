@@ -171,7 +171,7 @@ export const deckReducers = {
     state.backendDecks = create(Response_DeckListSchema, {
       root: insertAtPath(state.backendDecks.root, splitPath(action.payload.path), newFolder),
     });
-  }) as CaseReducer<ServerState, PayloadAction<{ path: string; dirName: string }>>,
+  }) as CaseReducer<ServerState, PayloadAction<{ path: string; dirName: string; requestId?: string }>>,
 
   deckDelDir: ((state, action) => {
     if (!state.backendDecks?.root) {

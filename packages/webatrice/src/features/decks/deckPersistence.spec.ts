@@ -63,6 +63,11 @@ describe('deckSaveSignature', () => {
     expect(deckSaveSignature(rehydrated)).toBe(deckSaveSignature(deck));
   });
 
+  it('tells a zone named with a slash from a nested zone of the same spelling', () => {
+    const inZone = (zonePath: string[]) => ({ ...deck, cards: [{ ...deck.cards[0], zonePath }] });
+    expect(deckSaveSignature(inZone(['X/Y']))).not.toBe(deckSaveSignature(inZone(['X', 'Y'])));
+  });
+
   it.each<[string, Partial<HydratedDeck>]>([
     ['name', { name: 'Burn v2' }],
     ['format', { format: 'legacy' }],

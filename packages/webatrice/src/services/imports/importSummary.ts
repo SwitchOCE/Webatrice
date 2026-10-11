@@ -22,6 +22,7 @@ export interface ImportSummary {
 
 export interface ImportFileOptions {
   relativePathOf?: (file: File) => string;
+  isCancelled?: () => boolean;
 }
 
 export function emptyImportSummary(): ImportSummary {

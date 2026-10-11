@@ -1,6 +1,6 @@
 import { useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { ChevronDown, FileText, FolderOpen, Upload } from 'lucide-react';
+import { ChevronDown, FileText, FolderOpen } from 'lucide-react';
 
 import { Button, Menu, MenuItem, type MenuRect } from '@app/components';
 
@@ -18,7 +18,6 @@ export function ImportMenuButton({ onMigrate, onImport, isConnected, className }
       <Button
         ref={triggerRef}
         className={className}
-        icon={<Upload size={14} />}
         iconRight={<ChevronDown size={13} aria-hidden />}
         aria-haspopup="menu"
         aria-expanded={rect != null}

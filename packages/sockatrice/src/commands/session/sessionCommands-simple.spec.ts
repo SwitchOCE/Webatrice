@@ -317,6 +317,17 @@ describe('deckNewDir', () => {
     invokeOnSuccess();
     expect(WebClient.instance.response.session.createServerDeckDir).toHaveBeenCalledWith('/path', 'dir');
   });
+
+  it('carries the request identity on success and on failure', () => {
+    deckNewDir('/path', 'dir', 'folder-a');
+    invokeOnSuccess();
+    expect(WebClient.instance.response.session.createServerDeckDir).toHaveBeenCalledWith('/path', 'dir', 'folder-a');
+    deckNewDir('/path', 'dir', 'folder-b');
+    invokeOnError(Response_ResponseCode.RespChatFlood, {}, CommandFailure.Timeout);
+    expect(WebClient.instance.response.session.deckNewDirFailed).toHaveBeenCalledWith(
+      '/path', 'dir', Response_ResponseCode.RespChatFlood, CommandFailure.Timeout, 'folder-b',
+    );
+  });
 });
 
 describe('deckUpload', () => {

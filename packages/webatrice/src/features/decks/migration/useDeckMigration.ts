@@ -32,13 +32,15 @@ import {
   type PlannedUpload,
   type ScannedDeck,
 } from './migrationPlan';
-import { runPaced, SERVER_PACING, type TaskOutcome } from './pacedQueue';
+import { runPaced, SERVER_PACING, type SettledOutcome, type TaskOutcome } from './pacedQueue';
 
 const RESPONSE_CHAT_FLOOD = 18;
 const UPLOAD_TIMEOUT_MS = 20_000;
 const FOLDER_TIMEOUT_MS = 8_000;
 
 export type MigrationStage = 'source' | 'scanning' | 'preview' | 'importing' | 'done';
+
+export type MigrationLeg = 'replays' | 'customSets' | 'decks';
 
 export interface DeckPreview {
   id: string;
@@ -49,16 +51,17 @@ export interface DeckPreview {
   format: string;
   unknownCount: number;
   extraZones: Array<{ zone: string; count: number }>;
+  ignored: string[];
   onServer: boolean;
   problem?: DeckScanProblem;
 }
 
-export type DeckFailure = 'flood' | 'server' | 'timeout';
+export type DeckFailure = 'flood' | 'server' | 'timeout' | 'folder';
 
 export interface DeckMigrationResult {
   imported: Array<{ id: string; deckId?: number; name: string; path: string; renamedFrom?: string; unknownCount: number }>;
   skipped: Array<{ name: string; reason: 'exists' | 'pathTooLong' | DeckScanProblem }>;
-  failed: Array<{ name: string; reason: DeckFailure; code?: number }>;
+  failed: Array<{ name: string; reason: DeckFailure; code?: number; folder?: string }>;
   notStarted: number;
   stopped?: 'disconnected' | 'cancelled';
 }
@@ -67,6 +70,8 @@ export interface MigrationResult {
   decks: DeckMigrationResult | null;
   replays: ImportSummary | null;
   customSets: CardSourceImportSummary | null;
+  stoppedLegs: MigrationLeg[];
+  legErrors: Array<{ leg: MigrationLeg; detail: string }>;
 }
 
 interface PendingResponse {
@@ -86,9 +91,26 @@ function deckPreview(scanned: ScannedDeck, lookups: ImportLookups | null, onServ
     format: deck?.format ?? '',
     unknownCount: rows.filter((r) => !r.lookup.found).reduce((sum, r) => sum + r.entry.quantity, 0),
     extraZones: extraZoneSummary(deck?.extraZonesXml),
+    ignored: scanned.ignored ?? [],
     onServer,
     ...(scanned.problem ? { problem: scanned.problem } : {}),
   };
+}
+
+function folderPath(folder: PlannedFolder): string {
+  return folder.parent ? `${folder.parent}/${folder.name}` : folder.name;
+}
+
+function isUnder(path: string, folder: string): boolean {
+  return path === folder || path.startsWith(`${folder}/`);
+}
+
+function processedCount(summary: ImportSummary): number {
+  return summary.imported.length + summary.skipped.length + summary.failed.length;
+}
+
+function errorText(error: unknown): string {
+  return error instanceof Error ? error.message : String(error);
 }
 
 function yieldToBrowser(): Promise<void> {
@@ -114,6 +136,8 @@ export function useDeckMigration() {
   const [includeReplays, setIncludeReplays] = useState(true);
   const [includeCustomSets, setIncludeCustomSets] = useState(true);
   const [progress, setProgress] = useState({ done: 0, total: 0, current: '', creatingFolder: false });
+  const [leg, setLeg] = useState<MigrationLeg | null>(null);
+  const [stopping, setStopping] = useState(false);
   const [result, setResult] = useState<MigrationResult | null>(null);
   const [error, setError] = useState<string | null>(null);
 
@@ -152,9 +176,13 @@ export function useDeckMigration() {
     settle(uploads.current, payload.requestId, { ok: false, code: payload.responseCode });
   }, server.Types.DECK_UPLOAD_FAILED, []);
 
-  useReduxEffect<{ path: string; dirName: string }>(({ payload }) => {
-    settle(folders.current, JSON.stringify([payload.path, payload.dirName]), { ok: true });
+  useReduxEffect<{ path: string; dirName: string; requestId?: string }>(({ payload }) => {
+    settle(folders.current, payload.requestId, { ok: true });
   }, server.Types.DECK_NEW_DIR, []);
+
+  useReduxEffect<{ responseCode: number; requestId?: string }>(({ payload }) => {
+    settle(folders.current, payload.requestId, { ok: false, code: payload.responseCode });
+  }, server.Types.DECK_NEW_DIR_FAILED, []);
 
   const awaitResponse = (map: Map<string, PendingResponse>, key: string, timeoutMs: number) =>
     new Promise<{ ok: boolean; code?: number; deckId?: number }>((resolve) => {
@@ -244,10 +272,9 @@ export function useDeckMigration() {
     });
   }, []);
 
-  const runDecks = async (current: number): Promise<DeckMigrationResult> => {
+  const runDecks = async (current: number, outcome: DeckMigrationResult): Promise<void> => {
     const byId = new Map(scanned.map((s) => [s.id, s]));
     const previewById = new Map(previews.map((p) => [p.id, p]));
-    const outcome: DeckMigrationResult = { imported: [], skipped: [], failed: [], notStarted: 0 };
     for (const s of scanned) {
       if (s.problem && selected.has(s.id)) {
         outcome.skipped.push({ name: s.fileName, reason: s.problem });
@@ -263,6 +290,8 @@ export function useDeckMigration() {
       ...plan.uploads.map((upload) => ({ kind: 'upload' as const, upload })),
     ];
     const failures = new Map<number, { reason: DeckFailure; code?: number }>();
+    const failedFolders = new Map<string, { reason: DeckFailure; code?: number }>();
+    const failedFolderOf = (path: string) => [...failedFolders.keys()].find((folder) => isUnder(path, folder));
     setProgress({ done: 0, total: plan.uploads.length, current: '', creatingFolder: false });
     let uploaded = 0;
 
@@ -271,12 +300,21 @@ export function useDeckMigration() {
         return 'stop';
       }
       if (step.kind === 'folder') {
-        setProgress((p) => ({ ...p, current: [step.folder.parent, step.folder.name].filter(Boolean).join('/'), creatingFolder: true }));
-        const key = JSON.stringify([step.folder.parent, step.folder.name]);
-        const response = awaitResponse(folders.current, key, FOLDER_TIMEOUT_MS);
-        webClient.request.session.deckNewDir(step.folder.parent, step.folder.name);
-        await response;
-        return 'ok';
+        setProgress((p) => ({ ...p, current: folderPath(step.folder), creatingFolder: true }));
+        const requestId = `deck-migration-dir-${++requestSeq.current}`;
+        const response = awaitResponse(folders.current, requestId, FOLDER_TIMEOUT_MS);
+        webClient.request.session.deckNewDir(step.folder.parent, step.folder.name, requestId);
+        const answer = await response;
+        if (answer.ok) {
+          failures.delete(index);
+          return 'ok';
+        }
+        if (answer.code === RESPONSE_CHAT_FLOOD) {
+          failures.set(index, { reason: 'flood', code: answer.code });
+          return 'flood';
+        }
+        failures.set(index, answer.code === undefined ? { reason: 'timeout' } : { reason: 'server', code: answer.code });
+        return 'failed';
       }
       const scannedDeck = byId.get(step.upload.id)!;
       const deck = scannedDeck.deck!;
@@ -307,24 +345,34 @@ export function useDeckMigration() {
       return 'failed';
     };
 
-    const settled = (step: Step, index: number) => {
-      if (step.kind !== 'upload') {
+    const settled = (step: Step, index: number, result: SettledOutcome) => {
+      if (step.kind === 'folder') {
+        if (result !== 'ok') {
+          failedFolders.set(folderPath(step.folder), failures.get(index) ?? { reason: 'timeout' });
+        }
         return;
       }
       uploaded += 1;
-      const failure = failures.get(index);
+      const blocked = result === 'skipped' ? failedFolderOf(step.upload.path) : undefined;
+      const failure = blocked !== undefined
+        ? { code: failedFolders.get(blocked)?.code, reason: 'folder' as const, folder: blocked }
+        : failures.get(index);
       if (failure) {
         outcome.failed.push({ name: step.upload.name, ...failure });
       }
       setProgress({ done: uploaded, total: plan.uploads.length, current: '', creatingFolder: false });
     };
 
-    const ran = await runPaced(steps, task, settled, { ...SERVER_PACING, isCancelled: () => cancelled.current });
+    const skip = (step: Step) => failedFolderOf(step.kind === 'folder' ? step.folder.parent : step.upload.path) !== undefined;
+    const ran = await runPaced(steps, task, settled, {
+      ...SERVER_PACING,
+      isCancelled: () => cancelled.current || current !== run.current,
+      skip,
+    });
     if (ran.stopped) {
       outcome.notStarted = steps.slice(ran.completed).filter((s) => s.kind === 'upload').length;
       outcome.stopped = connectedRef.current ? 'cancelled' : 'disconnected';
     }
-    return outcome;
   };
 
   const start = async () => {
@@ -333,28 +381,69 @@ export function useDeckMigration() {
     }
     const current = ++run.current;
     cancelled.current = false;
+    setStopping(false);
     setStage('importing');
     setError(null);
+    const isCancelled = () => cancelled.current || current !== run.current;
     const paths = new Map([...sources.replays, ...sources.customSets].map((s) => [s.file, s.path]));
-    const relativePathOf = (file: File) => paths.get(file) ?? file.name;
-    const replays = includeReplays && sources.replays.length
-      ? await importReplayFiles(sources.replays.map((s) => s.file), { relativePathOf })
-      : null;
-    const customSets = includeCustomSets && sources.customSets.length
-      ? await importCustomSetFiles(sources.customSets.map((s) => s.file), { relativePathOf })
-      : null;
-    const decks = canStoreDecks && plan.uploads.length + plan.skipped.length + scanned.filter((s) => s.problem).length > 0
-      ? await runDecks(current)
-      : null;
+    const options = { relativePathOf: (file: File) => paths.get(file) ?? file.name, isCancelled };
+    const outcome: MigrationResult = { decks: null, replays: null, customSets: null, stoppedLegs: [], legErrors: [] };
+
+    const localLeg = async <S extends ImportSummary>(
+      name: 'replays' | 'customSets',
+      files: readonly File[],
+      importFiles: (files: readonly File[], opts: typeof options) => Promise<S>,
+    ): Promise<S | null> => {
+      if (isCancelled()) {
+        outcome.stoppedLegs.push(name);
+        return null;
+      }
+      setLeg(name);
+      try {
+        const summary = await importFiles(files, options);
+        if (processedCount(summary) < files.length) {
+          outcome.stoppedLegs.push(name);
+        }
+        return summary;
+      } catch (failure) {
+        outcome.legErrors.push({ leg: name, detail: errorText(failure) });
+        return null;
+      }
+    };
+
+    if (includeReplays && sources.replays.length) {
+      outcome.replays = await localLeg('replays', sources.replays.map((s) => s.file), importReplayFiles);
+    }
+    if (includeCustomSets && sources.customSets.length) {
+      outcome.customSets = await localLeg('customSets', sources.customSets.map((s) => s.file), importCustomSetFiles);
+    }
+    if (canStoreDecks && plan.uploads.length + plan.skipped.length + scanned.filter((s) => s.problem).length > 0) {
+      const decks: DeckMigrationResult = { imported: [], skipped: [], failed: [], notStarted: 0 };
+      outcome.decks = decks;
+      if (isCancelled()) {
+        decks.notStarted = plan.uploads.length;
+        decks.stopped = 'cancelled';
+      } else {
+        setLeg('decks');
+        try {
+          await runDecks(current, decks);
+        } catch (failure) {
+          decks.notStarted = Math.max(0, plan.uploads.length - decks.imported.length - decks.failed.length);
+          outcome.legErrors.push({ leg: 'decks', detail: errorText(failure) });
+        }
+      }
+    }
     if (current !== run.current) {
       return;
     }
-    setResult({ decks, replays, customSets });
+    setLeg(null);
+    setResult(outcome);
     setStage('done');
   };
 
   const cancel = useCallback(() => {
     cancelled.current = true;
+    setStopping(true);
   }, []);
 
   return {
@@ -377,6 +466,8 @@ export function useDeckMigration() {
     setIncludeCustomSets,
     plan,
     progress,
+    leg,
+    stopping,
     result,
     addSources,
     start,

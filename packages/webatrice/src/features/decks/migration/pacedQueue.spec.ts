@@ -51,3 +51,50 @@ it('stops when cancelled or when a task says stop', async () => {
   expect(await runPaced([1, 2], async () => 'stop', () => {}, { intervalMs: 0, floodBackoffMs: 0, maxFloodRetries: 0 }))
     .toEqual({ completed: 0, stopped: true });
 });
+
+it('does not send the next command when cancelled during the pacing wait', async () => {
+  let now = 0;
+  let cancelled = false;
+  const sent: number[] = [];
+  const sleep = async (ms: number) => {
+    now += ms;
+    cancelled = true;
+  };
+  const result = await runPaced([1, 2, 3], async (item) => {
+    sent.push(item);
+    return 'ok';
+  }, () => {}, { intervalMs: 1200, floodBackoffMs: 0, maxFloodRetries: 0, now: () => now, sleep, isCancelled: () => cancelled });
+  expect(sent).toEqual([1]);
+  expect(result).toEqual({ completed: 1, stopped: true });
+});
+
+it('does not retry a flood after a cancel during the back-off', async () => {
+  let cancelled = false;
+  const settled: string[] = [];
+  let calls = 0;
+  await runPaced(['a'], async () => {
+    calls += 1;
+    return 'flood';
+  }, (_item, _i, outcome) => settled.push(outcome), {
+    intervalMs: 0, floodBackoffMs: 5000, maxFloodRetries: 3, sleep: async () => {
+      cancelled = true;
+    }, isCancelled: () => cancelled,
+  });
+  expect(calls).toBe(1);
+  expect(settled).toEqual(['flood']);
+});
+
+it('settles skipped items without waiting or sending', async () => {
+  const c = clock();
+  const sent: number[] = [];
+  const settled: Array<[number, string]> = [];
+  await runPaced([1, 2, 3], async (item) => {
+    sent.push(item);
+    return 'ok';
+  }, (item, _i, outcome) => settled.push([item, outcome]), {
+    intervalMs: 1000, floodBackoffMs: 0, maxFloodRetries: 0, now: c.now, sleep: c.sleep, skip: (item) => item === 2,
+  });
+  expect(sent).toEqual([1, 3]);
+  expect(settled).toEqual([[1, 'ok'], [2, 'skipped'], [3, 'ok']]);
+  expect(c.waits).toEqual([1000]);
+});

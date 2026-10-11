@@ -1,10 +1,12 @@
 export type TaskOutcome = 'ok' | 'flood' | 'failed' | 'stop';
+export type SettledOutcome = 'ok' | 'flood' | 'failed' | 'skipped';
 
-export interface PacedQueueOptions {
+export interface PacedQueueOptions<T = unknown> {
   intervalMs: number;
   floodBackoffMs: number;
   maxFloodRetries: number;
   isCancelled?: () => boolean;
+  skip?: (item: T, index: number) => boolean;
   sleep?: (ms: number) => Promise<void>;
   now?: () => number;
 }
@@ -25,21 +27,29 @@ const realSleep = (ms: number) => new Promise<void>((resolve) => setTimeout(reso
 export async function runPaced<T>(
   items: readonly T[],
   task: (item: T, index: number) => Promise<TaskOutcome>,
-  onSettled: (item: T, index: number, outcome: Exclude<TaskOutcome, 'stop'>) => void,
-  options: PacedQueueOptions,
+  onSettled: (item: T, index: number, outcome: SettledOutcome) => void,
+  options: PacedQueueOptions<T>,
 ): Promise<PacedQueueResult> {
   const sleep = options.sleep ?? realSleep;
   const now = options.now ?? Date.now;
+  const cancelled = () => options.isCancelled?.() === true;
   let lastStart = -Infinity;
   for (let index = 0; index < items.length; index++) {
+    if (cancelled()) {
+      return { completed: index, stopped: true };
+    }
+    if (options.skip?.(items[index], index)) {
+      onSettled(items[index], index, 'skipped');
+      continue;
+    }
     let floods = 0;
     for (;;) {
-      if (options.isCancelled?.()) {
-        return { completed: index, stopped: true };
-      }
       const wait = lastStart + options.intervalMs - now();
       if (wait > 0) {
         await sleep(wait);
+      }
+      if (cancelled()) {
+        return { completed: index, stopped: true };
       }
       lastStart = now();
       const outcome = await task(items[index], index);
@@ -49,6 +59,10 @@ export async function runPaced<T>(
       if (outcome === 'flood' && floods < options.maxFloodRetries) {
         floods += 1;
         await sleep(options.floodBackoffMs * floods);
+        if (cancelled()) {
+          onSettled(items[index], index, 'flood');
+          return { completed: index + 1, stopped: true };
+        }
         continue;
       }
       onSettled(items[index], index, outcome);

@@ -120,10 +120,10 @@ export function DeckStorageSidebar({
         </span>
       </div>
       <div className="flex gap-2">
-        <Button variant="primary" className="flex-1" icon={<Plus size={15} />} onClick={onCreate} disabled={!isConnected}>
+        <Button variant="primary" className="flex-1 !px-3" icon={<Plus size={15} />} onClick={onCreate} disabled={!isConnected}>
           {t('Decks.list.newDeck')}
         </Button>
-        <ImportMenuButton className="flex-1" onMigrate={onMigrate} onImport={onImport} isConnected={isConnected} />
+        <ImportMenuButton className="flex-1 !px-3" onMigrate={onMigrate} onImport={onImport} isConnected={isConnected} />
       </div>
       <nav aria-label={t('DeckStorageSidebar.folders')} className="flex flex-col gap-1">
         <div className="flex items-center pb-1 pl-2">

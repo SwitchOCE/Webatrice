@@ -48,7 +48,8 @@
       "customSets": "Import {count, plural, one {# custom set file} other {# custom set files}} into this browser's card database",
       "cardDatabase": "Not needed: {files}. Webatrice gets its card data from Scryfall.",
       "import": "{count, plural, =0 {Import} one {Import # deck} other {Import # decks}}",
-      "options": "Import options"
+      "options": "Import options",
+      "ignored": "{count, plural, one {# line wasn't read} other {# lines weren't read}}"
     },
     "zone": {
       "tokens": "{count, plural, one {# token} other {# tokens}}",
@@ -64,13 +65,15 @@
     "failure": {
       "flood": "The server is busy; try again in a minute",
       "server": "The server refused it (code {code})",
-      "timeout": "The server didn't answer"
+      "timeout": "The server didn't answer",
+      "folder": "Not imported: couldn't create the folder {folder}"
     },
     "progress": {
       "decks": "Importing decks: {done} of {total}",
       "keepOpen": "Keep this window open until the import finishes. The server accepts a few decks per second, so large libraries take a few minutes.",
       "stop": "Stop after this deck",
-      "folders": "Creating folder {name}"
+      "folders": "Creating folder {name}",
+      "stopping": "Stopping…"
     },
     "summary": {
       "decks": "{count, plural, =0 {No decks imported.} one {Imported # deck.} other {Imported # decks.}}",
@@ -81,10 +84,21 @@
       "again": "Run the import again to finish: decks that are already on the server are skipped.",
       "more": "Import more",
       "done": "Done",
-      "skippedGroup": "{count, plural, one {# deck} other {# decks}}: {reason}"
+      "skippedGroup": "{count, plural, one {# deck} other {# decks}}: {reason}",
+      "stoppedReplays": "Stopped before all replays were imported.",
+      "stoppedCustomSets": "Stopped before all custom set files were imported.",
+      "legFailed": {
+        "replays": "Replays couldn't be imported: {detail}",
+        "customSets": "Custom sets couldn't be imported: {detail}",
+        "decks": "The deck import stopped with an error: {detail}"
+      }
     },
     "error": {
       "nothingFound": "No decks, replays or custom sets were found there. Choose your Cockatrice folder or its decks folder."
+    },
+    "leg": {
+      "replays": "Importing replays into this browser…",
+      "customSets": "Importing custom sets into this browser…"
     }
   }
 }

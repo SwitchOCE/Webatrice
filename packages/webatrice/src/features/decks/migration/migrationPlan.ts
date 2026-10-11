@@ -2,7 +2,7 @@ import type { ServerInfo_DeckStorage_Folder } from '@cockatrice/sockatrice/gener
 import type { ParsedDeck } from '@app/types';
 
 import { allDeckFolderPaths, decksUnderFolder, joinDeckPath, MAX_DECK_PATH_LENGTH } from '../deckFolders';
-import { fileToParsedDeck, isDeckFileName } from '../deckFiles';
+import { isDeckFileName, readDeckFile } from '../deckFiles';
 import type { SourceFile } from './fileSources';
 
 export const MAX_DECK_FILE_BYTES = 0x1fffff;
@@ -73,6 +73,7 @@ export interface ScannedDeck {
   fileName: string;
   folder: string[];
   deck: ParsedDeck | null;
+  ignored?: string[];
   problem?: DeckScanProblem;
 }
 
@@ -82,8 +83,9 @@ export async function scanDeckSource(source: SourceFile & { folder: string[] }, 
     return { ...base, deck: null, problem: 'tooLarge' };
   }
   try {
-    const deck = fileToParsedDeck(source.file.name, await source.file.text());
-    return deck.cards.length ? { ...base, deck } : { ...base, deck: null, problem: 'empty' };
+    const { deck, ignored } = readDeckFile(source.file.name, await source.file.text());
+    const withIgnored = ignored.length ? { ...base, ignored } : base;
+    return deck.cards.length ? { ...withIgnored, deck } : { ...withIgnored, deck: null, problem: 'empty' };
   } catch {
     return { ...base, deck: null, problem: 'unreadable' };
   }

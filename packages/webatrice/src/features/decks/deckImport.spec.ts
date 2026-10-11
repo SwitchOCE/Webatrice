@@ -32,7 +32,7 @@ beforeEach(() => {
 });
 
 describe('resolveImportEntries', () => {
-  it('looks each name up once with its printing hint and keeps unknown names', async () => {
+  it('looks each printing up once, batching one printing per name per request, and keeps unknown names', async () => {
     vi.mocked(lookupCards).mockResolvedValue(new Map([['Sol Ring', solRing]]));
     const entries: ImportEntry[] = [
       { name: 'Sol Ring', quantity: 1, category: 'main', set: 'C21', collectorNumber: '263' },
@@ -42,10 +42,9 @@ describe('resolveImportEntries', () => {
 
     const rows = await resolveImportEntries(entries);
 
-    expect(lookupCards).toHaveBeenCalledOnce();
-    expect(lookupCards).toHaveBeenCalledWith([
-      { name: 'Sol Ring', set: 'C21', collectorNumber: '263' },
-      { name: 'Mystery', set: undefined, collectorNumber: undefined },
+    expect(vi.mocked(lookupCards).mock.calls.map(([hints]) => hints)).toEqual([
+      [{ name: 'Sol Ring', set: 'C21', collectorNumber: '263' }, { name: 'Mystery' }],
+      [{ name: 'Sol Ring' }],
     ]);
     expect(rows.map((r) => [r.entry.name, r.lookup.found])).toEqual([
       ['Sol Ring', true],
@@ -54,6 +53,24 @@ describe('resolveImportEntries', () => {
     ]);
     expect(rows[2].lookup).toEqual({ found: false, source: 'unknown', name: 'Mystery', printings: [] });
     expect(countResolvedRows(rows)).toEqual({ matched: 2, missing: 2 });
+  });
+
+  it('drops only the printing that failed, keeping a valid printing of the same card', async () => {
+    const missing: LookupResult = { found: false, source: 'unknown', name: 'Sol Ring', printings: [] };
+    vi.mocked(lookupCards)
+      .mockResolvedValueOnce(new Map([['Sol Ring', missing]]))
+      .mockResolvedValueOnce(new Map([['Sol Ring', solRing]]))
+      .mockResolvedValueOnce(new Map([['Sol Ring', solRing]]));
+    const rows = await resolveImportEntries([
+      { name: 'Sol Ring', quantity: 1, category: 'main', set: '2XM', collectorNumber: '300' },
+      { name: 'Sol Ring', quantity: 1, category: 'sideboard', set: 'C21', collectorNumber: '263', scryfallId: 'id-sol' },
+    ]);
+    expect(rows.map((r) => r.hintDropped ?? false)).toEqual([true, false]);
+    const deck: ParsedDeck = { name: 'D', meta: { v: 1, updatedAt: 'x' }, cards: [], format: '' };
+    expect(parseCod(buildImportedDeckCod(deck, rows, { name: '', format: '', t })).cards).toEqual([
+      { name: 'Sol Ring', quantity: 1, category: 'main' },
+      { name: 'Sol Ring', quantity: 1, category: 'sideboard', set: 'C21', collectorNumber: '263', scryfallId: 'id-sol' },
+    ]);
   });
 
   it('falls back to the name when a printing hint finds nothing, and drops that hint', async () => {

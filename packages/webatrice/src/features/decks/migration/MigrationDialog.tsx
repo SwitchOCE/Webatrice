@@ -44,6 +44,23 @@ const FAILURE_KEYS = {
   flood: 'DeckMigration.failure.flood',
   server: 'DeckMigration.failure.server',
   timeout: 'DeckMigration.failure.timeout',
+  folder: 'DeckMigration.failure.folder',
+} as const;
+
+const LEG_KEYS = {
+  replays: 'DeckMigration.leg.replays',
+  customSets: 'DeckMigration.leg.customSets',
+} as const;
+
+const STOPPED_LEG_KEYS = {
+  replays: 'DeckMigration.summary.stoppedReplays',
+  customSets: 'DeckMigration.summary.stoppedCustomSets',
+} as const;
+
+const LEG_ERROR_KEYS = {
+  replays: 'DeckMigration.summary.legFailed.replays',
+  customSets: 'DeckMigration.summary.legFailed.customSets',
+  decks: 'DeckMigration.summary.legFailed.decks',
 } as const;
 
 const ZONE_KEYS = {
@@ -269,30 +286,42 @@ function DeckRow({ preview, migration }: { preview: DeckPreview; migration: Deck
   const { t } = useTranslation();
   const checked = migration.selected.has(preview.id);
   return (
-    <li className="flex items-center gap-3 px-3 py-1.5">
-      <Checkbox
-        checked={checked && !preview.problem}
-        disabled={Boolean(preview.problem) || !migration.canStoreDecks}
-        onChange={(on) => migration.toggle([preview.id], on)}
-        label={<span className="truncate">{preview.name}</span>}
-        className="min-w-0 flex-1"
-      />
-      <span className="flex shrink-0 flex-wrap items-center justify-end gap-1.5 text-xs text-text-muted">
-        {preview.problem ? (
-          <Chip tone="danger">{t(PROBLEM_KEYS[preview.problem])}</Chip>
-        ) : (
-          <>
-            <span>{t('DeckMigration.preview.cards', { count: preview.cardCount })}</span>
-            {preview.unknownCount > 0 && <Chip tone="warning">{t('DeckMigration.preview.unknown', { count: preview.unknownCount })}</Chip>}
-            {preview.extraZones.map(({ zone, count }) => (
-              <Chip key={zone}>
-                {zone === 'tokens' || zone === 'maybeboard' ? t(ZONE_KEYS[zone], { count }) : `${zone} ${count}`}
-              </Chip>
-            ))}
-            {preview.onServer && <Chip tone="info">{t('DeckMigration.preview.onServer')}</Chip>}
-          </>
-        )}
-      </span>
+    <li className="flex flex-col px-3 py-1.5">
+      <div className="flex items-center gap-3">
+        <Checkbox
+          checked={checked && !preview.problem}
+          disabled={Boolean(preview.problem) || !migration.canStoreDecks}
+          onChange={(on) => migration.toggle([preview.id], on)}
+          label={<span className="truncate">{preview.name}</span>}
+          className="min-w-0 flex-1"
+        />
+        <span className="flex shrink-0 flex-wrap items-center justify-end gap-1.5 text-xs text-text-muted">
+          {preview.problem ? (
+            <Chip tone="danger">{t(PROBLEM_KEYS[preview.problem])}</Chip>
+          ) : (
+            <>
+              <span>{t('DeckMigration.preview.cards', { count: preview.cardCount })}</span>
+              {preview.unknownCount > 0 && (
+                <Chip tone="warning">{t('DeckMigration.preview.unknown', { count: preview.unknownCount })}</Chip>
+              )}
+              {preview.extraZones.map(({ zone, count }) => (
+                <Chip key={zone}>
+                  {zone === 'tokens' || zone === 'maybeboard' ? t(ZONE_KEYS[zone], { count }) : `${zone} ${count}`}
+                </Chip>
+              ))}
+              {preview.onServer && <Chip tone="info">{t('DeckMigration.preview.onServer')}</Chip>}
+            </>
+          )}
+        </span>
+      </div>
+      {preview.ignored.length > 0 && (
+        <details className="pl-7 text-xs text-warning">
+          <summary className="cursor-pointer">{t('DeckMigration.preview.ignored', { count: preview.ignored.length })}</summary>
+          <ul className="mt-1 flex flex-col gap-0.5 font-mono text-text-muted">
+            {preview.ignored.map((line, i) => <li key={i} className="truncate">{line}</li>)}
+          </ul>
+        </details>
+      )}
     </li>
   );
 }
@@ -406,8 +435,10 @@ function PreviewStep({ migration }: { migration: DeckMigration }) {
 function ProgressStep({ migration }: { migration: DeckMigration }) {
   const { t } = useTranslation();
   const { done, total, current, creatingFolder } = migration.progress;
+  const leg = migration.leg;
   return (
     <div className="mt-6 flex flex-col gap-4">
+      {leg && leg !== 'decks' && <p className="text-sm text-text-secondary">{t(LEG_KEYS[leg])}</p>}
       <ProgressBar done={done} total={total} label={t('DeckMigration.progress.decks', { done, total })} />
       {current && (
         <span className="truncate text-xs text-text-muted">
@@ -416,7 +447,9 @@ function ProgressStep({ migration }: { migration: DeckMigration }) {
       )}
       <p className="text-sm text-text-secondary">{t('DeckMigration.progress.keepOpen')}</p>
       <div className="flex justify-end">
-        <Button onClick={migration.cancel}>{t('DeckMigration.progress.stop')}</Button>
+        <Button onClick={migration.cancel} disabled={migration.stopping}>
+          {t(migration.stopping ? 'DeckMigration.progress.stopping' : 'DeckMigration.progress.stop')}
+        </Button>
       </div>
     </div>
   );
@@ -449,7 +482,9 @@ function SummaryStep({ migration, onClose }: { migration: DeckMigration; onClose
             ))}
             {decks.failed.length > 0 && (
               <ul className="text-xs text-danger">
-                {decks.failed.map((f, i) => <li key={i}>{f.name}: {t(FAILURE_KEYS[f.reason], { code: f.code ?? '' })}</li>)}
+                {decks.failed.map((f, i) => (
+                  <li key={i}>{f.name}: {t(FAILURE_KEYS[f.reason], { code: f.code ?? '', folder: f.folder ?? '' })}</li>
+                ))}
               </ul>
             )}
             {decks.stopped && (
@@ -480,7 +515,13 @@ function SummaryStep({ migration, onClose }: { migration: DeckMigration; onClose
             {sets.problems.map((line) => <p key={line} className="text-xs text-text-muted">{line}</p>)}
           </section>
         )}
-        {decks?.failed.length || decks?.stopped ? (
+        {result.stoppedLegs.map((leg) => leg !== 'decks' && (
+          <p key={leg} className="text-xs text-warning">{t(STOPPED_LEG_KEYS[leg])}</p>
+        ))}
+        {result.legErrors.map(({ leg, detail }) => (
+          <p key={leg} role="alert" className="text-xs text-danger">{t(LEG_ERROR_KEYS[leg], { detail })}</p>
+        ))}
+        {decks?.failed.length || decks?.stopped || result.stoppedLegs.length || result.legErrors.length ? (
           <p className="text-xs text-text-muted">{t('DeckMigration.summary.again')}</p>
         ) : null}
       </div>

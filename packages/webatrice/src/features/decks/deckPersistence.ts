@@ -53,7 +53,7 @@ export function deckSaveSignature(deck: HydratedDeck): string {
       c.set ?? '',
       c.collectorNumber ?? '',
       c.scryfallId ?? '',
-      c.zonePath?.join('/') ?? '',
+      c.zonePath ?? [],
     ]),
   });
 }

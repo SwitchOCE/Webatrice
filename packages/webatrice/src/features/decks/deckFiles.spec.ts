@@ -1,4 +1,6 @@
-import { extraZoneSummary, fileToParsedDeck, isDeckFileName, parseDeckFile } from './deckFiles';
+import { extraZoneSummary, isDeckFileName, parseDeckFile, readDeckFile } from './deckFiles';
+
+const fileToParsedDeck = (name: string, text: string) => readDeckFile(name, text).deck;
 
 describe('deck files', () => {
   it.each([
@@ -33,5 +35,11 @@ describe('deck files', () => {
   it('keeps the deck name from the text, else the file name', () => {
     expect(fileToParsedDeck('x.txt', '// Boros Burn\n\n4 Lightning Bolt').name).toBe('Boros Burn');
     expect(fileToParsedDeck('Mono Red.txt', '4 Lightning Bolt').name).toBe('Mono Red');
+  });
+
+  it('reports the lines of a text file it could not read', () => {
+    expect(readDeckFile('x.txt', '4 Lightning Bolt\n???\n0 Nothing').ignored).toEqual(['???', '0 Nothing']);
+    const cod = '<cockatrice_deck version="1"><zone name="main"><card number="1" name="Opt"/></zone></cockatrice_deck>';
+    expect(readDeckFile('x.cod', cod).ignored).toEqual([]);
   });
 });
