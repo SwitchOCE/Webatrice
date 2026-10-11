@@ -5,9 +5,9 @@ import { useApplyAnimationPolicy, useApplyCardPresentation, useApplyColorScheme 
 import { createAppTheme } from '@app/services';
 
 export default function AppThemeProvider({ children }: { children: ReactNode }) {
-  const scheme = useApplyColorScheme();
+  const { scheme, themeName } = useApplyColorScheme();
   useApplyCardPresentation();
   useApplyAnimationPolicy();
-  const theme = useMemo(() => createAppTheme(scheme), [scheme]);
+  const theme = useMemo(() => createAppTheme(themeName, scheme), [themeName, scheme]);
   return <ThemeProvider theme={theme}>{children}</ThemeProvider>;
 }

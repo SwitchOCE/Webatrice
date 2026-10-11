@@ -1,4 +1,4 @@
-import { PREFERENCE_DEFAULTS, SETTINGS_VERSION, ThemeMode } from '@app/types';
+import { PREFERENCE_DEFAULTS, SETTINGS_VERSION, ThemeMode, ThemeName } from '@app/types';
 import { LANGUAGE_STORAGE_KEY } from '@app/utils';
 import { fillPreferenceDefaults, migrateSetting } from './settingsMigration';
 
@@ -176,5 +176,20 @@ describe('v4: animation choices from a v3 row', () => {
   it('does not rerun on a current row', () => {
     const row = migrateSetting({ user: '*app', version: 4, tapAnimation: false, animationsChosen: false });
     expect(row.animationsChosen).toBe(false);
+  });
+});
+
+describe('v5: colour theme', () => {
+  it('keeps an existing user on the look they have had, now Midnight', () => {
+    expect(migrateSetting({ user: '*app', version: 4 }).themeName).toBe(ThemeName.Midnight);
+    expect(migrateSetting({ user: '*app' }).themeName).toBe(ThemeName.Midnight);
+  });
+
+  it('leaves a current row alone', () => {
+    expect(migrateSetting({ user: '*app', version: 5, themeName: ThemeName.Carbon }).themeName).toBe(ThemeName.Carbon);
+  });
+
+  it('gives a fresh row Graphite', () => {
+    expect(PREFERENCE_DEFAULTS.themeName).toBe(ThemeName.Graphite);
   });
 });

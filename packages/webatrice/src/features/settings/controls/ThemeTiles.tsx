@@ -1,40 +1,11 @@
 import { useTranslation } from 'react-i18next';
 import { Monitor, Moon, Sun, type LucideIcon } from 'lucide-react';
 
-import { usePreference, useSettings } from '@app/hooks';
+import { usePreference, useSettings, useThemeName } from '@app/hooks';
 import { ThemeMode } from '@app/types';
-import { cx } from '@app/utils';
 
 import type { CustomControlProps } from '../registry';
-import { previewVars } from './themePreview';
-
-type Shade = 'light' | 'dark';
-
-function MiniApp({ shade }: { shade: Shade }) {
-  return (
-    <span aria-hidden style={previewVars(shade)} className="absolute inset-0 flex bg-bg-base">
-      <span className="w-[18%] border-r border-border-subtle bg-bg-surface p-1.5">
-        <span className="mb-1.5 block h-2.5 w-2.5 rounded-sm bg-accent" />
-        <span className="mb-1 block h-1.5 rounded-full bg-accent/60" />
-        <span className="mb-1 block h-1.5 rounded-full bg-text-muted/40" />
-        <span className="block h-1.5 rounded-full bg-text-muted/40" />
-      </span>
-      <span className="flex flex-1 flex-col gap-1.5 p-2">
-        <span className="block h-2 w-1/2 rounded-full bg-text-primary/70" />
-        <span className="flex flex-1 gap-1.5">
-          <span className="flex-1 rounded-[3px] border border-border-subtle bg-bg-surface p-1">
-            <span className="mb-1 block h-1.5 w-3/4 rounded-full bg-text-secondary/50" />
-            <span className="block h-1.5 w-1/2 rounded-full bg-text-muted/40" />
-          </span>
-          <span className="flex-1 rounded-[3px] border border-border-subtle bg-bg-surface p-1">
-            <span className="mb-1 block h-1.5 w-2/3 rounded-full bg-text-secondary/50" />
-            <span className="ml-auto mt-2 block h-2.5 w-1/2 rounded-[2px] bg-accent" />
-          </span>
-        </span>
-      </span>
-    </span>
-  );
-}
+import { ThemePreview, ThemeTile } from './ThemeTile';
 
 const THEME_LABEL_KEYS: Record<ThemeMode, string> = {
   [ThemeMode.Light]: 'SettingsAppearance.themeMode.light',
@@ -42,68 +13,34 @@ const THEME_LABEL_KEYS: Record<ThemeMode, string> = {
   [ThemeMode.System]: 'SettingsAppearance.themeMode.system',
 };
 
-const TILES: { mode: ThemeMode; icon: LucideIcon }[] = [
-  { mode: ThemeMode.Light, icon: Sun },
-  { mode: ThemeMode.Dark, icon: Moon },
-  { mode: ThemeMode.System, icon: Monitor },
+const TILES: { mode: ThemeMode; icon: LucideIcon; shade: 'light' | 'dark' | 'split' }[] = [
+  { mode: ThemeMode.Light, icon: Sun, shade: 'light' },
+  { mode: ThemeMode.Dark, icon: Moon, shade: 'dark' },
+  { mode: ThemeMode.System, icon: Monitor, shade: 'split' },
 ];
 
 export default function ThemeTiles({ id, labelId, describedBy, disabled }: CustomControlProps) {
   const { t } = useTranslation();
   const settings = useSettings();
   const current = usePreference('themeMode');
+  const themeName = useThemeName();
 
   return (
     <div role="radiogroup" aria-labelledby={labelId} aria-describedby={describedBy} className="flex flex-wrap gap-gap">
-      {TILES.map(({ mode, icon: Icon }) => {
-        const on = current === mode;
-        return (
-          <label key={mode} className={cx('group relative', disabled ? 'cursor-not-allowed opacity-45' : 'cursor-pointer')}>
-            <input
-              id={mode === current ? id : undefined}
-              type="radio"
-              name={`${id}-theme`}
-              value={mode}
-              checked={on}
-              disabled={disabled}
-              onChange={() => void settings.update({ themeMode: mode })}
-              className="peer sr-only"
-            />
-            <span
-              className={cx(
-                'flex flex-col gap-1.5 rounded-ui-lg border p-1.5 transition-colors',
-                'peer-focus-visible:outline peer-focus-visible:outline-2',
-                'peer-focus-visible:outline-offset-2 peer-focus-visible:outline-accent',
-                on ? 'border-accent bg-accent/10 ring-1 ring-accent' : 'border-border-subtle group-hover:border-border-strong',
-              )}
-            >
-              <span className="relative block h-[68px] w-[124px] overflow-hidden rounded-ui">
-                {mode === ThemeMode.System ? (
-                  <>
-                    <MiniApp shade="light" />
-                    <span className="absolute inset-0 [clip-path:polygon(58%_0,100%_0,100%_100%,42%_100%)]">
-                      <MiniApp shade="dark" />
-                    </span>
-                  </>
-                ) : (
-                  <MiniApp shade={mode === ThemeMode.Light ? 'light' : 'dark'} />
-                )}
-              </span>
-              <span className="flex items-center gap-1.5 px-0.5 text-[12px] font-medium text-text-primary">
-                <Icon size={13} aria-hidden className={on ? 'text-accent' : 'text-text-muted'} />
-                {t(THEME_LABEL_KEYS[mode])}
-                <span
-                  aria-hidden
-                  className={cx(
-                    'ml-auto h-3.5 w-3.5 rounded-full border-2',
-                    on ? 'border-accent bg-accent shadow-[inset_0_0_0_2px_rgb(var(--bg-surface))]' : 'border-border-control',
-                  )}
-                />
-              </span>
-            </span>
-          </label>
-        );
-      })}
+      {TILES.map(({ mode, icon, shade }) => (
+        <ThemeTile
+          key={mode}
+          id={mode === current ? id : undefined}
+          name={`${id}-theme`}
+          value={mode}
+          checked={current === mode}
+          disabled={disabled}
+          onSelect={() => void settings.update({ themeMode: mode })}
+          icon={icon}
+          label={t(THEME_LABEL_KEYS[mode])}
+          preview={<ThemePreview themeName={themeName} shade={shade} />}
+        />
+      ))}
     </div>
   );
 }
