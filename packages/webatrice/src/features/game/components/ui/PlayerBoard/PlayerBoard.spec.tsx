@@ -59,12 +59,12 @@ describe('PlayerBoard', () => {
 
   it('names an opponent\'s hand by the server\'s count, in either hand layout', async () => {
     renderSeatCell(SPEC, 2);
-    expect(screen.getByTitle('Hand — 2 cards')).toBeDisabled();
+    expect(screen.getByRole('img', { name: 'Hand, 2 cards' })).toBeInTheDocument();
     cleanup();
     const settings = await getSettings();
     settingsStore.setValue(Object.assign(settings, { horizontalHand: false }));
     renderSeatCell(SPEC, 2);
-    expect(screen.getByTitle('Hand — 2 cards')).toBeDisabled();
+    expect(screen.getByRole('img', { name: 'Hand, 2 cards' })).toBeInTheDocument();
     settingsStore.reset();
   });
 

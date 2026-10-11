@@ -13,8 +13,8 @@ import {
   slotOriginPx,
   snapPxToSlot,
 } from './battlefieldLayout';
+import { battlefieldSlots } from './battlefieldSlots';
 
-type BattlefieldCard = BattlefieldCardViewModel;
 
 export interface UseBattlefieldLayoutArgs {
   cards: readonly BattlefieldCardViewModel[];
@@ -56,57 +56,7 @@ export function useBattlefieldLayout({ cards, playerId, mirrored }: UseBattlefie
     return () => ro.disconnect();
   }, []);
 
-  // Parent → children map for attached cards on THIS player's board.
-  // `computeCellWidths` needs each parent's attach count to widen the
-  // parent's cell (cells hosting a heavily-fanned parent grow to the left
-  // so the leftward-extending children don't overlap the neighboring
-  // column); the positions below reuse it to fan children.
-  const attachedChildrenByParent = (() => {
-    const m = new Map<number, BattlefieldCard[]>();
-    for (const c of cards) {
-      if (
-        c.attachTargetCardId != null &&
-        c.attachTargetPlayerId === playerId
-      ) {
-        const list = m.get(c.attachTargetCardId) ?? [];
-        list.push(c);
-        m.set(c.attachTargetCardId, list);
-      }
-    }
-    return m;
-  })();
-  // Attached-to-own-parent cards live at wire (x=-1, y=-1) — they don't
-  // occupy their own slot on the battlefield. Filter them out of the
-  // layout input so col 0 / row 0 isn't inflated by every attached card
-  // ending up there. The full cards is still what the
-  // render loop iterates; layout just needs the "free-standing" set.
-  //
-  // Each free-standing parent carries its `attachedChildCount` so
-  // `computeCellWidths` can widen the parent's cell to hold the fan,
-  // pushing subsequent columns right — otherwise the leftward-fanning
-  // children would overlap the previous column's card.
-  const battlefieldForLayout = cards
-    .filter(
-      (c) =>
-        c.attachTargetCardId == null || c.attachTargetPlayerId !== playerId,
-    )
-    .map((c) => ({
-      // Layout math (computeCellWidths / columnLeftX / slotOriginPx /
-      // computeContentWidth / snapPxToSlot) is entirely in DISPLAY
-      // coord — that's the space the rendered cards, slot outlines,
-      // and drop hit-tests all live in. For a mirrored opponent
-      // battlefield, wire row 0 (creatures) shows at display row
-      // ROWS-1. Passing the wire row in here would key cellWidths by
-      // the wrong row and the stack-widening would push cards over
-      // in the WRONG visual row (looked like only the bottom row
-      // widening when the user stacked cards in the top). Flip up
-      // front so every downstream lookup speaks the same language.
-      row: mirrored ? BATTLEFIELD_ROWS - 1 - c.slot.row : c.slot.row,
-      col: c.slot.col,
-      subSlot: c.subSlot,
-      attachedChildCount:
-        attachedChildrenByParent.get(Number(c.id))?.length ?? 0,
-    }));
+  const { slots: battlefieldForLayout, childrenByParent: attachedChildrenByParent } = battlefieldSlots(cards, playerId, mirrored);
   // Per-cell horizontal footprint — a cell with 3 stacked cards is
   // 2×STACK_OFFSET_PX wider than a solo cell, and columns to the right
   // of it shift over by that difference. Ported from Cockatrice's

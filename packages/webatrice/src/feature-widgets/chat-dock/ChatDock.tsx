@@ -1,27 +1,30 @@
 import { type CSSProperties } from 'react';
 import { useTranslation } from 'react-i18next';
 
-import { useUnreadCounts } from '@app/hooks';
+import { CHAT_CHIP_WIDTH_PX, CHAT_DOCK_MARGIN_PX, CHAT_WINDOW_WIDTH_PX, useUnreadCounts } from '@app/hooks';
 
 import ChatBar from './ChatBar';
 import ChatWindow from './ChatWindow';
-import { useChatDockController } from './useChatDockController';
+import { useChatDockController, useDockFootprint } from './useChatDockController';
 import { useDockFocus } from './useDockFocus';
 
 export default function ChatDock() {
   const { t } = useTranslation();
-  const { visible, windows, bars, rightInset, focus } = useChatDockController();
+  const { visible, windows, bars, rightInset, placement, focus } = useChatDockController();
   const unread = useUnreadCounts().chats;
   const { rootRef, registerInput, registerBar, minimise, close } = useDockFocus(windows, bars, focus);
+  useDockFootprint(rootRef, rightInset, visible && placement.bottom === 0);
 
   if (!visible) {
     return null;
   }
 
-  const style: CSSProperties = {
-    right: `calc(${rightInset}px + 0.75rem)`,
-    maxWidth: `calc(100vw - ${rightInset}px - 1.5rem)`,
-  };
+  const style = {
+    right: rightInset + CHAT_DOCK_MARGIN_PX,
+    bottom: placement.bottom,
+    maxWidth: Math.max(placement.room, CHAT_WINDOW_WIDTH_PX),
+    '--chat-dock-bottom': `${placement.bottom}px`,
+  } as CSSProperties;
 
   return (
     <div
@@ -29,10 +32,10 @@ export default function ChatDock() {
       role="region"
       aria-label={t('ChatDock.region')}
       style={style}
-      className="pointer-events-none fixed bottom-0 z-20 flex items-end gap-2"
+      className="pointer-events-none fixed z-20 flex items-end justify-end gap-2"
     >
       {bars.length > 0 && (
-        <div className="pointer-events-auto flex min-w-0 shrink items-end gap-1.5 overflow-x-auto">
+        <div className="pointer-events-auto flex shrink items-end gap-1.5 overflow-x-auto" style={{ minWidth: CHAT_CHIP_WIDTH_PX }}>
           {bars.map((chat) => (
             <ChatBar
               key={chat.name}

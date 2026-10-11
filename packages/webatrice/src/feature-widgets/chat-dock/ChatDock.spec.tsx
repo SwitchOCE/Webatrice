@@ -8,7 +8,7 @@ import { getSettings, settingsStore } from '../../hooks/useSettings';
 import { dispatchChatDock, getChatDockState } from '../../hooks/useChatDock';
 import { UserGamesProvider } from '../user-games';
 import ChatDock from './ChatDock';
-import { rightInset, watchDockInset } from './useChatDockController';
+import { measureDockSpace, placeDock, watchDockSpace } from './useChatDockController';
 import { focusAfterClose } from './splitDock';
 import { notificationStore } from '../../services/notifications/notificationStore';
 import { getVisibleChats } from '../../hooks/useChatDock';
@@ -63,6 +63,7 @@ describe('ChatDock', () => {
     act(() => notificationStore.dispatch({ type: 'setDrawer', open: false }));
     setVisibility('visible');
     marks.markChatRead.mockClear();
+    vi.restoreAllMocks();
   });
 
   it('renders nothing until a chat is open', () => {
@@ -155,6 +156,7 @@ describe('ChatDock', () => {
   });
 
   it('keeps a draft when another chat pushes its window past the limit, and keeps open windows mounted', () => {
+    vi.spyOn(window, 'innerWidth', 'get').mockReturnValue(1920);
     renderWithProviders(<ChatDock />, { preloadedState: state });
     open('alice');
     const input = screen.getByRole('textbox', { name: 'PrivateChat.input' });
@@ -239,38 +241,75 @@ describe('focusAfterClose', () => {
   });
 });
 
-const placeAt = (el: HTMLElement, left: number) => {
-  el.getBoundingClientRect = () => ({ left } as DOMRect);
+const placeAt = (el: HTMLElement, left: number, top = 0) => {
+  el.getBoundingClientRect = () => ({ left, top } as DOMRect);
 };
 
-describe('watchDockInset', () => {
-  it('reports how far the avoided column reaches in from the right edge as it appears, moves and goes', async () => {
+const sidebarAt = (left: number) => {
+  const el = document.createElement('div');
+  el.setAttribute('data-chat-dock-avoid', '');
+  placeAt(el, left);
+  return el;
+};
+
+const trayAt = (left: number, top: number, keep: number) => {
+  const el = document.createElement('div');
+  el.setAttribute('data-chat-dock-keep', String(keep));
+  placeAt(el, left, top);
+  return el;
+};
+
+const viewport = { width: 1440, height: 900 };
+
+describe('measureDockSpace', () => {
+  it('outside a game keeps the page reserve on the left of the viewport', () => {
     const root = document.createElement('div');
-    document.body.appendChild(root);
-    const insets: number[] = [];
-    const stop = watchDockInset((inset) => insets.push(inset), root);
-    const sidebar = document.createElement('div');
-    sidebar.setAttribute('data-chat-dock-avoid', '');
-    placeAt(sidebar, window.innerWidth - 300);
-    root.appendChild(sidebar);
-    await new Promise((resolve) => setTimeout(resolve, 0));
-    placeAt(sidebar, window.innerWidth - 44);
-    window.dispatchEvent(new Event('resize'));
-    sidebar.remove();
-    await new Promise((resolve) => setTimeout(resolve, 0));
-    stop();
-    root.remove();
-    expect(insets).toEqual([0, 300, 44, 0]);
+    expect(measureDockSpace(root, viewport)).toEqual({ inset: 0, room: 1440 - 12 - 468, liftedRoom: 1440 - 12 - 468, lift: 0 });
+  });
+
+  it('in a game docks left of the sidebar and keeps the tray controls clear', () => {
+    const root = document.createElement('div');
+    root.append(sidebarAt(1152), trayAt(76, 740, 600));
+    expect(measureDockSpace(root, viewport)).toEqual({
+      inset: 288,
+      room: 1152 - 12 - 76 - 600,
+      liftedRoom: 1152 - 12 - 76 - 12,
+      lift: 160,
+    });
   });
 });
 
-describe('rightInset', () => {
-  it('measures from the viewport edge and never goes negative', () => {
-    const el = document.createElement('div');
-    expect(rightInset(null, 1280)).toBe(0);
-    placeAt(el, 980);
-    expect(rightInset(el, 1280)).toBe(300);
-    placeAt(el, 1400);
-    expect(rightInset(el, 1280)).toBe(0);
+describe('placeDock', () => {
+  const space = { inset: 288, room: 464, liftedRoom: 1052, lift: 160 };
+
+  it('sits on the bottom edge while one window, plus a chip slot if needed, fits beside the tray controls', () => {
+    expect(placeDock(space, 1)).toEqual({ room: 464, bottom: 0 });
+    expect(placeDock({ ...space, room: 468 }, 2)).toEqual({ room: 468, bottom: 0 });
+  });
+
+  it('lifts onto the tray when the bottom edge has no room, and never lifts outside a game', () => {
+    expect(placeDock(space, 2)).toEqual({ room: 1052, bottom: 160 });
+    expect(placeDock({ inset: 0, room: 100, liftedRoom: 100, lift: 0 }, 3)).toEqual({ room: 100, bottom: 0 });
+  });
+});
+
+describe('watchDockSpace', () => {
+  it('re-measures when the sidebar or tray appears, resizes or changes what it keeps', async () => {
+    const root = document.createElement('div');
+    document.body.appendChild(root);
+    const rooms: number[] = [];
+    const stop = watchDockSpace((space) => rooms.push(space.room), root);
+    const sidebar = sidebarAt(window.innerWidth - 300);
+    const tray = trayAt(0, 0, 200);
+    root.append(sidebar, tray);
+    await new Promise((resolve) => setTimeout(resolve, 0));
+    tray.setAttribute('data-chat-dock-keep', '400');
+    await new Promise((resolve) => setTimeout(resolve, 0));
+    placeAt(sidebar, window.innerWidth - 44);
+    window.dispatchEvent(new Event('resize'));
+    stop();
+    root.remove();
+    const right = window.innerWidth - 12;
+    expect(rooms).toEqual([right - 468, right - 300 - 200, right - 300 - 400, right - 44 - 400]);
   });
 });

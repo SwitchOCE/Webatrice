@@ -87,7 +87,7 @@ export default function ChatWindow({ name, focusSeq, registerInput, onMinimise, 
           'pointer-events-auto flex flex-col overflow-hidden rounded-t-ui-lg',
           'border border-b-0 border-border-strong bg-bg-surface shadow-pop',
         )}
-        style={{ height: 'min(420px, calc(100vh - 140px))' }}
+        style={{ height: 'min(420px, calc(100vh - var(--chat-dock-bottom, 0px) - 140px))' }}
       >
         <header className="flex shrink-0 items-center gap-2 bg-bg-elevated px-2.5 py-2">
           <button

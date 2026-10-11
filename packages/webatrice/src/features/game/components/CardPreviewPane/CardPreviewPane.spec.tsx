@@ -1,4 +1,4 @@
-import { act, render, screen } from '@testing-library/react';
+import { act, fireEvent, render, screen, within } from '@testing-library/react';
 
 import { CardPreviewProvider, createCardPreviewStore } from '../ui/CardPreviewContext';
 import CardPreviewPane from './CardPreviewPane';
@@ -40,14 +40,37 @@ describe('CardPreviewPane', () => {
       .toBe('https://api.scryfall.com/cards/named?exact=Rhino%2C%20Warrior%20Token&format=image&version=png');
   });
 
-  it('is a labelled region whose mode buttons are pressable toggles', () => {
+  it('is a labelled region offering the desktop Image, Description and Both views', () => {
     render(
       <CardPreviewProvider store={createCardPreviewStore()}>
         <CardPreviewPane />
       </CardPreviewProvider>,
     );
     expect(screen.getByRole('region', { name: 'CardPreviewPane.label' })).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: 'CardPreviewPane.showImage' })).toHaveAttribute('aria-pressed', 'true');
-    expect(screen.getByText('CardPreviewPane.hoverToPreview')).toBeInTheDocument();
+    const modes = screen.getByRole('radiogroup', { name: 'CardPreviewPane.modes' });
+    expect(within(modes).getByRole('radio', { name: 'CardPreviewPane.modeImage' })).toBeChecked();
+    fireEvent.click(within(modes).getByRole('radio', { name: 'CardPreviewPane.modeBoth' }));
+    expect(within(modes).getByRole('radio', { name: 'CardPreviewPane.modeBoth' })).toBeChecked();
+    expect(window.localStorage.getItem('webatrice.cardPreviewMode')).toBe('both');
+    expect(screen.getAllByText('CardPreviewPane.hoverToPreview').length).toBeGreaterThan(0);
+  });
+
+  it('hides and shows the card info, remembering the choice', () => {
+    window.localStorage.removeItem('webatrice.cardPreviewHidden');
+    render(
+      <CardPreviewProvider store={createCardPreviewStore()}>
+        <CardPreviewPane />
+      </CardPreviewProvider>,
+    );
+    fireEvent.click(screen.getByRole('button', { name: 'CardPreviewPane.hide' }));
+    expect(screen.queryByRole('radiogroup')).not.toBeInTheDocument();
+    expect(screen.queryByText('CardPreviewPane.hoverToPreview')).not.toBeInTheDocument();
+    expect(window.localStorage.getItem('webatrice.cardPreviewHidden')).toBe('1');
+    const show = screen.getByRole('button', { name: 'CardPreviewPane.show' });
+    expect(show).toHaveAttribute('aria-expanded', 'false');
+    fireEvent.click(show);
+    expect(screen.getByRole('radiogroup', { name: 'CardPreviewPane.modes' })).toBeInTheDocument();
+    window.localStorage.removeItem('webatrice.cardPreviewHidden');
+    window.localStorage.removeItem('webatrice.cardPreviewMode');
   });
 });

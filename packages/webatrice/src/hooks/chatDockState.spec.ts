@@ -1,5 +1,5 @@
 import {
-  chatDockReducer, EMPTY_CHAT_DOCK, expandedChatNames, maxExpandedFor, type ChatDockAction, type ChatDockState,
+  chatDockReducer, dockCapacity, dockRowWidth, EMPTY_CHAT_DOCK, expandedChatNames, type ChatDockAction, type ChatDockState,
 } from './chatDockState';
 
 const run = (...actions: ChatDockAction[]): ChatDockState => actions.reduce(chatDockReducer, EMPTY_CHAT_DOCK);
@@ -55,9 +55,21 @@ describe('chatDockReducer', () => {
     expect(expandedChatNames(chatDockReducer(state, { type: 'fit', max: 1 }))).toEqual(['b']);
   });
 
-  it('allows three windows on a wide screen and at least one on a narrow one', () => {
-    expect(maxExpandedFor(1920)).toBe(3);
-    expect(maxExpandedFor(1280)).toBe(2);
-    expect(maxExpandedFor(400)).toBe(1);
+  it('measures a row of windows and one chip slot with the gaps between them', () => {
+    expect(dockRowWidth(1, false)).toBe(300);
+    expect(dockRowWidth(2, true)).toBe(300 + 300 + 160 + 2 * 8);
+    expect(dockRowWidth(0, true)).toBe(160);
+  });
+
+  it('opens as many windows as the room holds, keeping a chip slot while chats are minimised, and always one', () => {
+    expect(dockCapacity(1000, 3)).toBe(3);
+    expect(dockCapacity(915, 3)).toBe(2);
+    expect(dockCapacity(916, 3)).toBe(3);
+    expect(dockCapacity(916, 4)).toBe(2);
+    expect(dockCapacity(608, 2)).toBe(2);
+    expect(dockCapacity(607, 2)).toBe(1);
+    expect(dockCapacity(467, 2)).toBe(1);
+    expect(dockCapacity(300, 1)).toBe(1);
+    expect(dockCapacity(299, 1)).toBe(1);
   });
 });

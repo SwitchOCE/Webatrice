@@ -44,7 +44,8 @@ describe('Game board arrangement', () => {
     const hand = within(tray).getByTestId('hand-zone-1');
     expect(within(hand).getAllByTitle(/^(Forest|Shock)$/)).toHaveLength(2);
     expect(screen.queryByTestId('hand-zone-2')).not.toBeInTheDocument();
-    expect(screen.getByTitle('Hand — 3 cards')).toBeDisabled();
+    expect(screen.getByRole('img', { name: 'Hand, 3 cards' })).toBeInTheDocument();
+    expect(screen.getByRole('img', { name: 'Hand, 2 cards' })).toBeInTheDocument();
     expect(within(tray).getByRole('button', { name: 'Hand — 2 cards' })).toBeEnabled();
     expect(setProperty).toHaveBeenCalledWith('--tray-card-height', expect.stringMatching(/px$/));
   });
@@ -110,7 +111,7 @@ describe('Game board arrangement', () => {
       omniscient: true,
       seats: SPEC.seats.map((s) => ({ ...s, hand: s.hand ?? [makeCard({ id: 60, name: 'Opt' })] })),
     });
-    expect(within(screen.getByTestId('board-tray')).queryByTestId('hand-zone-1')).not.toBeInTheDocument();
+    expect(screen.queryByTestId('board-tray')).not.toBeInTheDocument();
     expect(screen.getByTestId('hand-zone-1')).toBeInTheDocument();
     expect(screen.getByTestId('hand-zone-2')).toBeInTheDocument();
   });

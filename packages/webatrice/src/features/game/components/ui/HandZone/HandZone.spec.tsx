@@ -70,8 +70,8 @@ describe('HandZone', () => {
 
   it('shows another player\'s hand as a count only, with no cards and no menu', () => {
     renderSeatCell(SPEC, 2);
-    expect(handButton()).toHaveAttribute('title', 'Hand — 3 cards');
-    expect(handButton()).toBeDisabled();
+    expect(screen.getByRole('img', { name: 'Hand, 3 cards' })).toBeInTheDocument();
+    expect(screen.queryByTitle(/^Hand — /)).not.toBeInTheDocument();
     expect(document.querySelectorAll('[data-card][data-zone="hand"]')).toHaveLength(0);
     expect(screen.queryByTestId('hand-zone-2')).not.toBeInTheDocument();
   });
@@ -135,9 +135,9 @@ describe('HandZone', () => {
       expect(handButton()).toHaveFocus();
     });
 
-    it('names another player\'s hand button by its size too', () => {
+    it('names another player\'s hand tile by its size too', () => {
       renderSeatCell(SPEC, 2);
-      expect(screen.getByRole('button', { name: 'Hand — 3 cards' })).toBeDisabled();
+      expect(screen.getByRole('img', { name: 'Hand, 3 cards' })).toHaveAttribute('title', 'Hand, 3 cards');
     });
   });
 
@@ -225,7 +225,7 @@ describe('HandZone', () => {
       setPreferences({ horizontalHand: false });
       renderSeatCell(SPEC, 2);
       expect(screen.queryByTestId('hand-zone-2')).not.toBeInTheDocument();
-      expect(screen.getByTitle('Hand — 3 cards')).toBeDisabled();
+      expect(screen.getByRole('img', { name: 'Hand, 3 cards' })).toBeInTheDocument();
     });
   });
 });

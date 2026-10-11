@@ -6,7 +6,9 @@ import {
   chatDockReducer,
   EMPTY_CHAT_DOCK,
   expandedChatNames,
-  maxExpandedFor,
+  dockCapacity,
+  CHAT_DOCK_MARGIN_PX,
+  PAGE_KEEP_PX,
   type ChatDockAction,
   type ChatDockState,
 } from './chatDockState';
@@ -108,10 +110,22 @@ export function useChatDraft(name: string): [string, (text: string) => void] {
   return [draft, write];
 }
 
-export function currentMaxExpandedChats(): number {
-  return maxExpandedFor(typeof window === 'undefined' ? 1440 : window.innerWidth);
+let dockRoomPx: number | null = null;
+
+export function setChatDockRoom(px: number | null): void {
+  dockRoomPx = px;
+}
+
+function defaultDockRoom(): number {
+  const width = typeof window === 'undefined' ? 1440 : window.innerWidth;
+  return width - CHAT_DOCK_MARGIN_PX - PAGE_KEEP_PX;
+}
+
+export function currentMaxExpandedChats(adding?: string): number {
+  const total = state.chats.length + (adding && !state.chats.some((chat) => chat.name === adding) ? 1 : 0);
+  return dockCapacity(dockRoomPx ?? defaultDockRoom(), total);
 }
 
 export function useOpenChat(): (userName: string) => void {
-  return useCallback((userName: string) => dispatchChatDock({ type: 'open', name: userName, max: currentMaxExpandedChats() }), []);
+  return useCallback((userName: string) => dispatchChatDock({ type: 'open', name: userName, max: currentMaxExpandedChats(userName) }), []);
 }

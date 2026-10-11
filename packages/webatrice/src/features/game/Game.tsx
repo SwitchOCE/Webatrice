@@ -266,7 +266,7 @@ export function GameBoard({ gameId: boardGameId, footer, onLeave }: GameBoardPro
                                         <TallyOverlay />
                                       </div>
 
-                                      <BoardTray hostRef={setTrayHost} onMouseDown={handleBoardMouseDown} />
+                                      {layout.bottomHand && <BoardTray hostRef={setTrayHost} onMouseDown={handleBoardMouseDown} />}
 
                                       <div className="game__resizer">
                                         {!dock.collapsed && <SidebarResizer width={sidebarWidth} onResize={setSidebarWidth} />}
