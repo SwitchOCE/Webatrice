@@ -11,6 +11,7 @@ export const settingsStore = createSharedStore<SettingDTO>(async () => {
     loaded = new SettingDTO(APP_USER);
     loaded.version = 2;
     migrateSetting(loaded);
+    loaded.themeName = PREFERENCE_DEFAULTS.themeName;
     await loaded.save();
   }
   const version = loaded.version;

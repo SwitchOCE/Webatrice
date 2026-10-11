@@ -11,7 +11,7 @@ import { useGameId } from '../../components/ui/GameIdContext';
 import type { MoveTopUntilRequest } from '../../hooks/useMoveTopUntil';
 
 const SUBMIT_BUTTON_CLASS =
-  'px-3 py-1.5 rounded-md text-sm font-semibold bg-accent text-white hover:bg-accent-hover '
+  'px-3 py-1.5 rounded-md text-sm font-semibold bg-accent text-on-accent hover:bg-accent-hover '
   + 'shadow-glow board-motion transition-colors disabled:opacity-50 disabled:cursor-not-allowed';
 
 const FIELD_CLASS = [

@@ -147,7 +147,7 @@ export function PrintingPickerDialog({
                       <div
                         className={[
                           'absolute top-2 left-2 flex items-center gap-1 px-2 py-0.5',
-                          'rounded bg-accent text-white text-[10px] font-semibold shadow-glow',
+                          'rounded bg-accent text-on-accent text-[10px] font-semibold shadow-glow',
                         ].join(' ')}
                       >
                         <CheckCircle2 size={10} /> {t('PrintingPicker.current')}

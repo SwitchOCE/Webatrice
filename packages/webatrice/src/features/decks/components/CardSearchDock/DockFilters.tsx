@@ -69,7 +69,7 @@ const RARITY_NAME_KEYS: Record<FilterRarity, string> = {
 };
 
 const FOCUS = 'focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-accent';
-const FIELD = 'rounded-ui-sm border border-border-control/70 bg-bg-sunken text-[12px] text-text-primary';
+const FIELD = 'rounded-ui-sm border border-border-control bg-bg-sunken text-[12px] text-text-primary';
 
 function FilterChip({ label, title, on, onClick }: { label: string; title?: string; on: boolean; onClick: () => void }) {
   return (

@@ -52,7 +52,7 @@ export default function MoreFilters({ filters, passwordInBar, onChange, onReset,
             value={filters.maxGameAgeSeconds}
             onChange={(event) => onChange({ maxGameAgeSeconds: Number(event.target.value) })}
             className={[
-              'h-9 w-full appearance-none rounded-ui border border-border-control/70 bg-bg-sunken pl-2.5 pr-8 text-[13px]',
+              'h-9 w-full appearance-none rounded-ui border border-border-control bg-bg-sunken pl-2.5 pr-8 text-[13px]',
               'text-text-primary focus:border-accent focus:outline-none focus:ring-2 focus:ring-accent/25',
             ].join(' ')}
           >

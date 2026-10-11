@@ -1,16 +1,21 @@
 import { withMockColorSchemeMedia, type MockColorSchemeMedia } from '../../__test-utils__';
-import { ThemeMode } from '@app/types';
+import { PREFERENCE_DEFAULTS, ThemeMode, ThemeName } from '@app/types';
 import {
   applyColorScheme,
   bootColorScheme,
   bootThemeMode,
+  bootThemeName,
   followBootColorScheme,
   readBootThemeMode,
+  readBootThemeName,
+  resolveThemeName,
   resolveColorScheme,
   subscribeToSystemColorScheme,
   systemColorScheme,
   THEME_MODE_STORAGE_KEY,
+  THEME_NAME_STORAGE_KEY,
   writeBootThemeMode,
+  writeBootThemeName,
 } from './colorScheme';
 
 describe('colorScheme', () => {
@@ -21,6 +26,7 @@ describe('colorScheme', () => {
     media = undefined;
     localStorage.clear();
     delete document.documentElement.dataset.theme;
+    delete document.documentElement.dataset.scheme;
     document.documentElement.style.colorScheme = '';
   });
 
@@ -53,10 +59,11 @@ describe('colorScheme', () => {
     expect(subscribeToSystemColorScheme(vi.fn())).toEqual(expect.any(Function));
   });
 
-  test('applies a palette to the document root', () => {
-    applyColorScheme('light');
+  test('applies a palette and a theme to the document root', () => {
+    applyColorScheme('light', ThemeName.Carbon);
 
     expect(document.documentElement.dataset.theme).toBe('light');
+    expect(document.documentElement.dataset.scheme).toBe(ThemeName.Carbon);
     expect(document.documentElement.style.colorScheme).toBe('light');
   });
 
@@ -104,5 +111,38 @@ describe('colorScheme', () => {
     stop();
     media.setPrefersDark(true);
     expect(document.documentElement.dataset.theme).toBe('light');
+  });
+
+  test('accepts only known theme names, falling back to the default', () => {
+    expect(resolveThemeName(ThemeName.Midnight)).toBe(ThemeName.Midnight);
+    expect(resolveThemeName('sepia')).toBe(PREFERENCE_DEFAULTS.themeName);
+    expect(resolveThemeName(undefined)).toBe(PREFERENCE_DEFAULTS.themeName);
+  });
+
+  test('boots a new visitor in the default theme, and a returning one in Midnight until a theme is mirrored', () => {
+    expect(bootThemeName()).toBe(PREFERENCE_DEFAULTS.themeName);
+
+    writeBootThemeMode(ThemeMode.Dark);
+    expect(bootThemeName()).toBe(ThemeName.Midnight);
+
+    writeBootThemeName(ThemeName.Carbon);
+    expect(readBootThemeName()).toBe(ThemeName.Carbon);
+    expect(bootThemeName()).toBe(ThemeName.Carbon);
+
+    localStorage.setItem(THEME_NAME_STORAGE_KEY, 'neon');
+    expect(readBootThemeName()).toBeUndefined();
+  });
+
+  test('boots with the mirrored theme, and follows it from another window', () => {
+    media = withMockColorSchemeMedia(true);
+    writeBootThemeName(ThemeName.Midnight);
+    bootColorScheme();
+    expect(document.documentElement.dataset.scheme).toBe(ThemeName.Midnight);
+
+    const stop = followBootColorScheme();
+    writeBootThemeName(ThemeName.Carbon);
+    window.dispatchEvent(new StorageEvent('storage', { key: THEME_NAME_STORAGE_KEY }));
+    expect(document.documentElement.dataset.scheme).toBe(ThemeName.Carbon);
+    stop();
   });
 });

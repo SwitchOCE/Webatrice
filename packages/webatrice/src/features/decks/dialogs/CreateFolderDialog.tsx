@@ -103,7 +103,7 @@ export function CreateFolderDialog({ open, parentPath, siblings, onClose, onCrea
             type="submit"
             className={[
               'inline-flex items-center gap-1.5 px-4 py-1.5 rounded-md text-sm font-semibold',
-              'bg-accent text-white hover:bg-accent-hover',
+              'bg-accent text-on-accent hover:bg-accent-hover',
             ].join(' ')}
           >
             <FolderPlus size={13} /> {t('CreateFolder.create')}

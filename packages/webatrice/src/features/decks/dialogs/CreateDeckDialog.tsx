@@ -106,7 +106,7 @@ export function CreateDeckDialog({ open, onClose, onCreate }: CreateDeckDialogPr
             onClick={handleSubmit}
             disabled={submitDisabled}
             className={[
-              'inline-flex items-center gap-1.5 px-4 py-1.5 rounded-md text-sm font-semibold bg-accent text-white',
+              'inline-flex items-center gap-1.5 px-4 py-1.5 rounded-md text-sm font-semibold bg-accent text-on-accent',
               'hover:bg-accent-hover shadow-glow disabled:opacity-40 disabled:cursor-not-allowed transition-colors',
             ].join(' ')}
           >

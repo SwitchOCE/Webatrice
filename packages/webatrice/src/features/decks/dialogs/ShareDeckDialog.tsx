@@ -144,7 +144,7 @@ export function ShareDeckDialog({ open, defaultName, state, onClose, onCreate }:
               disabled={state.status === 'pending'}
               className={[
                 'inline-flex items-center gap-1.5 px-4 py-1.5 rounded-md text-sm font-semibold',
-                'bg-accent text-white hover:bg-accent-hover disabled:opacity-40 disabled:cursor-not-allowed',
+                'bg-accent text-on-accent hover:bg-accent-hover disabled:opacity-40 disabled:cursor-not-allowed',
               ].join(' ')}
             >
               <Link2 size={13} /> {t('DeckSharing.create')}

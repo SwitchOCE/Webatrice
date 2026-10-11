@@ -115,7 +115,7 @@ export default function PrivateChat({ peerName, selfName, entries, isOnline, isI
                 className={cx(
                   'max-w-[78%] whitespace-pre-wrap break-words rounded-ui border px-3 text-text-primary',
                   compact ? 'py-1 text-[12.5px]' : 'py-1.5 text-[13px]',
-                  isSelf ? 'border-accent/30 bg-accent/20' : 'border-border-subtle bg-bg-elevated',
+                  isSelf ? 'border-accent/30 bg-accent-soft' : 'border-border-subtle bg-bg-elevated',
                 )}
               >
                 <span className="sr-only">{`${m.senderName}: `}</span>
@@ -144,7 +144,7 @@ export default function PrivateChat({ peerName, selfName, entries, isOnline, isI
           placeholder={t('PrivateChat.input', { name: peerName })}
           aria-label={t('PrivateChat.input', { name: peerName })}
           className={cx(
-            'w-full min-w-0 flex-1 rounded-ui border border-border-control/70 bg-bg-sunken px-2.5 text-[13px] text-text-primary',
+            'w-full min-w-0 flex-1 rounded-ui border border-border-control bg-bg-sunken px-2.5 text-[13px] text-text-primary',
             'placeholder:text-text-muted focus:border-accent focus:outline-none focus:ring-2 focus:ring-accent/25 transition-colors',
             compact ? 'h-8' : 'h-9',
           )}

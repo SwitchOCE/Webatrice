@@ -2,6 +2,7 @@ import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 
 import { Language } from '../types/languages';
+import { PREFERENCE_DEFAULTS, ThemeMode, ThemeName } from '../types/settings';
 import { resolveSupportedLanguage } from './locale';
 
 import browserFeatureI18n from '../features/shell/BrowserFeature.i18n.json';
@@ -11,6 +12,19 @@ import { getBrowserSupport, type BrowserFeature } from './browserSupport';
 const PREFLIGHT = readFileSync(resolve(__dirname, '../../public/preflight.js'), 'utf8');
 const PREFLIGHT_CSS = readFileSync(resolve(__dirname, '../../public/preflight.css'), 'utf8');
 const TOKENS_CSS = readFileSync(resolve(__dirname, '../styles/tokens.css'), 'utf8');
+
+const bootThemeModeFallback = ThemeMode.Dark;
+
+function cssBlocks(css: string): Map<string, Record<string, string>> {
+  const blocks = new Map<string, Record<string, string>>();
+  for (const [, selectors, body] of css.replace(/\/\*[\s\S]*?\*\//g, '').matchAll(/([^{}]+)\{([^}]*)\}/g)) {
+    const tokens = Object.fromEntries([...body.matchAll(/--([\w-]+):\s*([^;]+);/g)].map(([, name, value]) => [name, value.trim()]));
+    for (const selector of selectors.split(',')) {
+      blocks.set(selector.trim(), tokens);
+    }
+  }
+  return blocks;
+}
 
 class Stub {}
 const stubFn = () => undefined;
@@ -158,16 +172,94 @@ describe('public/preflight.js', () => {
       expect(document.querySelectorAll('#root li')).toHaveLength(1);
     });
 
-    it('carries the app theme tokens with their tokens.css values', () => {
-      runPreflight(supportedBrowser({ WebSocket: undefined }));
-
-      const tokens = [...PREFLIGHT_CSS.matchAll(/(--[\w-]+):\s*([^;]+);/g)];
-      expect(tokens.length).toBeGreaterThan(0);
-      for (const [, token, value] of tokens) {
-        const declared = new RegExp(`${token}:\\s*([^;]+);`).exec(TOKENS_CSS);
-        expect(declared?.[1].trim(), token).toBe(value);
+    it('carries each palette\'s tokens with their tokens.css values', () => {
+      const appBlocks = cssBlocks(TOKENS_CSS);
+      const preflightBlocks = [...cssBlocks(PREFLIGHT_CSS)].filter(([, tokens]) => Object.keys(tokens).length > 0);
+      expect(preflightBlocks.length).toBeGreaterThan(1);
+      for (const [selector, tokens] of preflightBlocks) {
+        const scheme = /data-scheme='(\w+)'/.exec(selector)?.[1] ?? PREFERENCE_DEFAULTS.themeName;
+        const theme = /data-theme='(\w+)'/.exec(selector)?.[1] ?? 'dark';
+        const app = appBlocks.get(`:root[data-scheme='${scheme}'][data-theme='${theme}']`);
+        for (const [token, value] of Object.entries(tokens)) {
+          expect(value, `${selector} ${token}`).toBe(app?.[token]);
+        }
       }
       expect(PREFLIGHT_CSS).toContain('rgb(var(--bg-base))');
+    });
+
+    it.each(Object.values(ThemeName).flatMap((name) => ['light', 'dark'].map((theme) => [name, theme])))(
+      'covers the %s %s palette with the tokens.css values',
+      (name, theme) => {
+        const app = cssBlocks(TOKENS_CSS).get(`:root[data-scheme='${name}'][data-theme='${theme}']`)!;
+        const applied = { ...cssBlocks(PREFLIGHT_CSS).get('.Unsupported') };
+        for (const [selector, tokens] of cssBlocks(PREFLIGHT_CSS)) {
+          const scheme = /data-scheme='(\w+)'/.exec(selector)?.[1];
+          const mode = /data-theme='(\w+)'/.exec(selector)?.[1];
+          if (mode === theme && (scheme === undefined || scheme === name)) {
+            Object.assign(applied, tokens);
+          }
+        }
+        for (const [token, value] of Object.entries(applied)) {
+          expect(value, token).toBe(app[token]);
+        }
+      },
+    );
+
+    describe('theme', () => {
+      afterEach(() => {
+        document.documentElement.removeAttribute('data-theme');
+        document.documentElement.removeAttribute('data-scheme');
+      });
+
+      const storage = (values: Record<string, string>) => ({ getItem: (key: string) => values[key] ?? null });
+      const painted = () => [document.documentElement.dataset.theme, document.documentElement.dataset.scheme];
+
+      it('paints the saved theme and palette', () => {
+        runPreflight(supportedBrowser({
+          WebSocket: undefined,
+          localStorage: storage({ 'webatrice.themeMode': 'light', 'webatrice.themeName': 'carbon' }),
+        }));
+        expect(painted()).toEqual(['light', 'carbon']);
+      });
+
+      it.each([[true, 'dark'], [false, 'light']])('resolves System from the operating system (dark: %s)', (dark, expected) => {
+        runPreflight(supportedBrowser({
+          WebSocket: undefined,
+          localStorage: storage({ 'webatrice.themeMode': 'system', 'webatrice.themeName': 'graphite' }),
+          matchMedia: () => ({ matches: dark }),
+        }));
+        expect(painted()).toEqual([expected, 'graphite']);
+      });
+
+      it('boots like the app when nothing is saved: dark, in the default theme', () => {
+        runPreflight(supportedBrowser({ WebSocket: undefined }));
+        expect(painted()).toEqual([bootThemeModeFallback, PREFERENCE_DEFAULTS.themeName]);
+      });
+
+      it('keeps Midnight for a returning visitor who saved a palette before themes existed', () => {
+        runPreflight(supportedBrowser({ WebSocket: undefined, localStorage: storage({ 'webatrice.themeMode': 'dark' }) }));
+        expect(painted()).toEqual(['dark', ThemeName.Midnight]);
+      });
+
+      it('falls back to the defaults when storage is blocked or holds unknown values', () => {
+        runPreflight(supportedBrowser({
+          WebSocket: undefined,
+          localStorage: { getItem: () => {
+            throw new Error('blocked');
+          } },
+        }));
+        expect(painted()).toEqual([bootThemeModeFallback, PREFERENCE_DEFAULTS.themeName]);
+        runPreflight(supportedBrowser({
+          WebSocket: undefined,
+          localStorage: storage({ 'webatrice.themeMode': 'sepia', 'webatrice.themeName': 'neon' }),
+        }));
+        expect(painted()).toEqual([bootThemeModeFallback, PREFERENCE_DEFAULTS.themeName]);
+      });
+
+      it('leaves a supported browser\'s page to the app', () => {
+        runPreflight(supportedBrowser({ localStorage: storage({ 'webatrice.themeMode': 'light' }) }));
+        expect(painted()).toEqual([undefined, undefined]);
+      });
     });
 
     it('loads an external stylesheet beside the preflight script without inline styles', () => {

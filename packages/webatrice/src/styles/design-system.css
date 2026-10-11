@@ -1,4 +1,4 @@
-/* Redesign foundation (Midnight direction, comfortable density): type, radius, spacing and
+/* Redesign foundation (comfortable density): type, radius, spacing and
    elevation roles that sit beside the colour tokens in tokens.css. */
 
 :root {
@@ -20,7 +20,7 @@
 }
 
 :root[data-theme='light'] {
-  --shadow-pop: 0 12px 32px -10px rgb(40 20 80 / 0.25);
+  --shadow-pop: 0 12px 32px -10px rgb(20 20 40 / 0.22);
 }
 
 .ui-link,

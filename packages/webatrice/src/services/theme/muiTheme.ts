@@ -1,9 +1,11 @@
 import { createTheme, type Theme } from '@mui/material/styles';
 
+import type { ThemeName } from '@app/types';
+
 import { PALETTES, type ColorScheme } from './palettes';
 
-export function createAppTheme(scheme: ColorScheme): Theme {
-  const palette = PALETTES[scheme];
+export function createAppTheme(themeName: ThemeName, scheme: ColorScheme): Theme {
+  const palette = PALETTES[themeName][scheme];
   return createTheme({
     palette: {
       mode: scheme,

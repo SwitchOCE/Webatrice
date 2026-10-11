@@ -101,7 +101,7 @@ export function OpenShareLinkDialog({ open, onClose, onOpen }: OpenShareLinkDial
             type="submit"
             className={[
               'inline-flex items-center gap-1.5 px-4 py-1.5 rounded-md text-sm font-semibold',
-              'bg-accent text-white hover:bg-accent-hover',
+              'bg-accent text-on-accent hover:bg-accent-hover',
             ].join(' ')}
           >
             <Link2 size={13} /> {t('OpenShareLink.submit')}

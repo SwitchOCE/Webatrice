@@ -21,6 +21,7 @@ export class Setting {
   clearDebugLogOnClose: boolean;
 
   themeMode: ThemeMode;
+  themeName: ThemeName;
   signInCardArt: boolean;
   playmatSettings: PlaymatSettings;
 
@@ -121,6 +122,12 @@ export enum ThemeMode {
   Dark = 'dark',
 }
 
+export enum ThemeName {
+  Midnight = 'midnight',
+  Graphite = 'graphite',
+  Carbon = 'carbon',
+}
+
 export enum StartupTab {
   Server = 'server',
   ServerRoom = 'serverRoom',
@@ -174,6 +181,7 @@ export const PREFERENCE_DEFAULTS: Readonly<Preferences> = Object.freeze({
   clearDebugLogOnClose: false,
 
   themeMode: ThemeMode.System,
+  themeName: ThemeName.Graphite,
 
   signInCardArt: true,
 
@@ -256,4 +264,4 @@ export const PREFERENCE_DEFAULTS: Readonly<Preferences> = Object.freeze({
   masterVolume: 50,
 });
 
-export const SETTINGS_VERSION = 4;
+export const SETTINGS_VERSION = 5;

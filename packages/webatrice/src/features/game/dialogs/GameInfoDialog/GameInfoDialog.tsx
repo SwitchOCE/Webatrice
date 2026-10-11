@@ -82,7 +82,7 @@ function GameInfoDialog() {
           data-autofocus
           className={[
             'px-3 py-1.5 rounded-md text-sm font-semibold bg-accent',
-            'text-white hover:bg-accent-hover shadow-glow board-motion transition-colors',
+            'text-on-accent hover:bg-accent-hover shadow-glow board-motion transition-colors',
           ].join(' ')}
         >
           {t('Common.action.close')}

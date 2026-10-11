@@ -58,7 +58,7 @@ export default function PasswordPopover({
           value={password}
           onChange={(event) => setPassword(event.target.value)}
           className={[
-            'mt-1.5 h-9 w-full rounded-ui border border-border-control/70 bg-bg-sunken px-2.5 text-[13px] text-text-primary',
+            'mt-1.5 h-9 w-full rounded-ui border border-border-control bg-bg-sunken px-2.5 text-[13px] text-text-primary',
             'focus:border-accent focus:outline-none focus:ring-2 focus:ring-accent/25',
           ].join(' ')}
         />

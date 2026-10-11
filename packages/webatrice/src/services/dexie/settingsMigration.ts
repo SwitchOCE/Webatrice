@@ -1,4 +1,4 @@
-import { PREFERENCE_DEFAULTS, PreferenceKey, Preferences, SETTINGS_VERSION, Setting, ThemeMode } from '@app/types';
+import { PREFERENCE_DEFAULTS, PreferenceKey, Preferences, SETTINGS_VERSION, Setting, ThemeMode, ThemeName } from '@app/types';
 import { LANGUAGE_STORAGE_KEY, resolveSupportedLanguage } from '@app/utils';
 
 import { LEGACY_PLAYMAT_SETTINGS_KEY, parsePlaymatSettings } from './playmatSettings';
@@ -28,6 +28,9 @@ const MIGRATIONS: Record<number, (row: SettingRow) => void> = {
       row.lifeCounterAnimations = false;
       row.battlefieldFlash = false;
     }
+  },
+  5: (row) => {
+    row.themeName = ThemeName.Midnight;
   },
 };
 

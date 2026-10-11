@@ -6,7 +6,7 @@ import { cx } from '@app/utils';
 export const focusRing = 'focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent';
 
 export const fieldBox = cx(
-  'h-9 rounded-ui border border-border-control/70 bg-bg-sunken text-[13px] text-text-primary',
+  'h-9 rounded-ui border border-border-control bg-bg-sunken text-[13px] text-text-primary',
   'hover:border-border-control disabled:cursor-not-allowed disabled:opacity-45',
   'aria-[invalid=true]:border-danger',
   focusRing,
@@ -30,7 +30,7 @@ export function Switch({ checked, onChange, className, disabled, ...rest }: Swit
       className={cx(
         'relative inline-flex h-[22px] w-10 shrink-0 rounded-full transition-colors',
         'disabled:cursor-not-allowed disabled:opacity-45',
-        checked ? 'bg-accent' : 'bg-bg-elevated ring-1 ring-inset ring-border-control/70',
+        checked ? 'bg-accent' : 'bg-bg-elevated ring-1 ring-inset ring-border-control',
         focusRing,
         className,
       )}

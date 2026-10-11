@@ -34,7 +34,7 @@ export function ReadOnlyDeck({ deck, onImport, onClose }: ReadOnlyDeckProps) {
             onClick={onImport}
             className={[
               'inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md text-sm font-semibold',
-              'bg-accent text-white hover:bg-accent-hover',
+              'bg-accent text-on-accent hover:bg-accent-hover',
             ].join(' ')}
           >
             <Download size={13} /> {t('ReadOnlyDeck.import')}

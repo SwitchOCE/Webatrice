@@ -58,7 +58,7 @@ const Settings = ({ sections = settingsSections }: SettingsProps) => {
           </div>
           <label
             className={cx(
-              'flex h-10 w-[460px] min-w-0 max-w-full items-center gap-2 rounded-ui border border-border-control/70 bg-bg-sunken px-3',
+              'flex h-10 w-[460px] min-w-0 max-w-full items-center gap-2 rounded-ui border border-border-control bg-bg-sunken px-3',
               'text-text-muted focus-within:border-accent focus-within:ring-2 focus-within:ring-accent/25',
             )}
           >

@@ -145,7 +145,7 @@ export function ExportDeckDialog({
             onClick={() => void copy()}
             className={[
               'flex-1 flex items-center justify-center gap-1.5 px-3 py-2 rounded-md bg-accent',
-              'hover:bg-accent-hover text-white text-sm font-semibold shadow-glow transition-colors',
+              'hover:bg-accent-hover text-on-accent text-sm font-semibold shadow-glow transition-colors',
             ].join(' ')}
           >
             {copied ? <Check size={14} /> : <Copy size={14} />}

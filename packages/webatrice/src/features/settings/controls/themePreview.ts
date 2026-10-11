@@ -1,6 +1,7 @@
 import type { CSSProperties } from 'react';
 
 import { PALETTES, type ColorScheme, type PaletteToken } from '@app/services';
+import type { ThemeName } from '@app/types';
 
 const PREVIEW_TOKENS: readonly PaletteToken[] = [
   'bg-base',
@@ -18,8 +19,8 @@ export function hexToTriplet(hex: string): string {
   return [0, 2, 4].map((at) => parseInt(full.slice(at, at + 2), 16)).join(' ');
 }
 
-export function previewVars(scheme: ColorScheme): CSSProperties {
+export function previewVars(themeName: ThemeName, scheme: ColorScheme): CSSProperties {
   return Object.fromEntries(
-    PREVIEW_TOKENS.map((token) => [`--${token}`, hexToTriplet(PALETTES[scheme][token])]),
+    PREVIEW_TOKENS.map((token) => [`--${token}`, hexToTriplet(PALETTES[themeName][scheme][token])]),
   ) as CSSProperties;
 }

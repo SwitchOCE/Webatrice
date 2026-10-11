@@ -14,7 +14,7 @@ const SECONDARY_BUTTON_CLASS =
   + 'hover:bg-bg-elevated transition-colors';
 const PRIMARY_BUTTON_CLASS =
   'px-4 py-2 rounded-md bg-accent hover:bg-accent-hover disabled:opacity-60 '
-  + 'disabled:cursor-not-allowed text-white font-semibold text-sm shadow-glow '
+  + 'disabled:cursor-not-allowed text-on-accent font-semibold text-sm shadow-glow '
   + 'transition-colors flex items-center gap-2';
 
 export interface ImportDeckDialogProps {
