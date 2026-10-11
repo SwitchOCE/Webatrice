@@ -46,7 +46,7 @@ describe('Game board arrangement', () => {
     expect(screen.queryByTestId('hand-zone-2')).not.toBeInTheDocument();
     expect(screen.getByTitle('Hand — 3 cards')).toBeDisabled();
     expect(within(tray).getByRole('button', { name: 'Hand — 2 cards' })).toBeEnabled();
-    expect(setProperty).toHaveBeenCalledWith('--board-tray-h', expect.stringMatching(/px$/));
+    expect(setProperty).toHaveBeenCalledWith('--tray-card-height', expect.stringMatching(/px$/));
   });
 
   it('runs the labelled tray actions through the seat commands and prints their bindings', () => {

@@ -8,7 +8,7 @@ import { getSettings, settingsStore } from '../../hooks/useSettings';
 import { dispatchChatDock, getChatDockState } from '../../hooks/useChatDock';
 import { UserGamesProvider } from '../user-games';
 import ChatDock from './ChatDock';
-import { readBoardTrayHeight, watchBoardTray } from './useChatDockController';
+import { rightInset, watchDockInset } from './useChatDockController';
 import { focusAfterClose } from './splitDock';
 import { notificationStore } from '../../services/notifications/notificationStore';
 import { getVisibleChats } from '../../hooks/useChatDock';
@@ -239,31 +239,38 @@ describe('focusAfterClose', () => {
   });
 });
 
-describe('watchBoardTray', () => {
-  it('reports the tray height when the board appears and when it changes', async () => {
+const placeAt = (el: HTMLElement, left: number) => {
+  el.getBoundingClientRect = () => ({ left } as DOMRect);
+};
+
+describe('watchDockInset', () => {
+  it('reports how far the avoided column reaches in from the right edge as it appears, moves and goes', async () => {
     const root = document.createElement('div');
     document.body.appendChild(root);
-    const heights: string[] = [];
-    const stop = watchBoardTray((height) => heights.push(height), root);
-    const board = document.createElement('div');
-    board.style.setProperty('--board-tray-h', '172px');
-    root.appendChild(board);
+    const insets: number[] = [];
+    const stop = watchDockInset((inset) => insets.push(inset), root);
+    const sidebar = document.createElement('div');
+    sidebar.setAttribute('data-chat-dock-avoid', '');
+    placeAt(sidebar, window.innerWidth - 300);
+    root.appendChild(sidebar);
     await new Promise((resolve) => setTimeout(resolve, 0));
-    board.style.setProperty('--board-tray-h', '200px');
+    placeAt(sidebar, window.innerWidth - 44);
+    window.dispatchEvent(new Event('resize'));
+    sidebar.remove();
     await new Promise((resolve) => setTimeout(resolve, 0));
     stop();
     root.remove();
-    expect(heights).toEqual(['0px', '172px', '200px']);
+    expect(insets).toEqual([0, 300, 44, 0]);
   });
 });
 
-describe('readBoardTrayHeight', () => {
-  it('reads the tray height the board exposes, or zero', () => {
-    const root = document.createElement('div');
-    expect(readBoardTrayHeight(root)).toBe('0px');
-    const board = document.createElement('div');
-    board.style.setProperty('--board-tray-h', '172px');
-    root.appendChild(board);
-    expect(readBoardTrayHeight(root)).toBe('172px');
+describe('rightInset', () => {
+  it('measures from the viewport edge and never goes negative', () => {
+    const el = document.createElement('div');
+    expect(rightInset(null, 1280)).toBe(0);
+    placeAt(el, 980);
+    expect(rightInset(el, 1280)).toBe(300);
+    placeAt(el, 1400);
+    expect(rightInset(el, 1280)).toBe(0);
   });
 });

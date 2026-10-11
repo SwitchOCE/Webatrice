@@ -294,7 +294,7 @@ export default function Battlefield() {
         // never leave. A click still focuses it, so "click the table,
         // press Tab" keeps desktop's binding.
         tabIndex={-1}
-        className="absolute inset-0 overflow-x-auto overflow-y-hidden box-border"
+        className="absolute inset-0 overflow-auto box-border"
       >
         <div
           ref={battlefieldRef}

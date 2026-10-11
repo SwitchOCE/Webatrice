@@ -249,6 +249,26 @@ export function computeContentHeight(opts: BattlefieldLayoutOpts): number {
   return r.mTop + r.rows * r.cardH + (r.rows - 1) * r.gapY;
 }
 
+export function scaledBattlefieldLayout(scale: number): Required<BattlefieldLayoutOpts> {
+  return {
+    cardWidthPx: SEAT_CARD_WIDTH_PX * scale,
+    cardHeightPx: SEAT_CARD_HEIGHT_PX * scale,
+    gapXPx: BATTLEFIELD_GAP_PX * scale,
+    gapYPx: BATTLEFIELD_ROW_PADDING_PX * scale,
+    marginLeftPx: BATTLEFIELD_MARGIN_LEFT_PX * scale,
+    marginRightPx: BATTLEFIELD_MARGIN_RIGHT_PX * scale,
+    marginTopPx: BATTLEFIELD_MARGIN_TOP_PX * scale,
+    stackOffsetXPx: STACK_OFFSET_PX * scale,
+    stackOffsetYPx: STACK_OFFSET_Y_PX * scale,
+    minCols: BATTLEFIELD_MIN_COLS,
+    rows: BATTLEFIELD_ROWS,
+  };
+}
+
+export function battlefieldNaturalHeight(opts: BattlefieldLayoutOpts): number {
+  return computeContentHeight(opts) + (MAX_SUBPOS - 1) * resolve(opts).stackY;
+}
+
 /** Snap an absolute pixel position (relative to the content div) to a
  *  `(row, col, subSlot)` slot. Walks the row's cumulative widths to find
  *  the containing column, then decides the sub-slot from the leftover

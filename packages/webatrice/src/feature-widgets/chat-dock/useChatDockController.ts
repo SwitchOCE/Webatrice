@@ -16,79 +16,70 @@ import { RouteEnum } from '@app/types';
 import { incomingChatPeer } from './incomingChat';
 import { splitDock } from './splitDock';
 
-const TRAY_SELECTOR = '[style*="--board-tray-h"], [data-board-tray-h]';
+export const DOCK_AVOID_ATTRIBUTE = 'data-chat-dock-avoid';
 
-function findTray(root: ParentNode): HTMLElement | null {
-  return root.querySelector<HTMLElement>(TRAY_SELECTOR);
+function findAvoided(root: ParentNode): HTMLElement | null {
+  return root.querySelector<HTMLElement>(`[${DOCK_AVOID_ATTRIBUTE}]`);
 }
 
-function trayHeight(el: HTMLElement | null): string {
+export function rightInset(el: HTMLElement | null, viewportWidth = window.innerWidth): number {
   if (!el) {
-    return '0px';
+    return 0;
   }
-  return getComputedStyle(el).getPropertyValue('--board-tray-h').trim() || el.dataset.boardTrayH || '0px';
+  return Math.max(0, Math.round(viewportWidth - el.getBoundingClientRect().left));
 }
 
-export function readBoardTrayHeight(root: ParentNode = document): string {
-  return trayHeight(findTray(root));
-}
-
-export function watchBoardTray(onChange: (height: string) => void, root: HTMLElement = document.body): () => void {
-  let tray: HTMLElement | null = null;
+export function watchDockInset(onChange: (inset: number) => void, root: HTMLElement = document.body): () => void {
+  let avoided: HTMLElement | null = null;
   let resize: ResizeObserver | null = null;
-  const style = new MutationObserver(() => onChange(trayHeight(tray)));
+  const report = () => onChange(rightInset(avoided));
   const attach = (next: HTMLElement | null) => {
-    if (next === tray) {
+    if (next === avoided) {
       return;
     }
-    tray = next;
-    style.disconnect();
+    avoided = next;
     resize?.disconnect();
-    if (tray) {
-      style.observe(tray, { attributes: true, attributeFilter: ['style', 'data-board-tray-h'] });
-      if (typeof ResizeObserver !== 'undefined') {
-        resize = new ResizeObserver(() => onChange(trayHeight(tray)));
-        resize.observe(tray);
-      }
+    if (avoided && typeof ResizeObserver !== 'undefined') {
+      resize = new ResizeObserver(report);
+      resize.observe(avoided);
     }
-    onChange(trayHeight(tray));
+    report();
   };
   const finder = new MutationObserver(() => {
-    if (!tray?.isConnected) {
-      attach(findTray(root));
+    if (!avoided?.isConnected) {
+      attach(findAvoided(root));
     }
   });
   finder.observe(root, { childList: true, subtree: true });
-  const first = findTray(root);
-  if (first) {
-    attach(first);
-  } else {
-    onChange('0px');
+  window.addEventListener('resize', report);
+  attach(findAvoided(root));
+  if (!avoided) {
+    report();
   }
   return () => {
     finder.disconnect();
-    style.disconnect();
     resize?.disconnect();
+    window.removeEventListener('resize', report);
   };
 }
 
-function useBoardTrayOffset(active: boolean): string {
-  const [offset, setOffset] = useState('0px');
+function useDockInset(active: boolean): number {
+  const [inset, setInset] = useState(0);
   useLayoutEffect(() => {
     if (!active) {
-      setOffset('0px');
+      setInset(0);
       return undefined;
     }
-    return watchBoardTray(setOffset);
+    return watchDockInset(setInset);
   }, [active]);
-  return offset;
+  return inset;
 }
 
 export interface ChatDockView {
   visible: boolean;
   windows: DockedChat[];
   bars: DockedChat[];
-  bottom: string;
+  rightInset: number;
   focus: { name: string; seq: number } | null;
 }
 
@@ -128,13 +119,13 @@ export function useChatDockController(): ChatDockView {
   });
 
   const { windows, bars } = useMemo(() => splitDock(dock.chats, selfName), [dock.chats, selfName]);
-  const bottom = useBoardTrayOffset(gameId !== null && windows.length + bars.length > 0);
+  const inset = useDockInset(gameId !== null && windows.length + bars.length > 0);
 
   return {
     visible: Boolean(selfName) && !onPopup && windows.length + bars.length > 0,
     windows,
     bars,
-    bottom,
+    rightInset: inset,
     focus: dock.focus,
   };
 }

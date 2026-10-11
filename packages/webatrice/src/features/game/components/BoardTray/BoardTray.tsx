@@ -1,9 +1,8 @@
-import { useEffect, useRef, type MouseEvent, type ReactNode, type RefObject } from 'react';
+import { useEffect, useRef, type MouseEvent, type ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
 
 import CardPreviewPane from '../CardPreviewPane/CardPreviewPane';
 
-export const BOARD_TRAY_HEIGHT_VAR = '--board-tray-h';
 export const TRAY_CARD_HEIGHT_VAR = '--tray-card-height';
 export const TRAY_CARD_WIDTH_VAR = '--tray-card-width';
 export const TRAY_CHROME_PX = 46;
@@ -14,32 +13,28 @@ export function trayCardSize(trayHeight: number): { height: number; width: numbe
 }
 
 interface BoardTrayProps {
-  gameRef: RefObject<HTMLDivElement | null>;
   hostRef: (el: HTMLDivElement | null) => void;
   onMouseDown?: (e: MouseEvent<HTMLDivElement>) => void;
   children?: ReactNode;
 }
 
-export default function BoardTray({ gameRef, hostRef, onMouseDown, children }: BoardTrayProps) {
+export default function BoardTray({ hostRef, onMouseDown, children }: BoardTrayProps) {
   const { t } = useTranslation();
   const trayRef = useRef<HTMLDivElement | null>(null);
 
   useEffect(() => {
     const tray = trayRef.current;
-    const game = gameRef.current;
-    if (!tray || !game) {
+    if (!tray) {
       return;
     }
     const root = document.documentElement;
     const apply = () => {
-      game.style.setProperty(BOARD_TRAY_HEIGHT_VAR, `${tray.offsetHeight}px`);
       const { height, width } = trayCardSize(tray.offsetHeight);
       root.style.setProperty(TRAY_CARD_HEIGHT_VAR, `${height}px`);
       root.style.setProperty(TRAY_CARD_WIDTH_VAR, `${width}px`);
     };
     apply();
     const clear = () => {
-      game.style.removeProperty(BOARD_TRAY_HEIGHT_VAR);
       root.style.removeProperty(TRAY_CARD_HEIGHT_VAR);
       root.style.removeProperty(TRAY_CARD_WIDTH_VAR);
     };
@@ -52,7 +47,7 @@ export default function BoardTray({ gameRef, hostRef, onMouseDown, children }: B
       ro.disconnect();
       clear();
     };
-  }, [gameRef]);
+  }, []);
 
   return (
     <div

@@ -2,10 +2,12 @@ import { renderHook } from '@testing-library/react';
 
 import { useHorizontalWheelScroll } from './useHorizontalWheelScroll';
 
-function scroller(scrollWidth: number, clientWidth: number): HTMLElement {
+function scroller(scrollWidth: number, clientWidth: number, scrollHeight = 0, clientHeight = 0): HTMLElement {
   const el = document.createElement('div');
   Object.defineProperty(el, 'scrollWidth', { value: scrollWidth });
   Object.defineProperty(el, 'clientWidth', { value: clientWidth });
+  Object.defineProperty(el, 'scrollHeight', { value: scrollHeight });
+  Object.defineProperty(el, 'clientHeight', { value: clientHeight });
   return el;
 }
 
@@ -35,6 +37,13 @@ describe('useHorizontalWheelScroll', () => {
     renderHook(() => useHorizontalWheelScroll({ current: wide }));
     expect(wheel(wide, 0).defaultPrevented).toBe(false);
     expect(wide.scrollLeft).toBe(0);
+  });
+
+  it('keeps the native vertical scroll when the content also overflows vertically', () => {
+    const el = scroller(1000, 300, 500, 200);
+    renderHook(() => useHorizontalWheelScroll({ current: el }));
+    expect(wheel(el, 40).defaultPrevented).toBe(false);
+    expect(el.scrollLeft).toBe(0);
   });
 
   it('registers a non-passive listener and removes it on unmount', () => {

@@ -9,6 +9,8 @@ import {
   type RefObject,
 } from 'react';
 
+import { CARD_SCALE_MAX, CARD_SCALE_MIN, fitCardScale } from './seatFit';
+
 /**
  * Card-scale multiplier — everything sized by a card (cards themselves,
  * library/graveyard/exile boxes, commander stack, battlefield grid) scales
@@ -21,21 +23,14 @@ import {
  * constant in scene coords (72×102 in card_dimensions.h) and calls
  * `fitInView(sceneRect, Qt::KeepAspectRatio)` on every widget resize, so
  * the whole scene grows and shrinks with the viewport. We mimic that by
- * measuring the game board container and driving a single scale factor
- * off `min(width / REF_WIDTH, height / REF_HEIGHT)`.
+ * measuring the game board container and picking the largest scale at
+ * which a seat's battlefield and info column fit its row (seatFit.ts).
  */
 
 const BASE_CARD_WIDTH_PX = 72;
 const BASE_CARD_HEIGHT_PX = 102;
 
-export const REFERENCE_CELL_HEIGHT_PX = 460;
-export const REFERENCE_CELL_HEIGHT_NO_HAND_PX = 320;
-
-/** Clamp keeps cards readable on tiny windows and prevents runaway sizes
- *  on ultra-wide monitors. Matches the "sensible view" ceiling desktop
- *  Cockatrice gets from its widget being embedded in a fixed-chrome tab. */
-export const CARD_SCALE_MIN = 0.5;
-export const CARD_SCALE_MAX = 2.5;
+export { CARD_SCALE_MAX, CARD_SCALE_MIN };
 export const CARD_SCALE_DEFAULT = 1;
 
 type CardScaleContextValue = {
@@ -46,24 +41,11 @@ const CardScaleContext = createContext<CardScaleContextValue>({
   scale: CARD_SCALE_DEFAULT,
 });
 
-function clampScale(n: number): number {
-  if (!Number.isFinite(n)) {
-    return CARD_SCALE_DEFAULT;
-  }
-  return Math.min(CARD_SCALE_MAX, Math.max(CARD_SCALE_MIN, n));
-}
-
-export function computeScale(height: number, rows: number, referenceCellHeight = REFERENCE_CELL_HEIGHT_PX): number {
+export function computeScale(height: number, rows: number, inlineHand = false): number {
   if (height <= 0) {
     return CARD_SCALE_DEFAULT;
   }
-  // Per-cell height: the board grid stacks rows of seat cells, and
-  // each cell has to fit a fixed vertical layout (battlefield + hand +
-  // header). Dividing by rows gives the per-cell height, then the
-  // reference maps that to a scale. Width is ignored on purpose — matches
-  // Cockatrice, where horizontal resizes don't change card size.
-  const cellH = height / Math.max(1, rows);
-  return clampScale(cellH / referenceCellHeight);
+  return fitCardScale(height / Math.max(1, rows), { inlineHand });
 }
 
 export interface CardScaleProviderProps {
@@ -73,14 +55,14 @@ export interface CardScaleProviderProps {
    *  previews and tests. */
   containerRef?: RefObject<HTMLElement | null>;
   rows?: number;
-  referenceCellHeight?: number;
+  inlineHand?: boolean;
   children: ReactNode;
 }
 
 export function CardScaleProvider({
   containerRef,
   rows = 1,
-  referenceCellHeight = REFERENCE_CELL_HEIGHT_PX,
+  inlineHand = false,
   children,
 }: CardScaleProviderProps) {
   const [scale, setScale] = useState<number>(CARD_SCALE_DEFAULT);
@@ -95,7 +77,7 @@ export function CardScaleProvider({
     }
     const measure = () => {
       const rect = el.getBoundingClientRect();
-      setScale(computeScale(rect.height, rows, referenceCellHeight));
+      setScale(computeScale(rect.height, rows, inlineHand));
     };
     measure();
     if (typeof ResizeObserver === 'undefined') {
@@ -104,7 +86,7 @@ export function CardScaleProvider({
     const ro = new ResizeObserver(measure);
     ro.observe(el);
     return () => ro.disconnect();
-  }, [containerRef, rows, referenceCellHeight]);
+  }, [containerRef, rows, inlineHand]);
 
   // Root-font-size changes (browser text-zoom) don't fire ResizeObserver
   // on the board — the CSS-computed rem baseline changes but the pixel
@@ -117,11 +99,11 @@ export function CardScaleProvider({
         return;
       }
       const rect = el.getBoundingClientRect();
-      setScale(computeScale(rect.height, rows, referenceCellHeight));
+      setScale(computeScale(rect.height, rows, inlineHand));
     };
     window.addEventListener('resize', onFontChange);
     return () => window.removeEventListener('resize', onFontChange);
-  }, [containerRef, rows, referenceCellHeight]);
+  }, [containerRef, rows, inlineHand]);
 
   // Apply the CSS vars at the document root so descendants inherit them
   // even when they portal out of the React tree (drag ghost, dialogs,

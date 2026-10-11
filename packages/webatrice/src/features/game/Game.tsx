@@ -21,7 +21,7 @@ import { useDockState } from './hooks/useDockState';
 import GameBoardCell from './components/ui/GameBoardCell/GameBoardCell';
 import { BigCardPreview } from './components/ui/BigCardPreview/BigCardPreview';
 import { BoardMotionConfig } from './components/ui/BoardMotionConfig/BoardMotionConfig';
-import { CardScaleProvider, REFERENCE_CELL_HEIGHT_NO_HAND_PX, REFERENCE_CELL_HEIGHT_PX } from './components/ui/CardScaleContext';
+import { CardScaleProvider } from './components/ui/CardScaleContext';
 import IncomingRevealDialog from './dialogs/IncomingRevealDialog/IncomingRevealDialog';
 import TallyOverlay from './components/TallyOverlay/TallyOverlay';
 import CreateTokenDialog from './dialogs/CreateTokenDialog/CreateTokenDialog';
@@ -198,7 +198,7 @@ export function GameBoard({ gameId: boardGameId, footer, onLeave }: GameBoardPro
                   <CardScaleProvider
                     containerRef={boardRef}
                     rows={layout.rows}
-                    referenceCellHeight={layout.handMode === 'bar' ? REFERENCE_CELL_HEIGHT_NO_HAND_PX : REFERENCE_CELL_HEIGHT_PX}
+                    inlineHand={layout.handMode === 'inline'}
                   >
                     <DndContext
                       sensors={sensors}
@@ -266,13 +266,13 @@ export function GameBoard({ gameId: boardGameId, footer, onLeave }: GameBoardPro
                                         <TallyOverlay />
                                       </div>
 
-                                      <BoardTray gameRef={gameRef} hostRef={setTrayHost} onMouseDown={handleBoardMouseDown} />
+                                      <BoardTray hostRef={setTrayHost} onMouseDown={handleBoardMouseDown} />
 
                                       <div className="game__resizer">
                                         {!dock.collapsed && <SidebarResizer width={sidebarWidth} onResize={setSidebarWidth} />}
                                       </div>
 
-                                      <div className="game__dock">
+                                      <div className="game__dock" data-chat-dock-avoid>
                                         <GameDock
                                           collapsed={dock.collapsed}
                                           tab={dock.tab}
