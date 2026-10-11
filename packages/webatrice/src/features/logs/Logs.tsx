@@ -1,23 +1,18 @@
 import { useTranslation } from 'react-i18next';
-import { Navigate } from 'react-router-dom';
 
 import { AlertDialog } from '@app/dialogs';
-import { StaffConsole, StaffHeader } from '@app/feature-wrappers/staff';
-import { useUserCapabilities } from '@app/hooks';
-import { RouteEnum } from '@app/types';
+import { StaffConsole, StaffHeader, StaffToolGuard } from '@app/feature-wrappers/staff';
 
 import LogResults from './LogResults';
 import LogSearchForm from './LogSearchForm/LogSearchForm';
 import { useLogs } from './useLogs';
 
-const Logs = () => {
+const LogsContent = () => {
   const { t } = useTranslation();
   const { developer, logs, notice, dismissNotice, onSubmit } = useLogs();
-  const { canReadLogs } = useUserCapabilities();
 
   return (
-    <StaffConsole>
-      {!canReadLogs && <Navigate to={RouteEnum.SERVER} />}
+    <>
       <StaffHeader title={t('Logs.pageTitle')} subtitle={t('Logs.subtitle')} />
       <LogSearchForm onSubmit={onSubmit} developer={developer} />
       <LogResults logs={logs} />
@@ -28,8 +23,16 @@ const Logs = () => {
         severity={notice?.severity}
         onDismiss={dismissNotice}
       />
-    </StaffConsole>
+    </>
   );
 };
+
+const Logs = () => (
+  <StaffConsole>
+    <StaffToolGuard tool="logs">
+      <LogsContent />
+    </StaffToolGuard>
+  </StaffConsole>
+);
 
 export default Logs;

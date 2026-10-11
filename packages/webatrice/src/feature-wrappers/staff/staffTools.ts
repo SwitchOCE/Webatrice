@@ -1,6 +1,6 @@
 import { Code2, ImageOff, ScrollText, ServerCog, ShieldAlert, UserSearch, type LucideIcon } from 'lucide-react';
 
-import { ServerCapability } from '@cockatrice/datatrice';
+import { server, ServerCapability } from '@cockatrice/datatrice';
 import { canReadLogs, isDeveloper, isModerator, type UserLevelPredicate } from '@app/hooks';
 import { RouteEnum } from '@app/types';
 
@@ -38,21 +38,25 @@ export type StaffCommand =
 
 const { CARD_ART, DEVELOPER_ROLE, MODERATION_TOOLS } = ServerCapability;
 
-export const STAFF_COMMAND_REQUIRES: Readonly<Record<StaffCommand, ServerCapability | null>> = {
-  getUserInfo: null,
-  warnUser: null,
-  getWarnList: null,
-  getWarnHistory: null,
-  banFromServer: null,
-  getBanHistory: null,
-  getAdminNotes: null,
-  updateAdminNotes: null,
-  viewLogHistory: null,
-  grantReplayAccess: null,
-  forceActivateUser: null,
-  updateServerMessage: null,
-  shutdownServer: null,
-  reloadConfig: null,
+export const SERVER_BASELINE = 'baseline';
+
+export type StaffRequirement = ServerCapability | typeof SERVER_BASELINE;
+
+export const STAFF_COMMAND_REQUIRES: Readonly<Record<StaffCommand, StaffRequirement>> = {
+  getUserInfo: SERVER_BASELINE,
+  warnUser: SERVER_BASELINE,
+  getWarnList: SERVER_BASELINE,
+  getWarnHistory: SERVER_BASELINE,
+  banFromServer: SERVER_BASELINE,
+  getBanHistory: SERVER_BASELINE,
+  getAdminNotes: SERVER_BASELINE,
+  updateAdminNotes: SERVER_BASELINE,
+  viewLogHistory: SERVER_BASELINE,
+  grantReplayAccess: SERVER_BASELINE,
+  forceActivateUser: SERVER_BASELINE,
+  updateServerMessage: SERVER_BASELINE,
+  shutdownServer: SERVER_BASELINE,
+  reloadConfig: SERVER_BASELINE,
   reportUserInfo: MODERATION_TOOLS,
   getUserAlts: MODERATION_TOOLS,
   getUserSessions: MODERATION_TOOLS,
@@ -71,13 +75,15 @@ export const STAFF_COMMAND_REQUIRES: Readonly<Record<StaffCommand, ServerCapabil
   getServerStats: DEVELOPER_ROLE,
 };
 
-export type CapabilityCheck = (capability: ServerCapability) => boolean;
+export type CapabilityCheck = (requirement: StaffRequirement) => boolean;
+
+export const versionSupports = (version: string | null | undefined): CapabilityCheck => (requirement) =>
+  (requirement === SERVER_BASELINE
+    ? server.parseServerVersion(version) !== null
+    : server.serverSupports(version, requirement));
 
 export const commandsSupported = (commands: readonly StaffCommand[], supports: CapabilityCheck): boolean =>
-  commands.every((command) => {
-    const capability = STAFF_COMMAND_REQUIRES[command];
-    return capability === null || supports(capability);
-  });
+  commands.every((command) => supports(STAFF_COMMAND_REQUIRES[command]));
 
 export type StaffToolId = 'reports' | 'moderation' | 'logs' | 'administration' | 'cardArtRules' | 'developer';
 

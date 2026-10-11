@@ -2,10 +2,10 @@ import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { BarChart3, Film, Gavel, LogIn, RefreshCw, UserCheck } from 'lucide-react';
 
-import { rooms, ServerCapability } from '@cockatrice/datatrice';
-import { Button, CapabilityGuard, IconButton, ModGuard, TextInput } from '@app/components';
+import { rooms } from '@cockatrice/datatrice';
+import { Button, IconButton, TextInput } from '@app/components';
 import { AlertDialog, PromptDialog } from '@app/dialogs';
-import { StaffConsole, StaffDrawer, StaffHeader, StaffTabs } from '@app/feature-wrappers/staff';
+import { StaffConsole, StaffDrawer, StaffHeader, StaffTabs, StaffToolGuard } from '@app/feature-wrappers/staff';
 import { useAppDispatch, useAppSelector } from '@app/store';
 
 import { ReportCategoryTag, ReportStatusBadge } from './components/ReportBadges';
@@ -189,11 +189,9 @@ const ReportQueueContent = () => {
 
 const ReportQueue = () => (
   <StaffConsole>
-    <ModGuard>
-      <CapabilityGuard capability={ServerCapability.MODERATION_TOOLS}>
-        <ReportQueueContent />
-      </CapabilityGuard>
-    </ModGuard>
+    <StaffToolGuard tool="reports">
+      <ReportQueueContent />
+    </StaffToolGuard>
   </StaffConsole>
 );
 

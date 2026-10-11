@@ -1,19 +1,19 @@
-import { ServerCapability, server } from '@cockatrice/datatrice';
+import { ServerCapability } from '@cockatrice/datatrice';
 import { ServerInfo_User_UserLevelFlag } from '@cockatrice/sockatrice/generated';
 import { RouteEnum } from '@app/types';
 
 import {
-  commandsSupported, isStaff, STAFF_COMMAND_REQUIRES, STAFF_TOOLS, staffHomeRoute, staffToolStates, type StaffCommand,
+  commandsSupported, isStaff, SERVER_BASELINE, STAFF_COMMAND_REQUIRES, STAFF_TOOLS, staffHomeRoute, staffToolStates,
+  versionSupports, type CapabilityCheck, type StaffCommand,
 } from './staffTools';
 
 const { IsRegistered, IsModerator, IsAdmin, IsJudge, IsDeveloper } = ServerInfo_User_UserLevelFlag;
-const on = (version: string) => (capability: ServerCapability) => server.serverSupports(version, capability);
-const v30 = on('3.0.0');
-const v31 = on('3.1.0');
+const v30 = versionSupports('3.0.0 ()');
+const v31 = versionSupports('3.1.0 ()');
 const MODERATOR = IsRegistered | IsModerator;
 const ADMIN = MODERATOR | IsAdmin;
 
-const states = (level: number, supports: (c: ServerCapability) => boolean) =>
+const states = (level: number, supports: CapabilityCheck) =>
   staffToolStates(level, supports).map(({ tool, available }) => [tool.id, available]);
 
 describe('STAFF_COMMAND_REQUIRES', () => {
@@ -23,8 +23,8 @@ describe('STAFF_COMMAND_REQUIRES', () => {
     'reloadConfig',
   ];
 
-  it('needs nothing for the commands Servatrice 3.0 answers', () => {
-    answeredBy30.forEach((command) => expect([command, STAFF_COMMAND_REQUIRES[command]]).toEqual([command, null]));
+  it('needs only a recognised server for the commands Servatrice 3.0 answers', () => {
+    answeredBy30.forEach((command) => expect([command, STAFF_COMMAND_REQUIRES[command]]).toEqual([command, SERVER_BASELINE]));
   });
 
   it('needs a 3.1 capability for every other staff command', () => {
@@ -36,10 +36,25 @@ describe('STAFF_COMMAND_REQUIRES', () => {
   });
 
   it('checks every command a part uses', () => {
-    const cardArtOnly = (capability: ServerCapability) => capability === ServerCapability.CARD_ART;
+    const cardArtOnly: CapabilityCheck = (requirement) => requirement === SERVER_BASELINE || requirement === ServerCapability.CARD_ART;
     expect(commandsSupported(['listCardArtRules', 'getUserInfo'], cardArtOnly)).toBe(true);
     expect(commandsSupported(['listCardArtRules', 'reportList'], cardArtOnly)).toBe(false);
     expect(commandsSupported([], v30)).toBe(true);
+  });
+});
+
+describe('versionSupports', () => {
+  it.each([null, undefined, '', 'unknown'])('fails closed on an unknown server version (%s)', (version) => {
+    const supports = versionSupports(version);
+    expect(supports(SERVER_BASELINE)).toBe(false);
+    expect(supports(ServerCapability.MODERATION_TOOLS)).toBe(false);
+    expect(states(IsRegistered | IsModerator | IsAdmin, supports).every(([, available]) => !available)).toBe(true);
+    expect(staffHomeRoute(staffToolStates(IsRegistered | IsModerator, supports))).toBeNull();
+  });
+
+  it('accepts any recognised version for the baseline commands', () => {
+    expect(versionSupports('2.9.0')(SERVER_BASELINE)).toBe(true);
+    expect(v30(SERVER_BASELINE)).toBe(true);
   });
 });
 

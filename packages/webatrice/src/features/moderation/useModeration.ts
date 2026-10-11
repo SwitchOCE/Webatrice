@@ -8,6 +8,7 @@ import {
   useCommandFailureMessage,
   useReduxEffect,
   userInvestigationPath,
+  useRequestTracker,
   useUserCapabilities,
   type ReduxEffectAction,
 } from '@app/hooks';
@@ -93,7 +94,9 @@ export function useModeration(): Moderation {
   const pendingAvatarRemovals = useRef(new Set<string>());
 
   const stored = useAppSelector((state) => server.Selectors.getUserInvestigation(state, currentUser));
-  const storedUserInfo = useAppSelector((state) => server.Selectors.getUserInfoByName(state, currentUser));
+  const lookup = useRequestTracker();
+  const [infoName, setInfoName] = useState('');
+  const storedUserInfo = useAppSelector((state) => server.Selectors.getUserInfoByName(state, infoName));
 
   const settle = useCallback((part: InvestigationPart, userName: string, ok: boolean) => {
     if (userName !== currentUserRef.current) {
@@ -108,17 +111,19 @@ export function useModeration(): Moderation {
   useReduxEffect((action: ReduxEffectAction<{ info: Response_ReportUserInfo }>) => {
     settle('info', action.payload.info.userName, true);
   }, server.Types.USER_INFO_REPORT, [settle]);
-  useReduxEffect((action: ReduxEffectAction<{ userInfo: ServerInfo_User }>) => {
-    if (!parts.investigation) {
-      settle('info', action.payload.userInfo.name, true);
+  useReduxEffect((action: ReduxEffectAction<{ userInfo: ServerInfo_User; requestId?: string }>) => {
+    if (lookup.isCurrent(action.payload.requestId)) {
+      setInfoName(action.payload.userInfo.name);
+      setPending((p) => ({ ...p, info: false }));
     }
-  }, server.Types.GET_USER_INFO, [settle, parts.investigation]);
-  useReduxEffect((action: ReduxEffectAction<{ userName: string }>) => {
-    if (!parts.investigation && action.payload.userName === currentUserRef.current) {
+  }, server.Types.GET_USER_INFO, [lookup]);
+  useReduxEffect((action: ReduxEffectAction<{ requestId?: string }>) => {
+    if (lookup.isCurrent(action.payload.requestId)) {
       setInfoError(t('ModerationPage.info.loadError'));
-      settle('info', action.payload.userName, false);
+      setPending((p) => ({ ...p, info: false }));
+      setFailed((f) => ({ ...f, info: true }));
     }
-  }, server.Types.GET_USER_INFO_FAILED, [settle, parts.investigation, t]);
+  }, server.Types.GET_USER_INFO_FAILED, [lookup, t]);
   useReduxEffect((action: ReduxEffectAction<{ userName: string }>) => {
     settle('alts', action.payload.userName, true);
   }, server.Types.USER_ALTS, [settle]);
@@ -164,7 +169,8 @@ export function useModeration(): Moderation {
     setInfoError(null);
     if (!parts.investigation) {
       setPending(INFO_ONLY);
-      webClient.request.session.getUserInfo(userName);
+      setInfoName(userName);
+      webClient.request.session.getUserInfo(userName, lookup.begin());
       return;
     }
     setPending(ALL);
@@ -172,7 +178,7 @@ export function useModeration(): Moderation {
     moderator.reportUserInfo(userName);
     moderator.getUserSessions(userName);
     moderator.getUserAlts(userName);
-  }, [dispatch, webClient, parts.investigation]);
+  }, [dispatch, webClient, parts.investigation, lookup]);
 
   const refreshStaffLogins = useCallback(() => {
     if (!parts.staffLogins) {

@@ -7,18 +7,18 @@ import type { TFunction } from 'i18next';
 import { AlertTriangle, Plus, RefreshCw, Trash2, X } from 'lucide-react';
 
 import type { Response_CardArtRuleEntry } from '@cockatrice/sockatrice/generated';
-import { Button, CapabilityGuard, Chip, IconButton, ModGuard } from '@app/components';
+import { Button, Chip, IconButton } from '@app/components';
 import {
   fieldClass,
   labelClass,
   sectionLabelClass,
   StaffConsole,
+  StaffToolGuard,
   StaffDrawer,
   StaffHeader,
   StaffTable,
   type StaffColumn,
 } from '@app/feature-wrappers/staff';
-import { ServerCapability } from '@cockatrice/datatrice';
 
 import { CARD_ART_RULE_MODES, useCardArtRules } from './useCardArtRules';
 
@@ -241,11 +241,9 @@ const CardArtRulesContent = () => {
 
 const CardArtRules = () => (
   <StaffConsole>
-    <ModGuard>
-      <CapabilityGuard capability={ServerCapability.CARD_ART}>
-        <CardArtRulesContent />
-      </CapabilityGuard>
-    </ModGuard>
+    <StaffToolGuard tool="cardArtRules">
+      <CardArtRulesContent />
+    </StaffToolGuard>
   </StaffConsole>
 );
 
