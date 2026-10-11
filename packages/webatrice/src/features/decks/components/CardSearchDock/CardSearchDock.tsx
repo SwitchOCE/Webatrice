@@ -1,4 +1,4 @@
-import { useEffect, useId, useRef, type ReactNode } from 'react';
+import { memo, useCallback, useEffect, useId, useRef, type ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Info, LayoutGrid, List, Loader2, Plus, Search, X } from 'lucide-react';
 
@@ -102,16 +102,7 @@ function ResultMeta({ card, inDeck }: { card: ScryfallSearchCard; inDeck: number
   );
 }
 
-function ResultList({
-  results,
-  highlight,
-  quantities,
-  idFor,
-  onHighlight,
-  onHover,
-  onAdd,
-  stale,
-}: {
+interface ResultProps {
   results: ScryfallSearchCard[];
   highlight: number;
   quantities: Map<string, number>;
@@ -120,109 +111,134 @@ function ResultList({
   onHover?: (card: ScryfallSearchCard | null) => void;
   onAdd: (i: number, zone: DockZone) => void;
   stale: boolean;
-}) {
-  return (
-    <ul className="flex flex-col gap-0.5 px-1.5 py-1.5">
-      {results.map((card, i) => {
-        const art = searchCardArt(card);
-        const on = i === highlight;
-        return (
-          <li
-            key={card.id}
-            id={idFor(i)}
-            aria-current={on || undefined}
-            onPointerEnter={onHover && (() => onHover(card))}
-            onPointerLeave={onHover && (() => onHover(null))}
-            className={cx(
-              'flex h-[calc(var(--row-h)+14px)] items-center gap-2.5 rounded-ui-sm px-1.5',
-              on ? 'bg-accent/15 ring-1 ring-inset ring-accent/50' : 'hover:bg-bg-elevated',
-            )}
-          >
-            <span className="relative h-8 w-11 shrink-0 overflow-hidden rounded-ui-sm bg-bg-sunken" aria-hidden>
-              {art && <img src={art} alt="" className="h-full w-full object-cover" loading="lazy" draggable={false} />}
-            </span>
-            <button
-              type="button"
-              onClick={() => onHighlight(i)}
-              onFocus={() => onHighlight(i)}
-              className={cx('flex min-w-0 flex-1 flex-col rounded-ui-sm text-left', FOCUS)}
-            >
-              <span className="flex min-w-0 items-center gap-1.5">
-                <span className="truncate text-[13px] font-medium text-text-primary">{card.name}</span>
-                <ManaSymbols cost={searchCardManaCost(card)} size={12} className="shrink-0" />
-              </span>
-              <ResultMeta card={card} inDeck={quantities.get(card.name) ?? 0} />
-            </button>
-            <AddButtons card={card} onAdd={(zone) => onAdd(i, zone)} onFocus={() => onHighlight(i)} disabled={stale} />
-          </li>
-        );
-      })}
-    </ul>
-  );
 }
 
-function ResultGrid({
-  results,
-  highlight,
-  quantities,
-  idFor,
-  onHighlight,
-  onHover,
-  onAdd,
-  stale,
-}: {
-  results: ScryfallSearchCard[];
-  highlight: number;
-  quantities: Map<string, number>;
-  idFor: (i: number) => string;
-  onHighlight: (i: number) => void;
-  onHover?: (card: ScryfallSearchCard | null) => void;
-  onAdd: (i: number, zone: DockZone) => void;
-  stale: boolean;
-}) {
-  const { t } = useTranslation();
+interface ResultCardProps extends Pick<ResultProps, 'onHighlight' | 'onHover' | 'onAdd' | 'stale'> {
+  card: ScryfallSearchCard;
+  index: number;
+  id: string;
+  highlighted: boolean;
+  inDeck: number;
+}
+
+const ResultRow = memo(function ResultRow({
+  card, index, id, highlighted, inDeck, onHighlight, onHover, onAdd, stale,
+}: ResultCardProps) {
+  const art = searchCardArt(card);
   return (
-    <ul className="grid grid-cols-2 gap-2 p-2">
-      {results.map((card, i) => {
-        const img = searchCardImage(card);
-        const on = i === highlight;
-        const inDeck = quantities.get(card.name) ?? 0;
-        return (
-          <li
-            key={card.id}
-            id={idFor(i)}
-            aria-current={on || undefined}
-            onPointerEnter={onHover && (() => onHover(card))}
-            onPointerLeave={onHover && (() => onHover(null))}
-            className={cx('relative overflow-hidden rounded-ui', on ? 'ring-2 ring-accent' : 'ring-1 ring-border-subtle')}
-          >
-            <button
-              type="button"
-              onClick={() => onHighlight(i)}
-              onFocus={() => onHighlight(i)}
-              aria-label={card.name}
-              className={cx('block aspect-[5/7] w-full bg-bg-sunken', FOCUS)}
-            >
-              {img ? (
-                <img src={img} alt="" className="h-full w-full object-cover" loading="lazy" draggable={false} />
-              ) : (
-                <span className="flex h-full items-center justify-center p-2 text-center text-[12px] text-text-secondary">{card.name}</span>
-              )}
-            </button>
-            {inDeck > 0 && (
-              <span className="absolute left-1.5 top-1.5 rounded-full bg-accent px-1.5 text-[10px] font-semibold text-on-accent">
-                {t('CardSearchDock.inDeck', { count: inDeck })}
-              </span>
-            )}
-            <span className="absolute bottom-1.5 right-1.5">
-              <AddButtons card={card} onAdd={(zone) => onAdd(i, zone)} onFocus={() => onHighlight(i)} onArt disabled={stale} />
-            </span>
-          </li>
-        );
-      })}
+    <li
+      id={id}
+      aria-current={highlighted || undefined}
+      onPointerEnter={onHover && (() => onHover(card))}
+      onPointerLeave={onHover && (() => onHover(null))}
+      className={cx(
+        'flex h-[calc(var(--row-h)+14px)] items-center gap-2.5 rounded-ui-sm px-1.5',
+        highlighted ? 'bg-accent/15 ring-1 ring-inset ring-accent/50' : 'hover:bg-bg-elevated',
+      )}
+    >
+      <span className="relative h-8 w-11 shrink-0 overflow-hidden rounded-ui-sm bg-bg-sunken" aria-hidden>
+        {art && <img src={art} alt="" className="h-full w-full object-cover" loading="lazy" draggable={false} />}
+      </span>
+      <button
+        type="button"
+        onClick={() => onHighlight(index)}
+        onFocus={() => onHighlight(index)}
+        className={cx('flex min-w-0 flex-1 flex-col rounded-ui-sm text-left', FOCUS)}
+      >
+        <span className="flex min-w-0 items-center gap-1.5">
+          <span className="truncate text-[13px] font-medium text-text-primary">{card.name}</span>
+          <ManaSymbols cost={searchCardManaCost(card)} size={12} className="shrink-0" />
+        </span>
+        <ResultMeta card={card} inDeck={inDeck} />
+      </button>
+      <AddButtons card={card} onAdd={(zone) => onAdd(index, zone)} onFocus={() => onHighlight(index)} disabled={stale} />
+    </li>
+  );
+});
+
+const ResultList = memo(function ResultList({
+  results, highlight, quantities, idFor, onHighlight, onHover, onAdd, stale,
+}: ResultProps) {
+  return (
+    <ul className="flex flex-col gap-0.5 px-1.5 py-1.5">
+      {results.map((card, index) => (
+        <ResultRow
+          key={card.id}
+          card={card}
+          index={index}
+          id={idFor(index)}
+          highlighted={index === highlight}
+          inDeck={quantities.get(card.name) ?? 0}
+          onHighlight={onHighlight}
+          onHover={onHover}
+          onAdd={onAdd}
+          stale={stale}
+        />
+      ))}
     </ul>
   );
-}
+});
+
+const ResultTile = memo(function ResultTile({
+  card, index, id, highlighted, inDeck, onHighlight, onHover, onAdd, stale,
+}: ResultCardProps) {
+  const { t } = useTranslation();
+  const img = searchCardImage(card);
+  return (
+    <li
+      id={id}
+      aria-current={highlighted || undefined}
+      onPointerEnter={onHover && (() => onHover(card))}
+      onPointerLeave={onHover && (() => onHover(null))}
+      className={cx('relative overflow-hidden rounded-ui', highlighted ? 'ring-2 ring-accent' : 'ring-1 ring-border-subtle')}
+    >
+      <button
+        type="button"
+        onClick={() => onHighlight(index)}
+        onFocus={() => onHighlight(index)}
+        aria-label={card.name}
+        className={cx('block aspect-[5/7] w-full bg-bg-sunken', FOCUS)}
+      >
+        {img ? (
+          <img src={img} alt="" className="h-full w-full object-cover" loading="lazy" draggable={false} />
+        ) : (
+          <span className="flex h-full items-center justify-center p-2 text-center text-[12px] text-text-secondary">{card.name}</span>
+        )}
+      </button>
+      {inDeck > 0 && (
+        <span className="absolute left-1.5 top-1.5 rounded-full bg-accent px-1.5 text-[10px] font-semibold text-on-accent">
+          {t('CardSearchDock.inDeck', { count: inDeck })}
+        </span>
+      )}
+      <span className="absolute bottom-1.5 right-1.5">
+        <AddButtons card={card} onAdd={(zone) => onAdd(index, zone)} onFocus={() => onHighlight(index)} onArt disabled={stale} />
+      </span>
+    </li>
+  );
+});
+
+const ResultGrid = memo(function ResultGrid({
+  results, highlight, quantities, idFor, onHighlight, onHover, onAdd, stale,
+}: ResultProps) {
+  return (
+    <ul className="grid grid-cols-2 gap-2 p-2">
+      {results.map((card, index) => (
+        <ResultTile
+          key={card.id}
+          card={card}
+          index={index}
+          id={idFor(index)}
+          highlighted={index === highlight}
+          inDeck={quantities.get(card.name) ?? 0}
+          onHighlight={onHighlight}
+          onHover={onHover}
+          onAdd={onAdd}
+          stale={stale}
+        />
+      ))}
+    </ul>
+  );
+});
 
 function GameChangerLine({ note }: { note: GameChangerNote }) {
   const { t } = useTranslation();
@@ -267,7 +283,7 @@ export default function CardSearchDock({
 
   const baseId = useId();
   const listId = `${baseId}-results`;
-  const idFor = (i: number) => `${baseId}-result-${i}`;
+  const idFor = useCallback((i: number) => `${baseId}-result-${i}`, [baseId]);
   const mainKey = menuShortcut('deck.addSearchResult');
   const sideKey = menuShortcut('deck.addSearchResultToSideboard');
   const selectedName = dock.selected?.name;
@@ -299,16 +315,18 @@ export default function CardSearchDock({
     { value: 'art', label: <ViewLabel icon={<LayoutGrid size={14} aria-hidden />} text={t('CardSearchDock.view.art')} /> },
   ];
 
-  const hoverResult = onHoverPreview
-    ? (card: ScryfallSearchCard | null) => onHoverPreview(card, card ? dock.printingChoices[card.name] : undefined)
-    : undefined;
+  const printingChoices = dock.printingChoices;
+  const hoverResult = useCallback(
+    (card: ScryfallSearchCard | null) => onHoverPreview?.(card, card ? printingChoices[card.name] : undefined),
+    [onHoverPreview, printingChoices],
+  );
   const resultsProps = {
     results: dock.results,
     highlight: dock.highlight,
     quantities: dock.quantities,
     idFor,
     onHighlight: dock.setHighlight,
-    onHover: hoverResult,
+    onHover: onHoverPreview ? hoverResult : undefined,
     onAdd: dock.add,
     stale: dock.stale,
   };

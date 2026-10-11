@@ -110,7 +110,7 @@ const DeckEditor = () => {
 
   const groups = useMemo(
     () => groupDeckCards(editor.deck?.cards ?? [], isCommander),
-    [editor.deck, isCommander],
+    [editor.deck?.cards, isCommander],
   );
   const cards = editor.deck?.cards ?? NO_CARDS;
   const colorIdentity = useMemo(() => dockColorIdentity(cards, isCommander), [cards, isCommander]);
@@ -150,25 +150,46 @@ const DeckEditor = () => {
     });
   };
 
-  const selectCard = (card: DeckCard) => setSelected(inspectedRow(card));
-  const moveCard = (index: number, category: DeckCard['category']) => {
-    const card = editor.deck?.cards[index];
-    editor.setCategory(index, category);
+  const { setCategory, addCard: editorAddCard } = editor;
+  const { enter: enterPreview, leave: leavePreview } = preview;
+  const { collapsedGroups, setGroupsCollapsed } = paneLayout;
+  const selectCard = useCallback((card: DeckCard) => setSelected(inspectedRow(card)), []);
+  const moveCard = useCallback((index: number, category: DeckCard['category']) => {
+    const card = cards[index];
+    setCategory(index, category);
     if (card) {
       setSelected(inspectedRow({ ...card, category }));
     }
-  };
-  const addCard = (name: string, zone: 'main' | 'side', scryfallId?: string) => {
-    void editor.addCard(name, { zone, scryfallId });
+  }, [cards, setCategory]);
+  const addCard = useCallback((name: string, zone: 'main' | 'side', scryfallId?: string) => {
+    void editorAddCard(name, { zone, scryfallId });
     const category = zone === 'side' ? 'sideboard' : 'main';
     setSelected((current) => (current?.preview && current.name.toLowerCase() === name.toLowerCase()
       ? { ...current, category, scryfallId }
       : { name, category, scryfallId, preview: { name, quantity: 1, category, scryfallId, lookupSource: 'unknown' } }));
-  };
-  const previewSearchCard = (card: ScryfallSearchCard, providerId?: string) => setSelected(searchCardInspection(card, providerId));
-  const hoverSearchCard = (card: ScryfallSearchCard | null, providerId?: string) =>
-    (card ? preview.enter(searchCardInspection(card, providerId)) : preview.leave());
-  const hoverDeckCard = (card: DeckCard | null) => (card ? preview.enter(inspectedRow(card)) : preview.leave());
+  }, [editorAddCard]);
+  const previewSearchCard = useCallback(
+    (card: ScryfallSearchCard, providerId?: string) => setSelected(searchCardInspection(card, providerId)),
+    [],
+  );
+  const hoverSearchCard = useCallback(
+    (card: ScryfallSearchCard | null, providerId?: string) =>
+      (card ? enterPreview(searchCardInspection(card, providerId)) : leavePreview()),
+    [enterPreview, leavePreview],
+  );
+  const hoverDeckCard = useCallback(
+    (card: DeckCard | null) => (card ? enterPreview(inspectedRow(card)) : leavePreview()),
+    [enterPreview, leavePreview],
+  );
+  const changePrinting = useCallback((index: number, card: DeckCard) => setPrintingRequest({ index, card }), []);
+  const focusAddField = useCallback(
+    () => (isMtg ? dockApi.current?.focusSearch() : addFieldRef.current?.focus()),
+    [isMtg],
+  );
+  const toggleGroup = useCallback(
+    (label: string) => setGroupsCollapsed([label], !collapsedGroups.has(label)),
+    [collapsedGroups, setGroupsCollapsed],
+  );
 
   if (editor.loading) {
     return <DeckEditorSkeleton loaded={0} total={0} />;
@@ -242,10 +263,10 @@ const DeckEditor = () => {
             deckCards={editor.deck.cards}
             prices={pricing.prices}
             isCommanderDeck={isCommander}
-            onInc={(i, d) => editor.incQuantity(i, d)}
-            onDelete={(i) => editor.deleteCard(i)}
+            onInc={editor.incQuantity}
+            onDelete={editor.deleteCard}
             onSetCategory={moveCard}
-            onChangePrinting={(i, c) => setPrintingRequest({ index: i, card: c })}
+            onChangePrinting={changePrinting}
             onShowDetails={setDetailSnapshot}
             onAdd={addCard}
           />
@@ -422,19 +443,19 @@ const DeckEditor = () => {
             selectedIndex={selectedIndex}
             onSelect={selectCard}
             onPreview={isMtg ? hoverDeckCard : undefined}
-            onInc={(i, d) => editor.incQuantity(i, d)}
-            onDelete={(i) => editor.deleteCard(i)}
+            onInc={editor.incQuantity}
+            onDelete={editor.deleteCard}
             onSetCategory={moveCard}
-            onSetCommander={(i, v) => editor.setCommander(i, v)}
-            onChangePrinting={(i, c) => setPrintingRequest({ index: i, card: c })}
+            onSetCommander={editor.setCommander}
+            onChangePrinting={changePrinting}
             onShowDetails={isMtg ? setDetailSnapshot : undefined}
-            onLastRowRemoved={() => (isMtg ? dockApi.current?.focusSearch() : addFieldRef.current?.focus())}
+            onLastRowRemoved={focusAddField}
             isMtg={isMtg}
             isCommander={isCommander}
             legality={legality.rows}
             density={prefs.density}
             collapsedGroups={paneLayout.collapsedGroups}
-            onToggleGroup={(label) => paneLayout.setGroupsCollapsed([label], !paneLayout.collapsedGroups.has(label))}
+            onToggleGroup={toggleGroup}
           />
           {showInspector && !docked && inspector}
         </main>

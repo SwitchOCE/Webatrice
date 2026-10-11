@@ -44,6 +44,19 @@ describe('groupDeckCards', () => {
 });
 
 describe('sortIndicesByName', () => {
+  it('uses one collator for a sort and preserves stable case and accent ties without numeric sorting', () => {
+    const cards = ['b', 'á', 'A', 'a 2', 'a 10'].map((name) => card(name));
+    const indices = cards.map((_, i) => i);
+    const expected = [...indices].sort((a, b) => cards[a].name.localeCompare(cards[b].name, undefined, { sensitivity: 'base' }));
+    const collator = vi.spyOn(Intl, 'Collator');
+    try {
+      expect(sortIndicesByName(cards, indices)).toEqual(expected);
+      expect(collator).toHaveBeenCalledExactlyOnceWith(undefined, { sensitivity: 'base' });
+    } finally {
+      collator.mockRestore();
+    }
+  });
+
   it('sorts case-insensitively by card name', () => {
     const cards = [card('b'), card('A'), card('c')];
     expect(sortIndicesByName(cards, [0, 1, 2])).toEqual([1, 0, 2]);
