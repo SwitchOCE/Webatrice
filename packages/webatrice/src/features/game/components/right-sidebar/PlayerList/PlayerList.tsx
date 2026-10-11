@@ -1,13 +1,13 @@
 import { memo, useCallback, useMemo, useRef, useState, type MouseEvent } from 'react';
 import { useTranslation } from 'react-i18next';
 import { generatePath, useNavigate } from 'react-router-dom';
-import { Crown, Eye, MoreVertical, User } from 'lucide-react';
+import { Crown, Eye, MoreVertical } from 'lucide-react';
 
 import { games, server } from '@cockatrice/datatrice';
 import { useWebClient } from '@cockatrice/datatrice/react';
 import { useAppSelector } from '@app/store';
 import { useAdminLocked } from '@app/hooks';
-import { UserBadges, isContextMenuKey, type MenuAnchor } from '@app/components';
+import { Avatar, UserBadges, isContextMenuKey, type MenuAnchor } from '@app/components';
 import { MODERATION_MENU_LABEL_KEYS, useModerationMenu } from '@app/feature-widgets/moderation';
 import { useReportUser } from '@app/dialogs';
 import { RouteEnum } from '@app/types';
@@ -197,18 +197,9 @@ function PlayerList({ kind = 'all' }: PlayerListProps) {
                 isActive ? 'bg-accent/10' : 'hover:bg-bg-elevated',
               ].join(' ')}
             >
-              {/* Avatar — accent gradient fallback (og's protocol
-                   doesn't carry avatar URLs today). */}
-              <div
-                className={[
-                  'h-7 w-7 rounded-full flex items-center justify-center shrink-0',
-                  isConceded
-                    ? 'bg-bg-elevated border border-border-subtle'
-                    : 'bg-gradient-to-br from-accent-secondary to-accent',
-                ].join(' ')}
-              >
-                <User size={12} className="text-white" />
-              </div>
+              <span className={['flex shrink-0', isConceded ? 'opacity-50 grayscale' : ''].join(' ')}>
+                <Avatar name={name} size={28} />
+              </span>
 
               <div className="min-w-0 flex-1">
                 <div className="flex items-center gap-1 min-w-0">

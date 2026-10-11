@@ -1,8 +1,9 @@
-import { type ButtonHTMLAttributes, type CSSProperties, type InputHTMLAttributes, type ReactNode, forwardRef } from 'react';
+import { type ButtonHTMLAttributes, type CSSProperties, type InputHTMLAttributes, type ReactNode, forwardRef, useState } from 'react';
 import { type TFunction } from 'i18next';
 import { useTranslation } from 'react-i18next';
 import { Gavel, Search, Shield, ShieldCheck } from 'lucide-react';
 
+import { useUserAvatar } from '../../hooks/useUserAvatar';
 import { cx } from '../../utils/cx';
 
 export type ButtonVariant = 'primary' | 'secondary' | 'ghost' | 'danger' | 'quiet';
@@ -416,15 +417,20 @@ export function Segmented<T extends string>({
 const AVATAR_HUES = [262, 200, 20, 150, 330, 45, 280, 180];
 
 export function Avatar({ name, size = 28, ring, src }: { name: string; size?: number; ring?: boolean; src?: string }) {
+  const userAvatar = useUserAvatar(src === undefined ? name : null);
+  const [failed, setFailed] = useState<string | null>(null);
+  const candidate = src ?? userAvatar.src ?? undefined;
+  const image = candidate && candidate !== failed ? candidate : undefined;
   const h = AVATAR_HUES[[...name].reduce((a, c) => a + c.charCodeAt(0), 0) % AVATAR_HUES.length];
   const style: CSSProperties = {
     width: size,
     height: size,
     fontSize: Math.round(size * 0.4),
-    background: src ? undefined : `linear-gradient(135deg, hsl(${h} 55% 52%), hsl(${(h + 40) % 360} 60% 32%))`,
+    background: image ? undefined : `linear-gradient(135deg, hsl(${h} 55% 52%), hsl(${(h + 40) % 360} 60% 32%))`,
   };
   return (
     <span
+      ref={userAvatar.ref}
       style={style}
       className={cx(
         'inline-flex shrink-0 items-center justify-center overflow-hidden rounded-full font-semibold text-over-art-text',
@@ -432,7 +438,9 @@ export function Avatar({ name, size = 28, ring, src }: { name: string; size?: nu
       )}
       aria-hidden
     >
-      {src ? <img src={src} alt="" className="h-full w-full object-cover" /> : name.slice(0, 1).toUpperCase()}
+      {image
+        ? <img src={image} alt="" className="h-full w-full object-cover" onError={() => setFailed(image)} />
+        : name.slice(0, 1).toUpperCase()}
     </span>
   );
 }

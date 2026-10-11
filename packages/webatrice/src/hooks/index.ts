@@ -18,6 +18,7 @@ export * from './usePhaseTrackPinned';
 export * from './useReduxEffect';
 export * from './useSettings';
 export * from './useSharedStore';
+export * from './useUserAvatar';
 export * from './useSnapGridVisible';
 export * from './useSyncLocaleToStore';
 export * from './useVersion';
