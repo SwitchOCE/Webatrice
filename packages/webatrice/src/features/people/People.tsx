@@ -116,7 +116,7 @@ function PeopleList({ people }: { people: PeopleModel }) {
 export default function People() {
   const { t, i18n } = useTranslation();
   const people = usePeople();
-  const unread = useUnreadCounts().chats;
+  const unread = useUnreadCounts((counts) => counts.chats);
   const timeFormat = useMemo(
     () => new Intl.DateTimeFormat(i18n.language.replaceAll('_', '-'), { timeStyle: 'short' }),
     [i18n.language],

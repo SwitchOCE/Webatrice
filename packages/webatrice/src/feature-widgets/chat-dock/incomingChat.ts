@@ -23,6 +23,10 @@ export function incomingChatPeer(
   if (!entry) {
     return null;
   }
+  const cached = chatFilterVerdicts.get(entry);
+  if (cached !== undefined) {
+    return cached ? peer : null;
+  }
   const visible = visiblePrivateMessages(
     list,
     { selfName, peer: state.server.users[peer], peerIsBuddy: Boolean(state.server.buddyList[peer]) },

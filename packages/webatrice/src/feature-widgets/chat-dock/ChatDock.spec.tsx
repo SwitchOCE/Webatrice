@@ -1,4 +1,5 @@
 import { act, fireEvent, screen, within } from '@testing-library/react';
+import { Profiler } from 'react';
 import { create } from '@bufbuild/protobuf';
 import { server } from '@cockatrice/datatrice';
 import { Event_UserMessageSchema } from '@cockatrice/sockatrice/generated';
@@ -68,6 +69,21 @@ describe('ChatDock', () => {
   it('renders nothing until a chat is open', () => {
     renderWithProviders(<ChatDock />, { preloadedState: state });
     expect(screen.queryByRole('region', { name: 'ChatDock.region' })).not.toBeInTheDocument();
+  });
+
+  it('ignores unrelated notification changes but renders changed chat unread counts', () => {
+    const rendered = vi.fn();
+    const view = renderWithProviders(<Profiler id="dock" onRender={rendered}><ChatDock /></Profiler>, { preloadedState: state });
+    rendered.mockClear();
+    act(() => notificationStore.dispatch({ type: 'bump', scope: 'rooms', key: 1 }));
+    act(() => notificationStore.dispatch({ type: 'append', time: 0, read: false,
+      entry: { kind: 'buddy', actor: 'bob', target: { type: 'chat', userName: 'bob' } },
+    }));
+    expect(rendered).not.toHaveBeenCalled();
+    act(() => notificationStore.dispatch({ type: 'bump', scope: 'chats', key: 'alice' }));
+    expect(rendered).toHaveBeenCalledTimes(1);
+    view.unmount();
+    notificationStore.reset();
   });
 
   it('opens a window with the conversation and focuses its input', () => {

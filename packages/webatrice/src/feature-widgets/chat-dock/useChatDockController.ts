@@ -116,7 +116,7 @@ export function useChatDockController(): ChatDockView {
     if (peer) {
       dispatchChatDock({ type: 'receive', name: peer });
     }
-  });
+  }, (action) => action.type === server.Types.USER_MESSAGE);
 
   const { windows, bars } = useMemo(() => splitDock(dock.chats, selfName), [dock.chats, selfName]);
   const inset = useDockInset(gameId !== null && windows.length + bars.length > 0);

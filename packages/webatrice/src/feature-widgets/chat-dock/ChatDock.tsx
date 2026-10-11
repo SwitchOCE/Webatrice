@@ -11,7 +11,7 @@ import { useDockFocus } from './useDockFocus';
 export default function ChatDock() {
   const { t } = useTranslation();
   const { visible, windows, bars, rightInset, focus } = useChatDockController();
-  const unread = useUnreadCounts().chats;
+  const unread = useUnreadCounts((counts) => counts.chats);
   const { rootRef, registerInput, registerBar, minimise, close } = useDockFocus(windows, bars, focus);
 
   if (!visible) {

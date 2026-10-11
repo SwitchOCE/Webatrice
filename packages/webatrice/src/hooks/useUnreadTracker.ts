@@ -1,5 +1,6 @@
 import { useEffect, useRef } from 'react';
 import { useLocation } from 'react-router-dom';
+import { games, rooms, server } from '@cockatrice/datatrice';
 
 import { notificationStore, unreadChange, type CurrentView, type VisibilityChecks } from '@app/services';
 import type { RootState } from '@app/store';
@@ -8,6 +9,8 @@ import { chatFilterVerdicts, findChatAlert, isPrivilegedUser, isRoomMessageVisib
 import { viewedNow } from './chatVisibility';
 import { useActionFeed } from './useActionFeed';
 import { getPreferencesSnapshot } from './useSettings';
+
+const GAME_ACTION_PREFIX = `${games.Types.GAME_JOINED.split('/')[0]}/`;
 
 const checks: VisibilityChecks = {
   roomMessage: (roomId: number, state: RootState) => {
@@ -25,6 +28,10 @@ const checks: VisibilityChecks = {
     const entry = list.at(-1);
     if (!selfName || !entry) {
       return false;
+    }
+    const cached = chatFilterVerdicts.get(entry);
+    if (cached !== undefined) {
+      return cached;
     }
     const conversation = { selfName, peer: state.server.users[peer], peerIsBuddy: Boolean(state.server.buddyList[peer]) };
     return visiblePrivateMessages(list, conversation, getPreferencesSnapshot(), chatFilterVerdicts).includes(entry);
@@ -77,5 +84,8 @@ export function useUnreadTracker(): void {
         ? { type: 'bump', scope: change.scope, key: change.key, mention: change.mention }
         : { type: 'clear', scope: change.scope, key: change.key });
     }
-  });
+  }, (action) => Boolean(action.type?.startsWith(GAME_ACTION_PREFIX))
+    || action.type === rooms.Types.ADD_MESSAGE
+    || action.type === rooms.Types.LEAVE_ROOM
+    || action.type === server.Types.USER_MESSAGE);
 }

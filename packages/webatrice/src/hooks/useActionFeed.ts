@@ -10,14 +10,17 @@ interface ObservedAction {
 }
 
 export type ActionFeedHandler = (action: ObservedAction, before: RootState, after: RootState) => void;
+export type ActionFeedPredicate = (action: ObservedAction) => boolean;
 
-export function useActionFeed(handler: ActionFeedHandler): void {
+export function useActionFeed(handler: ActionFeedHandler, predicate?: ActionFeedPredicate): void {
   const store = useStore<RootState>();
   const handlerRef = useRef(handler);
   handlerRef.current = handler;
+  const predicateRef = useRef(predicate);
+  predicateRef.current = predicate;
 
   useEffect(() => listenerMiddleware.startListening({
-    predicate: () => true,
+    predicate: (action) => predicateRef.current?.({ type: action.type, payload: action.payload }) ?? true,
     effect: (action, api) => {
       if (api.getState !== store.getState) {
         return;

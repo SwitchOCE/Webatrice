@@ -36,7 +36,10 @@ export default function AppAlerts() {
     } else if (action.type === server.Types.USER_LEFT) {
       onUserLeft((action.payload as { name: string }).name, before);
     }
-  });
+  }, (action) => Boolean(action.type?.startsWith(GAME_ACTION_PREFIX))
+    || action.type === rooms.Types.ADD_MESSAGE
+    || action.type === server.Types.USER_JOINED
+    || action.type === server.Types.USER_LEFT);
 
   function onGameEvent(action: ObservedAction, before: GamesState, after: GamesState) {
     const sound = gameEventSound(action, before, after);
