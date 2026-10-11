@@ -29,6 +29,7 @@ interface CachedUrl {
 const DEFAULT_BATCH_SIZE = 6;
 const DEFAULT_INTERVAL_MS = 250;
 const DEFAULT_ROOT_MARGIN = '120px';
+const RETIRE_DELAY_MS = 1000;
 
 function hasBytes(bmp: Uint8Array | undefined | null): bmp is Uint8Array {
   return Boolean(bmp && bmp.byteLength > 0);
@@ -68,7 +69,9 @@ export function lookupUserAvatar(state: RootState, name: string): UserAvatarLook
 }
 
 export class UserAvatarService {
-  private readonly urls = new Map<string, CachedUrl[]>();
+  private readonly urls = new Map<string, CachedUrl>();
+  private readonly retiring = new Map<string, ReturnType<typeof setTimeout>>();
+  private nextSendAt = 0;
   private readonly requested = new Set<string>();
   private queue: string[] = [];
   private timer: ReturnType<typeof setTimeout> | null = null;
@@ -95,7 +98,11 @@ export class UserAvatarService {
       return null;
     }
     const { bmp } = lookupUserAvatar(this.store.getState(), name);
-    return bmp ? this.urlFor(name, bmp) : null;
+    if (!bmp) {
+      this.forget(name);
+      return null;
+    }
+    return this.urlFor(name, bmp);
   }
 
   want(name: string): void {
@@ -108,7 +115,7 @@ export class UserAvatarService {
     }
     this.requested.add(name);
     this.queue.push(name);
-    this.schedule(0);
+    this.schedule();
   }
 
   observe(element: Element, name: string): () => void {
@@ -136,43 +143,68 @@ export class UserAvatarService {
     }
     this.queue = [];
     this.requested.clear();
-    for (const entries of this.urls.values()) {
-      for (const entry of entries) {
-        URL.revokeObjectURL(entry.url);
-      }
+    this.nextSendAt = 0;
+    for (const entry of this.urls.values()) {
+      URL.revokeObjectURL(entry.url);
     }
     this.urls.clear();
+    for (const [url, timer] of this.retiring) {
+      clearTimeout(timer);
+      URL.revokeObjectURL(url);
+    }
+    this.retiring.clear();
   }
 
   private urlFor(name: string, bmp: Uint8Array): string {
-    const entries = this.urls.get(name) ?? [];
-    const hit = entries.find((entry) => sameBytes(entry.bmp, bmp));
-    if (hit) {
-      hit.bmp = bmp;
-      return hit.url;
+    const current = this.urls.get(name);
+    if (current && sameBytes(current.bmp, bmp)) {
+      current.bmp = bmp;
+      return current.url;
+    }
+    if (current) {
+      this.retire(current.url);
     }
     const url = URL.createObjectURL(new Blob([bmp as BlobPart]));
-    entries.push({ bmp, url });
-    this.urls.set(name, entries);
+    this.urls.set(name, { bmp, url });
     return url;
   }
 
-  private schedule(delay: number): void {
+  private forget(name: string): void {
+    const current = this.urls.get(name);
+    if (current) {
+      this.urls.delete(name);
+      this.retire(current.url);
+    }
+  }
+
+  private retire(url: string): void {
+    this.retiring.set(url, setTimeout(() => {
+      this.retiring.delete(url);
+      URL.revokeObjectURL(url);
+    }, RETIRE_DELAY_MS));
+  }
+
+  private schedule(): void {
     if (this.timer !== null || this.queue.length === 0) {
       return;
     }
-    this.timer = setTimeout(() => this.pump(), delay);
+    this.timer = setTimeout(() => this.pump(), Math.max(0, this.nextSendAt - Date.now()));
   }
 
   private pump(): void {
     this.timer = null;
     const batch = this.queue.splice(0, this.batchSize);
+    let sent = false;
     for (const name of batch) {
       if (!lookupUserAvatar(this.store.getState(), name).known) {
         this.request(name);
+        sent = true;
       }
     }
-    this.schedule(this.intervalMs);
+    if (sent) {
+      this.nextSendAt = Date.now() + this.intervalMs;
+    }
+    this.schedule();
   }
 
   private intersectionObserver(): IntersectionObserver | null {
