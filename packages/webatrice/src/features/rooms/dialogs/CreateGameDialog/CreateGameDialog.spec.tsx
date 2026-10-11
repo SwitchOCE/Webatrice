@@ -30,7 +30,8 @@ function renderDialog(opts: { isJudge?: boolean; isRegistered?: boolean; gametyp
 }
 
 const create = () => fireEvent.click(screen.getByRole('button', { name: 'CreateGameDialog.action.create' }));
-const openAdvanced = () => fireEvent.click(screen.getByRole('button', { name: /CreateGameDialog.advanced.title/ }));
+const advancedButton = () => screen.getByRole('button', { name: /CreateGameDialog.advanced.title/ });
+const toggleAdvanced = () => fireEvent.click(advancedButton());
 const toggle = (key: string) => fireEvent.click(screen.getByRole('switch', { name: `CreateGameDialog.label.${key}` }));
 const preset = (id: string) => screen.getByRole('radio', { name: `CreateGameDialog.preset.${id}.name` });
 
@@ -78,14 +79,44 @@ describe('CreateGameDialog', () => {
     expect(onSubmit.mock.calls[0][0].gameTypeIds).toEqual([]);
   });
 
-  it('Friends only is unavailable to unregistered users', () => {
+  it('Duel Commander sets two seats, 30 life and the room\'s Other type', () => {
+    const { onSubmit } = renderDialog({ isRegistered: true, gametypeMap: { 0: 'Standard', 7: 'Other' } });
+    fireEvent.click(preset('duelCommander'));
+    expect(preset('duelCommander')).toBeChecked();
+    create();
+    expect(onSubmit.mock.calls[0][0]).toMatchObject({
+      maxPlayers: 2,
+      startingLifeTotal: 30,
+      onlyRegistered: true,
+      spectatorsAllowed: true,
+      spectatorsCanTalk: false,
+      gameTypeIds: [7],
+    });
+  });
+
+  it('Duel Commander leaves the format as Any when the room has no Other type', () => {
+    const { onSubmit } = renderDialog({ isRegistered: true, gametypeMap: { 0: 'Standard' } });
+    fireEvent.change(screen.getByLabelText('CreateGameDialog.label.format'), { target: { value: '0' } });
+    fireEvent.click(preset('duelCommander'));
+    create();
+    expect(onSubmit.mock.calls[0][0].gameTypeIds).toEqual([]);
+  });
+
+  it('shows no description under the preset cards', () => {
+    renderDialog({ isRegistered: true });
+    for (const id of ['commanderPod', 'oneVsOne', 'friendsOnly', 'duelCommander']) {
+      expect(preset(id)).not.toHaveAccessibleDescription();
+    }
+  });
+
+  it('Friends only is unavailable to unregistered users, and says why', () => {
     renderDialog({ isRegistered: false });
     expect(preset('friendsOnly')).toBeDisabled();
+    expect(preset('friendsOnly')).toHaveAccessibleDescription('CreateGameDialog.preset.needsAccount');
   });
 
   it('marks the picked preset as customised once a field no longer matches it', () => {
     renderDialog({ isRegistered: true });
-    openAdvanced();
     fireEvent.change(screen.getByLabelText('CreateGameDialog.label.maxPlayers'), { target: { value: '3' } });
     expect(preset('oneVsOne')).toBeChecked();
     expect(preset('oneVsOne')).toHaveAccessibleDescription(expect.stringContaining('CreateGameDialog.preset.customised'));
@@ -104,9 +135,8 @@ describe('CreateGameDialog', () => {
 
   it('blocks an out-of-range seat count even with Advanced collapsed, then reveals and focuses it', () => {
     const { onSubmit } = renderDialog({ isRegistered: true });
-    openAdvanced();
     fireEvent.change(screen.getByLabelText('CreateGameDialog.label.maxPlayers'), { target: { value: '0' } });
-    openAdvanced();
+    toggleAdvanced();
     expect(screen.queryByLabelText('CreateGameDialog.label.maxPlayers')).not.toBeInTheDocument();
     create();
     expect(onSubmit).not.toHaveBeenCalled();
@@ -117,23 +147,23 @@ describe('CreateGameDialog', () => {
     expect(window.localStorage.getItem(CREATE_GAME_DEFAULTS_KEY)).toBeNull();
   });
 
-  it('keeps every field under Advanced, collapsed by default', () => {
+  it('opens with Advanced expanded and collapses it on demand', () => {
     renderDialog({ isRegistered: true });
-    expect(screen.queryByRole('switch', { name: 'CreateGameDialog.label.spectatorsAllowed' })).not.toBeInTheDocument();
-    openAdvanced();
-    expect(screen.getByRole('button', { name: /CreateGameDialog.advanced.title/ })).toHaveAttribute('aria-expanded', 'true');
+    expect(advancedButton()).toHaveAttribute('aria-expanded', 'true');
+    expect(advancedButton()).toHaveAccessibleName(expect.not.stringContaining('CreateGameDialog.advanced.hint'));
     expect(screen.getByRole('switch', { name: 'CreateGameDialog.label.spectatorsAllowed' })).toBeInTheDocument();
+    toggleAdvanced();
+    expect(advancedButton()).toHaveAttribute('aria-expanded', 'false');
+    expect(screen.queryByRole('switch', { name: 'CreateGameDialog.label.spectatorsAllowed' })).not.toBeInTheDocument();
   });
 
   it('hides "Join as judge" for non-judges', () => {
     renderDialog({ isJudge: false });
-    openAdvanced();
     expect(screen.queryByRole('switch', { name: 'CreateGameDialog.label.joinAsJudge' })).not.toBeInTheDocument();
   });
 
   it('disables spectator sub-options when watching is off', () => {
     renderDialog();
-    openAdvanced();
     toggle('spectatorsAllowed');
     expect(screen.getByRole('switch', { name: 'CreateGameDialog.label.spectatorsNeedPassword' })).toBeDisabled();
     expect(screen.getByRole('switch', { name: 'CreateGameDialog.label.spectatorsCanTalk' })).toBeDisabled();
@@ -142,15 +172,14 @@ describe('CreateGameDialog', () => {
 
   it('forwards description, password, seats, life and format edits', () => {
     const { onSubmit } = renderDialog({ gametypeMap: { 0: 'Constructed', 1: 'Limited' } });
-    fireEvent.change(screen.getByLabelText('CreateGameDialog.label.description'), { target: { value: 'Friday Casual' } });
+    fireEvent.change(screen.getByLabelText('CreateGameDialog.label.description'), { target: { value: 'Friday night' } });
     fireEvent.change(screen.getByLabelText('CreateGameDialog.label.password'), { target: { value: 'secret' } });
     fireEvent.change(screen.getByLabelText('CreateGameDialog.label.format'), { target: { value: '1' } });
-    openAdvanced();
     fireEvent.change(screen.getByLabelText('CreateGameDialog.label.maxPlayers'), { target: { value: '4' } });
     fireEvent.change(screen.getByLabelText('CreateGameDialog.label.startingLifeTotal'), { target: { value: '30' } });
     create();
     expect(onSubmit.mock.calls[0][0]).toMatchObject({
-      description: 'Friday Casual',
+      description: 'Friday night',
       password: 'secret',
       maxPlayers: 4,
       startingLifeTotal: 30,
@@ -160,7 +189,6 @@ describe('CreateGameDialog', () => {
 
   it('toggles every Advanced switch and forwards them on Create', () => {
     const { onSubmit } = renderDialog({ isRegistered: true, isJudge: true });
-    openAdvanced();
     ['onlyBuddies', 'onlyRegistered', 'shareDecklistsOnLoad', 'joinAsSpectator', 'joinAsJudge',
       'spectatorsCanTalk', 'spectatorsSeeEverything', 'spectatorsNeedPassword'].forEach(toggle);
     create();

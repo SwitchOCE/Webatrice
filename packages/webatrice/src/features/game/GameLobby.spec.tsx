@@ -160,6 +160,29 @@ describe('GameLobby — refactor characterization', () => {
   });
 });
 
+describe('GameLobby — game info (B6)', () => {
+  it('opens the game settings from the lobby header', () => {
+    const state = lobbyState();
+    Object.assign(state.games.games[1].info, {
+      maxPlayers: 4,
+      withPassword: true,
+      onlyRegistered: true,
+      spectatorsAllowed: true,
+      spectatorsCanChat: true,
+    });
+    renderWithProviders(<GameLobby gameId={1} />, { preloadedState: state });
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+    fireEvent.click(button('LobbyGameInfoDialog.open'));
+    const dialog = screen.getByRole('dialog', { name: 'Test Game' });
+    const fact = (label: string) => within(dialog).getByText(label).nextElementSibling;
+    expect(fact('LobbyGameInfoDialog.row.host')).toHaveTextContent('Alice');
+    expect(fact('LobbyGameInfoDialog.row.seats')).toHaveTextContent('LobbyGameInfoDialog.seats');
+    expect(fact('LobbyGameInfoDialog.row.format')).toHaveTextContent('LobbyGameInfoDialog.format.any');
+    fireEvent.click(within(dialog.querySelector('footer')!).getByRole('button', { name: 'Common.action.close' }));
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+  });
+});
+
 describe('GameLobby — force start (GAME-013)', () => {
   it('asks for confirmation, then sends ONE readyStart{ready, forceStart} and no kicks', () => {
     const { webClient } = renderLobby({ hostId: 1 });

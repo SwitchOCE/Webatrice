@@ -15,7 +15,8 @@ import { navRailLink } from './TopBar';
 //                and a More menu with the judge options, and a
 //                quick-filter bar sits above the grid)
 //   • Create game (a button in the room header that opens the
-//                  preset dialog "Create a game in <room>")
+//                  preset dialog "Create a game in <room>", with its
+//                  Advanced section open)
 
 export interface CreateGameOptions {
   password?: string;
@@ -70,9 +71,7 @@ export class RoomsPage {
     if (options.password) {
       await dialog.getByLabel(/^password/i).fill(options.password);
     }
-    if (options.maxPlayers != null || options.startingLifeTotal != null || options.spectatorsAllowed === false) {
-      await dialog.getByRole('button', { name: /^advanced/i }).click();
-    }
+    await expect(dialog.getByRole('button', { name: /^advanced/i })).toHaveAttribute('aria-expanded', 'true');
     if (options.maxPlayers != null) {
       await dialog.getByLabel(/^seats$/i).fill(String(options.maxPlayers));
     }

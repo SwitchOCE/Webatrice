@@ -3,6 +3,7 @@ import {
   applyPreset,
   defaultCreateGameForm,
   findCommanderGameType,
+  findOtherGameType,
   invalidCreateGameField,
   matchingPreset,
   summarizeCreateGame,
@@ -25,6 +26,31 @@ describe('findCommanderGameType', () => {
   it('does not match cEDH-like names or an empty list', () => {
     expect(findCommanderGameType({ 1: 'cEDH' })).toBeNull();
     expect(findCommanderGameType({})).toBeNull();
+  });
+});
+
+describe('findOtherGameType', () => {
+  it('finds the room\'s Other type by name, case-insensitive', () => {
+    expect(findOtherGameType({ 1: 'Standard', 6: ' other ' })).toBe(6);
+  });
+
+  it('returns null when the room has no Other type', () => {
+    expect(findOtherGameType({ 1: 'Standard', 2: 'Other formats' })).toBeNull();
+    expect(findOtherGameType({})).toBeNull();
+  });
+});
+
+describe('CREATE_GAME_PRESETS', () => {
+  it('offers Commander pod, Competitive 1v1, Friends only and Duel Commander, in that order', () => {
+    expect(CREATE_GAME_PRESETS.map((p) => p.id)).toEqual(['commanderPod', 'oneVsOne', 'friendsOnly', 'duelCommander']);
+  });
+
+  it('Duel Commander is Competitive 1v1 with 30 life and the Other format', () => {
+    const ctx = { gametypeMap: { 4: 'Modern', 8: 'Other' }, isRegistered: true };
+    const base = { ...defaultCreateGameForm(true), gameTypeId: 4 };
+    const oneVsOne = applyPreset(base, presetById('oneVsOne'), ctx);
+    const duel = applyPreset(base, presetById('duelCommander'), ctx);
+    expect(duel).toEqual({ ...oneVsOne, startingLifeTotal: 30, gameTypeId: 8 });
   });
 });
 
