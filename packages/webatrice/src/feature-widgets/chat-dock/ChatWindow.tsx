@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useLayoutEffect, useRef, useState, type ReactNode } from 'react';
+import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { ChevronDown, Minus, X } from 'lucide-react';
 
@@ -19,7 +19,6 @@ import { usePopover } from './usePopover';
 interface ChatWindowProps {
   name: string;
   focusSeq: number | null;
-  above?: ReactNode;
   registerInput: (name: string, el: HTMLInputElement | null) => void;
   onMinimise: (name: string) => void;
   onClose: (name: string) => void;
@@ -27,7 +26,7 @@ interface ChatWindowProps {
 
 const CARD_GAP_PX = 14;
 
-export default function ChatWindow({ name, focusSeq, above, registerInput, onMinimise, onClose }: ChatWindowProps) {
+export default function ChatWindow({ name, focusSeq, registerInput, onMinimise, onClose }: ChatWindowProps) {
   const { t } = useTranslation();
   const peer = usePeer(name);
   const { markChatRead } = useMarkRead();
@@ -73,7 +72,7 @@ export default function ChatWindow({ name, focusSeq, above, registerInput, onMin
   const status = peer.isOnline ? t('PrivateChat.presence.online') : t('PrivateChat.presence.offline');
 
   return (
-    <div ref={wrapperRef} className="relative flex w-[300px] flex-col gap-1.5">
+    <div ref={wrapperRef} className="relative flex w-[300px] shrink-0 flex-col">
       {profile.open && (
         <div
           ref={cardBoxRef}
@@ -82,14 +81,13 @@ export default function ChatWindow({ name, focusSeq, above, registerInput, onMin
           <ProfileCard ref={profile.popoverRef} name={name} peer={peer} onDone={profile.close} />
         </div>
       )}
-      {above}
       <section
         aria-label={t('ChatDock.window', { name })}
         className={cx(
           'pointer-events-auto flex flex-col overflow-hidden rounded-t-ui-lg',
           'border border-b-0 border-border-strong bg-bg-surface shadow-pop',
         )}
-        style={{ height: 'min(420px, calc(100vh - var(--chat-dock-bottom, 0px) - 140px))' }}
+        style={{ height: 'min(420px, calc(100vh - 140px))' }}
       >
         <header className="flex shrink-0 items-center gap-2 bg-bg-elevated px-2.5 py-2">
           <button

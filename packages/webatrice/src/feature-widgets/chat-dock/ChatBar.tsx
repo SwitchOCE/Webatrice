@@ -19,7 +19,12 @@ export default function ChatBar({ name, unread, registerButton, onClose }: ChatB
   const online = useAppSelector((state) => server.Selectors.getIsUserOnline(state, name));
 
   return (
-    <div className="pointer-events-auto flex h-10 min-w-0 items-center rounded-ui-lg border border-border-strong bg-bg-elevated shadow-pop">
+    <div
+      className={cx(
+        'pointer-events-auto flex h-10 w-40 shrink-0 items-center',
+        'rounded-t-ui-lg border border-b-0 border-border-strong bg-bg-elevated shadow-pop',
+      )}
+    >
       <button
         ref={(el) => registerButton(name, el)}
         type="button"
@@ -27,7 +32,8 @@ export default function ChatBar({ name, unread, registerButton, onClose }: ChatB
         onClick={() => dispatchChatDock({ type: 'expand', name, max: currentMaxExpandedChats() })}
         className={cx(
           'flex h-full min-w-0 flex-1 items-center gap-2',
-          'rounded-ui-lg pl-2.5 pr-1 focus-visible:outline focus-visible:outline-2 focus-visible:outline-accent',
+          'rounded-t-ui-lg pl-2.5 pr-1',
+          'focus-visible:outline focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-accent',
         )}
       >
         <span className="relative shrink-0">
@@ -60,7 +66,7 @@ export default function ChatBar({ name, unread, registerButton, onClose }: ChatB
         className={cx(
           'mr-1 inline-flex h-7 w-7 shrink-0 items-center justify-center',
           'rounded-ui-sm text-text-muted hover:bg-bg-surface hover:text-text-primary',
-          'focus-visible:outline focus-visible:outline-2 focus-visible:outline-accent',
+          'focus-visible:outline focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-accent',
         )}
       >
         <X size={13} />

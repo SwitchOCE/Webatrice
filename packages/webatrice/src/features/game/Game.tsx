@@ -266,13 +266,13 @@ export function GameBoard({ gameId: boardGameId, footer, onLeave }: GameBoardPro
                                         <TallyOverlay />
                                       </div>
 
-                                      <BoardTray gameRef={gameRef} hostRef={setTrayHost} onMouseDown={handleBoardMouseDown} />
+                                      <BoardTray hostRef={setTrayHost} onMouseDown={handleBoardMouseDown} />
 
                                       <div className="game__resizer">
                                         {!dock.collapsed && <SidebarResizer width={sidebarWidth} onResize={setSidebarWidth} />}
                                       </div>
 
-                                      <div className="game__dock">
+                                      <div className="game__dock" data-chat-dock-avoid>
                                         <GameDock
                                           collapsed={dock.collapsed}
                                           tab={dock.tab}
