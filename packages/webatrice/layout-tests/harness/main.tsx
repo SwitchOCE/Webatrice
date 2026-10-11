@@ -16,6 +16,7 @@ import { CLIENT_CONFIG, CLIENT_OPTIONS } from '../../src/clientConfig';
 import AppShell from '../../src/AppShell';
 import { connected31State, connectedWithRoomsState } from '../../src/__test-utils__/storeFixtures';
 import { buildLayoutGame } from './fixture';
+import { setCachedDraft } from '../../src/features/decks/deckEditorCache';
 
 import '../../src/i18n';
 import '../../src/index.css';
@@ -27,7 +28,11 @@ const chatPeers = ['mainman879', 'Bobby4261789', 'Jsiggy54', 'GolbogDoomslay'];
 
 Object.defineProperty(window, 'onbeforeunload', { configurable: true, get: () => null, set: () => undefined });
 const route = query.get('route');
-window.localStorage.setItem('webatrice.lastRoute', route === 'home' ? '/' : route === 'room' ? '/room/1' : '/game/1');
+window.localStorage.setItem('webatrice.lastRoute', route === 'home' ? '/'
+  : route === 'room' ? '/room/1' : route === 'deck' ? '/deck/draft/layout' : '/game/1');
+if (route === 'deck') {
+  setCachedDraft('layout', { name: '', meta: { v: 1, updatedAt: '2026-10-11T00:00:00Z' }, cards: [], format: '' });
+}
 
 const game = buildLayoutGame({ players, spectator });
 const self = makeUser({ name: spectator ? 'AzureJay' : 'Alex' });

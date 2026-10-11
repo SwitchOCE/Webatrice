@@ -4,6 +4,7 @@ import { useTranslation } from 'react-i18next';
 
 import ErrorBoundary from './ErrorBoundary';
 import ErrorFallback from './ErrorFallback';
+import { reloadRoute, RouteChunkError } from '../../utils/lazyRoute';
 
 export default function RouteErrorBoundary({ children }: { children: ReactNode }) {
   const { pathname } = useLocation();
@@ -13,7 +14,14 @@ export default function RouteErrorBoundary({ children }: { children: ReactNode }
     <ErrorBoundary
       name="route"
       resetKey={pathname}
-      fallback={({ reset }) => (
+      fallback={({ error, reset }) => error instanceof RouteChunkError ? (
+        <ErrorFallback
+          title={t('ErrorFallback.chunk.title')}
+          message={t('ErrorFallback.chunk.message')}
+          retryLabel={t('ErrorFallback.chunk.reload')}
+          onRetry={reloadRoute}
+        />
+      ) : (
         <ErrorFallback
           title={t('ErrorFallback.route.title')}
           message={t('ErrorFallback.route.message')}
