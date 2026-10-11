@@ -20,12 +20,14 @@ import { PrivateMessageNotifier } from '@app/features/player';
 import { ReportNotifier } from '@app/features/reports';
 import { AppAlerts, CommandFailureNotices, FeatureDetection, MissingFeaturesNotice, ServerNotices } from '@app/features/shell';
 import { usePlaymatSync } from './features/game/hooks/usePlaymatSync';
+import { useDeckSummaryInvalidation } from './features/decks/hooks/useDeckSummaryInvalidation';
 import { SessionScope } from './SessionScope';
 
 // CssBaseline removed: it was MUI's global body reset (font, color,
 // background, box-sizing, anchor styles). The equivalent rules now
 // live in index.css so we control them without MUI's opinions.
 function AppShell() {
+  useDeckSummaryInvalidation();
   usePlaymatSync();
   useSyncLocaleToStore();
   useAdminLockSession();

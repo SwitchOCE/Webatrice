@@ -1,13 +1,13 @@
 import { chunkForCollection, postCollection } from '../../services/scryfall/client';
 import { rethrowCancellationOrRateLimit } from '../../services/scryfall/scheduler';
+import { dexieService } from '../../services/dexie/DexieService';
 
 import type { DeckCard } from './types';
 
 /**
  * Scryfall price lookup for deck totals + per-card "Buy @ TCGplayer"
  * pills. Uses `/cards/collection` (POST, up to 75 identifiers per
- * request) with an in-memory Map cache so repeated calls in the same
- * session don't re-fetch the same items.
+ * request) with a persistent cache and a 24-hour freshness window.
  *
  * Cards can be identified two ways:
  *   • by `scryfallId` — precise, returns the exact printing's price
@@ -86,11 +86,48 @@ interface Identifier {
   name?: string;
 }
 
-// Session-wide caches. Never expire — Scryfall's price data changes
-// slowly and a full page reload clears these anyway. Separate maps so
-// id-based and name-based cache entries don't collide.
 const idCache = new Map<string, PriceInfo>();
 const nameCache = new Map<string, PriceInfo>();
+const fetchedAt = new Map<string, number>();
+const PRICE_TTL = 24 * 60 * 60 * 1000;
+
+interface CachedPrice {
+  key: string;
+  info: PriceInfo;
+  fetchedAt: number;
+}
+
+async function hydratePrices(cards: ReadonlyArray<{ scryfallId?: string; name: string }>): Promise<void> {
+  const keys = new Set<string>();
+  for (const card of cards) {
+    if (card.scryfallId && !idCache.has(card.scryfallId)) {
+      keys.add(`id:${card.scryfallId}`);
+    }
+    if (card.name && !nameCache.has(card.name.toLowerCase())) {
+      keys.add(`name:${card.name.toLowerCase()}`);
+    }
+  }
+  if (!keys.size) {
+    return;
+  }
+  try {
+    const rows: Array<CachedPrice | undefined> = await dexieService.scryfallPrices.bulkGet([...keys]);
+    for (const row of rows) {
+      if (!row || (fetchedAt.get(row.key) ?? -Infinity) >= row.fetchedAt) {
+        continue;
+      }
+      const byId = row.key.startsWith('id:');
+      (byId ? idCache : nameCache).set(row.key.slice(byId ? 3 : 5), row.info);
+      fetchedAt.set(row.key, row.fetchedAt);
+    }
+  } catch {
+    return;
+  }
+}
+
+function fresh(key: string): boolean {
+  return Date.now() - (fetchedAt.get(key) ?? -Infinity) < PRICE_TTL;
+}
 
 // In-flight de-dup: keyed by `id:<uuid>` / `name:<lower>` so parallel
 // callers coalesce onto the same request.
@@ -117,6 +154,7 @@ export async function fetchPricesForCards(
   cards: ReadonlyArray<{ scryfallId?: string; name: string }>,
   onProgress?: (partial: PriceLookup) => void,
 ): Promise<PriceLookup> {
+  await hydratePrices(cards);
   const idsSeen = new Set<string>();
   const namesSeen = new Set<string>();
   const identifiers: Identifier[] = [];
@@ -136,7 +174,7 @@ export async function fetchPricesForCards(
   for (const card of cards) {
     if (card.scryfallId && !idsSeen.has(card.scryfallId)) {
       idsSeen.add(card.scryfallId);
-      if (!idCache.has(card.scryfallId)) {
+      if (!fresh(`id:${card.scryfallId}`)) {
         identifiers.push({ id: card.scryfallId });
         cacheKeys.push(`id:${card.scryfallId}`);
       }
@@ -145,7 +183,7 @@ export async function fetchPricesForCards(
       const nameKey = card.name.toLowerCase();
       if (!namesSeen.has(nameKey)) {
         namesSeen.add(nameKey);
-        if (!nameCache.has(nameKey)) {
+        if (!fresh(`name:${nameKey}`)) {
           identifiers.push({ name: card.name });
           cacheKeys.push(`name:${nameKey}`);
         }
@@ -197,12 +235,20 @@ export async function fetchPricesForCards(
 
   if (toFetch.length > 0) {
     for (const chunk of chunkForCollection(toFetch)) {
-      const chunkPromise = fetchChunk(chunk).then((res) => {
+      const chunkPromise = fetchChunk(chunk).then(async (res) => {
+        const updatedAt = Date.now();
+        const writes: CachedPrice[] = [];
+        const remember = (key: string, info: PriceInfo) => {
+          fetchedAt.set(key, updatedAt);
+          writes.push({ key, info, fetchedAt: updatedAt });
+        };
         for (const [id, info] of res.byId) {
           idCache.set(id, info);
+          remember(`id:${id}`, info);
         }
         for (const [name, info] of res.byName) {
           nameCache.set(name, info);
+          remember(`name:${name}`, info);
         }
         // Only negative-cache on a SUCCESSFUL response — otherwise a
         // single failed chunk (network flake, timeout, 500 from
@@ -216,9 +262,11 @@ export async function fetchPricesForCards(
           for (const ident of chunk) {
             if (ident.name && !res.byName.has(ident.name.toLowerCase())) {
               nameCache.set(ident.name.toLowerCase(), { usd: null, tcgplayer: null });
+              remember(`name:${ident.name.toLowerCase()}`, { usd: null, tcgplayer: null });
             }
             if (ident.id && !res.byId.has(ident.id)) {
               idCache.set(ident.id, { usd: null, tcgplayer: null });
+              remember(`id:${ident.id}`, { usd: null, tcgplayer: null });
             }
           }
           if (res.notFound.length > 0) {
@@ -233,6 +281,14 @@ export async function fetchPricesForCards(
               'Cards left unpriced for this render; will retry on next fetch.',
           );
         }
+        onProgress?.(assemble());
+        if (writes.length) {
+          try {
+            await dexieService.scryfallPrices.bulkPut(writes);
+          } catch {
+            return;
+          }
+        }
       });
       const chunkKeys = chunk.map((ident) =>
         ident.id ? `id:${ident.id}` : `name:${(ident.name ?? '').toLowerCase()}`,
@@ -242,7 +298,6 @@ export async function fetchPricesForCards(
       }
       try {
         await chunkPromise;
-        onProgress?.(assemble());
       } finally {
         for (const k of chunkKeys) {
           inFlight.delete(k);

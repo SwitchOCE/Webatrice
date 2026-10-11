@@ -8,7 +8,7 @@ import { useWebClient } from '@cockatrice/datatrice/react';
 import type { Response_DeckList, ServerInfo_DeckStorage_TreeItem } from '@cockatrice/sockatrice/generated';
 import { useBackendDeckList, useCommandFailureMessage, useReduxEffect } from '@app/hooks';
 import { emptyCod, parseCod } from '@app/services';
-import { onSessionEnd } from '@app/services/session';
+import { onSessionEnd, sessionGeneration } from '@app/services/session';
 import type { RootState } from '@app/store';
 
 import { deleteCachedDeck } from '../deckEditorCache';
@@ -25,17 +25,32 @@ import {
 } from '../deckFolders';
 import { summariesEqual, summarizeDeck, type DeckSummary } from '../deckSummary';
 import type { FlatDeck } from '../deckTree';
+import {
+  deckSummaryScope, deckSummaryRevision, invalidateDeckSummary, onDeckSummaryInvalidated,
+  readDeckSummaries, writeDeckSummary, type CachedDeckSummary,
+} from '../deckSummaryCache';
 
 const summaryCache: Map<number, DeckSummary> = new Map();
 const documentCache: Map<number, string> = new Map();
 const summaryRequestedCache: Set<number> = new Set();
+const summaryVersions = new Map<number, string>();
+let memoryScope: string | null = null;
 
 export function clearDecksListCache(): void {
   summaryCache.clear();
   documentCache.clear();
   summaryRequestedCache.clear();
+  summaryVersions.clear();
 }
 onSessionEnd(clearDecksListCache);
+onDeckSummaryInvalidated((scope, deckId) => {
+  if (scope === memoryScope) {
+    summaryCache.delete(deckId);
+    documentCache.delete(deckId);
+    summaryRequestedCache.delete(deckId);
+    summaryVersions.delete(deckId);
+  }
+});
 
 function forgetDeck(deckId: number): void {
   deleteCachedDeck(deckId);
@@ -90,19 +105,36 @@ export function useDeckList({ onDeckCreated, folderPath = '' }: {
   const store = useStore<RootState>();
   const { t } = useTranslation();
   const describeFailure = useCommandFailureMessage();
+  const scope = deckSummaryScope(store.getState(), webClient);
+  if (memoryScope !== scope) {
+    clearDecksListCache();
+    memoryScope = scope;
+  }
   const [listError, setListError] = useState<string | null>(null);
   const [storageError, setStorageError] = useState<string | null>(null);
 
   const [summaries, setSummaries] = useState<Map<number, DeckSummary>>(() => new Map(summaryCache));
   const [documents, setDocuments] = useState(() => new Map(documentCache));
-  const summaryRequestedRef = useRef<Set<number>>(new Set(summaryRequestedCache));
+  const requestedVersions = useRef(new Map<number, { creationTime: number; revision: number }>());
+  const requestSummary = useCallback((deck: FlatDeck) => {
+    if (requestedVersions.current.has(deck.id)) {
+      return;
+    }
+    const revision = scope ? deckSummaryRevision(scope, deck.id) : 0;
+    requestedVersions.current.set(deck.id, {
+      creationTime: deck.creationTime, revision,
+    });
+    summaryVersions.set(deck.id, `${deck.creationTime}:${revision}`);
+    summaryRequestedCache.add(deck.id);
+    webClient.request.session.deckDownload(deck.id);
+  }, [scope, webClient]);
 
   const pendingMovesRef = useRef<Map<number, { deck: FlatDeck; targetPath: string; awaitingList?: boolean }>>(new Map());
 
   const clearSummaries = useCallback(() => {
     setListError(null);
-    summaryRequestedRef.current = new Set();
     summaryRequestedCache.clear();
+    summaryVersions.clear();
     summaryCache.clear();
     documentCache.clear();
     setDocuments(new Map());
@@ -149,7 +181,6 @@ export function useDeckList({ onDeckCreated, folderPath = '' }: {
         if (summary && treeItem.id) {
           summaryCache.set(treeItem.id, summary);
           summaryRequestedCache.add(treeItem.id);
-          summaryRequestedRef.current.add(treeItem.id);
           setSummaries((prev) => new Map(prev).set(treeItem.id, summary));
         }
         webClient.request.session.deckDel(settled.fromId);
@@ -252,21 +283,55 @@ export function useDeckList({ onDeckCreated, folderPath = '' }: {
   }, server.Types.BACKEND_DECKS, [webClient, t]);
 
   useEffect(() => {
-    if (!isConnected || decks.length === 0) {
+    if (!isConnected || !root) {
       return;
     }
-    for (const deck of decks) {
-      if (summaryRequestedRef.current.has(deck.id)) {
-        continue;
+    let active = true;
+    const generation = sessionGeneration();
+    const revisions = new Map(decks.map((deck) => [deck.id, scope ? deckSummaryRevision(scope, deck.id) : 0]));
+    const apply = (rows: CachedDeckSummary[]) => {
+      if (!active || generation !== sessionGeneration() || scope !== deckSummaryScope(store.getState(), webClient)) {
+        return;
       }
-      summaryRequestedRef.current.add(deck.id);
-      summaryRequestedCache.add(deck.id);
-      webClient.request.session.deckDownload(deck.id);
+      const cached = new Map(rows.map((row) => [row.deckId, row]));
+      for (const deck of decks) {
+        const revision = scope ? deckSummaryRevision(scope, deck.id) : 0;
+        const version = `${deck.creationTime}:${revision}`;
+        if (summaryVersions.get(deck.id) === version && summaryRequestedCache.has(deck.id)) {
+          continue;
+        }
+        const row = revisions.get(deck.id) === revision ? cached.get(deck.id) : undefined;
+        summaryVersions.set(deck.id, version);
+        summaryRequestedCache.add(deck.id);
+        if (row) {
+          summaryCache.set(deck.id, row.summary);
+          documentCache.set(deck.id, row.document);
+        } else {
+          summaryCache.delete(deck.id);
+          documentCache.delete(deck.id);
+          requestSummary(deck);
+        }
+      }
+      setSummaries(new Map(summaryCache));
+      setDocuments(new Map(documentCache));
+    };
+    const persisted = scope ? readDeckSummaries(scope, allDecks) : undefined;
+    if (persisted) {
+      void persisted.then(apply);
+    } else {
+      apply([]);
     }
-  }, [isConnected, decks, webClient]);
+    return () => {
+      active = false;
+    };
+  }, [isConnected, decks, allDecks, root, scope, store, webClient, requestSummary]);
 
   useReduxEffect<{ deckId: number; deck: string }>(
     ({ payload }) => {
+      const requested = requestedVersions.current.get(payload.deckId);
+      requestedVersions.current.delete(payload.deckId);
+      const currentDeck = decksUnderFolder(server.Selectors.getBackendDecks(store.getState())?.root, '')
+        .find((deck) => deck.id === payload.deckId);
       const move = pendingMovesRef.current.get(payload.deckId);
       if (move && !move.awaitingList) {
         pendingMovesRef.current.delete(payload.deckId);
@@ -277,8 +342,20 @@ export function useDeckList({ onDeckCreated, folderPath = '' }: {
           move.deck.colorIdentity,
         );
       }
+      if (scope && requested && (requested.revision !== deckSummaryRevision(scope, payload.deckId)
+        || requested.creationTime !== currentDeck?.creationTime)) {
+        if (currentDeck) {
+          requestSummary(currentDeck);
+        }
+        return;
+      }
       try {
         const next = summarizeDeck(parseCod(payload.deck));
+        if (scope && requested && deckSummaryRevision(scope, payload.deckId) === requested.revision) {
+          void writeDeckSummary({
+            scope, deckId: payload.deckId, creationTime: requested.creationTime, summary: next, document: payload.deck,
+          }, requested.revision);
+        }
         documentCache.set(payload.deckId, payload.deck);
         setDocuments((prev) => new Map(prev).set(payload.deckId, payload.deck));
         summaryCache.set(payload.deckId, next);
@@ -301,6 +378,14 @@ export function useDeckList({ onDeckCreated, folderPath = '' }: {
 
   useReduxEffect<CommandFailedPayload & { deckId: number }>(
     ({ payload: { deckId, failure } }) => {
+      const requested = requestedVersions.current.get(deckId);
+      requestedVersions.current.delete(deckId);
+      const currentDeck = decksUnderFolder(server.Selectors.getBackendDecks(store.getState())?.root, '')
+        .find((deck) => deck.id === deckId);
+      if (scope && requested && currentDeck && (requested.revision !== deckSummaryRevision(scope, deckId)
+        || requested.creationTime !== currentDeck.creationTime)) {
+        requestSummary(currentDeck);
+      }
       const move = pendingMovesRef.current.get(deckId);
       if (!move) {
         return;
@@ -325,7 +410,18 @@ export function useDeckList({ onDeckCreated, folderPath = '' }: {
     summaries,
     documents,
     detailsSaved: (deckId, xml) => {
+      if (scope !== deckSummaryScope(store.getState(), webClient)) {
+        return;
+      }
+      if (scope) {
+        void invalidateDeckSummary(scope, deckId);
+      }
       const summary = summarizeDeck(parseCod(xml));
+      const listed = allDecks.find((deck) => deck.id === deckId);
+      if (listed) {
+        summaryVersions.set(deckId, `${listed.creationTime}:${scope ? deckSummaryRevision(scope, deckId) : 0}`);
+        summaryRequestedCache.add(deckId);
+      }
       documentCache.set(deckId, xml);
       summaryCache.set(deckId, summary);
       setDocuments((prev) => new Map(prev).set(deckId, xml));
