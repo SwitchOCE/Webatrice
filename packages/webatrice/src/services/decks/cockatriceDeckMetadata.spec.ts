@@ -69,11 +69,44 @@ describe('serializeMeta', () => {
     expect(parseMeta(serializeMeta(meta))).toEqual(meta);
   });
 
-  it('is pretty-printed for human readability', () => {
-    const meta = defaultMeta();
+  it('writes only the description when there is no machine data, as desktop would', () => {
+    expect(serializeMeta({ ...defaultMeta(), description: 'Sideboard plan:\n+2 Smash' })).toBe('Sideboard plan:\n+2 Smash');
+    expect(serializeMeta(defaultMeta())).toBe('');
+  });
+
+  it('keeps the description as written and puts machine data on a final line', () => {
+    const meta: DeckMeta = {
+      v: 1, updatedAt: '2026-07-19T00:00:00.000Z', description: 'Notes from FNM.', commanders: ['Atraxa'], bracketLevel: 3,
+    };
     const out = serializeMeta(meta);
-    expect(out).toContain('\n');
-    expect(out).toContain('  '); // 2-space indent
+    expect(out.startsWith('Notes from FNM.\n\n[webatrice] {')).toBe(true);
+    expect(out.split('\n')).toHaveLength(3);
+    expect(parseMeta(out)).toEqual(meta);
+  });
+});
+
+describe('parseMeta with desktop comments', () => {
+  it('keeps desktop comments exactly as written', () => {
+    const text = '  Plan vs control:\n  +2 Smash\n';
+    expect(parseMeta(text).description).toBe(text);
+  });
+
+  it('reads the machine line without folding it into the description', () => {
+    const m = parseMeta('Line one\n\n[webatrice] {"v":1,"updatedAt":"2026-01-01T00:00:00Z","priceUsd":3}');
+    expect(m).toEqual({ v: 1, updatedAt: '2026-01-01T00:00:00Z', priceUsd: 3, description: 'Line one' });
+  });
+
+  it('treats a machine line that is not the last line as part of the notes', () => {
+    const text = '[webatrice] {"v":1}\nmore notes';
+    expect(parseMeta(text).description).toBe(text);
+  });
+
+  it('still reads decks saved with the whole comments as JSON, and moves the description out on save', () => {
+    const legacy = JSON.stringify({ v: 1, updatedAt: '2026-01-01T00:00:00Z', description: 'old notes', commanders: ['Zur'] }, null, 2);
+    const m = parseMeta(legacy);
+    expect(m.description).toBe('old notes');
+    expect(m.commanders).toEqual(['Zur']);
+    expect(serializeMeta(m).split('\n')[0]).toBe('old notes');
   });
 });
 

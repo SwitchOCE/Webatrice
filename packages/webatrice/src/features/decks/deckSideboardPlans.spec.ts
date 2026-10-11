@@ -2,7 +2,7 @@ import type { TFunction } from 'i18next';
 import { lookupCards, parseCod, serializeCod } from '@app/services';
 
 import desktopXml from './fixtures/desktop-plans.cod?raw';
-import { buildUploadedDeckCod } from './deckImport';
+import { buildImportedDeckCod, resolveImportEntries } from './deckImport';
 import { exportDeck } from './deckExport';
 import { deckSaveSignature, serializeDeckForSave } from './deckPersistence';
 import { hydrateDeck } from './hydrate';
@@ -26,7 +26,10 @@ it('keeps named and current desktop plans through parse and serialization', () =
 it('keeps plans through import, hydration, an edited save and export', async () => {
   vi.mocked(lookupCards).mockResolvedValue(new Map());
   const expected = plans(desktopXml);
-  const imported = buildUploadedDeckCod(parseCod(desktopXml), 'Imported', 'modern', ((key: string) => key) as unknown as TFunction);
+  const source = parseCod(desktopXml);
+  const rows = await resolveImportEntries(source.cards);
+  const t = ((key: string) => key) as unknown as TFunction;
+  const imported = buildImportedDeckCod(source, rows, { name: 'Imported', format: 'modern', t });
   expect(plans(imported)).toEqual(expected);
   const hydrated = await hydrateDeck(parseCod(imported));
   hydrated.name = 'Edited';

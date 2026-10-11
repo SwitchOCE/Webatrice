@@ -85,7 +85,7 @@ export function patchCard(deck: HydratedDeck, index: number, patch: Partial<Deck
 }
 
 export function rowIdentity(card: DeckCard): string {
-  return `${card.category}:${card.name.toLowerCase()}:${card.scryfallId ?? ''}`;
+  return `${card.category}:${card.name.toLowerCase()}:${card.scryfallId ?? ''}:${card.zonePath?.join('/') ?? ''}`;
 }
 
 function mergeIntoTwin(deck: HydratedDeck, index: number): HydratedDeck {

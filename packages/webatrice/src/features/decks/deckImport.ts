@@ -1,42 +1,89 @@
 import type { TFunction } from 'i18next';
 
-import { defaultMeta, lookupCards, serializeCod, type LookupResult } from '@app/services';
-import type { DeckCategory, ParsedDeck } from '@app/types';
+import { lookupCards, serializeCod, type LookupResult } from '@app/services';
+import type { DeckCategory, ParsedCard, ParsedDeck } from '@app/types';
 
 import { deckColorIdentity } from './deckPersistence';
-import type { ParsedEntry } from './decklistParser';
 import { assembleDeckCard } from './hydrate';
 import type { DeckCard } from './types';
 
+export type ImportEntry = Omit<ParsedCard, 'category'> & { category: DeckCategory };
+
 export interface ResolvedImportRow {
-  entry: ParsedEntry;
+  entry: ImportEntry;
   lookup: LookupResult;
+  hintDropped?: boolean;
 }
 
-export async function resolveImportEntries(entries: ParsedEntry[]): Promise<ResolvedImportRow[]> {
-  const uniqueHints = new Map<string, { name: string; set?: string; collectorNumber?: string }>();
-  for (const e of entries) {
-    if (!uniqueHints.has(e.name)) {
-      uniqueHints.set(e.name, { name: e.name, set: e.set, collectorNumber: e.collectorNumber });
+function unknownLookup(name: string): LookupResult {
+  return { found: false, source: 'unknown', name, printings: [] };
+}
+
+function hasHint(entry: ImportEntry): boolean {
+  return Boolean(entry.set || entry.collectorNumber || entry.scryfallId);
+}
+
+function uniqueByName<T extends { name: string }>(items: readonly T[]): T[] {
+  const seen = new Map<string, T>();
+  for (const item of items) {
+    if (!seen.has(item.name)) {
+      seen.set(item.name, item);
     }
   }
-  const lookupMap = await lookupCards(Array.from(uniqueHints.values()));
-  return entries.map((entry) => ({
-    entry,
-    lookup: lookupMap.get(entry.name) ?? {
-      found: false,
-      source: 'unknown',
-      name: entry.name,
-      printings: [],
-    },
+  return Array.from(seen.values());
+}
+
+export interface ImportLookups {
+  hinted: Map<string, LookupResult>;
+  byName: Map<string, LookupResult>;
+}
+
+export async function lookupImportEntries(entries: readonly ImportEntry[]): Promise<ImportLookups> {
+  const hints = uniqueByName(entries).map((e) => ({
+    name: e.name,
+    set: e.set,
+    collectorNumber: e.collectorNumber,
+    ...(e.scryfallId ? { scryfallId: e.scryfallId } : {}),
   }));
+  const hinted = await lookupCards(hints);
+  const misses = uniqueByName(entries.filter((e) => hasHint(e) && !hinted.get(e.name)?.found));
+  const byName = misses.length ? await lookupCards(misses.map((e) => e.name)) : new Map<string, LookupResult>();
+  return { hinted, byName };
 }
 
-export function resolvedImportColorIdentity(rows: ResolvedImportRow[]): string {
-  return deckColorIdentity(rows.map((r) => assembleDeckCard(r.entry, r.lookup)));
+export function resolveWithLookups(entries: readonly ImportEntry[], { hinted, byName }: ImportLookups): ResolvedImportRow[] {
+  return entries.map((entry) => {
+    const hit = hinted.get(entry.name);
+    if (hit?.found) {
+      return { entry, lookup: hit };
+    }
+    const named = byName.get(entry.name);
+    if (named?.found) {
+      return { entry, lookup: named, hintDropped: true };
+    }
+    return { entry, lookup: hit ?? unknownLookup(entry.name) };
+  });
 }
 
-export function countResolvedRows(rows: ResolvedImportRow[]): { matched: number; missing: number } {
+export async function resolveImportEntries(entries: readonly ImportEntry[]): Promise<ResolvedImportRow[]> {
+  return resolveWithLookups(entries, await lookupImportEntries(entries));
+}
+
+function sourceCard({ entry, hintDropped }: ResolvedImportRow): ParsedCard {
+  return hintDropped
+    ? { name: entry.name, quantity: entry.quantity, category: entry.category, isCommander: entry.isCommander, zonePath: entry.zonePath }
+    : entry;
+}
+
+function rowCard(row: ResolvedImportRow): DeckCard {
+  return assembleDeckCard(sourceCard(row), row.lookup);
+}
+
+export function resolvedImportColorIdentity(rows: readonly ResolvedImportRow[]): string {
+  return deckColorIdentity(rows.map(rowCard));
+}
+
+export function countResolvedRows(rows: readonly ResolvedImportRow[]): { matched: number; missing: number } {
   let matched = 0;
   let missing = 0;
   for (const r of rows) {
@@ -49,39 +96,35 @@ export function countResolvedRows(rows: ResolvedImportRow[]): { matched: number;
   return { matched, missing };
 }
 
-export function buildPastedDeckCod(rows: ResolvedImportRow[], name: string, format: string, t: TFunction): string {
-  const cards: DeckCard[] = rows.map((r) => assembleDeckCard(r.entry, r.lookup));
+export function buildImportedDeckCod(
+  deck: ParsedDeck,
+  rows: readonly ResolvedImportRow[],
+  { name, format, t }: { name: string; format: string; t: TFunction },
+): string {
   return serializeCod({
-    name: name.trim() || t('DeckImport.defaultName'),
-    meta: defaultMeta(),
-    cards,
-    format: format.trim().toLowerCase() || 'commander',
+    name: name.trim() || deck.name || t('DeckImport.defaultName'),
+    meta: deck.meta,
+    cards: rows.map(sourceCard),
+    format: format.trim().toLowerCase(),
+    bannerCard: deck.bannerCard,
+    bannerCardProviderId: deck.bannerCardProviderId,
+    lastLoadedTimestamp: deck.lastLoadedTimestamp,
+    playmatXml: deck.playmatXml,
+    sideboardPlansXml: deck.sideboardPlansXml,
+    extraZonesXml: deck.extraZonesXml,
+    tagsXml: deck.tagsXml,
   });
 }
 
-export function buildUploadedDeckCod(file: ParsedDeck, name: string, format: string, t: TFunction): string {
-  return serializeCod({
-    name: name.trim() || file.name || t('DeckImport.defaultName'),
-    meta: file.meta,
-    cards: file.cards as unknown as DeckCard[],
-    format: format.trim().toLowerCase() || file.format || 'commander',
-    bannerCard: file.bannerCard,
-    bannerCardProviderId: file.bannerCardProviderId,
-    lastLoadedTimestamp: file.lastLoadedTimestamp,
-    playmatXml: file.playmatXml,
-    sideboardPlansXml: file.sideboardPlansXml,
-    tagsXml: file.tagsXml,
-  });
-}
-
-export function summarizeUploadedDeck(file: ParsedDeck): { total: number; main: number; sideboard: number } {
-  const totals = file.cards.reduce(
-    (acc, c) => {
-      acc[c.category] = (acc[c.category] ?? 0) + c.quantity;
-      return acc;
-    },
-    {} as Partial<Record<DeckCategory, number>>,
-  );
-  const total = file.cards.reduce((sum, c) => sum + c.quantity, 0);
-  return { total, main: totals.main ?? 0, sideboard: totals.sideboard ?? 0 };
+export function summarizeImportRows(rows: readonly ResolvedImportRow[]): { total: number; main: number; sideboard: number } {
+  let main = 0;
+  let sideboard = 0;
+  for (const { entry } of rows) {
+    if (entry.category === 'sideboard') {
+      sideboard += entry.quantity;
+    } else {
+      main += entry.quantity;
+    }
+  }
+  return { total: main + sideboard, main, sideboard };
 }

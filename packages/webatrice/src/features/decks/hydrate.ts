@@ -12,6 +12,7 @@ import {
 import type { ParsedCard, ParsedDeck } from '@app/types';
 
 import { mergeDuplicateRows } from './deckEdits';
+import { inferDeckFormat } from './decklistParser';
 import type { DeckCard, HydratedDeck } from './types';
 
 export async function hydrateDeck(parsed: ParsedDeck, signal?: AbortSignal): Promise<HydratedDeck> {
@@ -27,20 +28,13 @@ export async function hydrateDeck(parsed: ParsedDeck, signal?: AbortSignal): Pro
     name: parsed.name,
     meta: parsed.meta,
     cards,
-    // Default an absent/empty <format> element to `commander`. Older
-    // decks (created before format support landed, or in tools that
-    // don't set the field) get treated as commander decks in the
-    // editor and the next autosave writes the element back into the
-    // file. Callers that opened the deck read-only and never mutate
-    // won't trigger a persist — the useDeckEditor DECK_DOWNLOADED
-    // handler nudges an immediate save when the raw parse had no
-    // format, so the file still catches up on first open.
-    format: parsed.format?.trim() || 'commander',
+    format: parsed.format?.trim() || inferDeckFormat(parsed.cards),
     bannerCard: parsed.bannerCard,
     bannerCardProviderId: parsed.bannerCardProviderId,
     lastLoadedTimestamp: parsed.lastLoadedTimestamp,
     playmatXml: parsed.playmatXml,
     sideboardPlansXml: parsed.sideboardPlansXml,
+    extraZonesXml: parsed.extraZonesXml,
     tagsXml: parsed.tagsXml,
     bracketAssessment: parsed.bracketAssessment,
   };
@@ -64,6 +58,7 @@ export function assembleDeckCard(
       set: row.set,
       collectorNumber: row.collectorNumber,
       scryfallId: row.scryfallId,
+      ...(row.zonePath ? { zonePath: row.zonePath } : {}),
       lookupSource: 'unknown',
     };
   }
@@ -92,6 +87,7 @@ export function assembleDeckCard(
     scryfallId: chosen?.scryfallId ?? row.scryfallId,
     imageUri: primaryImageUri({ imageUris }),
     imageUris,
+    ...(row.zonePath ? { zonePath: row.zonePath } : {}),
     lookupSource: lookup.source,
   };
 }

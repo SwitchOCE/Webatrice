@@ -106,6 +106,12 @@ describe('fetchCollection', () => {
     },
   );
 
+  it('does not accept a different card that sits at the hinted set and number', async () => {
+    const sword = { id: 'sword', name: 'Sword of War and Peace', set: '2xm', collector_number: '300' };
+    fetchMock.mockImplementation(() => respond({ data: [sword] }));
+    await expect(fetchCollection([{ name: 'Sol Ring', set: '2XM', collectorNumber: '300' }])).resolves.toEqual(new Map());
+  });
+
   it('makes no request for no hints', async () => {
     await expect(fetchCollection([])).resolves.toEqual(new Map());
     expect(fetchMock).not.toHaveBeenCalled();

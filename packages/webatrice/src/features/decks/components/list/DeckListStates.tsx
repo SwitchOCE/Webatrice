@@ -1,12 +1,16 @@
-import { CircleAlert, FileText, Loader2, Plus, RefreshCw, X } from 'lucide-react';
+import { CircleAlert, ClipboardPaste, FileText, FolderOpen, Loader2, Plus, RefreshCw, X } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 
 import { Button } from '@app/components';
 
-export function NewDeckButton({ onClick, disabled }: { onClick: () => void; disabled: boolean }) {
+export function NewDeckButton({ onClick, disabled, variant = 'primary' }: {
+  onClick: () => void;
+  disabled: boolean;
+  variant?: 'primary' | 'secondary';
+}) {
   const { t } = useTranslation();
   return (
-    <Button variant="primary" icon={<Plus size={15} />} onClick={onClick} disabled={disabled}>
+    <Button variant={variant} icon={<Plus size={15} />} onClick={onClick} disabled={disabled}>
       {t('Decks.list.newDeck')}
     </Button>
   );
@@ -72,17 +76,31 @@ export function DeckStorageError({ message, onDismiss }: { message: string; onDi
   );
 }
 
-export function DeckListEmpty({ onCreate, disabled }: { onCreate: () => void; disabled: boolean }) {
+export function DeckListEmpty({ onCreate, onMigrate, onImport, disabled }: {
+  onCreate: () => void;
+  onMigrate: () => void;
+  onImport: () => void;
+  disabled: boolean;
+}) {
   const { t } = useTranslation();
   return (
     <div className="h-full min-h-[280px] flex items-center justify-center">
-      <div className="text-center max-w-sm">
+      <div className="flex max-w-md flex-col items-center text-center">
         <div className="inline-flex h-12 w-12 items-center justify-center rounded-lg bg-bg-elevated border border-border-subtle mb-3">
           <FileText size={20} className="text-accent" />
         </div>
-        <div className="text-text-primary font-medium">{t('Decks.list.emptyTitle')}</div>
-        <div className="text-sm text-text-muted mt-1 mb-4">{t('Decks.list.emptyBody')}</div>
-        <NewDeckButton onClick={onCreate} disabled={disabled} />
+        <h2 className="text-text-primary font-medium">{t('Decks.list.emptyTitle')}</h2>
+        <p className="text-sm text-text-muted mt-1 mb-4">{t('Decks.list.emptyBody')}</p>
+        <div className="flex flex-wrap justify-center gap-2">
+          <Button variant="primary" icon={<FolderOpen size={15} />} onClick={onMigrate}>
+            {t('Decks.list.emptyFromDesktop')}
+          </Button>
+          <Button icon={<ClipboardPaste size={15} />} onClick={onImport} disabled={disabled}>
+            {t('Decks.list.emptyPaste')}
+          </Button>
+          <NewDeckButton onClick={onCreate} disabled={disabled} variant="secondary" />
+        </div>
+        <p className="mt-3 text-xs text-text-muted">{t('Decks.list.emptySources')}</p>
       </div>
     </div>
   );

@@ -1,13 +1,12 @@
 import { useId } from 'react';
-import { Trans, useTranslation } from 'react-i18next';
+import { useTranslation } from 'react-i18next';
 import { CheckCircle2, CircleAlert, FileText, Loader2, Upload, X } from 'lucide-react';
 
-import type { ParsedDeck } from '@app/types';
-
 import { DeckLinkHandoff } from '../components/DeckLinkHandoff';
+import { ExportHelp } from '../components/ExportHelp';
 import { FormatPicker } from '../components/FormatPicker';
-import { summarizeUploadedDeck } from '../deckImport';
-import { useDeckImportFlow, type DeckImportFlow } from '../hooks/useDeckImportFlow';
+import { DECK_FILE_ACCEPT } from '../deckFiles';
+import { useDeckImportFlow, type DeckImportFlow, type DeckImportHandler } from '../hooks/useDeckImportFlow';
 import { DeckDialogFrame } from './DeckDialogFrame';
 
 const SECONDARY_BUTTON_CLASS =
@@ -21,12 +20,13 @@ const PRIMARY_BUTTON_CLASS =
 export interface ImportDeckDialogProps {
   open: boolean;
   onClose: () => void;
-  onImport: (xml: string, colorIdentity: string) => void;
+  onImport: DeckImportHandler;
+  initialText?: string;
 }
 
-export function ImportDeckDialog({ open, onClose, onImport }: ImportDeckDialogProps) {
+export function ImportDeckDialog({ open, onClose, onImport, initialText }: ImportDeckDialogProps) {
   const { t } = useTranslation();
-  const flow = useDeckImportFlow(open, onImport);
+  const flow = useDeckImportFlow(open, onImport, initialText);
   const titleId = useId();
 
   if (!open) {
@@ -57,7 +57,10 @@ export function ImportDeckDialog({ open, onClose, onImport }: ImportDeckDialogPr
 
         <div data-dialog-content className="contents">
           {flow.error && (
-            <div className="mt-4 flex items-start gap-2 text-sm text-danger bg-red-500/10 border border-red-500/30 rounded-md px-3 py-2">
+            <div
+              role="alert"
+              className="mt-4 flex items-start gap-2 text-sm text-danger bg-danger/10 border border-danger/30 rounded-md px-3 py-2"
+            >
               <CircleAlert size={14} className="shrink-0 mt-0.5" />
               <span>{flow.error}</span>
             </div>
@@ -77,28 +80,14 @@ export function ImportDeckDialog({ open, onClose, onImport }: ImportDeckDialogPr
             {t('Common.action.cancel')}
           </button>
           {flow.phase === 'input' && (
-            flow.file ? (
-              <button
-                type="button"
-                onClick={flow.confirmFile}
-                className={[
-                  'px-4 py-2 rounded-md bg-accent hover:bg-accent-hover text-white',
-                  'font-semibold text-sm shadow-glow transition-colors flex items-center gap-2',
-                ].join(' ')}
-                title={t('ImportDeckDialog.importFileHint')}
-              >
-                <Upload size={14} /> {t('ImportDeckDialog.importFile')}
-              </button>
-            ) : (
-              <button
-                type="button"
-                onClick={() => void flow.resolve()}
-                disabled={!flow.text.trim()}
-                className={PRIMARY_BUTTON_CLASS}
-              >
-                {t('ImportDeckDialog.next')}
-              </button>
-            )
+            <button
+              type="button"
+              onClick={() => void flow.resolve()}
+              disabled={!flow.text.trim()}
+              className={PRIMARY_BUTTON_CLASS}
+            >
+              {t('ImportDeckDialog.next')}
+            </button>
           )}
           {flow.phase === 'review' && (
             <>
@@ -107,11 +96,11 @@ export function ImportDeckDialog({ open, onClose, onImport }: ImportDeckDialogPr
               </button>
               <button
                 type="button"
-                onClick={flow.confirmPaste}
+                onClick={flow.confirm}
                 disabled={flow.resolved.length === 0}
                 className={PRIMARY_BUTTON_CLASS}
               >
-                <Upload size={14} /> {t('ImportDeckDialog.importCards', { count: flow.resolved.length })}
+                <Upload size={14} /> {t('ImportDeckDialog.importCards', { count: flow.totalCount })}
               </button>
             </>
           )}
@@ -133,11 +122,12 @@ function ImportProgress({ label }: { label: string }) {
 function ImportInputStep({ flow }: { flow: DeckImportFlow }) {
   const { t } = useTranslation();
   return (
-    <div className="mt-4 flex-1 min-h-0 flex flex-col gap-3">
+    <div className="mt-4 flex-1 min-h-0 flex flex-col gap-3 overflow-y-auto">
       <input
         ref={flow.fileInputRef}
         type="file"
-        accept=".cod,application/xml,text/xml"
+        accept={DECK_FILE_ACCEPT}
+        aria-label={t('ImportDeckDialog.uploadFile')}
         onChange={(e) => flow.pickFile(e.target.files?.[0] ?? null)}
         className="hidden"
       />
@@ -165,54 +155,62 @@ function ImportInputStep({ flow }: { flow: DeckImportFlow }) {
           <FormatPicker value={flow.format} onChange={flow.setFormat} variant="dialog" />
         </div>
       </div>
-      {!flow.file && <DeckLinkHandoff />}
+      <DeckLinkHandoff />
+      <ExportHelp />
       <div className="flex-1 min-h-0 flex flex-col">
         <div className="flex items-center justify-between mb-1">
           <span className="text-xs font-medium text-text-secondary uppercase tracking-wider">
             {t('ImportDeckDialog.decklist')}
           </span>
-          {flow.file ? (
-            <button
-              type="button"
-              onClick={flow.clearFile}
-              className="text-xs text-text-muted hover:text-text-primary transition-colors inline-flex items-center gap-1"
-            >
-              <X size={11} /> {t('ImportDeckDialog.clearFile')}
-            </button>
-          ) : (
-            <button
-              type="button"
-              onClick={() => flow.fileInputRef.current?.click()}
-              className="text-xs text-accent hover:text-accent-hover transition-colors inline-flex items-center gap-1"
-              title={t('ImportDeckDialog.uploadFileHint')}
-            >
-              <Upload size={11} /> {t('ImportDeckDialog.uploadFile')}
-            </button>
-          )}
+          <button
+            type="button"
+            onClick={() => flow.fileInputRef.current?.click()}
+            className="text-xs text-accent hover:text-accent-hover transition-colors inline-flex items-center gap-1"
+            title={t('ImportDeckDialog.uploadFileHint')}
+          >
+            <Upload size={11} /> {t('ImportDeckDialog.uploadFile')}
+          </button>
         </div>
-        {flow.file ? (
-          <ImportedFileSummary fileName={flow.file.name} parsed={flow.file.deck} />
-        ) : (
-          <textarea
-            value={flow.text}
-            onChange={(e) => flow.setText(e.target.value)}
-            placeholder={t('ImportDeckDialog.placeholder')}
-            className={[
-              'flex-1 min-h-[240px] bg-bg-base border border-border-subtle rounded-md px-3 py-2',
-              'text-sm font-mono text-text-primary placeholder:text-text-muted focus:outline-none',
-              'focus:border-accent focus:ring-1 focus:ring-accent transition-colors resize-none',
-            ].join(' ')}
-          />
-        )}
+        <textarea
+          value={flow.text}
+          onChange={(e) => flow.setText(e.target.value)}
+          aria-label={t('ImportDeckDialog.decklist')}
+          placeholder={t('ImportDeckDialog.placeholder')}
+          className={[
+            'flex-1 min-h-[200px] bg-bg-base border border-border-subtle rounded-md px-3 py-2',
+            'text-sm font-mono text-text-primary placeholder:text-text-muted focus:outline-none',
+            'focus:border-accent focus:ring-1 focus:ring-accent transition-colors resize-none',
+          ].join(' ')}
+        />
       </div>
     </div>
   );
+}
+
+const ZONE_LABEL_KEYS = {
+  tokens: 'ImportDeckDialog.zone.tokens',
+  maybeboard: 'ImportDeckDialog.zone.maybeboard',
+} as const;
+
+const CATEGORY_LABEL_KEYS = {
+  main: 'ImportDeckDialog.review.main',
+  sideboard: 'ImportDeckDialog.review.sideboard',
+} as const;
+
+function zoneLabel(zone: string, t: (key: string) => string): string {
+  return zone === 'tokens' || zone === 'maybeboard' ? t(ZONE_LABEL_KEYS[zone]) : zone;
 }
 
 function ImportReviewStep({ flow }: { flow: DeckImportFlow }) {
   const { t } = useTranslation();
   return (
     <div className="mt-4 flex-1 min-h-0 flex flex-col">
+      {flow.fileName && (
+        <div className="mb-2 inline-flex items-center gap-2 text-sm text-text-secondary">
+          <FileText size={14} className="text-accent" aria-hidden />
+          <span className="truncate">{flow.fileName}</span>
+        </div>
+      )}
       <div className="flex items-center gap-3 text-sm flex-wrap">
         <span className="inline-flex items-center gap-1 text-success">
           <CheckCircle2 size={14} /> {t('ImportDeckDialog.review.matched', { count: flow.matchedCount })}
@@ -228,6 +226,13 @@ function ImportReviewStep({ flow }: { flow: DeckImportFlow }) {
           </span>
         )}
       </div>
+      {flow.extraZones.length > 0 && (
+        <p className="mt-1 text-xs text-text-muted">
+          {t('ImportDeckDialog.review.kept', {
+            zones: flow.extraZones.map(({ zone, count }) => `${zoneLabel(zone, t)} ${count}`).join(' · '),
+          })}
+        </p>
+      )}
 
       <div className="mt-3 flex-1 min-h-0 overflow-y-auto border border-border-subtle rounded-md">
         <ul className="divide-y divide-border-subtle">
@@ -236,7 +241,7 @@ function ImportReviewStep({ flow }: { flow: DeckImportFlow }) {
               key={i}
               className={[
                 'flex items-center gap-3 px-3 py-1.5 text-sm',
-                r.lookup.found ? '' : 'bg-yellow-500/5',
+                r.lookup.found ? '' : 'bg-warning/10',
               ].join(' ')}
             >
               <span className="text-xs tabular-nums text-text-muted w-8 text-right">{r.entry.quantity}×</span>
@@ -249,7 +254,7 @@ function ImportReviewStep({ flow }: { flow: DeckImportFlow }) {
                 {r.entry.name}
               </span>
               <span className="text-xs uppercase tracking-wider text-text-muted">
-                {r.entry.category}
+                {r.entry.isCommander ? t('ImportDeckDialog.review.commander') : t(CATEGORY_LABEL_KEYS[r.entry.category])}
               </span>
               {!r.lookup.found && (
                 <span className="text-xs text-warning">{t('ImportDeckDialog.review.unknown')}</span>
@@ -258,53 +263,14 @@ function ImportReviewStep({ flow }: { flow: DeckImportFlow }) {
           ))}
         </ul>
       </div>
-    </div>
-  );
-}
-
-function ImportedFileSummary({ fileName, parsed }: { fileName: string; parsed: ParsedDeck }) {
-  const { t } = useTranslation();
-  const { total: totalCount, main, sideboard } = summarizeUploadedDeck(parsed);
-  const parts: string[] = [];
-  if (main) {
-    parts.push(t('ImportDeckDialog.file.main', { count: main }));
-  }
-  if (sideboard) {
-    parts.push(t('ImportDeckDialog.file.sideboard', { count: sideboard }));
-  }
-
-  return (
-    <div
-      className={[
-        'flex-1 min-h-[240px] flex flex-col items-center justify-center',
-        'bg-bg-base border border-border-subtle rounded-md p-6 text-center',
-      ].join(' ')}
-    >
-      <div className="inline-flex h-12 w-12 items-center justify-center rounded-lg bg-bg-elevated border border-border-strong mb-3">
-        <FileText size={22} className="text-accent" />
-      </div>
-      <div className="text-sm font-semibold text-text-primary truncate max-w-full">
-        {fileName}
-      </div>
-      <div className="text-xs text-text-muted mt-1">
-        <Trans
-          i18nKey="ImportDeckDialog.file.deckName"
-          values={{ name: parsed.name }}
-          components={{ name: <span className="text-text-secondary" /> }}
-        />
-      </div>
-      <div className="text-xs text-text-muted mt-3 tabular-nums">
-        {t('ImportDeckDialog.file.cards', { count: totalCount })}
-        {parts.length > 0 && <> · {parts.join(' · ')}</>}
-      </div>
-      {parsed.meta.priceUsd != null && (
-        <div className="text-xs text-success mt-1 tabular-nums font-medium">
-          {t('ImportDeckDialog.file.cachedPrice', { price: parsed.meta.priceUsd.toFixed(2) })}
-        </div>
+      {flow.ignored.length > 0 && (
+        <details className="mt-2 text-xs text-text-muted">
+          <summary className="cursor-pointer">{t('ImportDeckDialog.review.showIgnored')}</summary>
+          <ul className="mt-1 font-mono">
+            {flow.ignored.map((line, i) => <li key={i} className="truncate">{line}</li>)}
+          </ul>
+        </details>
       )}
-      <div className="text-xs text-text-muted italic mt-4 max-w-sm">
-        {t('ImportDeckDialog.file.hint')}
-      </div>
     </div>
   );
 }

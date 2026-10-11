@@ -24,7 +24,7 @@ export function validateCod(xml: string | Document): boolean {
  *   <?xml version="1.0" encoding="UTF-8"?>
  *   <cockatrice_deck version="1">
  *     <deckname>My Deck</deckname>
- *     <comments>{JSON metadata blob}</comments>
+ *     <comments>Desktop notes, then a final `[webatrice] {json}` line</comments>
  *     <zone name="main">
  *       <card number="4" name="Sol Ring" />
  *       <card number="1" name="Lightning Bolt" set="M11" num="149" uuid="abc-123" />
@@ -42,11 +42,10 @@ export function validateCod(xml: string | Document): boolean {
  * hints. Cockatrice desktop ignores unknown attributes; other clients
  * that don't understand them will just use the default printing.
  *
- * Zone names Cockatrice supports: "main", "side" — the only two
- * server-side setupZones() reads. Any other zone name (legacy or
- * third-party) is silently coerced to "main" on read so imported
- * decks retain every card. Webatrice does not model a commander
- * zone; commander cards live in main like every other card.
+ * "main" and "side" (plus a legacy "commander" zone, read as main)
+ * become deck cards, including cards in zones nested inside them.
+ * Every other top-level zone (desktop's "tokens", "maybeboard" and
+ * custom zones) is kept verbatim and written back unchanged.
  */
 
 /** Parse a `.cod` XML string into a structured `ParsedDeck`. Throws
@@ -78,16 +77,15 @@ export function parseCod(xml: string): ParsedDeck {
   const bracketAssessment = readBracketAssessment(root);
 
   const cards: ParsedCard[] = [];
+  const extraZonesXml: string[] = [];
   for (const zone of directChildren(root, 'zone')) {
     const zoneName = zone.getAttribute('name');
     const category = zoneNameToCategory(zoneName);
-    const isCommanderZone = zoneName?.toLowerCase() === 'commander';
-    for (const cardEl of directChildren(zone, 'card')) {
-      const parsed = readCardElement(cardEl, category, isCommanderZone);
-      if (parsed) {
-        cards.push(parsed);
-      }
+    if (!category) {
+      extraZonesXml.push(new XMLSerializer().serializeToString(zone));
+      continue;
     }
+    readZoneCards(zone, category, zoneName?.toLowerCase() === 'commander', [], cards);
   }
 
   // Overlay commander names from the meta JSON blob onto matching
@@ -95,8 +93,8 @@ export function parseCod(xml: string): ParsedDeck {
   // source and normally wins, but Servatrice's `Command_DeckUpload`
   // re-parses the deck through Cockatrice's `DeckList` — which
   // silently strips unknown attributes — so on server round-trip the
-  // attribute is lost. The meta blob lives in `<comments>` which
-  // Servatrice preserves verbatim, making it the durable source.
+  // attribute is lost. The meta trailer lives in `<comments>`, which
+  // survives that round-trip, making it the durable source.
   // Match by name (case-insensitive); first card with each name wins
   // in case of duplicates.
   if (meta.commanders && meta.commanders.length > 0) {
@@ -120,6 +118,7 @@ export function parseCod(xml: string): ParsedDeck {
     lastLoadedTimestamp,
     playmatXml,
     sideboardPlansXml: directChildren(root, 'sideboard_plan').map((el) => new XMLSerializer().serializeToString(el)),
+    ...(extraZonesXml.length ? { extraZonesXml } : {}),
     tagsXml,
     bracketAssessment,
   };
@@ -143,6 +142,7 @@ export function serializeCod(deck: {
   lastLoadedTimestamp?: string;
   playmatXml?: string;
   sideboardPlansXml?: string[];
+  extraZonesXml?: string[];
   tagsXml?: string;
   bracketAssessment?: BracketAssessment;
 }): string {
@@ -150,8 +150,8 @@ export function serializeCod(deck: {
   // deck upload path re-parses through Cockatrice's DeckList and
   // strips per-card attributes it doesn't recognize (`commander="1"`
   // is one of them), so the attribute alone doesn't survive server
-  // round-trip. `<comments>` (which holds our meta JSON) is preserved
-  // verbatim as opaque text, so the list of commander names in
+  // round-trip. `<comments>` (which ends with our meta trailer) is
+  // preserved as text, so the list of commander names in
   // `meta.commanders` becomes the authoritative source that parseCod
   // overlays back onto the cards. We still write the attribute below
   // — it's a redundant hint that works if the file is ever read
@@ -197,11 +197,6 @@ export function serializeCod(deck: {
     root.appendChild(writeBracketAssessment(doc, deck.bracketAssessment));
   }
 
-  // Zone layout — matches Cockatrice desktop exactly: main + side
-  // are the only zones Servatrice's setupZones reads
-  // (libcockatrice_deck_list only defines DECK_ZONE_MAIN /
-  // _SIDE / _TOKENS). Any other zone name would be silently
-  // dropped from the game library at start.
   const byCategory: Record<DeckCategory, ParsedCard[]> = {
     main: [],
     sideboard: [],
@@ -217,19 +212,34 @@ export function serializeCod(deck: {
     }
     const zone = doc.createElement('zone');
     zone.setAttribute('name', categoryToZoneName(category));
-    for (const row of rows) {
+    const subZones = new Map<string, Element>();
+    const zoneFor = (path: readonly string[] | undefined): Element => {
+      let parent: Element = zone;
+      for (let depth = 0; path && depth < path.length; depth++) {
+        const key = JSON.stringify(path.slice(0, depth + 1));
+        let child = subZones.get(key);
+        if (!child) {
+          child = doc.createElement('zone');
+          child.setAttribute('name', path[depth]);
+          parent.appendChild(child);
+          subZones.set(key, child);
+        }
+        parent = child;
+      }
+      return parent;
+    };
+    for (const row of [...rows].sort((a, b) => (a.zonePath?.length ?? 0) - (b.zonePath?.length ?? 0))) {
       const cardEl = writeCardElement(doc, row);
-      // Round-trip the commander marker. Not a zone — the card is
-      // still in main — just a UI flag for the deck editor's
-      // "this is my commander" indicator. Cockatrice desktop
-      // ignores unknown attributes, so cross-client edits preserve
-      // the card even though they forget which one was commander.
       if (row.isCommander) {
         cardEl.setAttribute('commander', '1');
       }
-      zone.appendChild(cardEl);
+      zoneFor(row.zonePath).appendChild(cardEl);
     }
     root.appendChild(zone);
+  }
+
+  for (const extra of deck.extraZonesXml ?? []) {
+    appendRawElement(doc, root, 'zone', extra);
   }
 
   for (const plan of deck.sideboardPlansXml ?? []) {
@@ -245,6 +255,16 @@ export function serializeCod(deck: {
 /** Empty deck XML — used when creating a new deck. Optional `format`
  *  seeds the `<format>` element so New Deck can persist the user's
  *  format choice from the create modal. */
+export function zoneXml(name: string, cards: readonly Pick<ParsedCard, 'name' | 'quantity' | 'set' | 'collectorNumber'>[]): string {
+  const doc = document.implementation.createDocument(null, 'zone', null);
+  const zone = doc.documentElement;
+  zone.setAttribute('name', name);
+  for (const card of cards) {
+    zone.appendChild(writeCardElement(doc, { ...card, category: 'main' }));
+  }
+  return new XMLSerializer().serializeToString(zone);
+}
+
 export function emptyCod(name = 'New Deck', format = 'commander'): string {
   return serializeCod({ name, meta: defaultMeta(), cards: [], format });
 }
@@ -325,19 +345,35 @@ function writeCardElement(doc: XMLDocument, card: ParsedCard): Element {
   return el;
 }
 
-function zoneNameToCategory(zoneName: string | null): DeckCategory {
+function zoneNameToCategory(zoneName: string | null): DeckCategory | null {
   switch (zoneName?.toLowerCase()) {
+    case 'main':
+    case 'commander':
+      return 'main';
     case 'side':
     case 'sideboard':
       return 'sideboard';
     default:
-      // Anything else (main, commander, tokens, unknown) coerces to
-      // main. Servatrice only reads main + side into the game
-      // library at start, so shipping a card in any other zone
-      // would silently drop it. Legacy commander-zone cards keep
-      // their commander marking via ParsedCard.isCommander at the
-      // caller.
-      return 'main';
+      return null;
+  }
+}
+
+function readZoneCards(
+  zone: Element,
+  category: DeckCategory,
+  isCommanderZone: boolean,
+  path: string[],
+  out: ParsedCard[],
+): void {
+  for (const child of Array.from(zone.children)) {
+    if (child.tagName === 'card') {
+      const parsed = readCardElement(child, category, isCommanderZone);
+      if (parsed) {
+        out.push(path.length ? { ...parsed, zonePath: path } : parsed);
+      }
+    } else if (child.tagName === 'zone') {
+      readZoneCards(child, category, isCommanderZone, [...path, child.getAttribute('name') ?? ''], out);
+    }
   }
 }
 

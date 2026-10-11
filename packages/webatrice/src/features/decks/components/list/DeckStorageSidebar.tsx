@@ -1,11 +1,12 @@
 import { useState, type ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
-import { ChevronDown, Folder, FolderOpen, FolderPlus, Globe, HardDrive, Link2, Plus, Upload } from 'lucide-react';
+import { ChevronDown, Folder, FolderOpen, FolderPlus, Globe, HardDrive, Link2, Plus } from 'lucide-react';
 
 import { Button, IconButton, SectionLabel } from '@app/components';
 import { cx } from '@app/utils';
 
 import type { DeckFolderNode } from '../../deckFolders';
+import { ImportMenuButton } from './ImportMenuButton';
 
 export interface DeckStorageSidebarProps {
   loading: boolean;
@@ -16,6 +17,7 @@ export interface DeckStorageSidebarProps {
   onSelect: (path: string) => void;
   onCreate: () => void;
   onImport: () => void;
+  onMigrate: () => void;
   onNewFolder: () => void;
   publicDeckCount?: number;
   onPublicDecks?: () => void;
@@ -104,7 +106,7 @@ function FolderBranch({ node, depth, activePath, onSelect }: {
 }
 
 export function DeckStorageSidebar({
-  loading, deckTotal, folders, activePath, isConnected, onSelect, onCreate, onImport, onNewFolder,
+  loading, deckTotal, folders, activePath, isConnected, onSelect, onCreate, onImport, onMigrate, onNewFolder,
   publicDeckCount, onPublicDecks, onShareLinks, onOpenShareLink,
 }: DeckStorageSidebarProps) {
   const { t } = useTranslation();
@@ -121,9 +123,7 @@ export function DeckStorageSidebar({
         <Button variant="primary" className="flex-1" icon={<Plus size={15} />} onClick={onCreate} disabled={!isConnected}>
           {t('Decks.list.newDeck')}
         </Button>
-        <Button className="flex-1" icon={<Upload size={14} />} onClick={onImport} disabled={!isConnected}>
-          {t('Decks.list.import')}
-        </Button>
+        <ImportMenuButton className="flex-1" onMigrate={onMigrate} onImport={onImport} isConnected={isConnected} />
       </div>
       <nav aria-label={t('DeckStorageSidebar.folders')} className="flex flex-col gap-1">
         <div className="flex items-center pb-1 pl-2">

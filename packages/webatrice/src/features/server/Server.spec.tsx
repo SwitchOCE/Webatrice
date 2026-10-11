@@ -199,7 +199,7 @@ describe('Server (Home)', () => {
     const section = screen.getByRole('heading', { name: 'RecentDecks.title' }).closest('section') as HTMLElement;
     expect(within(section).getByText('RecentDecks.empty')).toBeInTheDocument();
     fireEvent.click(within(section).getByRole('button', { name: 'RecentDecks.importDeck' }));
-    expect(screen.getByText('decks-page:{"open":"import"}')).toBeInTheDocument();
+    expect(screen.getByText('decks-page:{"open":"migrate"}')).toBeInTheDocument();
   });
 
   it('previews the joinable open games of the usual room and joins one', () => {

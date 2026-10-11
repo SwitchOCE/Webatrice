@@ -1,20 +1,22 @@
 import { useEffect, useRef, useState, type RefObject } from 'react';
 import { useTranslation } from 'react-i18next';
 
-import { parseCod } from '@app/services';
 import type { ParsedDeck } from '@app/types';
 
 import {
-  buildPastedDeckCod,
-  buildUploadedDeckCod,
+  buildImportedDeckCod,
   countResolvedRows,
   resolveImportEntries,
   resolvedImportColorIdentity,
+  summarizeImportRows,
   type ResolvedImportRow,
 } from '../deckImport';
+import { extraZoneSummary, fileToParsedDeck, isDeckFileName, listToParsedDeck } from '../deckFiles';
 import { parseDecklist } from '../decklistParser';
 
 export type ImportPhase = 'input' | 'resolving' | 'review' | 'importing';
+
+export type DeckImportHandler = (xml: string, colorIdentity: string) => boolean | void;
 
 export interface DeckImportFlow {
   phase: ImportPhase;
@@ -29,27 +31,30 @@ export interface DeckImportFlow {
   ignored: string[];
   matchedCount: number;
   missingCount: number;
-  file: { name: string; deck: ParsedDeck } | null;
+  totalCount: number;
+  extraZones: Array<{ zone: string; count: number }>;
+  fileName: string | null;
   fileInputRef: RefObject<HTMLInputElement | null>;
   pickFile: (file: File | null) => void;
-  clearFile: () => void;
   resolve: () => Promise<void>;
   backToInput: () => void;
-  confirmPaste: () => void;
-  confirmFile: () => Promise<void>;
+  confirm: () => void;
 }
 
-export function useDeckImportFlow(open: boolean, onImport: (xml: string, colorIdentity: string) => void): DeckImportFlow {
+export function useDeckImportFlow(open: boolean, onImport: DeckImportHandler, initialText = ''): DeckImportFlow {
   const { t } = useTranslation();
   const [name, setName] = useState('');
-  const [format, setFormat] = useState('commander');
-  const [text, setText] = useState('');
+  const [format, setFormatState] = useState('');
+  const [formatTouched, setFormatTouched] = useState(false);
+  const [text, setText] = useState(initialText);
   const [phase, setPhase] = useState<ImportPhase>('input');
+  const [deck, setDeck] = useState<ParsedDeck | null>(null);
   const [resolved, setResolved] = useState<ResolvedImportRow[]>([]);
   const [ignored, setIgnored] = useState<string[]>([]);
   const [error, setError] = useState<string | null>(null);
-  const [file, setFile] = useState<{ name: string; deck: ParsedDeck } | null>(null);
+  const [fileName, setFileName] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const generation = useRef(0);
 
   const resetFileInput = () => {
     if (fileInputRef.current) {
@@ -61,44 +66,70 @@ export function useDeckImportFlow(open: boolean, onImport: (xml: string, colorId
     if (!open) {
       return;
     }
+    generation.current += 1;
     setName('');
-    setFormat('commander');
-    setText('');
+    setFormatState('');
+    setFormatTouched(false);
+    setText(initialText);
     setPhase('input');
+    setDeck(null);
     setResolved([]);
     setIgnored([]);
     setError(null);
-    setFile(null);
+    setFileName(null);
     resetFileInput();
-  }, [open]);
+  }, [open, initialText]);
+
+  const setFormat = (next: string) => {
+    setFormatTouched(true);
+    setFormatState(next);
+  };
+
+  const review = async (next: ParsedDeck, skipped: string[]) => {
+    const run = ++generation.current;
+    setPhase('resolving');
+    setDeck(next);
+    setIgnored(skipped);
+    setName((current) => current.trim() ? current : next.name);
+    if (!formatTouched) {
+      setFormatState(next.format);
+    }
+    try {
+      const rows = await resolveImportEntries(next.cards);
+      if (run !== generation.current) {
+        return;
+      }
+      setResolved(rows);
+      setPhase('review');
+    } catch (e) {
+      if (run !== generation.current) {
+        return;
+      }
+      setPhase('input');
+      setError(e instanceof Error ? e.message : t('DeckImport.error.resolveFailed'));
+    }
+  };
 
   const pickFile = (picked: File | null) => {
     setError(null);
+    resetFileInput();
     if (!picked) {
-      setFile(null);
+      return;
+    }
+    if (!isDeckFileName(picked.name)) {
+      setError(t('DeckImport.error.notDeckFile', { name: picked.name }));
       return;
     }
     const reader = new FileReader();
     reader.onload = () => {
-      const xml = typeof reader.result === 'string' ? reader.result : '';
-      try {
-        const parsed = parseCod(xml);
-        setFile({ name: picked.name, deck: parsed });
-        if (!name.trim()) {
-          setName(parsed.name);
-        }
-        if (parsed.format) {
-          setFormat(parsed.format);
-        }
-      } catch (e) {
-        setFile(null);
-        setError(
-          e instanceof Error
-            ? t('DeckImport.error.invalidCodReason', { reason: e.message })
-            : t('DeckImport.error.invalidCod'),
-        );
-        resetFileInput();
+      const content = typeof reader.result === 'string' ? reader.result : '';
+      const parsed = fileToParsedDeck(picked.name, content);
+      if (parsed.cards.length === 0) {
+        setError(t('DeckImport.error.noCardsInFile', { name: picked.name }));
+        return;
       }
+      setFileName(picked.name);
+      void review(parsed, []);
     };
     reader.onerror = () => {
       setError(t('DeckImport.error.readFailed'));
@@ -106,48 +137,34 @@ export function useDeckImportFlow(open: boolean, onImport: (xml: string, colorId
     reader.readAsText(picked);
   };
 
-  const clearFile = () => {
-    setFile(null);
-    setError(null);
-    resetFileInput();
-  };
-
   const resolve = async () => {
     setError(null);
-    const { entries, ignored: skipped } = parseDecklist(text);
-    if (entries.length === 0) {
+    const list = parseDecklist(text);
+    if (list.entries.length === 0) {
       setError(t('DeckImport.error.noCards'));
       return;
     }
-    setPhase('resolving');
-    try {
-      setResolved(await resolveImportEntries(entries));
-      setIgnored(skipped);
-      setPhase('review');
-    } catch (e) {
-      setPhase('input');
-      setError(e instanceof Error ? e.message : t('DeckImport.error.resolveFailed'));
-    }
+    setFileName(null);
+    await review(listToParsedDeck(list, ''), list.ignored);
   };
 
-  const confirmPaste = () => {
-    setError(null);
-    setPhase('importing');
-    onImport(buildPastedDeckCod(resolved, name, format, t), resolvedImportColorIdentity(resolved));
+  const backToInput = () => {
+    generation.current += 1;
+    setPhase('input');
+    setFileName(null);
+    setDeck(null);
   };
 
-  const confirmFile = async () => {
-    if (!file) {
+  const confirm = () => {
+    if (!deck) {
       return;
     }
     setError(null);
     setPhase('importing');
-    try {
-      const rows = await resolveImportEntries(file.deck.cards);
-      onImport(buildUploadedDeckCod(file.deck, name, format, t), resolvedImportColorIdentity(rows));
-    } catch (e) {
-      setPhase('input');
-      setError(e instanceof Error ? e.message : t('ImportDeckDialog.resolveFailed'));
+    const sent = onImport(buildImportedDeckCod(deck, resolved, { name, format, t }), resolvedImportColorIdentity(resolved));
+    if (sent === false) {
+      setPhase('review');
+      setError(t('DeckImport.error.notConnected'));
     }
   };
 
@@ -166,13 +183,13 @@ export function useDeckImportFlow(open: boolean, onImport: (xml: string, colorId
     ignored,
     matchedCount: matched,
     missingCount: missing,
-    file,
+    totalCount: summarizeImportRows(resolved).total,
+    extraZones: extraZoneSummary(deck?.extraZonesXml),
+    fileName,
     fileInputRef,
     pickFile,
-    clearFile,
     resolve,
-    backToInput: () => setPhase('input'),
-    confirmPaste,
-    confirmFile,
+    backToInput,
+    confirm,
   };
 }

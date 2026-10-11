@@ -25,9 +25,10 @@ function Harness({ initial, variant = 'dialog' as const, onChange = () => {} }: 
 }
 
 describe('FormatPicker', () => {
-  it('selects a known format and defaults an empty value to Commander', () => {
+  it('shows an empty value as Not set and selects a known format', () => {
     render(<Harness initial="" />);
-    expect(screen.getByRole('combobox')).toHaveValue('commander');
+    expect(screen.getByRole('combobox')).toHaveValue('');
+    expect(screen.getByRole('option', { name: 'FormatPicker.unset' })).toBeInTheDocument();
     expect(screen.queryByRole('textbox')).toBeNull();
 
     fireEvent.change(screen.getByRole('combobox'), { target: { value: 'modern' } });

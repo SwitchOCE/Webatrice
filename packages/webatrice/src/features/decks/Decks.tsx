@@ -37,6 +37,8 @@ import { useDeckList } from './hooks/useDeckList';
 import { useDeckListViewMode } from './hooks/useDeckListViewMode';
 import { useDeckShareCreate, useDeckSharingSupported, useDeckVisibility } from './hooks/useDeckSharing';
 import { useDeckShareLinks } from './hooks/useDeckShareLinks';
+import { dragHasFiles, fromDataTransfer, type SourceFile } from './migration/fileSources';
+import { MigrationDialog } from './migration/MigrationDialog';
 
 const FOLDER_PARAM = 'folder';
 
@@ -58,6 +60,9 @@ function Decks() {
 
   const [createOpen, setCreateOpen] = useState(false);
   const [importOpen, setImportOpen] = useState(false);
+  const [migrateOpen, setMigrateOpen] = useState(false);
+  const [droppedFiles, setDroppedFiles] = useState<SourceFile[] | undefined>(undefined);
+  const [dragging, setDragging] = useState(false);
   const [newFolderOpen, setNewFolderOpen] = useState(false);
   const [pendingDelete, setPendingDelete] = useState<FlatDeck | null>(null);
   const [pendingFolderDelete, setPendingFolderDelete] = useState<DeckFolderEntry | null>(null);
@@ -78,6 +83,8 @@ function Decks() {
       setCreateOpen(true);
     } else if (open === 'import') {
       setImportOpen(true);
+    } else if (open === 'migrate') {
+      setMigrateOpen(true);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps -- once per navigation, not on every state read
   }, [location.key]);
@@ -114,10 +121,17 @@ function Decks() {
     }
   };
 
-  const handleImport = (xml: string, colorIdentity: string) => {
-    if (list.importDeck(xml, colorIdentity)) {
+  const openMigration = (files?: SourceFile[]) => {
+    setDroppedFiles(files);
+    setMigrateOpen(true);
+  };
+
+  const handleImport = (xml: string, colorIdentity: string): boolean => {
+    const sent = list.importDeck(xml, colorIdentity);
+    if (sent) {
       setImportOpen(false);
     }
+    return sent;
   };
 
   const listRef = useRef<HTMLDivElement>(null);
@@ -178,6 +192,7 @@ function Decks() {
           onSelect={openFolder}
           onCreate={() => setCreateOpen(true)}
           onImport={() => setImportOpen(true)}
+          onMigrate={() => openMigration()}
           onNewFolder={() => setNewFolderOpen(true)}
           publicDeckCount={list.publicDeckTotal}
           onPublicDecks={sharingSupported && userName
@@ -186,7 +201,39 @@ function Decks() {
           onShareLinks={sharingSupported ? () => setShareLinksOpen(true) : undefined}
           onOpenShareLink={sharingSupported ? () => setOpenLinkOpen(true) : undefined}
         />
-        <div className="relative flex min-h-0 min-w-0 flex-1 flex-col">
+        <div
+          className="relative flex min-h-0 min-w-0 flex-1 flex-col"
+          onDragOver={(event) => {
+            if (!migrateOpen && dragHasFiles(event.dataTransfer)) {
+              event.preventDefault();
+              setDragging(true);
+            }
+          }}
+          onDragLeave={(event) => {
+            if (!event.currentTarget.contains(event.relatedTarget as Node | null)) {
+              setDragging(false);
+            }
+          }}
+          onDrop={(event) => {
+            if (migrateOpen || !dragHasFiles(event.dataTransfer)) {
+              return;
+            }
+            event.preventDefault();
+            setDragging(false);
+            void fromDataTransfer(event.dataTransfer).then(openMigration);
+          }}
+        >
+          {dragging && (
+            <div
+              aria-hidden
+              className={[
+                'pointer-events-none absolute inset-3 z-20 flex items-center justify-center rounded-ui-lg',
+                'border-2 border-dashed border-accent bg-accent-soft/90 text-sm font-semibold text-text-primary',
+              ].join(' ')}
+            >
+              {t('Decks.dropToImport')}
+            </div>
+          )}
           <DeckGridToolbar
             title={currentFolder?.name ?? t('DeckStorageSidebar.allDecks')}
             deckCount={list.decks.length}
@@ -213,7 +260,12 @@ function Decks() {
               {list.loading && list.listError && <DeckListError message={list.listError} onRetry={list.refresh} />}
               {list.storageError && <DeckStorageError message={list.storageError} onDismiss={list.dismissStorageError} />}
               {!list.loading && noDecks && folder.path === '' && (
-                <DeckListEmpty onCreate={() => setCreateOpen(true)} disabled={!list.isConnected} />
+                <DeckListEmpty
+                  onCreate={() => setCreateOpen(true)}
+                  onMigrate={() => openMigration()}
+                  onImport={() => setImportOpen(true)}
+                  disabled={!list.isConnected}
+                />
               )}
               {!list.loading && noDecks && folder.path !== '' && (
                 <p className="text-[13px] text-text-muted">{t('DeckFolders.empty')}</p>
@@ -296,6 +348,16 @@ function Decks() {
         open={importOpen}
         onClose={() => setImportOpen(false)}
         onImport={handleImport}
+      />
+
+      <MigrationDialog
+        open={migrateOpen}
+        initialFiles={droppedFiles}
+        onClose={() => setMigrateOpen(false)}
+        onPasteInstead={() => {
+          setMigrateOpen(false);
+          setImportOpen(true);
+        }}
       />
 
       <CreateDeckDialog

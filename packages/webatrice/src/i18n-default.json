@@ -1988,17 +1988,19 @@
         "compact": "List"
       },
       "refreshLabel": "Refresh deck list",
-      "import": "Import",
       "newDeck": "New deck",
       "defaultDeckName": "New Deck",
       "loading": "Loading decks…",
       "emptyTitle": "No decks yet",
-      "emptyBody": "Decks live on the Servatrice server tied to your account. Create your first one to get started.",
+      "emptyBody": "Decks are saved to your account on this server. Bring your decks over from desktop Cockatrice, paste a list from another site, or start a new one.",
       "created": "Created {age}",
       "age": {
         "unknown": "unknown",
         "justNow": "just now"
-      }
+      },
+      "emptyFromDesktop": "Import from Cockatrice",
+      "emptyPaste": "Paste a deck list",
+      "emptySources": "Lists from Moxfield, Archidekt, MTG Arena, MTGO and TappedOut work too."
     },
     "badge": {
       "bracket": "Commander Bracket {level}",
@@ -2015,7 +2017,8 @@
       "disconnected": "Connect to the server to change this deck.",
       "stillLoading": "Still loading this deck from the server.",
       "noMatches": "No decks match these filters."
-    }
+    },
+    "dropToImport": "Drop to import into your deck library"
   },
   "CardSearch": {
     "label": "Search cards",
@@ -2137,6 +2140,31 @@
     "copyFromPage": "Browsers can't read decks from {provider} directly. Open the deck, use its Export option to copy the list, and paste it below.",
     "open": "Open on {provider}"
   },
+  "ExportHelp": {
+    "title": "How to copy a deck from another site or app",
+    "source": {
+      "moxfield": {
+        "name": "Moxfield",
+        "steps": "Open the deck, choose Export, copy the list as text (the Arena or plain-text option), and paste it below."
+      },
+      "archidekt": {
+        "name": "Archidekt",
+        "steps": "Open the deck, choose Export from the deck menu, copy the text, and paste it below. Categories and tags are fine."
+      },
+      "arena": {
+        "name": "MTG Arena",
+        "steps": "In Decks, select the deck and click Export. It is copied to your clipboard; paste it below."
+      },
+      "mtgo": {
+        "name": "MTGO",
+        "steps": "Save the deck as a .dek or .txt file and open it here, or paste its text below."
+      },
+      "cockatrice": {
+        "name": "Cockatrice",
+        "steps": "Open a .cod or .txt file from your Cockatrice decks folder. To bring over every deck at once, use Import from Cockatrice on the Decks page."
+      }
+    }
+  },
   "FormatPicker": {
     "label": "Format",
     "other": {
@@ -2146,7 +2174,8 @@
     "placeholder": {
       "dialog": "e.g. Netrunner, Playtest, Cube",
       "sidebar": "e.g. Netrunner, Playtest"
-    }
+    },
+    "unset": "Not set"
   },
   "DeckBracket": {
     "assessing": "Assessing bracket…",
@@ -2411,14 +2440,22 @@
     "tags": "Tags",
     "cards": "{count, plural, one {# card} other {# cards}}"
   },
+  "ImportMenu": {
+    "import": "Import",
+    "label": "Import decks",
+    "fromCockatrice": "From Cockatrice desktop…",
+    "pasteOrOpen": "Paste a list or open a deck file…",
+    "disconnected": "Connect to a server first"
+  },
   "DeckImport": {
     "defaultName": "Imported deck",
     "error": {
-      "invalidCodReason": "Not a valid Cockatrice .cod: {reason}",
-      "invalidCod": "Not a valid Cockatrice .cod file",
       "readFailed": "Could not read the selected file",
       "noCards": "No cards recognised. Check the format — one line per card, like `1 Sol Ring`.",
-      "resolveFailed": "Failed to resolve cards"
+      "resolveFailed": "Failed to resolve cards",
+      "notDeckFile": "{name} is not a deck file. Open a .cod, .txt, .dec, .dek or .mwDeck file.",
+      "noCardsInFile": "No cards found in {name}.",
+      "notConnected": "Not connected to the server. Reconnect, then import again."
     }
   },
   "DeckSummary": {
@@ -2521,34 +2558,31 @@
   },
   "ImportDeckDialog": {
     "title": "Import a deck",
-    "subtitle": "Paste a list from Moxfield, Arena, MTGO, Cockatrice — most formats work.",
+    "subtitle": "Paste a list or open a deck file. Cockatrice .cod and .txt, Moxfield, Archidekt, Arena and MTGO lists all work.",
     "resolving": "Looking up cards…",
-    "resolveFailed": "Failed to resolve cards",
     "importing": "Creating deck…",
-    "importFile": "Import file",
-    "importFileHint": ".cod files are pre-structured — no card review needed",
     "next": "Next: check cards",
     "importCards": "Import {count, plural, one {# card} other {# cards}}",
     "deckName": "Deck name",
     "format": "Format",
     "decklist": "Decklist",
-    "clearFile": "Clear file",
-    "uploadFile": "Upload .cod file",
-    "uploadFileHint": "Import from a Cockatrice .cod file (preserves all metadata)",
+    "uploadFile": "Open a deck file",
+    "uploadFileHint": "Cockatrice .cod, or a .txt, .dec, .dek or .mwDeck list",
     "placeholder": "Paste your deck list (Arena / MTGO / Moxfield export). Example:\n\nCommander\n1 Atraxa, Grand Unifier\n\nDeck\n1 Sol Ring\n1 Cultivate\n1 Swords to Plowshares\n...",
     "review": {
       "matched": "{count, plural, other {# matched}}",
       "missing": "{count, plural, other {# unknown (imported with warning)}}",
       "ignored": "{count, plural, one {# unrecognised line} other {# unrecognised lines}}",
-      "unknown": "unknown"
+      "unknown": "unknown",
+      "kept": "Kept as in the file: {zones}",
+      "showIgnored": "Show unrecognised lines",
+      "main": "Main",
+      "sideboard": "Sideboard",
+      "commander": "Commander"
     },
-    "file": {
-      "deckName": "Deck name in file: <name>{name}</name>",
-      "cards": "{count, plural, one {# card} other {# cards}}",
-      "main": "{count, plural, other {# main}}",
-      "sideboard": "{count, plural, other {# sideboard}}",
-      "cachedPrice": "${price} cached from source",
-      "hint": ".cod files are pre-structured — importing skips the card review step and preserves any embedded metadata."
+    "zone": {
+      "tokens": "Tokens",
+      "maybeboard": "Maybeboard"
     }
   },
   "MoveDeck": {
@@ -2567,6 +2601,94 @@
     "noPrice": "No TCGplayer price",
     "current": "Current",
     "loadFailed": "Failed to load printings"
+  },
+  "DeckMigration": {
+    "title": "Import from Cockatrice",
+    "guest": "Decks are saved to your account on this server. Sign in with a registered account to import decks; replays and custom sets can still be imported into this browser.",
+    "offline": "You're not connected to a server, so decks can't be imported right now. Replays and custom sets can still be imported into this browser.",
+    "os": {
+      "windows": "Windows",
+      "macos": "macOS",
+      "linux": "Linux"
+    },
+    "source": {
+      "intro": "Bring over the decks, replays and custom sets from desktop Cockatrice. Choose your Cockatrice folder (or just its decks folder), or drop files and folders here. You'll see what was found before anything is imported.",
+      "drop": "Drop your Cockatrice folder, a decks folder or deck files here",
+      "pickFolder": "Choose a folder",
+      "pickFiles": "Choose files",
+      "whereTitle": "Where desktop Cockatrice keeps your files",
+      "os": "Your computer",
+      "copy": "Copy",
+      "copied": "Copied",
+      "hint": {
+        "windows": "This folder is hidden. In the folder picker, paste the path into the address bar and press Enter.",
+        "macos": "Library is hidden in Finder. In the folder picker, press Cmd+Shift+G and paste the path.",
+        "linux": "Folders starting with a dot are hidden. In the folder picker, press Ctrl+L and paste the path, or Ctrl+H to show hidden folders."
+      },
+      "what": "Inside it, decks/ holds your decks (with their subfolders), replays/ your replays and customsets/ your custom sets and tokens. If you moved your decks folder in desktop's settings, choose that folder instead.",
+      "pasteLead": "Coming from Moxfield, Archidekt, MTG Arena or MTGO?",
+      "paste": "Paste a deck list"
+    },
+    "scan": {
+      "reading": "Reading deck files: {done} of {total}",
+      "checkingCards": "Checking card names…"
+    },
+    "preview": {
+      "found": "Found {decks, plural, one {# deck} other {# decks}} in {folders, plural, one {# folder} other {# folders}}, {replays, plural, one {# replay} other {# replays}} and {sets, plural, one {# custom set file} other {# custom set files}}.",
+      "decks": "Decks",
+      "all": "Select all",
+      "none": "Select none",
+      "topFolder": "Top level",
+      "cards": "{count, plural, one {# card} other {# cards}}",
+      "unknown": "{count, plural, one {# unknown card} other {# unknown cards}}",
+      "onServer": "Already on server",
+      "destination": "Put them in this folder (subfolders are kept)",
+      "destinationTop": "Top level of your decks",
+      "sameName": "If a deck with the same name is already there",
+      "skip": "Skip it",
+      "keepBoth": "Keep both",
+      "replays": "Import {count, plural, one {# replay} other {# replays}} into this browser",
+      "customSets": "Import {count, plural, one {# custom set file} other {# custom set files}} into this browser's card database",
+      "cardDatabase": "Not needed: {files}. Webatrice gets its card data from Scryfall.",
+      "import": "{count, plural, =0 {Import} one {Import # deck} other {Import # decks}}",
+      "options": "Import options"
+    },
+    "zone": {
+      "tokens": "{count, plural, one {# token} other {# tokens}}",
+      "maybeboard": "{count} maybeboard"
+    },
+    "problem": {
+      "unreadable": "Couldn't read this file",
+      "empty": "No cards in this file",
+      "tooLarge": "Too large for the server (over 2 MB)",
+      "exists": "skipped, already on the server",
+      "pathTooLong": "skipped, folder path too long for the server"
+    },
+    "failure": {
+      "flood": "The server is busy; try again in a minute",
+      "server": "The server refused it (code {code})",
+      "timeout": "The server didn't answer"
+    },
+    "progress": {
+      "decks": "Importing decks: {done} of {total}",
+      "keepOpen": "Keep this window open until the import finishes. The server accepts a few decks per second, so large libraries take a few minutes.",
+      "stop": "Stop after this deck",
+      "folders": "Creating folder {name}"
+    },
+    "summary": {
+      "decks": "{count, plural, =0 {No decks imported.} one {Imported # deck.} other {Imported # decks.}}",
+      "disconnected": "The connection dropped, so {count, plural, one {# deck was} other {# decks were}} not imported.",
+      "cancelled": "Stopped: {count, plural, one {# deck was} other {# decks were}} not imported.",
+      "unknown": "Some cards weren't recognised and were imported with a warning. Open these decks to fix them: {names}",
+      "renamed": "Decks whose names were already taken were imported with a number after the name.",
+      "again": "Run the import again to finish: decks that are already on the server are skipped.",
+      "more": "Import more",
+      "done": "Done",
+      "skippedGroup": "{count, plural, one {# deck} other {# decks}}: {reason}"
+    },
+    "error": {
+      "nothingFound": "No decks, replays or custom sets were found there. Choose your Cockatrice folder or its decks folder."
+    }
   },
   "Developer": {
     "table": {
@@ -4189,12 +4311,12 @@
     "where": "opened in this browser",
     "allDecks": "All decks",
     "newDeck": "New deck",
-    "empty": "No recent decks yet. Start a new deck, or import a list you already have.",
+    "empty": "Coming from desktop Cockatrice? Bring your decks, replays and custom sets over in one go, or start a new deck.",
     "cards": "{count, plural, one {# card} other {# cards}}",
     "bracket": "· Bracket {level}",
     "emptySaved": "{count, plural, one {You have # deck saved on this server.} other {You have # decks saved on this server.}} Open one and it shows up here.",
     "openDecks": "Open your decks",
-    "importDeck": "Import deck"
+    "importDeck": "Import from Cockatrice"
   },
   "ServerAnnouncement": {
     "title": "From the server",
