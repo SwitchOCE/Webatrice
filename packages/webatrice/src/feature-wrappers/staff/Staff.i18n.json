@@ -9,6 +9,7 @@
       "cardArtRules": "Card art rules",
       "developer": "Developer"
     },
+    "needsServer": "Needs server 3.1",
     "unresolvedBadge": "{count, plural, one {# unresolved report} other {# unresolved reports}}",
     "lock": {
       "region": "Administration lock",

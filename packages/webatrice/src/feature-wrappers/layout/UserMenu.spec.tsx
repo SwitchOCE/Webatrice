@@ -6,6 +6,8 @@ import { ServerInfo_User_UserLevelFlag as Level } from '@cockatrice/sockatrice/g
 import { connectedState, renderWithProviders } from '../../__test-utils__';
 import { RouteEnum } from '@app/types';
 
+import { staffToolStates } from '../staff/staffTools';
+
 import UserMenu, { type UserMenuProps } from './UserMenu';
 import { UserMenuDialog } from './userMenuEntries';
 
@@ -87,12 +89,30 @@ describe('UserMenu', () => {
     expect(props.onNavigate).not.toHaveBeenCalled();
   });
 
-  it('lists staff entries only for staff, in their own group', () => {
-    renderMenu({ userLevel: Level.IsUser | Level.IsRegistered | Level.IsModerator });
+  it('lists the staff tools it is given in their own group and opens one', () => {
+    const userLevel = Level.IsUser | Level.IsRegistered | Level.IsModerator;
+    const props = renderMenu({ userLevel, staffTools: staffToolStates(userLevel, () => true) });
     fireEvent.click(trigger());
 
     const staff = screen.getByRole('group', { name: 'UserMenu.staff' });
-    expect(within(staff).getByRole('menuitem', { name: 'UserMenu.administration' })).toBeInTheDocument();
+    expect(within(staff).getAllByRole('menuitem').map((item) => item.textContent)).toEqual([
+      'UserMenu.reportQueue', 'UserMenu.moderation', 'UserMenu.logs', 'UserMenu.administration', 'UserMenu.cardArtRules',
+    ]);
+    fireEvent.click(within(staff).getByRole('menuitem', { name: 'UserMenu.moderation' }));
+    expect(props.onNavigate).toHaveBeenCalledWith(RouteEnum.MODERATION);
+  });
+
+  it('keeps a tool the server cannot serve visible but disabled, with the reason', () => {
+    const userLevel = Level.IsUser | Level.IsRegistered | Level.IsModerator;
+    const props = renderMenu({ userLevel, staffTools: staffToolStates(userLevel, () => false) });
+    fireEvent.click(trigger());
+
+    const reports = screen.getByRole('menuitem', { name: 'UserMenu.reportQueue' });
+    expect(reports).toHaveAttribute('aria-disabled', 'true');
+    expect(reports).toHaveAccessibleDescription('Staff.needsServer');
+    fireEvent.click(reports);
+    expect(props.onNavigate).not.toHaveBeenCalled();
+    expect(screen.getByRole('menuitem', { name: 'UserMenu.moderation' })).not.toHaveAttribute('aria-disabled');
   });
 
   it('shows no staff group to a regular user', () => {

@@ -7,12 +7,14 @@ import { useAppSelector } from '@app/store';
 import { usePhaseTrackPinnedSetting, usePreference, useSnapGridSetting, useUnreadCounts } from '@app/hooks';
 import type { RouteEnum } from '@app/types';
 
-import { placeBadges, placeForPath, type PlaceKey } from '../navPlaces';
+import { useStaffTools } from '../../staff/useStaffTools';
+import { placeBadges, placeForPath, railPlaces, type NavPlace, type PlaceKey } from '../navPlaces';
 import type { UserMenuProps } from '../UserMenu';
 import type { UserMenuDialog } from '../userMenuEntries';
 import { useOwnAvatarUrl } from './useOwnAvatarUrl';
 
 export interface NavRailController {
+  places: NavPlace[];
   current: PlaceKey | null;
   badges: Partial<Record<PlaceKey, number>>;
   account: UserMenuProps;
@@ -30,10 +32,15 @@ export function useNavRailController(): NavRailController {
   const [snapGridVisible, setSnapGridVisible] = useSnapGridSetting();
   const [phaseTrackPinned, setPhaseTrackPinned] = usePhaseTrackPinnedSetting();
   const [openDialog, setOpenDialog] = useState<UserMenuDialog | null>(null);
-  const badges = placeBadges(useUnreadCounts(), usePreference('playBadge'));
+  const staff = useStaffTools();
+  const queueLoaded = useAppSelector(server.Selectors.getReportQueueLoaded);
+  const reportCounts = useAppSelector(server.Selectors.getReportQueueStatusCounts);
+  const unresolvedReports = queueLoaded ? reportCounts.open + reportCounts.assigned : null;
+  const badges = placeBadges(useUnreadCounts(), usePreference('playBadge'), unresolvedReports);
   const closeDialog = useCallback(() => setOpenDialog(null), []);
 
   return {
+    places: railPlaces(staff.home),
     current: placeForPath(pathname),
     badges,
     openDialog,
@@ -42,6 +49,7 @@ export function useNavRailController(): NavRailController {
       userName: user?.name ?? null,
       userLevel: user?.userLevel ?? 0,
       avatarUrl,
+      staffTools: staff.states,
       serverName,
       snapGridVisible,
       onToggleSnapGrid: () => setSnapGridVisible(!snapGridVisible),

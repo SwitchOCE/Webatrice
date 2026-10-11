@@ -1,7 +1,9 @@
-import { fireEvent, screen, within } from '@testing-library/react';
+import { act, fireEvent, screen, within } from '@testing-library/react';
 import { useLocation } from 'react-router-dom';
 
-import { connectedState, renderWithProviders } from '../../__test-utils__';
+import { server } from '@cockatrice/datatrice';
+import { ServerInfo_User_UserLevelFlag as Level } from '@cockatrice/sockatrice/generated';
+import { connectedState, makeUser, renderWithProviders } from '../../__test-utils__';
 import { PlayBadgeMode, PREFERENCE_DEFAULTS, RouteEnum } from '@app/types';
 
 import { settingsStore } from '../../hooks/useSettings';
@@ -31,9 +33,24 @@ function LocationProbe() {
   return <div data-testid="location">{useLocation().pathname}</div>;
 }
 
-function renderRail(route: string = RouteEnum.SERVER) {
-  return renderWithProviders(<><NavRail /><LocationProbe /></>, { preloadedState: connectedState, route });
+function stateFor(userLevel: number, version: string) {
+  return {
+    ...connectedState,
+    server: {
+      ...(connectedState.server as any),
+      info: { message: null, name: 'Servatrice', version },
+      user: makeUser({ userLevel }),
+    },
+  };
 }
+
+function renderRail(route: string = RouteEnum.SERVER, preloadedState: object = connectedState) {
+  return renderWithProviders(<><NavRail /><LocationProbe /></>, { preloadedState, route });
+}
+
+const REGISTERED = Level.IsUser | Level.IsRegistered;
+const MODERATOR = REGISTERED | Level.IsModerator;
+const staffLink = () => within(places()).queryByRole('link', { name: 'NavRail.place.staff' });
 
 const places = () => screen.getByRole('navigation', { name: 'NavRail.label' });
 
@@ -62,10 +79,56 @@ describe('NavRail', () => {
     expect(screen.getByRole('link', { name: 'NavRail.place.decks' })).not.toHaveAttribute('aria-current');
   });
 
-  it('marks no place on a staff page', () => {
-    renderRail(RouteEnum.REPORT_QUEUE);
+  it('shows no Staff place to a regular user or a judge', () => {
+    renderRail(RouteEnum.SERVER, stateFor(REGISTERED | Level.IsJudge, '3.1.0 ()'));
 
-    expect(within(places()).queryByRole('link', { current: 'page' })).not.toBeInTheDocument();
+    expect(staffLink()).not.toBeInTheDocument();
+  });
+
+  it('puts Staff before Settings for a moderator, opening the first tool the server serves', () => {
+    renderRail(RouteEnum.SERVER, stateFor(MODERATOR, '3.1.0 ()'));
+
+    expect(within(places()).getAllByRole('link').map((link) => link.getAttribute('href'))).toEqual([
+      RouteEnum.SERVER, RouteEnum.DECKS, RouteEnum.REPLAYS, RouteEnum.PEOPLE, RouteEnum.REPORT_QUEUE, RouteEnum.SETTINGS,
+    ]);
+  });
+
+  it('opens Moderation from Staff on a 3.0 server, where the report queue does not exist', () => {
+    renderRail(RouteEnum.SERVER, stateFor(MODERATOR, '3.0.0 ()'));
+
+    fireEvent.click(staffLink()!);
+
+    expect(screen.getByTestId('location')).toHaveTextContent(RouteEnum.MODERATION);
+  });
+
+  it('gives a developer Staff on a server with the developer role', () => {
+    renderRail(RouteEnum.SERVER, stateFor(REGISTERED | Level.IsDeveloper, '3.1.0 ()'));
+
+    expect(staffLink()).toHaveAttribute('href', RouteEnum.LOGS);
+  });
+
+  it.each([RouteEnum.REPORT_QUEUE, RouteEnum.MODERATION, RouteEnum.LOGS, RouteEnum.ADMINISTRATION, RouteEnum.CARD_ART_RULES])(
+    'lights Staff on %s',
+    (route) => {
+      renderRail(route, stateFor(MODERATOR, '3.1.0 ()'));
+
+      expect(staffLink()).toHaveAttribute('aria-current', 'page');
+    },
+  );
+
+  it('adds and removes Staff when the signed-in user level changes, without a reload', () => {
+    const { store } = renderRail(RouteEnum.SERVER, stateFor(REGISTERED, '3.0.0 ()'));
+    expect(staffLink()).not.toBeInTheDocument();
+
+    act(() => {
+      store.dispatch(server.Actions.updateUser({ user: { userLevel: MODERATOR } }));
+    });
+    expect(staffLink()).toBeInTheDocument();
+
+    act(() => {
+      store.dispatch(server.Actions.updateUser({ user: { userLevel: REGISTERED } }));
+    });
+    expect(staffLink()).not.toBeInTheDocument();
   });
 
   it('navigates from a place', () => {

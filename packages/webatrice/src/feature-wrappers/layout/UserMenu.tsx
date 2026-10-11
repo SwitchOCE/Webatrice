@@ -9,15 +9,17 @@ import {
 } from '@app/components';
 import type { RouteEnum } from '@app/types';
 
+import type { StaffToolState } from '../staff/staffTools';
 import {
-  ACCOUNT_ROLE_KEYS, accountRole, visibleUserMenuEntries, type CapabilityCheck, type UserMenuDialog, type UserMenuEntry,
-  type UserMenuSection,
+  ACCOUNT_ROLE_KEYS, accountRole, STAFF_MENU_LABEL_KEYS, visibleUserMenuEntries, type CapabilityCheck, type UserMenuDialog,
+  type UserMenuEntry, type UserMenuSection,
 } from './userMenuEntries';
 
 export interface UserMenuProps {
   userName: string | null;
   userLevel: number;
   avatarUrl?: string | null;
+  staffTools?: readonly StaffToolState[];
   serverName?: string | null;
   snapGridVisible: boolean;
   onToggleSnapGrid: () => void;
@@ -42,6 +44,7 @@ export default function UserMenu({
   userName,
   userLevel,
   avatarUrl,
+  staffTools = [],
   serverName,
   snapGridVisible,
   onToggleSnapGrid,
@@ -52,17 +55,8 @@ export default function UserMenu({
   onSignOut,
 }: UserMenuProps) {
   const { t } = useTranslation();
-  const cardArt = useAppSelector((state) => server.Selectors.supports(state, ServerCapability.CARD_ART));
-  const moderation = useAppSelector((state) => server.Selectors.supports(state, ServerCapability.MODERATION_TOOLS));
-  const developer = useAppSelector((state) => server.Selectors.supports(state, ServerCapability.DEVELOPER_ROLE));
   const reports = useAppSelector((state) => server.Selectors.supports(state, ServerCapability.REPORTS));
-  const capabilities: Partial<Record<ServerCapability, boolean>> = {
-    [ServerCapability.CARD_ART]: cardArt,
-    [ServerCapability.MODERATION_TOOLS]: moderation,
-    [ServerCapability.DEVELOPER_ROLE]: developer,
-    [ServerCapability.REPORTS]: reports,
-  };
-  const supports: CapabilityCheck = (capability) => capabilities[capability] ?? false;
+  const supports: CapabilityCheck = (capability) => capability === ServerCapability.REPORTS && reports;
   const [anchor, setAnchor] = useState<MenuAnchor | null>(null);
   const triggerRef = useRef<HTMLButtonElement>(null);
   const close = useCallback(() => setAnchor(null), []);
@@ -79,7 +73,7 @@ export default function UserMenu({
   const identityId = useId();
   const entries = visibleUserMenuEntries(userLevel, supports);
   const section = (key: UserMenuSection) => entries.filter((entry) => entry.section === key);
-  const [account, tools, staff] = (['account', 'tools', 'staff'] as const).map(section);
+  const [account, tools] = (['account', 'tools'] as const).map(section);
 
   const renderEntry = (entry: UserMenuEntry) => (
     <MenuItem
@@ -95,6 +89,21 @@ export default function UserMenu({
       }}
     >
       {t(entry.label)}
+    </MenuItem>
+  );
+
+  const renderStaffTool = ({ tool, available }: StaffToolState) => (
+    <MenuItem
+      key={tool.id}
+      icon={<tool.icon size={15} aria-hidden className="shrink-0 text-text-muted" />}
+      disabled={!available}
+      disabledReason={t('Staff.needsServer')}
+      onSelect={() => {
+        close();
+        onNavigate(tool.route);
+      }}
+    >
+      {t(STAFF_MENU_LABEL_KEYS[tool.id])}
     </MenuItem>
   );
 
@@ -165,11 +174,11 @@ export default function UserMenu({
           </MenuGroup>
           <MenuSeparator />
           {tools.map(renderEntry)}
-          {staff.length > 0 && (
+          {staffTools.length > 0 && (
             <MenuGroup label={t('UserMenu.staff')}>
               <div className="my-1 rounded-ui-sm border border-dashed border-border-strong px-1 pb-1">
                 <GroupHeading>{t('UserMenu.staff')}</GroupHeading>
-                <div className="grid grid-cols-2">{staff.map(renderEntry)}</div>
+                <div className="grid grid-cols-2">{staffTools.map(renderStaffTool)}</div>
               </div>
             </MenuGroup>
           )}

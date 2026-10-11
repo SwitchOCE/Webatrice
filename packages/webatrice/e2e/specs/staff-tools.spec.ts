@@ -12,9 +12,9 @@ import { navRailLink } from '../pages';
 // (desktop TabModeration, Cockatrice 3.1 only). The seeded staff accounts come
 // from docker/servatrice/judge-seed.sql.
 //
-// Moderation needs a 3.1 server. Run against Cockatrice master with
+// Alts and sessions need a 3.1 server. Run against Cockatrice master with
 //   SERVATRICE_IMAGE=webatrice-local/servatrice:master-add65ca npm run test:e2e
-// Against the pinned 3.0 release the spec checks that Moderation stays hidden.
+// Against the pinned 3.0 release the specs check the 3.0 parts of the staff tools.
 // global-setup decodes Event_ServerIdentification, independently of the UI and image tag.
 const ADVERTISED_VERSION = process.env.SERVATRICE_ADVERTISED_VERSION;
 
@@ -45,8 +45,49 @@ test('an admin publishes a new server message from Administration', async ({ pag
   await expect(page.getByText(message)).toBeVisible({ timeout: 15_000 });
 });
 
-test('a moderator looks up the alts of an account from Moderation', async ({ newContext, page }) => {
+async function speaksModerationTools(): Promise<boolean> {
+  expect(ADVERTISED_VERSION, 'global setup must capture the advertised server version').toBeTruthy();
+  const { server, ServerCapability } = await import('@cockatrice/datatrice');
+  return server.serverSupports(ADVERTISED_VERSION ?? null, ServerCapability.MODERATION_TOOLS);
+}
+
+test('staff reach every tool the server serves from the Staff place in the rail', async ({ page }) => {
+  test.setTimeout(90_000);
+  const v31 = await speaksModerationTools();
+  await reachRoomsAs(page, E2E_MODERATOR);
+
+  await navRailLink(page, /^staff/i).click();
+  await expect(navRailLink(page, /^staff/i)).toHaveAttribute('aria-current', 'page');
+
+  const tools = page.getByRole('navigation', { name: 'Staff tools' });
+  const served = v31
+    ? ['Reports', 'Moderation', 'Logs', 'Administration', 'Card art rules']
+    : ['Moderation', 'Logs', 'Administration'];
+  await expect(tools.getByRole('link')).toHaveText(served);
+  await expect(tools.getByText('Needs server 3.1')).toHaveCount(v31 ? 0 : 2);
+  await expect(tools.getByRole('link').first()).toHaveAttribute('aria-current', 'page');
+
+  for (const name of served) {
+    const link = tools.getByRole('link', { name, exact: true });
+    await link.click();
+    await expect(link).toHaveAttribute('aria-current', 'page');
+    await expect(page.getByRole('main').getByRole('heading', { level: 1 })).toBeVisible();
+  }
+});
+
+test('a regular user has no Staff place and no staff tools', async ({ page }) => {
+  test.setTimeout(60_000);
+  const { user } = await registerAndReachRooms(page);
+
+  await expect(navRailLink(page, /^settings$/i)).toBeVisible();
+  await expect(navRailLink(page, /^staff/i)).toHaveCount(0);
+  await openUserMenu(page, user.username);
+  await expect(page.getByRole('group', { name: 'Staff tools' })).toHaveCount(0);
+});
+
+test('a moderator investigates an account from Moderation', async ({ newContext, page }) => {
   test.setTimeout(120_000);
+  const v31 = await speaksModerationTools();
 
   const suspectContext = await newContext();
   const suspectPage = await suspectContext.newPage();
@@ -54,25 +95,24 @@ test('a moderator looks up the alts of an account from Moderation', async ({ new
 
   await reachRoomsAs(page, E2E_MODERATOR);
   await openUserMenu(page, E2E_MODERATOR.username);
-
-  expect(ADVERTISED_VERSION, 'global setup must capture the advertised server version').toBeTruthy();
-  const { server, ServerCapability } = await import('@cockatrice/datatrice');
-  if (!server.serverSupports(ADVERTISED_VERSION ?? null, ServerCapability.MODERATION_TOOLS)) {
-    test.info().annotations.push({
-      type: 'unsupported',
-      description: `Moderation investigation coverage unavailable on advertised server ${ADVERTISED_VERSION}`,
-    });
-    await expect(page.getByRole('menuitem', { name: 'Administration', exact: true })).toBeVisible();
-    await expect(page.getByRole('menuitem', { name: 'Moderation', exact: true })).toHaveCount(0);
-    return;
-  }
-
   await page.getByRole('menuitem', { name: 'Moderation', exact: true }).click();
   await page.getByRole('searchbox', { name: 'User name' }).fill(suspect.username);
   await page.getByRole('button', { name: 'Investigate' }).click();
 
+  const info = page.getByRole('region', { name: 'User Info' });
+  if (!v31) {
+    test.info().annotations.push({
+      type: 'unsupported',
+      description: `Alts and sessions need 3.1; advertised server ${ADVERTISED_VERSION} gets the 3.0 lookup`,
+    });
+    await expect(info.getByText('Registered user')).toBeVisible({ timeout: 15_000 });
+    await expect(page.getByRole('region', { name: 'Alts' }).getByText('Needs server 3.1.')).toBeVisible();
+    await page.getByRole('button', { name: 'Warn history' }).click();
+    await expect(page.getByRole('dialog', { name: 'Warning History' })).toBeVisible({ timeout: 15_000 });
+    return;
+  }
+
   const alts = page.getByRole('region', { name: 'Alts' });
   await expect(alts.getByRole('cell', { name: suspect.username, exact: true })).toBeVisible({ timeout: 15_000 });
-  const info = page.getByRole('region', { name: 'User Info' });
   await expect(info.getByText('active', { exact: true })).toBeVisible();
 });

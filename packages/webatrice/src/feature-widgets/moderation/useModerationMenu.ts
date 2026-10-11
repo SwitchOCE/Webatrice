@@ -33,13 +33,12 @@ export function useModerationMenu(userName: string, userLevel?: number): Moderat
     server.Selectors.supports(state, ServerCapability.DEVELOPER_ROLE),
   );
   const adminLocked = useAdminLocked();
-  const canInvestigate = useAppSelector((state) => server.Selectors.supports(state, ServerCapability.MODERATION_TOOLS));
 
   const groups = useMemo(
     () => (api
-      ? buildModerationMenu({ localUserLevel, targetUserLevel, isSelf, supportsDeveloperRole, adminLocked, canInvestigate })
+      ? buildModerationMenu({ localUserLevel, targetUserLevel, isSelf, supportsDeveloperRole, adminLocked, canInvestigate: true })
       : EMPTY_GROUPS),
-    [api, localUserLevel, targetUserLevel, isSelf, supportsDeveloperRole, adminLocked, canInvestigate],
+    [api, localUserLevel, targetUserLevel, isSelf, supportsDeveloperRole, adminLocked],
   );
   const open = useMemo(
     () => (action: ModerationAction) => api?.open(action, userName),

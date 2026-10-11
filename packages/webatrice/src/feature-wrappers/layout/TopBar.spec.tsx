@@ -307,10 +307,10 @@ describe('TopBar report entries (#7091)', () => {
     expect(screen.getByTestId('location')).toHaveTextContent(RouteEnum.REPORT_QUEUE);
   });
 
-  it('shows neither on a 3.0 server', () => {
+  it('hides My Reports and disables the Report Queue on a 3.0 server', () => {
     renderAs('3.0.0 ()', Level.IsUser | Level.IsRegistered | Level.IsModerator);
     expect(screen.queryByRole('menuitem', { name: 'UserMenu.myReports' })).not.toBeInTheDocument();
-    expect(screen.queryByRole('menuitem', { name: 'UserMenu.reportQueue' })).not.toBeInTheDocument();
+    expect(screen.getByRole('menuitem', { name: 'UserMenu.reportQueue' })).toHaveAttribute('aria-disabled', 'true');
   });
 });
 

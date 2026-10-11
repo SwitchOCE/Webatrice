@@ -2,7 +2,7 @@ import { useEffect, useState, type FormEvent, type ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
 import { ImageOff, KeyRound, RefreshCw, Search } from 'lucide-react';
 
-import { Button, CapabilityGuard, IconButton, ModGuard, TextInput } from '@app/components';
+import { Button, IconButton, ModGuard, TextInput } from '@app/components';
 import { AlertDialog, ConfirmDialog } from '@app/dialogs';
 import {
   sectionLabelClass,
@@ -12,11 +12,13 @@ import {
   StaffTable,
   UserSanctionButtons,
 } from '@app/feature-wrappers/staff';
-import { ServerCapability } from '@cockatrice/datatrice';
+
+import BasicUserInfoPanel from './BasicUserInfoPanel';
 
 import { useModerationColumns } from './moderationColumns';
 import TemporaryPasswordDialog from './TemporaryPasswordDialog';
 import UserInfoPanel from './UserInfoPanel';
+import UserRecordButtons from './UserRecordButtons';
 import { useModeration } from './useModeration';
 
 function Section({ title, count, children, actions }: {
@@ -40,7 +42,7 @@ function Section({ title, count, children, actions }: {
 const ModerationContent = () => {
   const { t } = useTranslation();
   const moderation = useModeration();
-  const { currentUser, investigation, pending } = moderation;
+  const { currentUser, investigation, pending, parts } = moderation;
   const columns = useModerationColumns();
   const [search, setSearch] = useState('');
 
@@ -56,6 +58,9 @@ const ModerationContent = () => {
   };
 
   const lookupStatus = (loading: boolean, rows: readonly unknown[] | undefined, emptyText: string) => {
+    if (!parts.investigation) {
+      return t('ModerationPage.needsServer');
+    }
     if (!currentUser) {
       return t('ModerationPage.value.noUser');
     }
@@ -65,6 +70,10 @@ const ModerationContent = () => {
     return rows && rows.length > 0 ? undefined : emptyText;
   };
 
+  const staffLoginsStatus = !parts.staffLogins
+    ? t('ModerationPage.needsServer')
+    : (moderation.staffLogins?.length ? undefined : t('ModerationPage.staff.empty'));
+
   const confirmText = moderation.confirm === 'resetPassword'
     ? { title: t('ModerationPage.confirm.resetTitle'), message: t('ModerationPage.confirm.reset', { userName: currentUser }) }
     : { title: t('ModerationPage.confirm.avatarTitle'), message: t('ModerationPage.confirm.avatar', { userName: currentUser }) };
@@ -73,7 +82,7 @@ const ModerationContent = () => {
     <>
       <StaffHeader
         title={t('ModerationPage.title')}
-        subtitle={t('ModerationPage.subtitle')}
+        subtitle={parts.investigation ? t('ModerationPage.subtitle') : t('ModerationPage.subtitleBasic')}
         actions={(
           <form role="search" className="flex items-center gap-2" onSubmit={submit}>
             <TextInput
@@ -91,7 +100,10 @@ const ModerationContent = () => {
       />
       <div className="flex min-h-0 flex-1 border-t border-border-subtle">
         <div className="flex min-w-0 flex-1 flex-col overflow-y-auto">
-          <Section title={t('ModerationPage.alts.title')} count={currentUser ? investigation.alts?.length : undefined}>
+          <Section
+            title={t('ModerationPage.alts.title')}
+            count={currentUser && parts.investigation ? investigation.alts?.length : undefined}
+          >
             <StaffTable
               label={t('ModerationPage.alts.title')}
               columns={columns.alts}
@@ -101,7 +113,10 @@ const ModerationContent = () => {
               status={lookupStatus(pending.alts, investigation.alts, t('ModerationPage.alts.empty'))}
             />
           </Section>
-          <Section title={t('ModerationPage.sessions.title')} count={currentUser ? investigation.sessions?.length : undefined}>
+          <Section
+            title={t('ModerationPage.sessions.title')}
+            count={currentUser && parts.investigation ? investigation.sessions?.length : undefined}
+          >
             <StaffTable
               label={t('ModerationPage.sessions.title')}
               columns={columns.sessions}
@@ -112,8 +127,8 @@ const ModerationContent = () => {
           </Section>
           <Section
             title={t('ModerationPage.staff.title')}
-            count={moderation.staffLogins?.length}
-            actions={(
+            count={parts.staffLogins ? moderation.staffLogins?.length : undefined}
+            actions={parts.staffLogins && (
               <IconButton size="sm" label={t('ModerationPage.staff.refresh')} onClick={moderation.refreshStaffLogins}>
                 <RefreshCw size={13} aria-hidden />
               </IconButton>
@@ -124,7 +139,7 @@ const ModerationContent = () => {
               columns={columns.staff}
               rows={moderation.staffLogins ?? []}
               rowKey={(l) => l.userName}
-              status={moderation.staffLogins?.length ? undefined : t('ModerationPage.staff.empty')}
+              status={staffLoginsStatus}
             />
           </Section>
         </div>
@@ -148,24 +163,36 @@ const ModerationContent = () => {
                   {t('ModerationPage.action.resetPassword')}
                 </Button>
               )}
-              <Button
-                size="sm"
-                icon={<ImageOff size={13} aria-hidden />}
-                disabled={!currentUser}
-                onClick={() => moderation.requestConfirm('removeAvatar')}
-              >
-                {t('ModerationPage.action.removeAvatar')}
-              </Button>
+              {moderation.canRemoveAvatar && (
+                <Button
+                  size="sm"
+                  icon={<ImageOff size={13} aria-hidden />}
+                  disabled={!currentUser}
+                  onClick={() => moderation.requestConfirm('removeAvatar')}
+                >
+                  {t('ModerationPage.action.removeAvatar')}
+                </Button>
+              )}
             </>
           )}
         >
-          <UserInfoPanel
-            userName={currentUser}
-            info={investigation.info}
-            loading={pending.info}
-            error={moderation.infoError}
-          />
+          {parts.investigation ? (
+            <UserInfoPanel
+              userName={currentUser}
+              info={investigation.info}
+              loading={pending.info}
+              error={moderation.infoError}
+            />
+          ) : (
+            <BasicUserInfoPanel
+              userName={currentUser}
+              info={moderation.userInfo}
+              loading={pending.info}
+              error={moderation.infoError}
+            />
+          )}
           {currentUser && <UserSanctionButtons userName={currentUser} />}
+          {currentUser && <UserRecordButtons userName={currentUser} />}
         </StaffDrawer>
       </div>
 
@@ -196,9 +223,7 @@ const ModerationContent = () => {
 const Moderation = () => (
   <StaffConsole>
     <ModGuard>
-      <CapabilityGuard capability={ServerCapability.MODERATION_TOOLS}>
-        <ModerationContent />
-      </CapabilityGuard>
+      <ModerationContent />
     </ModGuard>
   </StaffConsole>
 );

@@ -13,9 +13,11 @@ import {
 } from '@app/hooks';
 import { server, type UserInvestigation } from '@cockatrice/datatrice';
 import { useWebClient } from '@cockatrice/datatrice/react';
-import type { Response_ReportUserInfo, ServerInfo_ModeratorLogin } from '@cockatrice/sockatrice/generated';
+import type { Response_ReportUserInfo, ServerInfo_ModeratorLogin, ServerInfo_User } from '@cockatrice/sockatrice/generated';
 import type { WebsocketTypes } from '@cockatrice/sockatrice/types';
 import { useAppDispatch, useAppSelector } from '@app/store';
+
+import { useModerationParts, type ModerationParts } from './moderationParts';
 
 export type InvestigationPart = 'info' | 'alts' | 'sessions';
 
@@ -23,6 +25,7 @@ type PartFlags = Record<InvestigationPart, boolean>;
 
 const NONE: PartFlags = { info: false, alts: false, sessions: false };
 const ALL: PartFlags = { info: true, alts: true, sessions: true };
+const INFO_ONLY: PartFlags = { info: true, alts: false, sessions: false };
 
 export type ModerationConfirm = 'resetPassword' | 'removeAvatar';
 
@@ -32,15 +35,18 @@ export interface TemporaryPassword {
 }
 
 export interface Moderation {
+  parts: ModerationParts;
   currentUser: string;
   investigate: (userName: string) => void;
   investigation: UserInvestigation;
+  userInfo: ServerInfo_User | undefined;
   pending: PartFlags;
   failed: PartFlags;
   infoError: string | null;
   staffLogins: ServerInfo_ModeratorLogin[] | null;
   refreshStaffLogins: () => void;
   canResetPassword: boolean;
+  canRemoveAvatar: boolean;
   confirm: ModerationConfirm | null;
   requestConfirm: (action: ModerationConfirm) => void;
   cancelConfirm: () => void;
@@ -72,6 +78,7 @@ export function useModeration(): Moderation {
   const requestedUser = simplified(searchParams.get(INVESTIGATE_USER_PARAM) ?? '');
 
   const { isAdmin } = useUserCapabilities();
+  const parts = useModerationParts();
   const storedLogins = useAppSelector(server.Selectors.getModeratorLastLogins);
 
   const [currentUser, setCurrentUser] = useState('');
@@ -86,6 +93,7 @@ export function useModeration(): Moderation {
   const pendingAvatarRemovals = useRef(new Set<string>());
 
   const stored = useAppSelector((state) => server.Selectors.getUserInvestigation(state, currentUser));
+  const storedUserInfo = useAppSelector((state) => server.Selectors.getUserInfoByName(state, currentUser));
 
   const settle = useCallback((part: InvestigationPart, userName: string, ok: boolean) => {
     if (userName !== currentUserRef.current) {
@@ -100,6 +108,17 @@ export function useModeration(): Moderation {
   useReduxEffect((action: ReduxEffectAction<{ info: Response_ReportUserInfo }>) => {
     settle('info', action.payload.info.userName, true);
   }, server.Types.USER_INFO_REPORT, [settle]);
+  useReduxEffect((action: ReduxEffectAction<{ userInfo: ServerInfo_User }>) => {
+    if (!parts.investigation) {
+      settle('info', action.payload.userInfo.name, true);
+    }
+  }, server.Types.GET_USER_INFO, [settle, parts.investigation]);
+  useReduxEffect((action: ReduxEffectAction<{ userName: string }>) => {
+    if (!parts.investigation && action.payload.userName === currentUserRef.current) {
+      setInfoError(t('ModerationPage.info.loadError'));
+      settle('info', action.payload.userName, false);
+    }
+  }, server.Types.GET_USER_INFO_FAILED, [settle, parts.investigation, t]);
   useReduxEffect((action: ReduxEffectAction<{ userName: string }>) => {
     settle('alts', action.payload.userName, true);
   }, server.Types.USER_ALTS, [settle]);
@@ -141,19 +160,27 @@ export function useModeration(): Moderation {
     currentUserRef.current = userName;
     dispatch(server.Actions.userInvestigationStarted({ userName }));
     setCurrentUser(userName);
-    setPending(ALL);
     setFailed(NONE);
     setInfoError(null);
+    if (!parts.investigation) {
+      setPending(INFO_ONLY);
+      webClient.request.session.getUserInfo(userName);
+      return;
+    }
+    setPending(ALL);
     const moderator = webClient.request.moderator;
     moderator.reportUserInfo(userName);
     moderator.getUserSessions(userName);
     moderator.getUserAlts(userName);
-  }, [dispatch, webClient]);
+  }, [dispatch, webClient, parts.investigation]);
 
   const refreshStaffLogins = useCallback(() => {
+    if (!parts.staffLogins) {
+      return;
+    }
     setStaffFailed(false);
     webClient.request.moderator.getModeratorLastLogins();
-  }, [webClient]);
+  }, [webClient, parts.staffLogins]);
 
   useEffect(() => {
     refreshStaffLogins();
@@ -206,15 +233,18 @@ export function useModeration(): Moderation {
   };
 
   return {
+    parts,
     currentUser,
     investigate,
     investigation,
+    userInfo: !parts.investigation && shown('info') ? storedUserInfo : undefined,
     pending,
     failed,
     infoError,
     staffLogins: staffFailed ? null : storedLogins,
     refreshStaffLogins,
-    canResetPassword: isAdmin,
+    canResetPassword: isAdmin && parts.resetPassword,
+    canRemoveAvatar: parts.removeAvatar,
     confirm,
     requestConfirm: setConfirm,
     cancelConfirm: () => setConfirm(null),

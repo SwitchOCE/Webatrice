@@ -3912,11 +3912,6 @@
       "count": 1
     },
     {
-      "file": "src/feature-wrappers/staff/StaffConsole.tsx",
-      "prefix": "Staff.tool.",
-      "count": 1
-    },
-    {
       "file": "src/features/account/dialogs/ChangePasswordDialog/ChangePasswordDialog.tsx",
       "expression": "label",
       "count": 1
