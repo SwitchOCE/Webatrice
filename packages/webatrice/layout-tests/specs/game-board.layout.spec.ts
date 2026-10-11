@@ -1,7 +1,7 @@
-import { expect, test } from '@playwright/test';
+import { expect, test, type Page } from '@playwright/test';
 
-import { boardReport, dockReport, overlaps } from '../fixtures/geometry';
-import { openChats, openHarness, settle, showCardInPreview } from '../fixtures/harness';
+import { boardReport, dockReport, dockViolations } from '../fixtures/geometry';
+import { closeChats, openChats, openHarness, settle, showCardInPreview } from '../fixtures/harness';
 
 const VIEWPORTS = [
   { width: 1280, height: 720 },
@@ -37,37 +37,50 @@ for (const players of PLAYER_COUNTS) {
   }
 }
 
+const SIDEBAR_STATES = ['default', 'widest', 'collapsed'] as const;
+
+async function setSidebar(page: Page, state: (typeof SIDEBAR_STATES)[number]): Promise<void> {
+  if (state === 'widest') {
+    await page.getByRole('separator', { name: 'Resize sidebar' }).focus();
+    await page.keyboard.press('Home');
+  } else if (state === 'collapsed') {
+    await page.getByRole('button', { name: 'Collapse the dock' }).click();
+  }
+  await settle(page);
+}
+
 for (const as of SEATS) {
-  test(`as ${as}: the chat dock sits on the bottom edge beside the game sidebar`, async ({ page }) => {
-    await page.setViewportSize(VIEWPORTS[0]);
-    await openHarness(page, { players: 4, as, previewMode: 'both' });
-    await openChats(page, 1);
-    const failures: string[] = [];
-    for (const preview of PREVIEW) {
-      if (preview !== 'empty') {
-        await showCardInPreview(page);
+  for (const sidebar of SIDEBAR_STATES) {
+    const title = `as ${as}, sidebar ${sidebar}: the chat dock sits on the bottom edge beside the sidebar without hiding tray controls`;
+    test(title, async ({ page }) => {
+      await page.setViewportSize(VIEWPORTS[0]);
+      await openHarness(page, { players: 4, as, previewMode: 'both' });
+      await setSidebar(page, sidebar);
+      const failures: string[] = [];
+      for (const chats of [{ open: 1, minimised: 0 }, { open: 1, minimised: 1 }, { open: 3, minimised: 1 }]) {
+        await openChats(page, chats.open, chats.minimised);
+        for (const preview of PREVIEW) {
+          if (preview !== 'empty') {
+            await showCardInPreview(page);
+          }
+          for (const viewport of VIEWPORTS) {
+            await page.setViewportSize(viewport);
+            await settle(page);
+            const report = await dockReport(page);
+            const where = `${viewport.width}x${viewport.height}, ${chats.open}+${chats.minimised} chats, preview ${preview}`;
+            if (!report.items.some((item) => item.kind === 'window')) {
+              failures.push(`${where}: no chat window`);
+            }
+            if (!report.sidebar) {
+              failures.push(`${where}: no game sidebar`);
+            }
+            failures.push(...dockViolations(report).map((v) => `${where}: ${v}`));
+          }
+        }
+        await page.setViewportSize(VIEWPORTS[0]);
+        await closeChats(page);
       }
-      for (const viewport of VIEWPORTS) {
-        await page.setViewportSize(viewport);
-        await settle(page);
-        const report = await dockReport(page);
-        const where = `${viewport.width}x${viewport.height}, preview ${preview}`;
-        const windows = report.items.filter((item) => item.kind === 'window');
-        if (windows.length !== 1) {
-          failures.push(`${where}: expected one chat window, found ${windows.length}`);
-          continue;
-        }
-        const [chat] = windows;
-        if (Math.abs(chat.bottom - viewport.height) > 1.5) {
-          failures.push(`${where}: chat window bottom ${Math.round(chat.bottom)} is not on the viewport bottom ${viewport.height}`);
-        }
-        if (!report.gameInput) {
-          failures.push(`${where}: no game chat input`);
-        } else if (overlaps(chat, report.gameInput)) {
-          failures.push(`${where}: chat window covers the game chat input`);
-        }
-      }
-    }
-    expect(failures).toEqual([]);
-  });
+      expect(failures).toEqual([]);
+    });
+  }
 }

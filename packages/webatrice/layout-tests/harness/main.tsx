@@ -22,6 +22,7 @@ const players = Number(query.get('players') ?? 4);
 const spectator = query.get('as') === 'spectator';
 const chatPeers = ['mainman879', 'Bobby4261789', 'Jsiggy54', 'GolbogDoomslay'];
 
+Object.defineProperty(window, 'onbeforeunload', { configurable: true, get: () => null, set: () => undefined });
 window.localStorage.setItem('webatrice.lastRoute', query.get('route') === 'home' ? '/' : '/game/1');
 
 const game = buildLayoutGame({ players, spectator });
@@ -43,15 +44,16 @@ const keepSession = () => (next: (a: unknown) => unknown) => (a: { type?: string
 
 declare global {
   interface Window {
-    layoutHarness: { openChats: (open: number, minimised?: number) => void };
+    layoutHarness: { openChats: (open: number, minimised?: number) => void; closeChats: () => void };
   }
 }
 window.layoutHarness = {
   openChats: (open, minimised = 0) => {
     const names = chatPeers.slice(0, open + minimised);
-    names.forEach((name) => dispatchChatDock({ type: 'open', name, max: currentMaxExpandedChats() }));
+    names.forEach((name) => dispatchChatDock({ type: 'open', name, max: currentMaxExpandedChats(name) }));
     names.slice(0, minimised).forEach((name) => dispatchChatDock({ type: 'minimise', name }));
   },
+  closeChats: () => chatPeers.forEach((name) => dispatchChatDock({ type: 'close', name })),
 };
 
 createRoot(document.getElementById('root')!).render(

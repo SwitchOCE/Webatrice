@@ -64,6 +64,11 @@ export async function openChats(page: Page, open: number, minimised = 0): Promis
   await settle(page);
 }
 
+export async function closeChats(page: Page): Promise<void> {
+  await page.evaluate(() => window.layoutHarness.closeChats());
+  await settle(page);
+}
+
 export async function showCardInPreview(page: Page): Promise<void> {
   const card = page.locator('[data-battlefield-owner] [data-card]').first();
   await card.hover();
@@ -75,6 +80,6 @@ export async function showCardInPreview(page: Page): Promise<void> {
 
 declare global {
   interface Window {
-    layoutHarness: { openChats: (open: number, minimised?: number) => void };
+    layoutHarness: { openChats: (open: number, minimised?: number) => void; closeChats: () => void };
   }
 }

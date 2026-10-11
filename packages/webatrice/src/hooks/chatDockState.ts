@@ -21,12 +21,24 @@ export type ChatDockAction =
 export const EMPTY_CHAT_DOCK: ChatDockState = { chats: [], focus: null };
 
 export const MAX_EXPANDED_CHATS = 3;
-const WINDOW_SLOT_PX = 308;
-const RESERVED_PX = 480;
+export const CHAT_WINDOW_WIDTH_PX = 300;
+export const CHAT_CHIP_WIDTH_PX = 160;
+export const CHAT_DOCK_GAP_PX = 8;
+export const PAGE_KEEP_PX = 468;
+export const CHAT_DOCK_MARGIN_PX = 12;
 
-export function maxExpandedFor(viewportWidth: number): number {
-  const fit = Math.floor((viewportWidth - RESERVED_PX) / WINDOW_SLOT_PX);
-  return Math.max(1, Math.min(MAX_EXPANDED_CHATS, fit));
+export function dockRowWidth(windows: number, chips: boolean): number {
+  const items = windows + (chips ? 1 : 0);
+  return windows * CHAT_WINDOW_WIDTH_PX + (chips ? CHAT_CHIP_WIDTH_PX : 0) + Math.max(0, items - 1) * CHAT_DOCK_GAP_PX;
+}
+
+export function dockCapacity(roomPx: number, chats: number): number {
+  for (let windows = Math.min(MAX_EXPANDED_CHATS, Math.max(chats, 1)); windows > 0; windows -= 1) {
+    if (dockRowWidth(windows, chats > windows) <= roomPx) {
+      return windows;
+    }
+  }
+  return 1;
 }
 
 function collapseOverflow(chats: DockedChat[], max: number): DockedChat[] {

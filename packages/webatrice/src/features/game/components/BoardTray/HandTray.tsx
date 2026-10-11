@@ -136,6 +136,7 @@ export default function HandTray() {
       <section
         aria-label={t('BoardTray.yourHand')}
         className="relative isolate flex min-h-0 min-w-0 flex-1 flex-col rounded-ui"
+        data-tray-flex
       >
         <ZoneBackground zone="hand" />
         <header className="flex h-6 shrink-0 items-center gap-2 px-1">
