@@ -1,6 +1,6 @@
 import { useId } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Gamepad2, MessageSquare, UserRoundMinus, Volume2 } from 'lucide-react';
+import { Gamepad2, MessageSquare, UserRoundMinus, UserRoundPlus, Volume2 } from 'lucide-react';
 
 import { Avatar, IconButton, UserBadges } from '@app/components';
 import { useUserGames } from '@app/feature-widgets/user-games';
@@ -8,7 +8,7 @@ import { CountryFlag } from '@app/feature-widgets/chat-dock';
 import { cx } from '@app/utils';
 
 import type { ConversationSummary } from './conversationSummaries';
-import type { PersonRow } from './usePeople';
+import type { PersonRow } from './peopleGroups';
 
 const UNREAD_BADGE = cx(
   'inline-flex h-[18px] min-w-[18px] items-center justify-center',
@@ -88,12 +88,14 @@ export function BuddyRow({
   person,
   canEdit,
   onMessage,
+  onAdd,
   onRemove,
 }: {
   person: PersonRow;
   canEdit: boolean;
   onMessage: () => void;
-  onRemove: () => void;
+  onAdd?: () => void;
+  onRemove?: () => void;
 }) {
   const { t } = useTranslation();
   const userGames = useUserGames();
@@ -119,9 +121,16 @@ export function BuddyRow({
           <Gamepad2 size={14} />
         </IconButton>
       )}
-      <IconButton size="sm" label={t('People.buddy.remove', { name })} disabled={!canEdit} onClick={onRemove}>
-        <UserRoundMinus size={14} />
-      </IconButton>
+      {onAdd && (
+        <IconButton size="sm" label={t('People.buddy.add', { name })} disabled={!canEdit} onClick={onAdd}>
+          <UserRoundPlus size={14} />
+        </IconButton>
+      )}
+      {onRemove && (
+        <IconButton size="sm" label={t('People.buddy.remove', { name })} disabled={!canEdit} onClick={onRemove}>
+          <UserRoundMinus size={14} />
+        </IconButton>
+      )}
     </li>
   );
 }
