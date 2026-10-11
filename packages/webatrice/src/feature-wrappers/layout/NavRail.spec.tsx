@@ -2,19 +2,25 @@ import { fireEvent, screen, within } from '@testing-library/react';
 import { useLocation } from 'react-router-dom';
 
 import { connectedState, renderWithProviders } from '../../__test-utils__';
-import { RouteEnum } from '@app/types';
+import { PlayBadgeMode, PREFERENCE_DEFAULTS, RouteEnum } from '@app/types';
 
+import { settingsStore } from '../../hooks/useSettings';
 import NavRail from './NavRail';
 
-const unread = vi.hoisted(() => ({
-  counts: { rooms: {}, games: {}, chats: {}, notifications: 0, total: 0 } as {
-    rooms: Record<number, number>;
-    games: Record<number, number>;
-    chats: Record<string, number>;
-    notifications: number;
-    total: number;
-  },
-}));
+interface Counts {
+  rooms: Record<number, number>;
+  games: Record<number, number>;
+  chats: Record<string, number>;
+  mentions: { rooms: Record<number, number>; games: Record<number, number> };
+  notifications: number;
+  total: number;
+}
+
+const NOTHING_UNREAD: Counts = {
+  rooms: {}, games: {}, chats: {}, mentions: { rooms: {}, games: {} }, notifications: 0, total: 0,
+};
+
+const unread = vi.hoisted(() => ({ counts: null as unknown as Counts }));
 
 vi.mock('@app/hooks', async (importOriginal) => ({
   ...(await importOriginal<typeof import('@app/hooks')>()),
@@ -32,8 +38,13 @@ function renderRail(route: string = RouteEnum.SERVER) {
 const places = () => screen.getByRole('navigation', { name: 'NavRail.label' });
 
 describe('NavRail', () => {
+  beforeEach(() => {
+    unread.counts = NOTHING_UNREAD;
+  });
+
   afterEach(() => {
-    unread.counts = { rooms: {}, games: {}, chats: {}, notifications: 0, total: 0 };
+    vi.restoreAllMocks();
+    window.localStorage.clear();
   });
 
   it('links every place, in rail order', () => {
@@ -65,13 +76,49 @@ describe('NavRail', () => {
     expect(screen.getByTestId('location')).toHaveTextContent(RouteEnum.PEOPLE);
   });
 
-  it('badges Play with unread rooms and games and People with unread chats', () => {
-    unread.counts = { rooms: { 1: 2 }, games: { 3: 1 }, chats: { bob: 4 }, notifications: 0, total: 7 };
+  it('badges Play with mentions only and People with unread chats by default', () => {
+    unread.counts = {
+      ...NOTHING_UNREAD, rooms: { 1: 2 }, games: { 3: 5 }, chats: { bob: 4 }, mentions: { rooms: { 1: 1 }, games: {} },
+    };
+    renderRail();
+
+    expect(screen.getByRole('link', { name: /NavRail\.place\.play/ })).toHaveTextContent('1');
+    expect(screen.getByRole('link', { name: /NavRail\.place\.people/ })).toHaveTextContent('4');
+    expect(screen.getByRole('link', { name: 'NavRail.place.decks' })).not.toHaveTextContent(/\d/);
+  });
+
+  it('badges Play with all room and game activity when the setting asks for it', () => {
+    vi.spyOn(settingsStore, 'peek').mockReturnValue({ ...PREFERENCE_DEFAULTS, playBadge: PlayBadgeMode.All } as never);
+    unread.counts = { ...NOTHING_UNREAD, rooms: { 1: 2 }, games: { 3: 1 }, mentions: { rooms: { 1: 1 }, games: {} } };
     renderRail();
 
     expect(screen.getByRole('link', { name: /NavRail\.place\.play/ })).toHaveTextContent('3');
-    expect(screen.getByRole('link', { name: /NavRail\.place\.people/ })).toHaveTextContent('4');
-    expect(screen.getByRole('link', { name: 'NavRail.place.decks' })).not.toHaveTextContent(/\d/);
+  });
+
+  it('shows no Play badge for activity without mentions by default', () => {
+    unread.counts = { ...NOTHING_UNREAD, rooms: { 1: 9 }, games: { 3: 9 } };
+    renderRail();
+
+    expect(screen.getByRole('link', { name: 'NavRail.place.play' })).not.toHaveTextContent(/\d/);
+  });
+
+  it('hides itself to a strip with a show button, keeping focus on the toggle, and comes back', () => {
+    renderRail();
+    const toggle = screen.getByRole('button', { name: 'NavRail.toggle.hide' });
+    toggle.focus();
+
+    fireEvent.click(toggle);
+
+    expect(screen.queryByRole('navigation', { name: 'NavRail.label' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'testUser' })).not.toBeInTheDocument();
+    const show = screen.getByRole('button', { name: 'NavRail.toggle.show' });
+    expect(show).toHaveFocus();
+    expect(window.localStorage.getItem('webatrice.navRailHidden')).toBe('true');
+
+    fireEvent.click(show);
+
+    expect(places()).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'NavRail.toggle.hide' })).toHaveFocus();
   });
 
   it('shows no badge with nothing unread', () => {

@@ -3,7 +3,7 @@ import { useLocation } from 'react-router-dom';
 
 import { notificationStore, unreadChange, type CurrentView, type VisibilityChecks } from '@app/services';
 import type { RootState } from '@app/store';
-import { chatFilterVerdicts, isRoomMessageVisible, visiblePrivateMessages } from '@app/utils';
+import { chatFilterVerdicts, findChatAlert, isPrivilegedUser, isRoomMessageVisible, visiblePrivateMessages } from '@app/utils';
 
 import { viewedNow } from './chatVisibility';
 import { useActionFeed } from './useActionFeed';
@@ -28,6 +28,16 @@ const checks: VisibilityChecks = {
     }
     const conversation = { selfName, peer: state.server.users[peer], peerIsBuddy: Boolean(state.server.buddyList[peer]) };
     return visiblePrivateMessages(list, conversation, getPreferencesSnapshot(), chatFilterVerdicts).includes(entry);
+  },
+  mentionsSelf: (text, sender, state) => {
+    const alert = findChatAlert(text, {
+      selfName: state.server.user?.name ?? null,
+      userNames: Object.keys(state.server.users),
+      mentions: getPreferencesSnapshot().chatMention,
+      highlightWords: [],
+      senderIsModerator: isPrivilegedUser(sender),
+    });
+    return alert === 'mention' || alert === 'allMention';
   },
 };
 
@@ -63,7 +73,9 @@ export function useUnreadTracker(): void {
   useActionFeed((action, before, after) => {
     const change = unreadChange(action, before, after, viewedNow(pathnameRef.current), checks);
     if (change) {
-      notificationStore.dispatch({ type: change.op, scope: change.scope, key: change.key });
+      notificationStore.dispatch(change.op === 'bump'
+        ? { type: 'bump', scope: change.scope, key: change.key, mention: change.mention }
+        : { type: 'clear', scope: change.scope, key: change.key });
     }
   });
 }

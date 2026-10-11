@@ -6,10 +6,6 @@ import {
   ShieldCheck, Swords, UserCircle2, X, type LucideIcon,
 } from 'lucide-react';
 
-import { server } from '@cockatrice/datatrice';
-import { useAppSelector } from '@app/store';
-import { Avatar } from '@app/components';
-
 import UnreadBadge from './UnreadBadge';
 import { useScrollFades, type ScrollFades } from './hooks/useScrollFades';
 import { tabTitle, type StripGroup, type StripGroupKey, type Tab, type TabType } from './topBarTabs';
@@ -38,7 +34,6 @@ const STRIP_GROUP_KEYS: Record<StripGroupKey, string> = {
   games: 'TopBar.group.games',
   decks: 'TopBar.group.decks',
   replays: 'TopBar.group.replays',
-  chats: 'TopBar.group.chats',
   pages: 'TopBar.group.pages',
 };
 
@@ -54,27 +49,8 @@ function fadeMask({ start, end }: ScrollFades): CSSProperties | undefined {
   return { maskImage: mask, WebkitMaskImage: mask };
 }
 
-function PlayerTabIcon({ name }: { name: string }) {
-  const online = useAppSelector((state) => server.Selectors.getIsUserOnline(state, name));
-  return (
-    <span className="relative shrink-0">
-      <Avatar name={name} size={18} />
-      <span
-        aria-hidden
-        className={[
-          'absolute -bottom-0.5 -right-0.5 h-2 w-2 rounded-full border border-bg-surface',
-          online ? 'bg-success' : 'bg-text-muted',
-        ].join(' ')}
-      />
-    </span>
-  );
-}
-
 function TabIcon({ tab, active }: { tab: Tab; active: boolean }) {
   const tone = `shrink-0 ${active ? 'text-accent' : 'text-text-muted'}`;
-  if (tab.type === 'player' && tab.title) {
-    return <PlayerTabIcon name={tab.title} />;
-  }
   if (tab.spectating) {
     return <Eye size={14} aria-hidden className={tone} />;
   }

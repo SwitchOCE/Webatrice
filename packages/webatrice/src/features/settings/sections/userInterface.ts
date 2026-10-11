@@ -1,7 +1,7 @@
 import { MousePointerClick } from 'lucide-react';
 
 import { ANIMATION_PREFERENCE_KEYS } from '@app/hooks';
-import { CommanderSpellbookIntegration, type PreferenceKey } from '@app/types';
+import { CommanderSpellbookIntegration, PlayBadgeMode, type PreferenceKey } from '@app/types';
 
 import { AnimationButtons, animationToggle } from '../controls/AnimationControls';
 import NotificationPermissionControl from '../controls/NotificationPermissionControl';
@@ -96,6 +96,19 @@ export const userInterfaceSection: SettingsSection = {
           labelKey: 'SettingsUserInterface.buddyConnectNotificationsEnabled.label',
           control: { kind: 'toggle', key: 'buddyConnectNotificationsEnabled' },
           dependsOn: 'notificationsEnabled',
+        },
+        {
+          id: 'playBadge',
+          labelKey: 'SettingsUserInterface.playBadge.label',
+          descriptionKey: 'SettingsUserInterface.playBadge.description',
+          control: {
+            kind: 'select',
+            key: 'playBadge',
+            options: [
+              { value: PlayBadgeMode.Mentions, labelKey: 'SettingsUserInterface.playBadge.mentions' },
+              { value: PlayBadgeMode.All, labelKey: 'SettingsUserInterface.playBadge.all' },
+            ],
+          },
         },
         {
           id: 'browserNotifications',

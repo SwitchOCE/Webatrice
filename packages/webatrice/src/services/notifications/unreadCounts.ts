@@ -1,9 +1,10 @@
-import type { NotificationKind, NotificationState } from './notificationStore';
+import type { MentionCounts, NotificationKind, NotificationState } from './notificationStore';
 
 export interface UnreadCounts {
   rooms: Readonly<Record<number, number>>;
   games: Readonly<Record<number, number>>;
   chats: Readonly<Record<string, number>>;
+  mentions: MentionCounts;
   notifications: number;
   total: number;
 }
@@ -24,6 +25,7 @@ export function selectUnreadCounts(state: NotificationState): UnreadCounts {
     rooms: state.rooms,
     games: state.games,
     chats: state.chats,
+    mentions: state.mentions,
     notifications: unread.length,
     total: sum(state.rooms) + sum(state.games) + sum(state.chats) + unreadOutsideSessions,
   };

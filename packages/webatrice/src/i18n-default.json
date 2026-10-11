@@ -1511,6 +1511,10 @@
       "replays": "Replays",
       "people": "People",
       "settings": "Settings"
+    },
+    "toggle": {
+      "hide": "Hide the navigation rail",
+      "show": "Show the navigation rail"
     }
   },
   "TopBar": {
@@ -1548,16 +1552,11 @@
       "close": "Close {title}",
       "spectating": "Spectating"
     },
-    "rail": {
-      "hide": "Hide the navigation rail",
-      "show": "Show the navigation rail"
-    },
     "group": {
       "rooms": "Rooms",
       "games": "Games",
       "decks": "Decks",
       "replays": "Replays",
-      "chats": "Chats",
       "pages": "Page"
     }
   },
@@ -4653,6 +4652,12 @@
     },
     "buddyConnectNotificationsEnabled": {
       "label": "Notify when users in your buddy list connect"
+    },
+    "playBadge": {
+      "label": "Play badge",
+      "description": "What the number on Play in the navigation rail counts: chat in your rooms and games that mentions you, or every unread room line and game event.",
+      "mentions": "Mentions only",
+      "all": "All activity"
     },
     "browserNotifications": {
       "label": "Desktop notifications",

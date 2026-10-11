@@ -1,5 +1,5 @@
 import { games, rooms, server, type GameEntry, type Message } from '@cockatrice/datatrice';
-import { Event_RoomSay_RoomMessageType, type Event_UserMessage } from '@cockatrice/sockatrice/generated';
+import { Event_RoomSay_RoomMessageType, type Event_UserMessage, type ServerInfo_User } from '@cockatrice/sockatrice/generated';
 import { matchPath } from 'react-router-dom';
 
 import type { RootState } from '@app/store';
@@ -22,11 +22,13 @@ export interface UnreadChange {
   op: 'bump' | 'clear';
   scope: UnreadScope;
   key: number | string;
+  mention?: boolean;
 }
 
 export interface VisibilityChecks {
   roomMessage: (roomId: number, state: RootState) => boolean;
   privateMessage: (peer: string, state: RootState) => boolean;
+  mentionsSelf: (text: string, sender: ServerInfo_User | undefined, state: RootState) => boolean;
 }
 
 export function currentView(pathname: string): CurrentView {
@@ -71,7 +73,22 @@ export function countsAsGameUnread(action: ObservedAction, before: RootState, af
   }
 }
 
-function gameChange(action: ObservedAction, before: RootState, after: RootState, view: CurrentView): UnreadChange | null {
+function gameChatMention(action: ObservedAction, after: RootState, checks: VisibilityChecks): boolean {
+  if (action.type !== G.GAME_SAY) {
+    return false;
+  }
+  const { gameId, playerId, message } = action.payload as { gameId: number; playerId: number; message: string };
+  const sender = liveGame(after, gameId)?.players[playerId]?.properties.userInfo;
+  return checks.mentionsSelf(message, sender, after);
+}
+
+function gameChange(
+  action: ObservedAction,
+  before: RootState,
+  after: RootState,
+  view: CurrentView,
+  checks: VisibilityChecks,
+): UnreadChange | null {
   const { gameId } = action.payload as { gameId: number };
   if (GAME_GONE.has(action.type ?? '')) {
     return { op: 'clear', scope: 'games', key: gameId };
@@ -79,7 +96,8 @@ function gameChange(action: ObservedAction, before: RootState, after: RootState,
   if (gameId === view.gameId || !countsAsGameUnread(action, before, after)) {
     return null;
   }
-  return { op: 'bump', scope: 'games', key: gameId };
+  const change: UnreadChange = { op: 'bump', scope: 'games', key: gameId };
+  return gameChatMention(action, after, checks) ? { ...change, mention: true } : change;
 }
 
 function roomChange(action: ObservedAction, after: RootState, view: CurrentView, checks: VisibilityChecks): UnreadChange | null {
@@ -97,7 +115,9 @@ function roomChange(action: ObservedAction, after: RootState, view: CurrentView,
   ) {
     return null;
   }
-  return { op: 'bump', scope: 'rooms', key: roomId };
+  const change: UnreadChange = { op: 'bump', scope: 'rooms', key: roomId };
+  const sender = after.rooms.rooms[roomId]?.users[message.name];
+  return checks.mentionsSelf(message.message, sender, after) ? { ...change, mention: true } : change;
 }
 
 function chatChange(action: ObservedAction, after: RootState, view: CurrentView, checks: VisibilityChecks): UnreadChange | null {
@@ -126,7 +146,7 @@ export function unreadChange(
     return chatChange(action, after, view, checks);
   }
   if (action.type?.startsWith(GAME_PREFIX)) {
-    return gameChange(action, before, after, view);
+    return gameChange(action, before, after, view, checks);
   }
   return null;
 }

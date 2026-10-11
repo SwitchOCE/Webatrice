@@ -78,6 +78,7 @@ export class Setting {
   notificationsEnabled: boolean;
   spectatorNotificationsEnabled: boolean;
   buddyConnectNotificationsEnabled: boolean;
+  playBadge: PlayBadgeMode;
 
   chatMention: boolean;
   chatMentionColor: string;
@@ -125,6 +126,11 @@ export enum StartupTab {
   ServerRoom = 'serverRoom',
   DeckStorage = 'deckStorage',
   Replays = 'replays',
+}
+
+export enum PlayBadgeMode {
+  Mentions = 'mentions',
+  All = 'all',
 }
 
 export enum CommanderSpellbookIntegration {
@@ -225,6 +231,7 @@ export const PREFERENCE_DEFAULTS: Readonly<Preferences> = Object.freeze({
   notificationsEnabled: true,
   spectatorNotificationsEnabled: false,
   buddyConnectNotificationsEnabled: true,
+  playBadge: PlayBadgeMode.Mentions,
 
   chatMention: true,
   chatMentionColor: DEFAULT_CHAT_COLOR,
