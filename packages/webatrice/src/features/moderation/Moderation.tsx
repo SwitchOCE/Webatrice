@@ -82,7 +82,7 @@ const ModerationContent = () => {
     <>
       <StaffHeader
         title={t('ModerationPage.title')}
-        subtitle={t('ModerationPage.subtitle')}
+        subtitle={parts.investigation ? t('ModerationPage.subtitle') : t('ModerationPage.subtitleBasic')}
         actions={(
           <form role="search" className="flex items-center gap-2" onSubmit={submit}>
             <TextInput

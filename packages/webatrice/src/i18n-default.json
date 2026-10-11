@@ -3691,6 +3691,7 @@
     },
     "title": "Moderation",
     "subtitle": "Look up a user's account, alts and sessions.",
+    "subtitleBasic": "Look up a user's account, warnings and bans.",
     "needsServer": "Needs server 3.1.",
     "records": "History",
     "recordAction": {
