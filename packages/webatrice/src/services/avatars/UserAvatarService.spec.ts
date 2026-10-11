@@ -93,6 +93,27 @@ describe('UserAvatarService', () => {
     expect(request).not.toHaveBeenCalled();
   });
 
+  it('keeps the pace across bursts even after the queue drains', () => {
+    const { service, request } = setup({ batchSize: 6, intervalMs: 250 });
+    service.want('a');
+    service.want('b');
+    vi.advanceTimersByTime(0);
+    expect(request).toHaveBeenCalledTimes(2);
+    vi.advanceTimersByTime(10);
+    service.want('c');
+    service.want('d');
+    vi.advanceTimersByTime(0);
+    expect(request).toHaveBeenCalledTimes(2);
+    vi.advanceTimersByTime(239);
+    expect(request).toHaveBeenCalledTimes(2);
+    vi.advanceTimersByTime(1);
+    expect(request.mock.calls.map(([name]) => name)).toEqual(['a', 'b', 'c', 'd']);
+    vi.advanceTimersByTime(1000);
+    service.want('e');
+    vi.advanceTimersByTime(0);
+    expect(request).toHaveBeenCalledTimes(5);
+  });
+
   it('paces requests in batches', () => {
     const { service, request } = setup({ batchSize: 2, intervalMs: 100 });
     ['a', 'b', 'c', 'd', 'e'].forEach((name) => service.want(name));
@@ -128,6 +149,31 @@ describe('UserAvatarService', () => {
     respond('alice', new Uint8Array([9, 9]));
     expect(service.getSrc('alice')).toBe('blob:avatar-2');
     expect(created).toHaveLength(2);
+  });
+
+  it('revokes a superseded picture shortly after consumers switch to the new one', () => {
+    const { service, respond } = setup();
+    respond('alice', PNG);
+    service.getSrc('alice');
+    respond('alice', new Uint8Array([9, 9]));
+    service.getSrc('alice');
+    expect(revoked).toEqual([]);
+    vi.advanceTimersByTime(1000);
+    expect(revoked).toEqual(['blob:avatar-1']);
+    respond('alice', new Uint8Array([7]));
+    service.getSrc('alice');
+    vi.advanceTimersByTime(1000);
+    expect(revoked).toEqual(['blob:avatar-1', 'blob:avatar-2']);
+  });
+
+  it('revokes the picture when the user no longer has one', () => {
+    const { service, respond } = setup();
+    respond('alice', PNG);
+    service.getSrc('alice');
+    respond('alice');
+    expect(service.getSrc('alice')).toBeNull();
+    vi.advanceTimersByTime(1000);
+    expect(revoked).toEqual(['blob:avatar-1']);
   });
 
   it('clears the cache, the queue and the dedupe set on clear', () => {
