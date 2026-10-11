@@ -188,8 +188,13 @@ const DeckEditor = () => {
   const groupLabels = groups.map(({ label }) => label);
   const allGroupsCollapsed = groupLabels.length > 0 && groupLabels.every((label) => paneLayout.collapsedGroups.has(label));
   const collapsePane = (pane: 'dock' | 'inspector', collapsed: boolean) => {
-    paneLayout.setPaneCollapsed(pane, collapsed);
-    paneFocus.handOff(`${pane}-${collapsed ? 'expand' : 'collapse'}`);
+    const overlay = pane === 'inspector' && !collapsed && !paneLayout.inspectorDocksWhenExpanded;
+    paneFocus.updateThenFocus(() => {
+      paneLayout.setPaneCollapsed(pane, collapsed);
+      if (overlay) {
+        setInspectorOpen(true);
+      }
+    }, overlay ? 'inspector-close' : `${pane}-${collapsed ? 'expand' : 'collapse'}`);
   };
   const resetLayout = () => {
     paneLayout.reset();
@@ -218,7 +223,13 @@ const DeckEditor = () => {
             <PanelRightClose size={14} />
           </IconButton>
         ) : (
-          <IconButton size="sm" label={t('DeckEditor.inspector.close')} className="ml-auto" onClick={() => setInspectorOpen(false)}>
+          <IconButton
+            ref={paneFocus.target('inspector-close')}
+            size="sm"
+            label={t('DeckEditor.inspector.close')}
+            className="ml-auto"
+            onClick={() => setInspectorOpen(false)}
+          >
             <X size={14} />
           </IconButton>
         )}
@@ -265,7 +276,7 @@ const DeckEditor = () => {
           aria-label={t('DeckEditor.dock.label')}
           className="flex min-h-0 flex-col overflow-hidden border-r border-border-subtle bg-bg-surface"
         >
-          {dockCollapsed ? (
+          {dockCollapsed && (
             <CollapsedPaneRail
               ref={paneFocus.target('dock-expand')}
               side="left"
@@ -274,40 +285,43 @@ const DeckEditor = () => {
               icon={<Search size={15} aria-hidden />}
               onExpand={() => collapsePane('dock', false)}
             />
-          ) : isMtg ? (
-            <CardSearchDock
-              onAdd={addCard}
-              onPreview={previewSearchCard}
-              onHoverPreview={hoverSearchCard}
-              onReady={onDockReady}
-              colorIdentity={colorIdentity}
-              format={editor.deck.format}
-              deckCards={editor.deck.cards}
-              headerAction={(
+          )}
+          <div hidden={dockCollapsed} inert={dockCollapsed} className="flex min-h-0 flex-1 flex-col">
+            {isMtg ? (
+              <CardSearchDock
+                onAdd={addCard}
+                onPreview={previewSearchCard}
+                onHoverPreview={hoverSearchCard}
+                onReady={onDockReady}
+                colorIdentity={colorIdentity}
+                format={editor.deck.format}
+                deckCards={editor.deck.cards}
+                headerAction={(
+                  <IconButton
+                    ref={paneFocus.target('dock-collapse')}
+                    size="sm"
+                    label={t('DeckEditor.layout.hideDock')}
+                    onClick={() => collapsePane('dock', true)}
+                  >
+                    <PanelLeftClose size={14} />
+                  </IconButton>
+                )}
+              />
+            ) : (
+              <div className="flex items-start gap-1 p-pad">
+                <div className="min-w-0 flex-1">
+                  <PlainAddCard onAdd={(name) => addCard(name, 'main')} inputRef={addFieldRef} />
+                </div>
                 <IconButton
                   ref={paneFocus.target('dock-collapse')}
-                  size="sm"
                   label={t('DeckEditor.layout.hideDock')}
                   onClick={() => collapsePane('dock', true)}
                 >
-                  <PanelLeftClose size={14} />
+                  <PanelLeftClose size={15} />
                 </IconButton>
-              )}
-            />
-          ) : (
-            <div className="flex items-start gap-1 p-pad">
-              <div className="min-w-0 flex-1">
-                <PlainAddCard onAdd={(name) => addCard(name, 'main')} inputRef={addFieldRef} />
               </div>
-              <IconButton
-                ref={paneFocus.target('dock-collapse')}
-                label={t('DeckEditor.layout.hideDock')}
-                onClick={() => collapsePane('dock', true)}
-              >
-                <PanelLeftClose size={15} />
-              </IconButton>
-            </div>
-          )}
+            )}
+          </div>
         </aside>
         {!dockCollapsed && (
           <PaneResizer

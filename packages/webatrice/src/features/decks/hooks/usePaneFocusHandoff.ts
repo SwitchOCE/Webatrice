@@ -1,18 +1,20 @@
 import { useCallback, useRef } from 'react';
+import { flushSync } from 'react-dom';
 
 type FocusRef = (node: HTMLElement | null) => void;
 
 export function usePaneFocusHandoff() {
-  const pending = useRef<string | null>(null);
+  const nodes = useRef(new Map<string, HTMLElement>());
   const refs = useRef(new Map<string, FocusRef>());
 
   const target = useCallback((key: string): FocusRef => {
     let ref = refs.current.get(key);
     if (!ref) {
       ref = (node) => {
-        if (node && pending.current === key) {
-          pending.current = null;
-          node.focus();
+        if (node) {
+          nodes.current.set(key, node);
+        } else {
+          nodes.current.delete(key);
         }
       };
       refs.current.set(key, ref);
@@ -20,9 +22,10 @@ export function usePaneFocusHandoff() {
     return ref;
   }, []);
 
-  const handOff = useCallback((key: string) => {
-    pending.current = key;
+  const updateThenFocus = useCallback((update: () => void, key: string) => {
+    flushSync(update);
+    nodes.current.get(key)?.focus();
   }, []);
 
-  return { target, handOff };
+  return { target, updateThenFocus };
 }

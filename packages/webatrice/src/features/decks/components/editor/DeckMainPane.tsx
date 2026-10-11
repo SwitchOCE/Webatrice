@@ -2,13 +2,7 @@ import { useMemo } from 'react';
 
 import type { DeckCategory } from '@app/types';
 
-import {
-  DECK_COLUMN_GAP,
-  DECK_COLUMN_MAX_WIDTH,
-  deckColumnCount,
-  deckGroupWeight,
-  partitionIntoColumns,
-} from '../../deckColumns';
+import { DECK_COLUMN_GAP, deckColumnLayout } from '../../deckColumns';
 import type { DeckRowDensity } from '../../deckEditorLayout';
 import { sortIndicesByName, type DeckCardGroup as DeckCardGroupData } from '../../deckGrouping';
 import type { CardLegality } from '../../deckLegality';
@@ -69,11 +63,13 @@ export function DeckMainPane({
       : sortIndicesByName(deck.cards, deck.cards.map((_, i) => i))),
     [isMtg, groups, deck.cards, collapsedGroups],
   );
-  const columns = useMemo(() => {
-    const count = deckColumnCount(width, density, groups.length);
-    const weights = groups.map(({ label, indices }) => deckGroupWeight(indices.length, collapsedGroups.has(label)));
-    return partitionIntoColumns(weights, count).map((column) => column.map((g) => groups[g]));
-  }, [width, density, groups, collapsedGroups]);
+  const columns = useMemo(
+    () => deckColumnLayout(width, density, groups.map(({ label, indices }) => ({
+      rows: indices.length,
+      collapsed: collapsedGroups.has(label),
+    }))),
+    [width, density, groups, collapsedGroups],
+  );
   const grid = useDeckCardGrid({
     cards: deck.cards,
     order: rowOrder,
@@ -89,40 +85,31 @@ export function DeckMainPane({
       {deck.cards.length === 0 ? (
         <EmptyCardsHint isMtg={isMtg} />
       ) : isMtg ? (
-        <div
-          className="grid items-start"
-          style={{
-            columnGap: DECK_COLUMN_GAP,
-            gridTemplateColumns: `repeat(${Math.max(1, columns.length)}, minmax(0, ${DECK_COLUMN_MAX_WIDTH}px))`,
-          }}
-        >
-          {columns.map((column) => (
-            <div key={column[0]?.label} className="min-w-0">
-              {column.map(({ label, indices }) => (
-                <DeckCardGroup
-                  key={label}
-                  label={label}
-                  indices={indices}
-                  deck={deck.cards}
-                  selectedIndex={selectedIndex}
-                  onSelect={onSelect}
-                  onPreview={onPreview}
-                  onInc={onInc}
-                  onDelete={onDelete}
-                  onSetCategory={onSetCategory}
-                  onSetCommander={onSetCommander}
-                  onChangePrinting={onChangePrinting}
-                  onShowDetails={onShowDetails}
-                  isMtg={isMtg}
-                  isCommander={isCommander}
-                  legality={legality}
-                  grid={grid}
-                  density={density}
-                  collapsed={collapsedGroups.has(label)}
-                  onToggleCollapsed={onToggleGroup && (() => onToggleGroup(label))}
-                />
-              ))}
-            </div>
+        <div style={{ columnCount: columns.count, columnGap: DECK_COLUMN_GAP, maxWidth: columns.maxWidth }}>
+          {groups.map(({ label, indices }, position) => (
+            <DeckCardGroup
+              key={label}
+              label={label}
+              indices={indices}
+              deck={deck.cards}
+              selectedIndex={selectedIndex}
+              onSelect={onSelect}
+              onPreview={onPreview}
+              onInc={onInc}
+              onDelete={onDelete}
+              onSetCategory={onSetCategory}
+              onSetCommander={onSetCommander}
+              onChangePrinting={onChangePrinting}
+              onShowDetails={onShowDetails}
+              isMtg={isMtg}
+              isCommander={isCommander}
+              legality={legality}
+              grid={grid}
+              density={density}
+              columnBreak={columns.breaks.has(position)}
+              collapsed={collapsedGroups.has(label)}
+              onToggleCollapsed={onToggleGroup && (() => onToggleGroup(label))}
+            />
           ))}
         </div>
       ) : (

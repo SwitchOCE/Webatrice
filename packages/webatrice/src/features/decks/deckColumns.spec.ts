@@ -1,4 +1,11 @@
-import { deckColumnCount, deckGroupWeight, partitionIntoColumns } from './deckColumns';
+import {
+  DECK_COLUMN_GAP,
+  DECK_COLUMN_MAX_WIDTH,
+  deckColumnCount,
+  deckColumnLayout,
+  deckGroupWeight,
+  partitionIntoColumns,
+} from './deckColumns';
 
 describe('deckColumnCount', () => {
   it('fits as many columns as the width allows, but no more than there are groups', () => {
@@ -41,5 +48,22 @@ describe('partitionIntoColumns', () => {
   it('never makes more columns than groups', () => {
     expect(partitionIntoColumns([3, 2], 4)).toEqual([[0], [1]]);
     expect(partitionIntoColumns([], 3)).toEqual([]);
+  });
+});
+
+describe('deckColumnLayout', () => {
+  it('marks the groups that start a new column and caps the total width', () => {
+    const groups = [10, 10, 10].map((rows) => ({ rows, collapsed: false }));
+    const layout = deckColumnLayout(527, 'comfortable', groups);
+    expect(layout.count).toBe(2);
+    expect(layout.breaks.size).toBe(1);
+    expect(layout.maxWidth).toBe(2 * DECK_COLUMN_MAX_WIDTH + DECK_COLUMN_GAP);
+
+    const collapsed = deckColumnLayout(527, 'comfortable', [...groups.slice(0, 2), { rows: 10, collapsed: true }]);
+    expect([...collapsed.breaks]).toEqual([1]);
+  });
+
+  it('has no breaks in a single column', () => {
+    expect(deckColumnLayout(0, 'comfortable', [{ rows: 3, collapsed: false }, { rows: 2, collapsed: false }]).breaks.size).toBe(0);
   });
 });

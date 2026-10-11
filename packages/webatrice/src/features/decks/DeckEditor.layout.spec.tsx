@@ -15,11 +15,13 @@ function mockWidth(width: number) {
   vi.spyOn(HTMLElement.prototype, 'getBoundingClientRect').mockReturnValue({ width } as DOMRect);
 }
 
-async function renderEditor() {
+const DEFAULT_CARDS = [card('Ponder', 'Sorcery'), card('Opt', 'Instant'), card('Forest', 'Basic Land — Forest')];
+
+async function renderEditor(cards: DeckCard[] = DEFAULT_CARDS) {
   const deck: HydratedDeck = {
     name: 'Layout',
     format: 'standard',
-    cards: [card('Ponder', 'Sorcery'), card('Opt', 'Instant'), card('Forest', 'Basic Land — Forest')],
+    cards,
     meta: { v: 1, updatedAt: '' },
   };
   setCachedDeck(5, { deck, savedSignature: deckSaveSignature(deck) });
@@ -112,5 +114,48 @@ describe('DeckEditor layout', () => {
     expect(screen.getByRole('button', { name: 'DeckEditor.layout.hideDock' })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Forest' })).toBeInTheDocument();
     expect(stored()).toMatchObject({ density: 'comfortable', dockCollapsed: false, collapsedGroups: [] });
+  });
+
+  it('opens the overlay and focuses its close button when an expanded inspector cannot dock', async () => {
+    window.localStorage.setItem(DECK_LAYOUT_STORAGE_KEY, JSON.stringify({ inspectorCollapsed: true }));
+    mockWidth(900);
+    await renderEditor();
+    expect(screen.queryByRole('complementary', { name: 'DeckEditor.inspector.label' })).toBeNull();
+
+    fireEvent.click(screen.getByRole('button', { name: 'DeckEditor.inspector.toggle' }));
+
+    expect(screen.getByRole('complementary', { name: 'DeckEditor.inspector.label' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'DeckEditor.inspector.close' })).toHaveFocus();
+    expect(stored().inspectorCollapsed).toBe(false);
+  });
+
+  it('keeps focus and the other groups in place when collapsing a group moves the column breaks', async () => {
+    mockWidth(527);
+    const many = (type: string) => Array.from({ length: 10 }, (_, i) => card(`${type} ${i}`, type));
+    await renderEditor([...many('Creature'), ...many('Instant'), ...many('Sorcery')]);
+    const instants = screen.getByRole('button', { name: /^DeckEditor\.section\.instant/ });
+    const sorceries = screen.getByRole('button', { name: /^DeckEditor\.section\.sorcery/ });
+    const instantRow = screen.getByRole('button', { name: 'Instant 3' });
+
+    sorceries.focus();
+    fireEvent.click(sorceries);
+
+    expect(sorceries).toHaveAttribute('aria-expanded', 'false');
+    expect(sorceries).toHaveFocus();
+    expect(instants.isConnected).toBe(true);
+    expect(instantRow.isConnected).toBe(true);
+  });
+
+  it('keeps the Find cards search while the pane is collapsed', async () => {
+    mockWidth(1364);
+    await renderEditor();
+    fireEvent.change(screen.getByPlaceholderText('CardSearchDock.placeholder'), { target: { value: 'bolt' } });
+
+    fireEvent.click(screen.getByRole('button', { name: 'DeckEditor.layout.hideDock' }));
+    expect(screen.getByPlaceholderText('CardSearchDock.placeholder')).not.toBeVisible();
+    fireEvent.click(screen.getByRole('button', { name: 'DeckEditor.layout.showDock' }));
+
+    expect(screen.getByPlaceholderText('CardSearchDock.placeholder')).toHaveValue('bolt');
+    expect(screen.getByRole('button', { name: 'DeckEditor.layout.hideDock' })).toHaveFocus();
   });
 });
