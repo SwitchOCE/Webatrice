@@ -18,6 +18,7 @@ import CardPreviewPopupPage from './features/game/components/CardPreviewPopup/Ca
 import './i18n';
 import './index.css';
 import { registerAfterPaint } from './services/serviceWorker/register';
+import BootSession, { prepareBootSession } from './BootSession';
 
 installConsoleCapture();
 debugLog.setHeader([
@@ -36,20 +37,22 @@ debugLog.setHeader([
 // specificity-tie cascade over MUI's runtime-generated .css-abc-Mui*
 // classes. Without it, our mui-overrides.css never gets to color a
 // single MUI component.
-const App = () => (
+const App = ({ preparation }: { preparation: ReturnType<typeof prepareBootSession> }) => (
   <DatatriceProvider extensions={extensions} additionalMiddleware={[loadTimingMiddleware]}>
     <WebClientProvider config={CLIENT_CONFIG} options={CLIENT_OPTIONS}>
-      <StrictMode>
-        <StyledEngineProvider injectFirst>
-          <AppThemeProvider>
-            <Suspense fallback="loading">
-              <UserAvatarProvider>
-                <AppShell />
-              </UserAvatarProvider>
-            </Suspense>
-          </AppThemeProvider>
-        </StyledEngineProvider>
-      </StrictMode>
+      <BootSession preparation={preparation}>
+        <StrictMode>
+          <StyledEngineProvider injectFirst>
+            <AppThemeProvider>
+              <Suspense fallback="loading">
+                <UserAvatarProvider>
+                  <AppShell />
+                </UserAvatarProvider>
+              </Suspense>
+            </AppThemeProvider>
+          </StyledEngineProvider>
+        </StrictMode>
+      </BootSession>
     </WebClientProvider>
   </DatatriceProvider>
 );
@@ -76,5 +79,5 @@ initAnalytics();
 const container = document.getElementById('root');
 const root = createRoot(container!);
 
-root.render(isCardPreviewPopup ? <CardPreviewPopupPage /> : <App />);
+root.render(isCardPreviewPopup ? <CardPreviewPopupPage /> : <App preparation={prepareBootSession()} />);
 registerAfterPaint();

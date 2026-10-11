@@ -12,6 +12,7 @@ import { placeBadges, placeForPath, railPlaces, type NavPlace, type PlaceKey } f
 import type { UserMenuProps } from '../UserMenu';
 import type { UserMenuDialog } from '../userMenuEntries';
 import { useOwnAvatarUrl } from './useOwnAvatarUrl';
+import { clearHomeSnapshot } from '../../../services/storage/homeSnapshot';
 
 export interface NavRailController {
   places: NavPlace[];
@@ -57,7 +58,10 @@ export function useNavRailController(): NavRailController {
       onTogglePhaseTrackPinned: () => setPhaseTrackPinned(!phaseTrackPinned),
       onNavigate: (route: RouteEnum) => navigate(generatePath(route)),
       onOpenDialog: setOpenDialog,
-      onSignOut: () => webClient.request.authentication.disconnect(),
+      onSignOut: () => {
+        clearHomeSnapshot();
+        webClient.request.authentication.disconnect();
+      },
     },
   };
 }

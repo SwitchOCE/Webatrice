@@ -1,5 +1,8 @@
 import { Route, Routes } from 'react-router-dom';
 import RouteTimings from './RouteTimings';
+import { useSyncExternalStore } from 'react';
+import { homePreview } from './services/storage/homeSnapshot';
+import ReconnectingHome from './features/server/ReconnectingHome';
 
 import { RouteEnum } from '@app/types';
 import { Account } from '@app/features/account';
@@ -22,39 +25,45 @@ import { Shortcuts } from '@app/features/shortcuts';
 import { Initialize, Unsupported } from '@app/features/shell';
 import RouteFocus from './feature-wrappers/layout/RouteFocus';
 
-const AppShellRoutes = () => (
-  <div className="AppShell-routes scrollable no-gutter">
-    <Routes>
-      <Route path='*' element={<Initialize />} />
+const AppShellRoutes = () => {
+  const snapshot = useSyncExternalStore(homePreview.subscribe, homePreview.get);
+  return (
+    <>
+      {snapshot && <ReconnectingHome snapshot={snapshot} />}
+      <div hidden={Boolean(snapshot)} className="AppShell-routes scrollable no-gutter">
+        <Routes>
+          <Route path='*' element={<Initialize />} />
 
-      <Route path={RouteEnum.ACCOUNT} element={<Account />} />
-      <Route path={RouteEnum.ADMINISTRATION} element={<Administration />} />
-      <Route path={RouteEnum.CARD_ART_RULES} element={<CardArtRules />} />
-      <Route path={RouteEnum.DECKS} element={<Decks />} />
-      <Route path={RouteEnum.DECK} element={<DeckEditor />} />
-      <Route path={RouteEnum.DECK_DRAFT} element={<DeckEditor />} />
-      <Route path={RouteEnum.SHARED_DECK} element={<SharedDeck />} />
-      <Route path={RouteEnum.PUBLIC_DECKS} element={<PublicDecks />} />
-      <Route path={RouteEnum.DEVELOPER} element={<Developer />} />
-      <Route path={RouteEnum.GAME} element={<Game />} />
-      <Route path={RouteEnum.LOGS} element={<Logs />} />
-      <Route path={RouteEnum.MODERATION} element={<Moderation />} />
-      <Route path={RouteEnum.PLAYER} element={<Player />} />
-      <Route path={RouteEnum.PEOPLE} element={<People />} />
-      <Route path={RouteEnum.REPLAYS} element={<Replays />} />
-      <Route path={RouteEnum.REPLAY} element={<GameReplay />} />
-      <Route path={RouteEnum.ROOM} element={<Room />} />
-      <Route path={RouteEnum.SERVER} element={<Server />} />
-      <Route path={RouteEnum.SETTINGS} element={<Settings />} />
-      <Route path={RouteEnum.SHORTCUTS} element={<Shortcuts />} />
-      <Route path={RouteEnum.MY_REPORTS} element={<MyReports />} />
-      <Route path={RouteEnum.REPORT_QUEUE} element={<ReportQueue />} />
-      <Route path={RouteEnum.LOGIN} element={<Login />} />
-      <Route path={RouteEnum.UNSUPPORTED} element={<Unsupported />} />
-    </Routes>
-    <RouteFocus />
-    <RouteTimings />
-  </div>
-);
+          <Route path={RouteEnum.ACCOUNT} element={<Account />} />
+          <Route path={RouteEnum.ADMINISTRATION} element={<Administration />} />
+          <Route path={RouteEnum.CARD_ART_RULES} element={<CardArtRules />} />
+          <Route path={RouteEnum.DECKS} element={<Decks />} />
+          <Route path={RouteEnum.DECK} element={<DeckEditor />} />
+          <Route path={RouteEnum.DECK_DRAFT} element={<DeckEditor />} />
+          <Route path={RouteEnum.SHARED_DECK} element={<SharedDeck />} />
+          <Route path={RouteEnum.PUBLIC_DECKS} element={<PublicDecks />} />
+          <Route path={RouteEnum.DEVELOPER} element={<Developer />} />
+          <Route path={RouteEnum.GAME} element={<Game />} />
+          <Route path={RouteEnum.LOGS} element={<Logs />} />
+          <Route path={RouteEnum.MODERATION} element={<Moderation />} />
+          <Route path={RouteEnum.PLAYER} element={<Player />} />
+          <Route path={RouteEnum.PEOPLE} element={<People />} />
+          <Route path={RouteEnum.REPLAYS} element={<Replays />} />
+          <Route path={RouteEnum.REPLAY} element={<GameReplay />} />
+          <Route path={RouteEnum.ROOM} element={<Room />} />
+          <Route path={RouteEnum.SERVER} element={<Server />} />
+          <Route path={RouteEnum.SETTINGS} element={<Settings />} />
+          <Route path={RouteEnum.SHORTCUTS} element={<Shortcuts />} />
+          <Route path={RouteEnum.MY_REPORTS} element={<MyReports />} />
+          <Route path={RouteEnum.REPORT_QUEUE} element={<ReportQueue />} />
+          <Route path={RouteEnum.LOGIN} element={<Login />} />
+          <Route path={RouteEnum.UNSUPPORTED} element={<Unsupported />} />
+        </Routes>
+        <RouteFocus />
+        <RouteTimings />
+      </div>
+    </>
+  );
+};
 
 export default AppShellRoutes;

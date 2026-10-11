@@ -5138,5 +5138,8 @@
       "log": "end step",
       "title": "End step / cleanup"
     }
+  },
+  "ReconnectingHome": {
+    "status": "Reconnecting — showing your last session. Actions will be available when live data arrives."
   }
 }

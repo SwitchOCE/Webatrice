@@ -17,6 +17,8 @@ import type { RequestPasswordResetFormValues } from './forms/RequestPasswordRese
 import type { ResetPasswordFormValues } from './forms/ResetPasswordForm/ResetPasswordForm';
 import { loginAttempt, useLoginAttemptFailed } from './loginAttempt';
 import { useAutoLogin } from './useAutoLogin';
+import { persistLoginCredentials } from './persistLoginCredentials';
+import { autoLoginGate } from '../../services/session/autoLoginGate';
 
 export interface LoginDialogState {
   passwordResetRequestDialog: boolean;
@@ -155,6 +157,7 @@ export function useLogin(): Login {
   }, server.Types.ACCOUNT_AWAITING_ACTIVATION, []);
 
   const onSubmitLogin = useCallback((loginForm: LoginFormValues) => {
+    autoLoginGate.hasChecked = true;
     rememberLoginRef.current = loginForm;
     const { userName, password, selectedHost, remember } = loginForm;
 
@@ -179,26 +182,10 @@ export function useLogin(): Login {
     loginAttempt.failed();
   }, [server.Types.CONNECTION_FAILED, server.Types.LOGIN_FAILED, server.Actions.connectUnreachable.type], []);
 
-  const updateHost = (
-    hashedPassword: string | undefined,
-    { selectedHost, remember, userName }: LoginFormValues,
-  ) => {
-    if (selectedHost.id == null) {
-      return;
-    }
-    // @critical empty-salt servers advertise hash support but return no hash — only persist when one arrived
-    const persistCredentials = remember && Boolean(hashedPassword);
-    knownHosts.update(selectedHost.id, {
-      remember: persistCredentials,
-      userName: persistCredentials ? userName : null,
-      hashedPassword: persistCredentials ? hashedPassword : null,
-    });
-  };
-
   useReduxEffect<{ options: WebsocketTypes.LoginSuccessContext }>(({ payload: { options } }) => {
     const loginForm = rememberLoginRef.current;
     if (loginForm && 'remember' in loginForm) {
-      updateHost(options.hashedPassword, loginForm);
+      persistLoginCredentials(options.hashedPassword, loginForm, knownHosts.update);
     }
     rememberLoginRef.current = null;
     loginAttempt.succeeded();

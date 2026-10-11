@@ -81,7 +81,7 @@ const add = async (host: Host): Promise<HostDTO> => {
   return created;
 };
 
-const update = async (id: number, patch: Partial<HostDTO>): Promise<HostDTO> => {
+export const updateKnownHost = async (id: number, patch: Partial<HostDTO>): Promise<HostDTO> => {
   const { hosts, selectedHost } = requireValue('update');
   const existing = hosts.find((h) => h.id === id);
   if (!existing) {
@@ -113,7 +113,7 @@ const remove = async (id: number): Promise<void> => {
 
 export function useKnownHosts(): KnownHostsHook {
   const state = useSharedStore(store);
-  return { ...state, select, add, update, remove };
+  return { ...state, select, add, update: updateKnownHost, remove };
 }
 
 export const getKnownHosts = (): Promise<KnownHostsValue> => store.whenReady();

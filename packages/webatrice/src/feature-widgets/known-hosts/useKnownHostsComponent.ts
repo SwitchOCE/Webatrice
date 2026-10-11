@@ -1,8 +1,8 @@
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState, useSyncExternalStore } from 'react';
 import { useTranslation } from 'react-i18next';
 
 import { useToast } from '@app/components';
-import { LoadingState, useReduxEffect } from '@app/hooks';
+import { LoadingState, useReduxEffect, useSettings } from '@app/hooks';
 
 import { useKnownHosts } from './useKnownHosts';
 import { useWebClient } from '@cockatrice/datatrice/react';
@@ -13,6 +13,7 @@ import { Host } from '@app/types';
 import { getHostPort } from '@app/utils';
 
 import { toSavedHost } from './usePublicServers';
+import { autoLoginGate } from '../../services/session/autoLoginGate';
 
 export enum TestConnection {
   TESTING = 'testing',
@@ -54,6 +55,9 @@ export function useKnownHostsComponent({
   const knownHosts = useKnownHosts();
   const { t } = useTranslation();
   const dispatch = useAppDispatch();
+  const autoLoginInFlight = useSyncExternalStore(autoLoginGate.subscribe, autoLoginGate.getInFlight);
+  const isConnected = useAppSelector(server.Selectors.getIsConnected);
+  const settings = useSettings();
 
   const knownHostToast = useToast({ key: 'known-hosts-action' });
 
@@ -78,6 +82,9 @@ export function useKnownHostsComponent({
   const selectedPort = selectedHost?.port;
 
   const testConnection = useCallback((host: HostDTO, force = false) => {
+    if (autoLoginGate.inFlight) {
+      return;
+    }
     const key = { id: host.id, host: host.host, port: host.port };
     if (!force && lastProbe.current && lastProbe.current.id === key.id
       && lastProbe.current.host === key.host && lastProbe.current.port === key.port) {
@@ -97,13 +104,20 @@ export function useKnownHostsComponent({
   };
 
   useEffect(() => {
+    if (autoLoginInFlight || (autoLoginGate.target && isConnected)) {
+      return;
+    }
     const host = selection.current.selectedHost;
     if (!host) {
       lastProbe.current = null;
       return;
     }
+    if (!isConnected && !autoLoginGate.hasChecked && (settings.status === LoadingState.LOADING
+      || (settings.value?.autoConnect && host.remember && host.hashedPassword && host.userName))) {
+      return;
+    }
     testConnection(host);
-  }, [selectedId, selectedAddress, selectedPort, testConnection]);
+  }, [selectedId, selectedAddress, selectedPort, testConnection, autoLoginInFlight, isConnected, settings.status, settings.value]);
 
   useEffect(() => {
     if (selectedHost) {
