@@ -12,6 +12,7 @@ import { renderWithProviders, connectedState, makeUser } from '../../../__test-u
 import { getSettings, settingsStore } from '../../../hooks/useSettings';
 import type { Preferences } from '../../../types';
 import RoomChat from './RoomChat';
+import * as chatContext from './roomChatContext';
 
 const reportScope = vi.hoisted(() => ({ getChatContext: undefined as (() => string) | undefined }));
 vi.mock('@app/dialogs', async (importOriginal) => ({
@@ -267,5 +268,44 @@ describe('RoomChat', () => {
       expect(screen.queryByText('@TestUser')).not.toBeInTheDocument();
       expect(screen.getByText(/hello @TestUser/)).toBeInTheDocument();
     });
+  });
+});
+
+
+describe('RoomChat rendering', () => {
+  it('retains all surviving rows when the capped transcript advances, including welcome rows', () => {
+    const messages = Array.from({ length: 1000 }, (_, id) => makeMessage({
+      id, message: `line ${id}`, timeReceived: 123,
+      messageType: id === 1 ? Event_RoomSay_RoomMessageType.Welcome : undefined,
+    }));
+    const users = {};
+    const onSay = vi.fn();
+    const { rerender } = renderWithProviders(<RoomChat roomId={1} roomName="Main" messages={messages} users={users} onSay={onSay} />);
+    const before = Array.from(screen.getByRole('log').children);
+    const format = vi.spyOn(chatContext, 'chatLineTime');
+    const advanced = [...messages.slice(1), makeMessage({ id: 1000, message: 'new line' })];
+    rerender(<RoomChat roomId={1} roomName="Main" messages={advanced} users={users} onSay={onSay} />);
+    const after = Array.from(screen.getByRole('log').children);
+    expect(after).toHaveLength(1000);
+    before.slice(1).forEach((node, index) => expect(after[index]).toBe(node));
+    expect(format).toHaveBeenCalledTimes(1);
+  });
+
+  it('does not map the transcript or format rows while typing, and still scrolls on arrival', () => {
+    const messages = [makeMessage()];
+    const filter = vi.spyOn(messages, 'filter');
+    const { rerender } = renderChat(messages);
+    const visible = filter.mock.results[0].value as Message[];
+    const map = vi.spyOn(visible, 'map');
+    const format = vi.spyOn(chatContext, 'chatLineTime');
+    const log = screen.getByRole('log');
+    Object.defineProperty(log, 'scrollHeight', { configurable: true, value: 200 });
+    log.scrollTop = 10;
+    fireEvent.change(screen.getByRole('combobox'), { target: { value: 'draft' } });
+    expect(map).not.toHaveBeenCalled();
+    expect(format).not.toHaveBeenCalled();
+    expect(log.scrollTop).toBe(10);
+    rerender(<RoomChat roomId={1} roomName="Main" messages={[...messages, makeMessage({ id: 2 })]} users={{}} onSay={vi.fn()} />);
+    expect(log.scrollTop).toBe(200);
   });
 });

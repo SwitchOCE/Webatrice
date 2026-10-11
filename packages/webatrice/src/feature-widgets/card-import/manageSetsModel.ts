@@ -78,49 +78,32 @@ export function moveSetRows(
   direction: MoveDirection,
 ): SetRow[] {
   const next = [...rows];
-  const position = (code: string) => next.findIndex((r) => r.code === code);
-  const visible = [...visibleCodes];
-  const selectedVisible = visible.map((code, i) => ({ code, i })).filter(({ code }) => selected.has(code));
-  if (!selectedVisible.length) {
+  if (!visibleCodes.some((code) => selected.has(code))) {
     return next;
   }
-
-  const swapVisible = (i: number, j: number) => {
-    swap(next, position(visible[i]), position(visible[j]));
-    [visible[i], visible[j]] = [visible[j], visible[i]];
-  };
-
-  if (direction === 'up' || direction === 'top') {
-    let target = 0;
-    for (const { code } of selectedVisible) {
-      let i = visible.indexOf(code);
-      if (direction === 'up') {
-        if (i > 0 && !selected.has(visible[i - 1])) {
-          swapVisible(i, i - 1);
-        }
-        continue;
+  const positions = new Map(rows.map((row, index) => [row.code, index]));
+  const slots = visibleCodes.map((code) => positions.get(code)!);
+  if (direction === 'top' || direction === 'bottom') {
+    const picked: SetRow[] = [];
+    const rest: SetRow[] = [];
+    visibleCodes.forEach((code, index) => {
+      (selected.has(code) ? picked : rest).push(rows[slots[index]]);
+    });
+    const ordered = direction === 'top' ? [...picked, ...rest] : [...rest, ...picked];
+    slots.forEach((slot, index) => {
+      next[slot] = ordered[index];
+    });
+  } else if (direction === 'up') {
+    for (let i = 1; i < slots.length; i += 1) {
+      if (selected.has(next[slots[i]].code) && !selected.has(next[slots[i - 1]].code)) {
+        swap(next, slots[i], slots[i - 1]);
       }
-      while (i > target) {
-        swapVisible(i, i - 1);
-        i -= 1;
-      }
-      target += 1;
     }
   } else {
-    let target = visible.length - 1;
-    for (const { code } of [...selectedVisible].reverse()) {
-      let i = visible.indexOf(code);
-      if (direction === 'down') {
-        if (i < visible.length - 1 && !selected.has(visible[i + 1])) {
-          swapVisible(i, i + 1);
-        }
-        continue;
+    for (let i = slots.length - 2; i >= 0; i -= 1) {
+      if (selected.has(next[slots[i]].code) && !selected.has(next[slots[i + 1]].code)) {
+        swap(next, slots[i], slots[i + 1]);
       }
-      while (i < target) {
-        swapVisible(i, i + 1);
-        i += 1;
-      }
-      target -= 1;
     }
   }
   return next;

@@ -87,3 +87,39 @@ describe('manageSetsModel', () => {
     });
   });
 });
+
+
+describe('moveSetRows linear work', () => {
+  it.each(['top', 'bottom', 'up', 'down'] as const)('keeps hidden slots and row identity for %s', (direction) => {
+    const expected = {
+      top: ['C', 'B', 'E', 'D', 'A'], bottom: ['A', 'B', 'C', 'D', 'E'],
+      up: ['C', 'B', 'E', 'D', 'A'], down: ['A', 'B', 'C', 'D', 'E'],
+    };
+    const moved = moveSetRows(rows, ['A', 'C', 'E'], new Set(['B', 'C', 'E']), direction);
+    expect(codes(moved)).toEqual(expected[direction]);
+    expect(moved[1]).toBe(rows[1]);
+    expect(moved[3]).toBe(rows[3]);
+    moved.forEach((item) => expect(rows).toContain(item));
+    expect(codes(rows)).toEqual(all);
+  });
+
+  it.each(['top', 'bottom', 'up', 'down'] as const)('reads row codes only linearly for %s', (direction) => {
+    let reads = 0;
+    const large = Array.from({ length: 200 }, (_, index) => ({
+      ...row(String(index)),
+      get code() {
+        reads += 1; return String(index);
+      },
+    }));
+    const visible = large.filter((_, index) => index % 2 === 0).map((item) => item.code);
+    const selected = new Set(visible.filter((_, index) => index % 2 === 1));
+    reads = 0;
+    const moved = moveSetRows(large, visible, selected, direction);
+    expect(reads).toBeLessThanOrEqual(large.length * 3);
+    large.forEach((item, index) => {
+      if (index % 2 === 1) {
+        expect(moved[index]).toBe(item);
+      }
+    });
+  });
+});

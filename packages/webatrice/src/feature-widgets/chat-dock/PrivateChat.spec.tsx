@@ -6,6 +6,18 @@ import { WebsocketTypes } from '@cockatrice/sockatrice/types';
 
 import { renderWithProviders, connectedState } from '../../__test-utils__';
 import PrivateChat from './PrivateChat';
+
+const rowRender = vi.hoisted(() => vi.fn());
+vi.mock('@app/components', async (importOriginal) => {
+  const original = await importOriginal<typeof import('@app/components')>();
+  return {
+    ...original,
+    MessageText: (props: React.ComponentProps<typeof original.MessageText>) => {
+      rowRender(props.text);
+      return <original.MessageText {...props} />;
+    },
+  };
+});
 import { getSettings, settingsStore } from '../../hooks/useSettings';
 import { dispatchChatDock } from '../../hooks/useChatDock';
 
@@ -156,5 +168,35 @@ describe('PrivateChat', () => {
       }));
     });
     expect(screen.getByRole('textbox')).toHaveValue('newer');
+  });
+});
+
+
+describe('PrivateChat rendering', () => {
+  it('does not map the transcript or render message rows while typing', () => {
+    const entries = [message('bob', 'retained')];
+    renderChat({ entries });
+    const map = vi.spyOn(entries, 'map');
+    rowRender.mockClear();
+    const log = screen.getByRole('log');
+    log.scrollTop = 10;
+    fireEvent.change(screen.getByRole('textbox'), { target: { value: 'draft' } });
+    expect(map).not.toHaveBeenCalled();
+    expect(rowRender).not.toHaveBeenCalled();
+    expect(log.scrollTop).toBe(10);
+  });
+
+  it('keeps message rows mounted and skips their render when conversation wrappers are rebuilt', () => {
+    const first = message('bob', 'retained');
+    const { rerender } = renderChat({ entries: [first] });
+    const bubble = screen.getByText('retained');
+    rowRender.mockClear();
+    const log = screen.getByRole('log');
+    Object.defineProperty(log, 'scrollHeight', { configurable: true, value: 200 });
+    const entries = [{ ...first }, message('me', 'new')];
+    rerender(<PrivateChat peerName="bob" selfName="me" entries={entries} isOnline isIgnored={false} onSend={vi.fn()} />);
+    expect(screen.getByText('retained')).toBe(bubble);
+    expect(rowRender.mock.calls.map(([text]) => text)).toEqual(['new']);
+    expect(log.scrollTop).toBe(200);
   });
 });
