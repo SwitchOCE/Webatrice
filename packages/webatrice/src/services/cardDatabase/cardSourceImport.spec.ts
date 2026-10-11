@@ -13,7 +13,7 @@ vi.mock('./CardDatabaseService', async (importOriginal) => ({
 }));
 
 import { MAX_LOCAL_XML_BYTES } from './cardImportLimits';
-import { importCustomSetFiles, saveCardSourceScan, scanCardSourceFiles } from './cardSourceImport';
+import { customSetFileName, importCustomSetFiles, saveCardSourceScan, scanCardSourceFiles } from './cardSourceImport';
 
 const setXml = (code: string, card: string) => `<?xml version="1.0" encoding="UTF-8"?>
 <cockatrice_carddatabase version="4">
@@ -90,7 +90,7 @@ describe('importCustomSetFiles', () => {
       expect.objectContaining({ fileName: 'a.xml', kind: 'custom', origin: 'file' }),
       expect.objectContaining({ fileName: 'b.xml', kind: 'custom', origin: 'file' }),
       expect.objectContaining({ fileName: 'cards.xml', kind: 'custom', origin: 'file' }),
-    ], []);
+    ]);
     expect(summary).toEqual({
       imported: [{ name: 'a.xml' }, { name: 'b.xml' }, { name: 'cards.xml' }],
       skipped: [],
@@ -103,7 +103,7 @@ describe('importCustomSetFiles', () => {
   it('keeps spoiler.xml a spoiler, as the database tab always has', async () => {
     await importCustomSetFiles([xmlFile('spoiler.xml', setXml('NEW', 'Fresh'))]);
 
-    expect(hoisted.addSources).toHaveBeenCalledWith([expect.objectContaining({ kind: 'spoiler' })], []);
+    expect(hoisted.addSources).toHaveBeenCalledWith([expect.objectContaining({ kind: 'spoiler' })]);
   });
 
   it('skips a custom set that is already loaded and replaces one whose contents changed', async () => {
@@ -116,9 +116,33 @@ describe('importCustomSetFiles', () => {
 
     const summary = await importCustomSetFiles([xmlFile('a.xml', same), xmlFile('b.xml', setXml('BBB', 'New Bee'))]);
 
-    expect(hoisted.addSources).toHaveBeenCalledWith([expect.objectContaining({ fileName: 'b.xml' })], ['custom:02:b.xml']);
+    expect(hoisted.addSources).toHaveBeenCalledWith([expect.objectContaining({ fileName: 'b.xml', replaces: 'custom:02:b.xml' })]);
     expect(summary.imported).toEqual([{ name: 'b.xml', replaced: true }]);
     expect(summary.skipped).toEqual([{ name: 'a.xml', reason: 'duplicate' }]);
+  });
+
+  it('tells same-named custom sets in different folders apart', async () => {
+    hoisted.listSources.mockResolvedValue([
+      { id: 'custom:01:A/cards.xml', kind: 'custom', fileName: 'A/cards.xml' },
+      { id: 'custom:02:B/cards.xml', kind: 'custom', fileName: 'B/cards.xml' },
+    ]);
+    hoisted.hasSourceXml.mockImplementation(async (id: string) => id === 'custom:01:A/cards.xml');
+    const at = (path: string, xml: string) => {
+      const file = xmlFile('cards.xml', xml);
+      Object.defineProperty(file, 'webkitRelativePath', { value: path });
+      return file;
+    };
+
+    const summary = await importCustomSetFiles([
+      at('Cockatrice/customsets/A/cards.xml', setXml('AAA', 'Ay')),
+      at('Cockatrice/customsets/B/cards.xml', setXml('BBB', 'New Bee')),
+    ]);
+
+    expect(summary.skipped).toEqual([{ name: 'A/cards.xml', reason: 'duplicate' }]);
+    expect(summary.imported).toEqual([{ name: 'B/cards.xml', replaced: true }]);
+    expect(hoisted.addSources).toHaveBeenCalledWith([
+      expect.objectContaining({ fileName: 'B/cards.xml', replaces: 'custom:02:B/cards.xml' }),
+    ]);
   });
 
   it('writes nothing when every file is already loaded', async () => {
@@ -155,6 +179,18 @@ describe('importCustomSetFiles', () => {
   });
 });
 
+describe('customSetFileName', () => {
+  it.each([
+    ['Cube.xml', 'Cube.xml'],
+    ['customsets/Cube.xml', 'Cube.xml'],
+    ['Cockatrice/customsets/A/cards.xml', 'A/cards.xml'],
+    ['MySets/A/cards.xml', 'A/cards.xml'],
+    ['C:\\Cockatrice\\customsets\\TK.xml', 'TK.xml'],
+  ])('stores %s as %s', (path, fileName) => {
+    expect(customSetFileName(path)).toBe(fileName);
+  });
+});
+
 describe('saveCardSourceScan', () => {
   it('replaces the stored Oracle file of the same role', async () => {
     hoisted.listSources.mockResolvedValue([{ id: 'main', kind: 'main', fileName: 'cards.xml' }]);
@@ -162,7 +198,7 @@ describe('saveCardSourceScan', () => {
 
     const summary = await saveCardSourceScan(scan);
 
-    expect(hoisted.addSources).toHaveBeenCalledWith([expect.objectContaining({ kind: 'main' })], ['main']);
+    expect(hoisted.addSources).toHaveBeenCalledWith([expect.objectContaining({ kind: 'main', replaces: 'main' })]);
     expect(summary.imported).toEqual([{ name: 'cards.xml', replaced: true }]);
   });
 });
