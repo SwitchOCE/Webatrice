@@ -1,4 +1,4 @@
-export { fetchAllPrintings, lookupCard, lookupCards, lookupCardsCached } from './lookup';
+export { fetchAllPrintings, lookupCard, lookupCards, lookupCardsCached, printingKey, printingRounds } from './lookup';
 export { imageCandidatesOf, primaryImageUri, type ImageCandidateSource } from './imageCandidates';
 export type {
   LookupCardFace,

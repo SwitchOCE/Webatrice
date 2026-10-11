@@ -81,6 +81,9 @@ export async function importReplayFiles(files: readonly File[], options: ImportF
   const library = await ReplayLibraryIndex.load();
 
   for (const file of files) {
+    if (options.isCancelled?.()) {
+      break;
+    }
     const name = file.name;
     if (!name.toLowerCase().endsWith(REPLAY_FILE_EXTENSION)) {
       summary.skipped.push({ name, reason: 'unsupported' });

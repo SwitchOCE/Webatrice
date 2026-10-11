@@ -11,7 +11,7 @@ import {
   summarizeImportRows,
   type ResolvedImportRow,
 } from '../deckImport';
-import { extraZoneSummary, fileToParsedDeck, isDeckFileName, listToParsedDeck } from '../deckFiles';
+import { extraZoneSummary, isDeckFileName, listToParsedDeck, readDeckFile } from '../deckFiles';
 import { parseDecklist } from '../decklistParser';
 
 export type ImportPhase = 'input' | 'resolving' | 'review' | 'importing';
@@ -123,13 +123,13 @@ export function useDeckImportFlow(open: boolean, onImport: DeckImportHandler, in
     const reader = new FileReader();
     reader.onload = () => {
       const content = typeof reader.result === 'string' ? reader.result : '';
-      const parsed = fileToParsedDeck(picked.name, content);
+      const { deck: parsed, ignored: skipped } = readDeckFile(picked.name, content);
       if (parsed.cards.length === 0) {
         setError(t('DeckImport.error.noCardsInFile', { name: picked.name }));
         return;
       }
       setFileName(picked.name);
-      void review(parsed, []);
+      void review(parsed, skipped);
     };
     reader.onerror = () => {
       setError(t('DeckImport.error.readFailed'));

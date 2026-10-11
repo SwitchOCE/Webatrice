@@ -63,6 +63,9 @@ export async function scanCardSourceFiles(
   const scan: CardSourceScan = { sources: [], skipped: [], failed: [] };
   let totalBytes = 0;
   for (const file of files) {
+    if (options.isCancelled?.()) {
+      break;
+    }
     const name = file.name;
     if (!XML_FILE.test(name)) {
       scan.skipped.push({ name, reason: 'unsupported' });
@@ -181,5 +184,9 @@ export async function importCustomSetFiles(
   files: readonly File[],
   options: ImportFileOptions = {},
 ): Promise<CardSourceImportSummary> {
-  return saveCardSourceScan(await scanCardSourceFiles(files, { ...options, customSetsOnly: true }));
+  const scan = await scanCardSourceFiles(files, { ...options, customSetsOnly: true });
+  if (options.isCancelled?.()) {
+    return saveCardSourceScan({ sources: [], skipped: scan.skipped, failed: scan.failed });
+  }
+  return saveCardSourceScan(scan);
 }

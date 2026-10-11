@@ -97,14 +97,19 @@ function hasDeckName(xml: string): boolean {
   return Boolean(el?.textContent?.trim());
 }
 
-export function fileToParsedDeck(fileName: string, text: string): ParsedDeck {
+export interface DeckFileRead {
+  deck: ParsedDeck;
+  ignored: string[];
+}
+
+export function readDeckFile(fileName: string, text: string): DeckFileRead {
   const parsed = parseDeckFile(fileName, text);
   if (parsed.kind === 'cod') {
     const deck = parsed.deck;
     const named = hasDeckName(text) ? deck : { ...deck, name: deckFileBaseName(fileName) };
-    return named.format.trim() ? named : { ...named, format: inferDeckFormat(named.cards) };
+    return { deck: named.format.trim() ? named : { ...named, format: inferDeckFormat(named.cards) }, ignored: [] };
   }
-  return listToParsedDeck(parsed.list, deckFileBaseName(fileName));
+  return { deck: listToParsedDeck(parsed.list, deckFileBaseName(fileName)), ignored: parsed.list.ignored };
 }
 
 export function extraZoneSummary(extraZonesXml: readonly string[] | undefined): Array<{ zone: string; count: number }> {

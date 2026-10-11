@@ -177,6 +177,11 @@ describe('card edits', () => {
     expect(mergeDuplicateRows(rows.slice(0, 2))).toEqual(rows.slice(0, 2));
   });
 
+  it('keeps a zone named with a slash apart from a nested zone of the same spelling', () => {
+    const rows = [card('A', { zonePath: ['X/Y'] }), card('A', { zonePath: ['X', 'Y'] })];
+    expect(mergeDuplicateRows(rows)).toEqual(rows);
+  });
+
   it('appends a new row', () => {
     expect(appendCard(base, card('C')).cards.map((c) => c.name)).toEqual(['A', 'B', 'C']);
   });

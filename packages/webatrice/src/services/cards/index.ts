@@ -2,6 +2,8 @@ export {
   fetchAllPrintings,
   lookupCard,
   lookupCards,
+  printingKey,
+  printingRounds,
   lookupCardsCached,
   imageCandidatesOf,
   primaryImageUri,

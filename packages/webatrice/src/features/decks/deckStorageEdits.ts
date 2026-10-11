@@ -29,7 +29,7 @@ export function storageEditDraft(
 function cardsSignature(deck: ParsedDeck): string {
   return JSON.stringify([deck.cards.map((c) => [
     c.name, c.quantity, c.category, c.isCommander === true, c.set ?? '', c.collectorNumber ?? '', c.scryfallId ?? '',
-    c.zonePath?.join('/') ?? '',
+    c.zonePath ?? [],
   ]), deck.extraZonesXml ?? []]);
 }
 

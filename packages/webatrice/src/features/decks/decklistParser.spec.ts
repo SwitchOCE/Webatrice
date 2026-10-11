@@ -13,6 +13,11 @@ function rows(entries: ParsedEntry[]): Row[] {
   });
 }
 
+const COUNT_FORMS = [
+  '4* Lightning Bolt', '4Lightning Bolt', 'x4 Lightning Bolt', '[4] Lightning Bolt', '(4) Lightning Bolt', '4x Lightning Bolt',
+]
+  .join('\n');
+
 describe('parseDecklist', () => {
   it.each<[string, string, Row[], string[]?]>([
     ['plain counts', '4 Lightning Bolt\n20 Mountain', [[4, 'Lightning Bolt', 'main'], [20, 'Mountain', 'main']]],
@@ -52,6 +57,8 @@ describe('parseDecklist', () => {
       [[1, 'Sol Ring', 'main'], [1, 'Goblin', 'tokens'], [1, 'Cultivate', 'maybeboard']]],
     ['Deckstats comment headers', '//Main\n4 Lightning Bolt\n//Sideboard\n2 Negate',
       [[4, 'Lightning Bolt', 'main'], [2, 'Negate', 'sideboard']]],
+    ['desktop count forms', COUNT_FORMS,
+      Array.from({ length: 6 }, (): Row => [4, 'Lightning Bolt', 'main'])],
     ['curly apostrophes', '1 Praetors’ Grasp', [[1, 'Praetors\' Grasp', 'main']]],
     ['type group headers are skipped', 'Creatures (2)\n2 Goblin Guide', [[2, 'Goblin Guide', 'main']], ['Creatures (2)']],
     ['tabs and CRLF', '4\tLightning Bolt\r\n2 Mountain\r\n', [[4, 'Lightning Bolt', 'main'], [2, 'Mountain', 'main']]],

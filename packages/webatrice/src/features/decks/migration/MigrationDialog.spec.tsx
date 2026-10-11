@@ -57,3 +57,13 @@ it('explains that decks need a registered account', () => {
   setup(connectedState);
   expect(screen.getByText('DeckMigration.guest')).toBeInTheDocument();
 });
+
+it('lists the lines a deck file had that could not be read', async () => {
+  setup();
+  const burn = new File(['4 Lightning Bolt\n==== junk ===='], 'burn.txt');
+  Object.defineProperty(burn, 'webkitRelativePath', { value: 'Cockatrice/decks/burn.txt' });
+  fireEvent.change(screen.getByLabelText('DeckMigration.source.pickFolder'), { target: { files: [burn] } });
+
+  expect(await screen.findByText('DeckMigration.preview.ignored')).toBeInTheDocument();
+  expect(screen.getByText('==== junk ====')).toBeInTheDocument();
+});
