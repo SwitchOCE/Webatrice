@@ -95,12 +95,30 @@ function sameToken(a: Token, b: Token | undefined): boolean {
   return b !== undefined && JSON.stringify(a) === JSON.stringify(b);
 }
 
-function existingSourceFor(source: ScannedCardSource, stored: readonly CardSource[]): CardSource | undefined {
+const CUSTOM_SETS_FOLDER = 'customsets';
+
+export function customSetFileName(relativePath: string): string {
+  const segments = relativePath.split(/[\\/]/).filter(Boolean);
+  const folderIndex = segments.findLastIndex((segment) => segment.toLowerCase() === CUSTOM_SETS_FOLDER);
+  const inside = folderIndex >= 0 ? segments.slice(folderIndex + 1) : segments.slice(segments.length > 1 ? 1 : 0);
+  return inside.join('/');
+}
+
+function storedFileNameOf(source: ScannedCardSource): string {
+  return source.kind === 'custom' ? customSetFileName(source.path) : source.name;
+}
+
+function existingSourceFor(
+  source: ScannedCardSource,
+  stored: readonly CardSource[],
+  claimed: ReadonlySet<string>,
+): CardSource | undefined {
   if (source.kind === 'custom') {
-    return stored.find((s) => s.kind === 'custom' && s.fileName.toLowerCase() === source.name.toLowerCase());
+    const fileName = storedFileNameOf(source).toLowerCase();
+    return stored.find((s) => s.kind === 'custom' && !claimed.has(s.id) && s.fileName.toLowerCase() === fileName);
   }
   const id = sourceIdFor(source.kind, source.name, 0);
-  return stored.find((s) => s.id === id);
+  return stored.find((s) => s.id === id && !claimed.has(s.id));
 }
 
 async function saveSourceLayers(
@@ -108,13 +126,18 @@ async function saveSourceLayers(
   summary: CardSourceImportSummary,
 ): Promise<void> {
   const stored = await cardDatabaseService.listSources();
-  const pending: { source: ScannedCardSource; replacedId?: string }[] = [];
+  const claimed = new Set<string>();
+  const pending: { source: ScannedCardSource; fileName: string; replacedId?: string }[] = [];
   for (const source of sources) {
-    const existing = existingSourceFor(source, stored);
+    const fileName = storedFileNameOf(source);
+    const existing = existingSourceFor(source, stored, claimed);
+    if (existing) {
+      claimed.add(existing.id);
+    }
     if (existing && await cardDatabaseService.hasSourceXml(existing.id, source.xml)) {
-      summary.skipped.push({ name: source.name, reason: 'duplicate' });
+      summary.skipped.push({ name: fileName, reason: 'duplicate' });
     } else {
-      pending.push({ source, replacedId: existing?.id });
+      pending.push({ source, fileName, replacedId: existing?.id });
     }
   }
   if (!pending.length) {
@@ -122,22 +145,22 @@ async function saveSourceLayers(
   }
   try {
     const rebuild = await cardDatabaseService.addSources(
-      pending.map(({ source }): NewSourceInput => ({
-        fileName: source.name,
+      pending.map(({ source, fileName, replacedId }): NewSourceInput => ({
+        fileName,
         xml: source.xml,
         records: source.records,
         origin: 'file',
         kind: source.kind,
+        replaces: replacedId,
       })),
-      pending.flatMap(({ replacedId }) => (replacedId ? [replacedId] : [])),
     );
     summary.unknownSets = rebuild.unknownSets;
     summary.counts = rebuild.summary;
-    pending.forEach(({ source, replacedId }) => summary.imported.push(
-      replacedId ? { name: source.name, replaced: true } : { name: source.name },
+    pending.forEach(({ fileName, replacedId }) => summary.imported.push(
+      replacedId ? { name: fileName, replaced: true } : { name: fileName },
     ));
   } catch (error) {
-    pending.forEach(({ source }) => summary.failed.push({ name: source.name, reason: 'save-failed', detail: errorDetail(error) }));
+    pending.forEach(({ fileName }) => summary.failed.push({ name: fileName, reason: 'save-failed', detail: errorDetail(error) }));
   }
 }
 

@@ -91,6 +91,32 @@ describe('importCustomSetFiles (real Dexie)', () => {
     expect(await dexieService.cards.get('Homebrew')).toBeUndefined();
   });
 
+  it('keeps same-named sets in different folders apart and a replaced set in its load position', async () => {
+    const sharedXml = (code: string, text: string) => `<?xml version="1.0" encoding="UTF-8"?>
+<cockatrice_carddatabase version="4">
+  <sets><set><name>${code}</name></set></sets>
+  <cards><card><name>Shared</name><text>${text}</text><set>${code}</set></card></cards>
+</cockatrice_carddatabase>`;
+    const textOfShared = async () => (await dexieService.cards.get('Shared'))?.text?.value;
+
+    await importCustomSetFiles([
+      fileAt('customsets/A/cards.xml', sharedXml('AAA', 'from A')),
+      fileAt('customsets/B/cards.xml', sharedXml('BBB', 'from B')),
+    ]);
+    expect(await textOfShared()).toBe('from A');
+
+    const rerun = await importCustomSetFiles([
+      fileAt('Cockatrice/customsets/A/cards.xml', sharedXml('AAA', 'from A, edited')),
+      fileAt('Cockatrice/customsets/B/cards.xml', sharedXml('BBB', 'from B')),
+    ]);
+
+    expect(rerun.imported).toEqual([{ name: 'A/cards.xml', replaced: true }]);
+    expect(rerun.skipped).toEqual([{ name: 'B/cards.xml', reason: 'duplicate' }]);
+    const sources = await cardDatabaseService.listSources();
+    expect(sources.map((source) => [source.fileName, source.order])).toEqual([['A/cards.xml', 1], ['B/cards.xml', 2]]);
+    expect(await textOfShared()).toBe('from A, edited');
+  });
+
   it('puts desktop TK.xml into the token editor\'s custom tokens', async () => {
     const summary = await importCustomSetFiles([fileAt('customsets/TK.xml', desktopTokensXml)]);
 
