@@ -2,24 +2,17 @@ import { useMemo } from 'react';
 
 import { useWebClient } from '@cockatrice/datatrice/react';
 import { server } from '@cockatrice/datatrice';
-import { ServerInfo_User_UserLevelFlag, type ServerInfo_User } from '@cockatrice/sockatrice/generated';
+import { ServerInfo_User_UserLevelFlag } from '@cockatrice/sockatrice/generated';
 import { useOpenChat, usePrivateMessageFilter } from '@app/hooks';
 import { useAppSelector } from '@app/store';
 import { chatFilterVerdicts, visiblePrivateMessages } from '@app/utils';
 
 import { conversationSummaries, type ConversationSummary } from './conversationSummaries';
+import { groupPeople, type PeopleGroups } from './peopleGroups';
 
-export interface PersonRow {
-  name: string;
-  user: ServerInfo_User;
-  online: boolean;
-}
-
-export interface People {
+export interface People extends PeopleGroups {
   conversations: (ConversationSummary & { online: boolean })[];
-  buddies: PersonRow[];
-  ignored: PersonRow[];
-  onlineBuddies: number;
+  buddyCount: number;
   canEditLists: boolean;
   openChat: (name: string) => void;
   addBuddy: (name: string) => void;
@@ -35,8 +28,8 @@ export function usePeople(): People {
   const messages = useAppSelector((state) => state.server.messages);
   const users = useAppSelector(server.Selectors.getUsers);
   const buddyMap = useAppSelector(server.Selectors.getBuddyList);
-  const buddyList = useAppSelector(server.Selectors.getSortedBuddyList);
-  const ignoreList = useAppSelector(server.Selectors.getSortedIgnoreList);
+  const ignoreMap = useAppSelector(server.Selectors.getIgnoreList);
+  const locale = useAppSelector((state) => state.server.locale);
   const filter = usePrivateMessageFilter();
   const selfName = self?.name ?? null;
 
@@ -48,21 +41,16 @@ export function usePeople(): People {
     return conversationSummaries(visible, selfName).map((summary) => ({ ...summary, online: Boolean(users[summary.name]) }));
   }, [messages, users, buddyMap, filter, selfName]);
 
-  const buddies = useMemo(
-    () => buddyList.map((user) => ({ name: user.name, user, online: Boolean(users[user.name]) })),
-    [buddyList, users],
-  );
-  const ignored = useMemo(
-    () => ignoreList.map((user) => ({ name: user.name, user, online: Boolean(users[user.name]) })),
-    [ignoreList, users],
+  const groups = useMemo(
+    () => groupPeople({ buddyList: buddyMap, ignoreList: ignoreMap, onlineUsers: users, selfName, locale }),
+    [buddyMap, ignoreMap, users, selfName, locale],
   );
 
   const session = webClient.request.session;
   return {
     conversations,
-    buddies,
-    ignored,
-    onlineBuddies: buddies.filter((buddy) => buddy.online).length,
+    ...groups,
+    buddyCount: groups.onlineBuddies.length + groups.offlineBuddies.length,
     canEditLists: ((self?.userLevel ?? 0) & ServerInfo_User_UserLevelFlag.IsRegistered) !== 0,
     openChat,
     addBuddy: (name) => session.addToBuddyList(name),

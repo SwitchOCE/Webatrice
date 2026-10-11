@@ -24,8 +24,14 @@
       "count": "{online} online · {total}",
       "empty": "No buddies yet. Add one by name above."
     },
+    "groups": {
+      "onlineBuddies": "Online buddies · {count}",
+      "offlineBuddies": "Offline buddies · {count}",
+      "othersOnline": "Everyone else online · {count}"
+    },
     "buddy": {
       "message": "Message {name}",
+      "add": "Add {name} to buddies",
       "showGames": "Show games of {name}",
       "remove": "Remove {name} from buddies"
     },

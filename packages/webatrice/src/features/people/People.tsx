@@ -1,14 +1,15 @@
-import { useMemo, useState, type FormEvent } from 'react';
+import { useId, useMemo, useState, type FormEvent, type ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Info, UserRoundPlus, VolumeX } from 'lucide-react';
 
-import { AuthGuard, Button, PageTitle, Panel, TextInput } from '@app/components';
+import { AuthGuard, Button, PageTitle, Panel, SectionLabel, TextInput } from '@app/components';
 import { Layout } from '@app/feature-wrappers/layout';
 import { useUnreadCounts } from '@app/hooks';
 import { cx } from '@app/utils';
 
+import type { PersonRow } from './peopleGroups';
 import { BuddyRow, ConversationRow, IgnoredRow } from './PeopleRows';
-import { usePeople } from './usePeople';
+import { usePeople, type People as PeopleModel } from './usePeople';
 
 function EmptyNote({ children }: { children: string }) {
   return <p className="px-pad py-6 text-center text-[12.5px] text-text-muted">{children}</p>;
@@ -52,6 +53,63 @@ function AddPersonForm({ disabled, onAddBuddy, onIgnore }: AddPersonFormProps) {
         {t('People.add.ignore')}
       </Button>
     </form>
+  );
+}
+
+function PeopleGroup({ label, people, render }: { label: string; people: PersonRow[]; render: (person: PersonRow) => ReactNode }) {
+  const id = useId();
+  if (people.length === 0) {
+    return null;
+  }
+  return (
+    <div role="group" aria-labelledby={id} className="pb-1">
+      <h3 id={id} className="px-2.5 pb-1 pt-2">
+        <SectionLabel>{label}</SectionLabel>
+      </h3>
+      <ul>{people.map(render)}</ul>
+    </div>
+  );
+}
+
+function PeopleList({ people }: { people: PeopleModel }) {
+  const { t } = useTranslation();
+  const buddyRow = (person: PersonRow) => (
+    <BuddyRow
+      key={person.name}
+      person={person}
+      canEdit={people.canEditLists}
+      onMessage={() => people.openChat(person.name)}
+      onRemove={() => people.removeBuddy(person.name)}
+    />
+  );
+  const otherRow = (person: PersonRow) => (
+    <BuddyRow
+      key={person.name}
+      person={person}
+      canEdit={people.canEditLists}
+      onMessage={() => people.openChat(person.name)}
+      onAdd={() => people.addBuddy(person.name)}
+    />
+  );
+  return (
+    <div className="min-h-0 flex-1 overflow-y-auto px-1.5 py-1">
+      {people.buddyCount === 0 && <EmptyNote>{t('People.buddies.empty')}</EmptyNote>}
+      <PeopleGroup
+        label={t('People.groups.onlineBuddies', { count: people.onlineBuddies.length })}
+        people={people.onlineBuddies}
+        render={buddyRow}
+      />
+      <PeopleGroup
+        label={t('People.groups.offlineBuddies', { count: people.offlineBuddies.length })}
+        people={people.offlineBuddies}
+        render={buddyRow}
+      />
+      <PeopleGroup
+        label={t('People.groups.othersOnline', { count: people.othersOnline.length })}
+        people={people.othersOnline}
+        render={otherRow}
+      />
+    </div>
   );
 }
 
@@ -102,25 +160,11 @@ export default function People() {
 
           <Panel
             title={t('People.buddies.title')}
-            count={t('People.buddies.count', { online: people.onlineBuddies, total: people.buddies.length })}
+            count={t('People.buddies.count', { online: people.onlineBuddies.length, total: people.buddyCount })}
             flush
             bodyClassName="flex flex-col"
           >
-            {people.buddies.length === 0 ? (
-              <EmptyNote>{t('People.buddies.empty')}</EmptyNote>
-            ) : (
-              <ul className="min-h-0 flex-1 overflow-y-auto px-1.5 py-2">
-                {people.buddies.map((person) => (
-                  <BuddyRow
-                    key={person.name}
-                    person={person}
-                    canEdit={people.canEditLists}
-                    onMessage={() => people.openChat(person.name)}
-                    onRemove={() => people.removeBuddy(person.name)}
-                  />
-                ))}
-              </ul>
-            )}
+            <PeopleList people={people} />
           </Panel>
 
           <Panel title={t('People.ignored.title')} count={people.ignored.length} flush bodyClassName="flex flex-col">

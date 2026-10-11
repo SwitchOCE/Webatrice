@@ -16,8 +16,19 @@ const state = {
   server: {
     ...connectedState.server!,
     user: makeUser({ name: 'me', userLevel: 3 }),
-    users: { alice: makeUser({ name: 'alice', userLevel: 3 }) },
-    buddyList: { alice: makeUser({ name: 'alice', userLevel: 3 }), carol: makeUser({ name: 'carol', userLevel: 3 }) },
+    users: {
+      me: makeUser({ name: 'me', userLevel: 3 }),
+      zoe: makeUser({ name: 'zoe', userLevel: 11 }),
+      alice: makeUser({ name: 'alice', userLevel: 3 }),
+      mallory: makeUser({ name: 'mallory', userLevel: 1 }),
+      Bob: makeUser({ name: 'Bob', userLevel: 1 }),
+      troll: makeUser({ name: 'troll', userLevel: 1 }),
+    },
+    buddyList: {
+      zoe: makeUser({ name: 'zoe', userLevel: 11 }),
+      alice: makeUser({ name: 'alice', userLevel: 3 }),
+      carol: makeUser({ name: 'carol', userLevel: 3 }),
+    },
     ignoreList: { troll: makeUser({ name: 'troll', userLevel: 3 }) },
     messages: {
       alice: [message('alice', 'me', 'first', 1)],
@@ -51,13 +62,29 @@ describe('People', () => {
 
   it('shows buddies with their online state and actions', () => {
     const { webClient } = renderPeople();
-    const buddies = screen.getByRole('heading', { name: 'People.buddies.title' }).closest('section')!;
-    const items = within(buddies).getAllByRole('listitem');
-    expect(items).toHaveLength(2);
-    const carol = items.find((item) => item.textContent?.includes('carol'))!;
-    expect(within(carol).getByRole('button', { name: 'People.buddy.message' })).toBeDisabled();
-    fireEvent.click(within(carol).getByRole('button', { name: 'People.buddy.remove' }));
+    const offline = screen.getByRole('group', { name: 'People.groups.offlineBuddies' });
+    const items = within(offline).getAllByRole('listitem');
+    expect(items).toHaveLength(1);
+    expect(within(items[0]).getByRole('button', { name: 'People.buddy.message' })).toBeDisabled();
+    fireEvent.click(within(items[0]).getByRole('button', { name: 'People.buddy.remove' }));
     expect(webClient.request.session.removeFromBuddyList).toHaveBeenCalledWith('carol');
+  });
+
+  it('lists online buddies, then offline buddies, then everyone else online, each A-Z', () => {
+    const { webClient } = renderPeople();
+    const groups = screen.getAllByRole('group', { name: /^People\.groups\./ }).map((group) => [
+      within(group).getByRole('heading').textContent,
+      within(group).getAllByRole('listitem').map((item) => item.textContent),
+    ]);
+    expect(groups).toEqual([
+      ['People.groups.onlineBuddies', [expect.stringContaining('alice'), expect.stringContaining('zoe')]],
+      ['People.groups.offlineBuddies', [expect.stringContaining('carol')]],
+      ['People.groups.othersOnline', [expect.stringContaining('Bob'), expect.stringContaining('mallory')]],
+    ]);
+    const others = screen.getByRole('group', { name: 'People.groups.othersOnline' });
+    expect(within(others).queryByRole('button', { name: 'People.buddy.remove' })).toBeNull();
+    fireEvent.click(within(others).getAllByRole('button', { name: 'People.buddy.add' })[0]);
+    expect(webClient.request.session.addToBuddyList).toHaveBeenCalledWith('Bob');
   });
 
   it('removes someone from the ignore list', () => {
