@@ -1,10 +1,11 @@
-/* Pre-boot fallback tokens mirror src/styles/tokens.css. */
+/* Pre-boot tokens mirror src/styles/tokens.css for the palette preflight.js applies from the
+   saved theme (html data-theme and data-scheme); the bare block is the default theme's dark palette. */
 .Unsupported {
-  --bg-base: 20 16 31;
-  --bg-surface: 31 24 48;
-  --border-subtle: 58 46 90;
-  --text-primary: 245 240 246;
-  --text-secondary: 199 191 212;
+  --bg-base: 30 31 34;
+  --bg-surface: 43 45 49;
+  --border-subtle: 70 73 79;
+  --text-primary: 242 243 245;
+  --text-secondary: 208 211 216;
   box-sizing: border-box;
   min-height: 100vh;
   display: flex;
@@ -45,4 +46,25 @@
 }
 .Unsupported-paper__note {
   color: rgb(var(--text-secondary));
+}
+[data-scheme='midnight'][data-theme='dark'] .Unsupported {
+  --bg-base: 20 17 29;
+  --bg-surface: 32 28 45;
+  --border-subtle: 67 60 92;
+  --text-primary: 244 242 248;
+  --text-secondary: 208 203 220;
+}
+[data-scheme='carbon'][data-theme='dark'] .Unsupported {
+  --bg-base: 18 18 18;
+  --bg-surface: 29 29 29;
+  --border-subtle: 55 55 55;
+  --text-primary: 245 245 245;
+  --text-secondary: 207 207 207;
+}
+[data-theme='light'] .Unsupported {
+  --bg-base: 239 240 244;
+  --bg-surface: 255 255 255;
+  --border-subtle: 212 213 221;
+  --text-primary: 22 23 29;
+  --text-secondary: 60 62 74;
 }

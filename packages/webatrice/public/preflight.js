@@ -21,7 +21,9 @@
 // It carries the English strings of Unsupported.i18n.json and
 // BrowserFeature.i18n.json, swaps in the user's language from
 // public/locales when that loads, and copies the theme tokens it needs from
-// src/styles/tokens.css. browserSupport.spec.ts keeps both copies in step.
+// src/styles/tokens.css. browserSupport.spec.ts keeps both copies in step. It
+// paints the theme and palette saved for the next boot, resolved as the app's
+// bootColorScheme does.
 (function preflight(root) {
   'use strict';
 
@@ -245,6 +247,33 @@
     return strings;
   }
 
+  function storedChoice(key, allowed) {
+    var value = null;
+    try {
+      value = root.localStorage.getItem(key);
+    } catch (error) {
+      value = null;
+    }
+    for (var i = 0; i < allowed.length; i++) {
+      if (allowed[i] === value) {
+        return value;
+      }
+    }
+    return null;
+  }
+
+  function applySavedTheme() {
+    var savedMode = storedChoice('webatrice.themeMode', ['system', 'light', 'dark']);
+    var name = storedChoice('webatrice.themeName', ['midnight', 'graphite', 'carbon'])
+      || (savedMode ? 'midnight' : 'graphite');
+    var mode = savedMode || 'dark';
+    if (mode === 'system') {
+      mode = isFunction(root.matchMedia) && !root.matchMedia('(prefers-color-scheme: dark)').matches ? 'light' : 'dark';
+    }
+    document.documentElement.setAttribute('data-theme', mode);
+    document.documentElement.setAttribute('data-scheme', name);
+  }
+
   function preferredLocales() {
     var language = null;
     try {
@@ -310,6 +339,7 @@
     style.rel = 'stylesheet';
     style.href = baseUrl + 'preflight.css';
     (document.head || document.documentElement).appendChild(style);
+    applySavedTheme();
     render(support.missingRequired, STRINGS);
 
     var locales = preferredLocales();
