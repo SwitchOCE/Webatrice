@@ -4,7 +4,43 @@ import { getSettings, settingsStore } from '../../../../../hooks/useSettings';
 
 import Card from './SeatCard';
 
+const cardFaceRender = vi.hoisted(() => vi.fn());
+vi.mock('@app/hooks', async (importOriginal) => {
+  const original = await importOriginal<typeof import('@app/hooks')>();
+  return {
+    ...original,
+    usePreference: (...args: Parameters<typeof original.usePreference>) => {
+      cardFaceRender(...args);
+      return original.usePreference(...args);
+    },
+  };
+});
+
 describe('SeatCard', () => {
+  it('rerenders only card faces whose shallow props change', () => {
+    const counters = [{ id: 0, value: 2 }];
+    const Faces = ({ changedName, stableCounters }: { changedName: string; stableCounters: typeof counters }) => (
+      <>
+        <Card name="Grizzly Bears" counters={stableCounters} />
+        <Card name={changedName} />
+      </>
+    );
+    const view = render(<Faces changedName="Shock" stableCounters={counters} />);
+    cardFaceRender.mockClear();
+
+    view.rerender(<Faces changedName="Lightning Bolt" stableCounters={counters} />);
+
+    expect(cardFaceRender).toHaveBeenCalledOnce();
+    expect(screen.queryByText('Shock')).not.toBeInTheDocument();
+    expect(screen.getByText('Lightning Bolt')).toBeInTheDocument();
+
+    cardFaceRender.mockClear();
+    view.rerender(<Faces changedName="Lightning Bolt" stableCounters={[{ id: 0, value: 3 }]} />);
+
+    expect(cardFaceRender).toHaveBeenCalledOnce();
+    expect(screen.getByText('3')).toBeInTheDocument();
+  });
+
   it('draws its name, P/T and annotation in the over-art colours, whatever the theme', () => {
     render(<Card name="Grizzly Bears" pt="2/2" basePT="2/2" annotation="token" />);
     for (const text of ['Grizzly Bears', '2/2', 'token']) {

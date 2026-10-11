@@ -55,6 +55,24 @@ function cellById(cells: BoardCell[]): Map<number, BoardCell> {
 }
 
 describe('useGameBoardLayout', () => {
+  it('retains cells across unrelated game updates and refreshes seating and access inputs', () => {
+    const game = buildGame({ localPlayerId: 1, playerSpec: seats([1, 2, 3]) });
+    const { result, rerender } = renderHook(({ value }) => useGameBoardLayout(value), { initialProps: { value: game } });
+    const before = result.current;
+    rerender({ value: { ...game, secondsElapsed: 15, players: { ...game.players } } });
+    expect(result.current).toBe(before);
+    rerender({ value: { ...game, seatOrder: [1, 3, 2] } });
+    expect(result.current.cells.map((cell) => cell.playerId)).toEqual([1, 3, 2]);
+    rerender({ value: { ...game, judge: true } });
+    expect(result.current.cells.every((cell) => cell.canAct)).toBe(true);
+    rerender({ value: { ...game, spectator: true } });
+    expect(result.current.bottomHand).toBeUndefined();
+    rerender({ value: { ...game, localPlayerId: 2 } });
+    expect(result.current.bottomHand?.playerId).toBe(2);
+    rerender({ value: { ...game, info: makeGameInfo({ spectatorsOmniscient: true }) } });
+    expect(result.current.handMode).toBe('inline');
+  });
+
   it('returns empty defaults when no game is provided', () => {
     const { result } = renderHook(() => useGameBoardLayout(undefined));
     expect(result.current.cells).toEqual([]);

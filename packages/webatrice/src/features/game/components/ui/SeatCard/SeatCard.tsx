@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { memo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { usePreference } from '@app/hooks';
 import { ScryfallImageSize } from '@cockatrice/datatrice';
@@ -50,7 +50,7 @@ interface Props {
   imageUri?: string;
 }
 
-export default function Card({ name, scryfallId, pt, basePT, annotation, id, faceDown, counters, imageUri }: Props) {
+function Card({ name, scryfallId, pt, basePT, annotation, id, faceDown, counters, imageUri }: Props) {
   // Cockatrice's rule (card_item.cpp): PT is orange when face-down or
   // when the current PT differs from the printed base; otherwise white.
   // A missing basePT (non-creature with no printed PT) can't be
@@ -261,3 +261,5 @@ export default function Card({ name, scryfallId, pt, basePT, annotation, id, fac
     </div>
   );
 }
+
+export default memo(Card);

@@ -1,5 +1,9 @@
 import { ZoneName } from '@cockatrice/sockatrice';
-import { makeCard, makeZoneEntry } from '@cockatrice/datatrice/testing';
+import { create } from '@bufbuild/protobuf';
+import { Event_SetCounterSchema } from '@cockatrice/sockatrice/generated';
+import { act } from '@testing-library/react';
+import { games } from '@cockatrice/datatrice';
+import { makeCard, makePlayerProperties, makeZoneEntry } from '@cockatrice/datatrice/testing';
 import { renderWithProviders } from '../../../../../__test-utils__';
 import { buildSeatGameState, LIFE_COUNTER_ID, MANA_COUNTER_IDS, type SeatGameSpec } from '../../../__test-utils__/seatFixtures';
 import type { BoardCell } from '../../../hooks/useGameBoardLayout';
@@ -44,10 +48,60 @@ function renderModel(cell: BoardCell, options: {
     return null;
   }
   const utils = renderWithProviders(<Probe />, { preloadedState, gameId });
-  return { ...utils, model: () => seen[seen.length - 1] };
+  return { ...utils, model: () => seen[seen.length - 1], renders: () => seen.length };
 }
 
 describe('usePlayerSeatViewModel', () => {
+  it('does not render a seat for unrelated life, hand or battlefield changes', () => {
+    const { store, model, renders } = renderModel(OWN);
+    const before = model();
+    const count = renders();
+    act(() => store.dispatch(games.Actions.counterSet({
+      gameId: 1, playerId: 2, data: create(Event_SetCounterSchema, { counterId: LIFE_COUNTER_ID, value: 16 }),
+    })));
+    act(() => store.dispatch(games.Actions.zoneCardCountAdjusted({
+      gameId: 1, playerId: 2, zoneName: ZoneName.HAND, delta: 1,
+    })));
+    act(() => store.dispatch(games.Actions.cardMovedInSameZone({
+      gameId: 1, playerId: 2, zoneName: ZoneName.TABLE, cardId: 20, toIndex: 0,
+      card: makeCard({ ...BEAR, tapped: true }),
+    })));
+    expect(renders()).toBe(count);
+    expect(model()).toBe(before);
+    expect(store.getState().games.games[1].players[2].zones.table.byId[20].tapped).toBe(true);
+  });
+
+  it('updates foreign attachment content, membership and order while retaining reveal targets', () => {
+    const { store, model } = renderModel(OWN);
+    const targets = model().seat.revealTargets;
+    const move = (card: typeof AURA, toIndex: number) => act(() => store.dispatch(games.Actions.cardMovedInSameZone({
+      gameId: 1, playerId: 2, zoneName: ZoneName.TABLE, cardId: card.id, toIndex, card,
+    })));
+    move(makeCard({ ...AURA, tapped: true }), 1);
+    expect(model().zones.battlefield.cards.at(-1)).toMatchObject({ id: '21', tapped: true, ownerPlayerId: 2 });
+    move(makeCard({ ...BEAR, attachPlayerId: 1, attachZone: ZoneName.TABLE, attachCardId: 10 }), 1);
+    expect(model().zones.battlefield.cards.map((card) => card.id)).toEqual(['10', '11', '21', '20']);
+    move(makeCard({ ...AURA, attachCardId: -1 }), 0);
+    expect(model().zones.battlefield.cards.map((card) => card.id)).toEqual(['10', '11', '20']);
+    expect(model().seat.revealTargets).toBe(targets);
+  });
+
+  it('updates reveal target names and seating without rebuilding the battlefield', () => {
+    const { store, model } = renderModel(OWN, { mutate: (state) => {
+      state.games.pings = { 1: {} };
+    } });
+    const battlefield = model().zones.battlefield;
+    act(() => store.dispatch(games.Actions.playerPropertiesUpdated({
+      gameId: 1, playerId: 2, properties: makePlayerProperties({ playerId: 2, userInfo: { name: 'Renamed' } }),
+    })));
+    expect(model().seat.revealTargets[0]).toEqual({ playerId: 2, name: 'Renamed' });
+    act(() => store.dispatch(games.Actions.playerPropertiesUpdated({
+      gameId: 1, playerId: 3, properties: makePlayerProperties({ playerId: 3, conceded: true }),
+    })));
+    expect(model().seat.revealTargets).toEqual([{ playerId: 2, name: 'Renamed' }]);
+    expect(model().zones.battlefield).toBe(battlefield);
+  });
+
   it('projects the seat identity, turn and layout flags', () => {
     expect(renderModel(OWN).model().seat).toEqual({
       playerId: 1,

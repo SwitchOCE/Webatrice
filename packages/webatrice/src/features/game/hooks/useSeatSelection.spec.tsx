@@ -13,7 +13,7 @@ const SEAT_ONE: SeatSelectableCards = {
 const SEAT_TWO: SeatSelectableCards = { hand: [], battlefield: [{ id: '20' }], stack: [] };
 
 function renderSeats(initial: ReadonlySet<string> = new Set()) {
-  const game = { keys: initial };
+  const game = { keys: initial, renders: 0 };
   function Provider({ children }: { children: ReactNode }) {
     const [keys, setKeys] = useState(initial);
     game.keys = keys;
@@ -24,13 +24,35 @@ function renderSeats(initial: ReadonlySet<string> = new Set()) {
     );
   }
   const { result } = renderHook(
-    () => ({ one: useSeatSelection(1, SEAT_ONE), two: useSeatSelection(2, SEAT_TWO) }),
+    () => {
+      game.renders += 1;
+      return { one: useSeatSelection(1, SEAT_ONE), two: useSeatSelection(2, SEAT_TWO) };
+    },
     { wrapper: Provider },
   );
   return { result, game };
 }
 
 describe('useSeatSelection', () => {
+  it('reuses the published set only when its keys and order are unchanged', () => {
+    const firstKey = makeCardKey(1, 'table', 10);
+    const secondKey = makeCardKey(3, 'table', 99);
+    const initial = new Set([firstKey, secondKey]);
+    const { result, game } = renderSeats(initial);
+    const rendersBeforeSameSelection = game.renders;
+
+    act(() => result.current.one.setSelection({ zone: 'battlefield', ids: new Set(['10', '99']) }));
+
+    expect(game.keys).toBe(initial);
+    expect(game.renders).toBe(rendersBeforeSameSelection);
+
+    act(() => result.current.one.setSelection({ zone: 'battlefield', ids: new Set(['99', '10']) }));
+
+    expect(game.keys).not.toBe(initial);
+    expect([...game.keys]).toEqual([secondKey, firstKey]);
+    expect(game.renders).toBeGreaterThan(rendersBeforeSameSelection);
+  });
+
   it('writes game keys with each card\'s real owner and wire zone', () => {
     const { result, game } = renderSeats();
 
