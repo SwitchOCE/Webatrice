@@ -1,6 +1,14 @@
 import type { Page } from '@playwright/test';
 
+export interface SeatSummary {
+  name: string;
+  columns: number;
+  scrolls: boolean;
+  scale: number;
+}
+
 export interface BoardReport {
+  seatSummaries: SeatSummary[];
   seats: number;
   cards: number;
   cardWidthPx: number;
@@ -51,12 +59,13 @@ export function boardReport(page: Page): Promise<BoardReport> {
     const minScale = cardWidthPx <= MIN_CARD_WIDTH_PX + 0.01;
     const board = document.querySelector<HTMLElement>('[data-game-board]');
     if (!board) {
-      return { seats: 0, cards: 0, cardWidthPx, minScale, violations: ['no game board'] };
+      return { seatSummaries: [], seats: 0, cards: 0, cardWidthPx, minScale, violations: ['no game board'] };
     }
     const boardBox = clientBox(board);
     const seats = [...board.querySelectorAll<HTMLElement>('[role="region"]')]
       .filter((el) => el.querySelector('[data-battlefield-owner]'));
     let cards = 0;
+    const seatSummaries: SeatSummary[] = [];
 
     seats.forEach((seat, i) => {
       const name = seat.getAttribute('aria-label') ?? `seat ${i}`;
@@ -74,6 +83,30 @@ export function boardReport(page: Page): Promise<BoardReport> {
       });
 
       const scroller = seat.querySelector<HTMLElement>('[data-battlefield-owner]')!;
+      const cols = [...scroller.querySelectorAll<HTMLElement>('[data-slot-col]')]
+        .map((el) => Number(el.dataset.slotCol))
+        .filter((col) => col >= 0);
+      const columns = cols.length > 0 ? Math.max(...cols) + 1 : 0;
+      const cell = seat.closest<HTMLElement>('[data-card-scale]');
+      const seatScale = Number(cell?.dataset.cardScale ?? cardWidthPx / 72);
+      const scrollsSideways = scroller.scrollWidth > scroller.clientWidth + 1;
+      seatSummaries.push({ name, columns, scrolls: scrollsSideways, scale: seatScale });
+      if (columns <= 7 && scrollsSideways && seatScale > 0.5) {
+        violations.push(`${name}: ${columns} columns scroll sideways (${scroller.scrollWidth} > ${scroller.clientWidth})`);
+      }
+      if (columns >= 8 && seatScale > 0.5) {
+        if (!scrollsSideways) {
+          violations.push(`${name}: ${columns} columns don't scroll sideways`);
+        }
+        const viewBox = clientBox(scroller);
+        for (const card of scroller.querySelectorAll<HTMLElement>('[data-slot-col]')) {
+          const col = Number(card.dataset.slotCol);
+          const r = box(card);
+          if (col >= 0 && col < 7 && scroller.scrollLeft === 0 && (r.left < viewBox.left - TOL || r.right > viewBox.right + TOL)) {
+            violations.push(`${name}: column ${col + 1} of ${columns} is not in view at the seven-column scale`);
+          }
+        }
+      }
       const scrollerBox = box(scroller);
       if (!inside(scrollerBox, seatBox)) {
         violations.push(`${name}: battlefield ${fmt(scrollerBox)} spills out of the seat ${fmt(seatBox)}`);
@@ -103,8 +136,29 @@ export function boardReport(page: Page): Promise<BoardReport> {
       }
       const controls = [
         life,
-        ...info.querySelectorAll<HTMLElement>('[role="group"], [data-pile-count], button'),
+        ...info.querySelectorAll<HTMLElement>('[role="group"], [data-pile-count], [data-hand-tile], button'),
       ];
+      const handTile = info.querySelector<HTMLElement>('[data-hand-tile]');
+      const piles = [...info.querySelectorAll<HTMLElement>('[data-pile-count]')];
+      if (!handTile) {
+        violations.push(`${name}: the state bar has no hand tile`);
+      }
+      if (piles.length === 3 && handTile) {
+        const [library, graveyard, exile] = piles.map(box);
+        const hand = box(handTile);
+        const fullWidth = (b: Box) => b.right - b.left >= (infoBox.right - infoBox.left) * 0.6;
+        if (!(hand.bottom <= library.top + TOL && library.bottom <= graveyard.top + TOL)) {
+          violations.push(`${name}: the state bar is not hand, then library, then graveyard and exile`);
+        }
+        if (!fullWidth(hand) || !fullWidth(library)) {
+          violations.push(`${name}: hand and library don't span the state bar`);
+        }
+        if (Math.abs(graveyard.top - exile.top) > TOL || graveyard.right > exile.left + TOL) {
+          violations.push(`${name}: graveyard and exile are not side by side`);
+        }
+      } else if (piles.length !== 0) {
+        violations.push(`${name}: the state bar has ${piles.length} piles`);
+      }
       for (const control of controls) {
         const label = control.getAttribute('aria-label') ?? control.getAttribute('title') ?? control.tagName;
         const r = box(control);
@@ -121,8 +175,52 @@ export function boardReport(page: Page): Promise<BoardReport> {
       }
     });
 
-    return { seats: seats.length, cards, cardWidthPx, minScale, violations };
+    return { seatSummaries, seats: seats.length, cards, cardWidthPx, minScale, violations };
   });
+}
+
+export interface PreviewReport {
+  pane: Rect | null;
+  sidebar: Rect | null;
+  image: Rect | null;
+  viewport: { width: number; height: number };
+}
+
+export function previewReport(page: Page): Promise<PreviewReport> {
+  return page.evaluate(() => {
+    const rect = (el: Element | null) => {
+      if (!el) {
+        return null;
+      }
+      const r = el.getBoundingClientRect();
+      return { left: r.left, top: r.top, right: r.right, bottom: r.bottom };
+    };
+    const pane = document.querySelector('[data-testid="card-preview-pane"]');
+    return {
+      pane: rect(pane),
+      sidebar: rect(document.querySelector('[data-testid="right-panel"]')),
+      image: rect(pane?.querySelector('img') ?? null),
+      viewport: { width: window.innerWidth, height: window.innerHeight },
+    };
+  });
+}
+
+export function previewViolations(report: PreviewReport): string[] {
+  const out: string[] = [];
+  const { pane, sidebar, image, viewport } = report;
+  if (!pane || !sidebar) {
+    return ['no card preview in the game sidebar'];
+  }
+  if (Math.abs(pane.top - sidebar.top) > 60 || Math.abs(pane.right - viewport.width) > 2) {
+    out.push(`the card preview [${Math.round(pane.left)},${Math.round(pane.top)}] is not at the top right`);
+  }
+  if (pane.left < sidebar.left - 1.5 || pane.right > sidebar.right + 1.5) {
+    out.push('the card preview spills out of the sidebar');
+  }
+  if (image && (image.top < pane.top - 1.5 || image.bottom > pane.bottom + 1.5 || image.bottom > viewport.height)) {
+    out.push('the previewed card image is cut off');
+  }
+  return out;
 }
 
 export interface DockItem {
@@ -270,9 +368,8 @@ export function dockViolations(report: DockReport): string[] {
   const anchor = (report.sidebar ? report.sidebar.left : viewport.width) - DOCK_MARGIN_PX;
   const tray = report.tray;
   const freeRoom = tray ? anchor - (tray.left + tray.keep) : Infinity;
-  const hasChips = items.some((item) => item.kind === 'chip');
   const lifted = tray !== null && items.length > 0 && items.every((item) => Math.abs(item.bottom - tray.top) <= 1.5);
-  if (lifted && WINDOW_PX + (hasChips ? CHIP_MIN_PX + GAP_PX : 0) <= freeRoom) {
+  if (lifted && WINDOW_PX + (items.length > 1 ? CHIP_MIN_PX + GAP_PX : 0) <= freeRoom) {
     out.push(`the dock sits on the tray although ${Math.round(freeRoom)}px beside the tray controls would hold it`);
   }
   if (!lifted && tray && report.region && report.region.left < tray.left + tray.keep - 1.5) {

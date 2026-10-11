@@ -1,6 +1,6 @@
 import { expect, test, type Page } from '@playwright/test';
 
-import { boardReport, dockReport, dockViolations } from '../fixtures/geometry';
+import { boardReport, dockReport, dockViolations, previewReport, previewViolations } from '../fixtures/geometry';
 import { closeChats, openChats, openHarness, settle, showCardInPreview } from '../fixtures/harness';
 
 const VIEWPORTS = [
@@ -30,6 +30,12 @@ for (const players of PLAYER_COUNTS) {
           expect(report.seats, `${viewport.width}x${viewport.height} seats`).toBe(players);
           expect(report.cards, `${viewport.width}x${viewport.height} cards`).toBeGreaterThan(players * 15);
           failures.push(...report.violations.map((v) => `${viewport.width}x${viewport.height}: ${v}`));
+          failures.push(...previewViolations(await previewReport(page)).map((v) => `${viewport.width}x${viewport.height}: ${v}`));
+          if (players >= 4) {
+            const columns = report.seatSummaries.map((seat) => seat.columns);
+            expect(columns.some((n) => n >= 8), 'a seat with eight or more columns').toBe(true);
+            expect(columns.some((n) => n === 7), 'a seat with exactly seven columns').toBe(true);
+          }
         }
         expect(failures).toEqual([]);
       });
