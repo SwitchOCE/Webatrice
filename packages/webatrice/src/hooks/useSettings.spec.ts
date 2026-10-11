@@ -15,13 +15,17 @@ vi.mock('@app/services', () => ({
   },
   migrateSetting: vi.fn((row: any) => {
     row.migrated = true;
+    if ((row.version ?? 0) < 5) {
+      row.themeName = 'midnight';
+    }
+    row.version = 5;
     return row;
   }),
 }));
 
 vi.mock('@app/types', () => ({
   APP_USER: '*app',
-  PREFERENCE_DEFAULTS: { playToStack: true, soundEnabled: false, messageMacros: [] },
+  PREFERENCE_DEFAULTS: { playToStack: true, soundEnabled: false, messageMacros: [], themeName: 'graphite' },
 }));
 
 // Each spec resets module state so the shared store starts fresh.
@@ -66,6 +70,34 @@ describe('useSettings', () => {
       expect(result.current.value.autoConnect).toBe(false);
     }
     expect(mockSave).toHaveBeenCalledTimes(1);
+  });
+
+  test('gives a first visit the default theme, not the one migrations keep for existing users', async () => {
+    storedSetting = null;
+
+    const { result } = renderHook(() => useSettingsModule.useSettings());
+
+    await waitFor(() => {
+      expect(result.current.status).toBe(LoadingState.READY);
+    });
+
+    if (result.current.status === LoadingState.READY) {
+      expect(result.current.value.themeName).toBe('graphite');
+    }
+  });
+
+  test('keeps the migrated theme for an existing row', async () => {
+    storedSetting = { user: '*app', version: 4, save: mockSave };
+
+    const { result } = renderHook(() => useSettingsModule.useSettings());
+
+    await waitFor(() => {
+      expect(result.current.status).toBe(LoadingState.READY);
+    });
+
+    if (result.current.status === LoadingState.READY) {
+      expect(result.current.value.themeName).toBe('midnight');
+    }
   });
 
   test('update() persists the patch and re-renders with a new snapshot', async () => {
