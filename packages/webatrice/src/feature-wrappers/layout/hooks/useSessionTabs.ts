@@ -16,7 +16,6 @@ import {
 import { useBackendDeckNames } from './useBackendDeckNames';
 import { useIdentityChange } from './useIdentityChange';
 import { usePersistLastRoute } from './usePersistLastRoute';
-import { usePrivateChatRegistration } from './usePrivateChatRegistration';
 import { useStickyTabs } from './useStickyTabs';
 
 export interface SessionTabs {
@@ -45,7 +44,6 @@ export function useSessionTabs(): SessionTabs {
   const openedReplays = useOpenedReplays();
 
   const [stickyTabs, setStickyTabs] = useStickyTabs();
-  const unregisterPrivateChat = usePrivateChatRegistration(stickyTabs);
   useEffect(() => {
     const transient = detectTransientTab(location.pathname);
     if (!transient || !isStickyTabType(transient.type) || isPlaceTab(transient)) {
@@ -147,14 +145,13 @@ export function useSessionTabs(): SessionTabs {
 
   const close = useCallback((tab: Tab) => {
     tab.onClose?.();
-    unregisterPrivateChat(tab);
     if (isStickyTabType(tab.type)) {
       setStickyTabs((prev) => prev.filter((other) => other.key !== tab.key));
     }
     if (activeKey === tab.key) {
       navigate(generatePath(RouteEnum.SERVER));
     }
-  }, [activeKey, navigate, setStickyTabs, unregisterPrivateChat]);
+  }, [activeKey, navigate, setStickyTabs]);
 
   const groups = useMemo(() => stripGroups(tabs), [tabs]);
   const unreadOf = useCallback((tab: Tab) => tabUnread(tab, unreadCounts), [unreadCounts]);

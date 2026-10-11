@@ -1,4 +1,4 @@
-import { RouteEnum } from '@app/types';
+import { PlayBadgeMode, PREFERENCE_DEFAULTS, RouteEnum } from '@app/types';
 
 import { NAV_PLACES, placeBadges, placeForPath } from './navPlaces';
 
@@ -40,11 +40,24 @@ describe('placeForPath', () => {
 });
 
 describe('placeBadges', () => {
-  it('counts rooms and games on Play and chats on People', () => {
-    expect(placeBadges({ rooms: { 1: 2, 4: 1 }, games: { 7: 3 }, chats: { bob: 1, ann: 2 } })).toEqual({ play: 6, people: 3 });
+  const counts = {
+    rooms: { 1: 2, 4: 1 },
+    games: { 7: 3 },
+    chats: { bob: 1, ann: 2 },
+    mentions: { rooms: { 4: 1 }, games: { 7: 1 } },
+  };
+
+  it('counts only mentions in rooms and games on Play by default, and chats on People', () => {
+    expect(placeBadges(counts, PREFERENCE_DEFAULTS.playBadge)).toEqual({ play: 2, people: 3 });
+  });
+
+  it('counts all room and game activity on Play when asked to', () => {
+    expect(placeBadges(counts, PlayBadgeMode.All)).toEqual({ play: 6, people: 3 });
   });
 
   it('is zero with nothing unread', () => {
-    expect(placeBadges({ rooms: {}, games: {}, chats: {} })).toEqual({ play: 0, people: 0 });
+    const none = { rooms: {}, games: {}, chats: {}, mentions: { rooms: {}, games: {} } };
+    expect(placeBadges(none, PlayBadgeMode.Mentions)).toEqual({ play: 0, people: 0 });
+    expect(placeBadges(none, PlayBadgeMode.All)).toEqual({ play: 0, people: 0 });
   });
 });

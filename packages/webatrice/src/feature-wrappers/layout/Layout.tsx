@@ -2,7 +2,6 @@ import { ReactNode } from 'react';
 
 import NavRail from './NavRail';
 import TopBar from './TopBar';
-import { useNavRailHidden } from './hooks/useNavRailHidden';
 
 interface LayoutProps {
   showNav?: boolean;
@@ -12,10 +11,9 @@ interface LayoutProps {
 }
 
 function Layout({ children, className, showNav = true, noHeightLimit = false }: LayoutProps) {
-  const [railHidden] = useNavRailHidden();
   return (
     <div className={['flex h-full bg-bg-base', noHeightLimit ? '' : 'min-h-0'].join(' ')}>
-      {showNav && !railHidden && <NavRail />}
+      {showNav && <NavRail />}
       <div className="flex min-w-0 flex-1 flex-col">
         {showNav && <TopBar />}
         <main tabIndex={-1} className="flex-1 min-h-0 overflow-clip">

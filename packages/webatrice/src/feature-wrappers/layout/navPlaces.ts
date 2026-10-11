@@ -1,7 +1,8 @@
 import { matchPath } from 'react-router-dom';
 import { Film, Library, Settings, Swords, Users, type LucideIcon } from 'lucide-react';
 
-import { RouteEnum } from '@app/types';
+import type { MentionCounts } from '@app/services';
+import { PlayBadgeMode, RouteEnum } from '@app/types';
 
 import type { TabUnreadCounts } from './topBarTabs';
 
@@ -45,9 +46,15 @@ export function placeForPath(pathname: string): PlaceKey | null {
 const sum = (counts: Readonly<Record<string | number, number>>) =>
   Object.values(counts).reduce((total, n) => total + n, 0);
 
-export function placeBadges(counts: TabUnreadCounts): Partial<Record<PlaceKey, number>> {
+export interface PlaceBadgeCounts extends TabUnreadCounts {
+  chats: Readonly<Record<string, number>>;
+  mentions: MentionCounts;
+}
+
+export function placeBadges(counts: PlaceBadgeCounts, playBadge: PlayBadgeMode): Partial<Record<PlaceKey, number>> {
+  const play = playBadge === PlayBadgeMode.All ? counts : counts.mentions;
   return {
-    play: sum(counts.rooms) + sum(counts.games),
+    play: sum(play.rooms) + sum(play.games),
     people: sum(counts.chats),
   };
 }

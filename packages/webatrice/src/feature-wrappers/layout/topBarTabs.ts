@@ -34,7 +34,7 @@ export interface Tab {
 }
 
 export function isStickyTabType(type: TabType): boolean {
-  return type === 'decks' || type === 'deck' || type === 'shortcuts' || type === 'player';
+  return type === 'decks' || type === 'deck' || type === 'shortcuts';
 }
 
 export function deckIdOfTab(tab: Tab): number | null {
@@ -170,14 +170,14 @@ export function withDeckNames(tabs: Tab[], deckNames: ReadonlyMap<number, string
   return changed ? next : tabs;
 }
 
-export type StripGroupKey = 'rooms' | 'games' | 'decks' | 'replays' | 'chats' | 'pages';
+export type StripGroupKey = 'rooms' | 'games' | 'decks' | 'replays' | 'pages';
 
 export interface StripGroup {
   key: StripGroupKey;
   tabs: Tab[];
 }
 
-const STRIP_GROUP_ORDER: readonly StripGroupKey[] = ['rooms', 'games', 'decks', 'replays', 'chats', 'pages'];
+const STRIP_GROUP_ORDER: readonly StripGroupKey[] = ['rooms', 'games', 'decks', 'replays', 'pages'];
 
 const PLACE_TAB_KEYS: ReadonlySet<string> = new Set(['server', 'decks', 'replays', 'settings']);
 
@@ -186,7 +186,7 @@ export function isPlaceTab(tab: Pick<Tab, 'key'>): boolean {
 }
 
 export function stripGroupOf(tab: Tab): StripGroupKey | null {
-  if (isPlaceTab(tab)) {
+  if (isPlaceTab(tab) || tab.type === 'player') {
     return null;
   }
   switch (tab.type) {
@@ -200,8 +200,6 @@ export function stripGroupOf(tab: Tab): StripGroupKey | null {
       return 'decks';
     case 'replay':
       return 'replays';
-    case 'player':
-      return 'chats';
     default:
       return 'pages';
   }
@@ -221,18 +219,15 @@ export function stripGroups(tabs: readonly Tab[]): StripGroup[] {
 export interface TabUnreadCounts {
   rooms: Readonly<Record<number, number>>;
   games: Readonly<Record<number, number>>;
-  chats: Readonly<Record<string, number>>;
 }
 
 export function tabUnread(tab: Pick<Tab, 'key' | 'type'>, counts: TabUnreadCounts): number {
-  const id = tab.key.slice(tab.key.indexOf(':') + 1);
+  const id = Number(tab.key.slice(tab.key.indexOf(':') + 1));
   switch (tab.type) {
     case 'room':
-      return counts.rooms[Number(id)] ?? 0;
+      return counts.rooms[id] ?? 0;
     case 'game':
-      return counts.games[Number(id)] ?? 0;
-    case 'player':
-      return counts.chats[id] ?? 0;
+      return counts.games[id] ?? 0;
     default:
       return 0;
   }

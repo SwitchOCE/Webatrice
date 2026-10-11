@@ -1511,6 +1511,10 @@
       "replays": "Replays",
       "people": "People",
       "settings": "Settings"
+    },
+    "toggle": {
+      "hide": "Hide the navigation rail",
+      "show": "Show the navigation rail"
     }
   },
   "TopBar": {
@@ -1548,16 +1552,11 @@
       "close": "Close {title}",
       "spectating": "Spectating"
     },
-    "rail": {
-      "hide": "Hide the navigation rail",
-      "show": "Show the navigation rail"
-    },
     "group": {
       "rooms": "Rooms",
       "games": "Games",
       "decks": "Decks",
       "replays": "Replays",
-      "chats": "Chats",
       "pages": "Page"
     }
   },
@@ -1822,6 +1821,16 @@
       "toggle": "Show the selected card and deck stats",
       "close": "Hide the selected card and deck stats",
       "stats": "Deck stats"
+    },
+    "layout": {
+      "hideDock": "Hide Find cards",
+      "showDock": "Show Find cards",
+      "resizeDock": "Resize Find cards",
+      "resizeInspector": "Resize the card and stats pane",
+      "resizeHint": "Drag or use the arrow keys. Double-click resets the width; Enter hides the pane.",
+      "collapseAll": "Collapse all card groups",
+      "expandAll": "Expand all card groups",
+      "compactRows": "Compact rows"
     },
     "section": {
       "commander": "{count, plural, one {Commander} other {Commanders}}",
@@ -2229,7 +2238,8 @@
     "editTags": "Edit tags",
     "bannerCard": "Banner card…",
     "playmat": "Playmat…",
-    "bracketHint": "Last bracket estimate; see Deck stats"
+    "bracketHint": "Last bracket estimate; see Deck stats",
+    "resetLayout": "Reset layout"
   },
   "DeckHistory": {
     "undo": "Undo",
@@ -4642,6 +4652,12 @@
     },
     "buddyConnectNotificationsEnabled": {
       "label": "Notify when users in your buddy list connect"
+    },
+    "playBadge": {
+      "label": "Play badge",
+      "description": "What the number on Play in the navigation rail counts: chat in your rooms and games that mentions you, or every unread room line and game event.",
+      "mentions": "Mentions only",
+      "all": "All activity"
     },
     "browserNotifications": {
       "label": "Desktop notifications",
