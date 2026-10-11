@@ -1,4 +1,4 @@
-import { useMemo } from 'react';
+import { memo, useMemo } from 'react';
 
 import type { DeckCategory } from '@app/types';
 
@@ -36,7 +36,7 @@ export interface DeckMainPaneProps {
 
 const NO_GROUPS: ReadonlySet<string> = new Set();
 
-export function DeckMainPane({
+export const DeckMainPane = memo(function DeckMainPane({
   deck,
   groups,
   selectedIndex,
@@ -125,4 +125,4 @@ export function DeckMainPane({
       )}
     </div>
   );
-}
+});

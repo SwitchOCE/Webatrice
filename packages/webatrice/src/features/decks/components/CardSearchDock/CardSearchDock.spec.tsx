@@ -1,3 +1,4 @@
+import { useCallback, useState } from 'react';
 import { act, fireEvent, screen, within } from '@testing-library/react';
 import { I18nextProvider } from 'react-i18next';
 import i18n, { type i18n as I18n } from 'i18next';
@@ -12,6 +13,7 @@ import dockText from './CardSearchDock.i18n.json';
 import { useCardDatabase, type CardDatabase } from './useCardDatabase';
 import { useGameChangerList } from './useGameChangerList';
 import { useCardPrintings } from '../../hooks/useCardPrintings';
+import * as search from '../../search';
 
 vi.mock('./useCardDatabase', () => ({ useCardDatabase: vi.fn() }));
 vi.mock('./useGameChangerList', () => ({ useGameChangerList: vi.fn(() => null) }));
@@ -74,6 +76,72 @@ function renderDock(props: Partial<CardSearchDockProps> = {}) {
 }
 
 describe('CardSearchDock', () => {
+  it.each(['list', 'art'] as const)('refreshes quantities and stale actions in memoized %s results', (view) => {
+    const db = database();
+    vi.mocked(useCardDatabase).mockReturnValue(db);
+    const onAdd = vi.fn();
+    const dock = (quantity: number) => (
+      <I18nextProvider i18n={testI18n}>
+        <CardSearchDock onAdd={onAdd} deckCards={[{ name: esper.name, quantity, category: 'main', lookupSource: 'scryfall' }]} />
+      </I18nextProvider>
+    );
+    const { rerender } = renderWithProviders(dock(1));
+    if (view === 'art') {
+      fireEvent.click(screen.getByRole('radio', { name: 'Art' }));
+    }
+    rerender(dock(2));
+    expect(screen.getByText(/2 in deck/)).toBeInTheDocument();
+    vi.mocked(useCardDatabase).mockReturnValue({ ...db, fresh: false, loading: true });
+    rerender(dock(2));
+    const add = screen.getByRole('button', { name: 'Add Esper Sentinel to the deck' });
+    expect(add).toBeDisabled();
+    fireEvent.click(add);
+    expect(onAdd).not.toHaveBeenCalled();
+    vi.mocked(useCardDatabase).mockReturnValue(db);
+    rerender(dock(2));
+    expect(add).toBeEnabled();
+    fireEvent.click(add);
+    expect(onAdd).toHaveBeenLastCalledWith(esper.name, 'main', undefined);
+  });
+
+  it.each(['list', 'art'] as const)('renders only changed %s results on highlight and none on hover or printing loads', (view) => {
+    const third: ScryfallSearchCard = { id: 'third', name: 'Third' };
+    vi.mocked(useCardDatabase).mockReturnValue(database({ results: [bowmasters, esper, third], total: 3 }));
+    const renderCard = vi.spyOn(search, view === 'list' ? 'searchCardArt' : 'searchCardImage');
+    const onAdd = vi.fn();
+    function Harness() {
+      const [hovered, setHovered] = useState<ScryfallSearchCard | null>(null);
+      const onHover = useCallback((card: ScryfallSearchCard | null) => setHovered(card), []);
+      return <><output>{hovered?.id}</output><CardSearchDock onAdd={onAdd} onHoverPreview={onHover} /></>;
+    }
+    try {
+      renderWithProviders(<I18nextProvider i18n={testI18n}><Harness /></I18nextProvider>);
+      if (view === 'art') {
+        fireEvent.click(screen.getByRole('radio', { name: 'Art' }));
+      }
+      vi.useFakeTimers();
+      renderCard.mockClear();
+      const input = screen.getByRole('textbox', { name: 'Search cards' });
+      fireEvent.keyDown(input, { key: 'ArrowDown', code: 'ArrowDown' });
+      expect(renderCard.mock.calls.map(([card]) => card.id)).toEqual([bowmasters.id, esper.id]);
+      const row = screen.getByRole('button', { name: /^Esper Sentinel/ }).closest('li')!;
+      expect(row).toHaveAttribute('aria-current', 'true');
+      renderCard.mockClear();
+      fireEvent.pointerEnter(row);
+      expect(screen.getByText(esper.id)).toBeInTheDocument();
+      fireEvent.pointerLeave(row);
+      expect(renderCard).not.toHaveBeenCalled();
+      act(() => vi.advanceTimersByTime(250));
+      expect(useCardPrintings).toHaveBeenLastCalledWith(esper.name);
+      expect(renderCard).not.toHaveBeenCalled();
+      fireEvent.keyDown(input, { key: 'Enter', code: 'Enter' });
+      expect(onAdd).toHaveBeenLastCalledWith(esper.name, 'main', undefined);
+    } finally {
+      renderCard.mockRestore();
+      vi.useRealTimers();
+    }
+  });
+
   it('searches the typed text inside the commander’s colours and format', () => {
     const { input } = renderDock({ colorIdentity: ['W', 'U', 'B', 'G'], format: 'commander' });
     fireEvent.change(input, { target: { value: 'orc' } });

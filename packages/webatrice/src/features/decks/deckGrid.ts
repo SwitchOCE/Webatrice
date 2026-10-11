@@ -122,8 +122,9 @@ export type DeckGridSort = 'newest' | 'oldest' | 'nameAsc' | 'nameDesc';
 export const DECK_GRID_SORTS: readonly DeckGridSort[] = ['newest', 'oldest', 'nameAsc', 'nameDesc'];
 
 export function sortDeckViews(views: readonly DeckTileView[], sort: DeckGridSort, locale?: string): DeckTileView[] {
+  const collator = new Intl.Collator(locale, { sensitivity: 'base', numeric: true });
   const byName = (a: DeckTileView, b: DeckTileView) =>
-    a.deck.name.localeCompare(b.deck.name, locale, { sensitivity: 'base', numeric: true });
+    collator.compare(a.deck.name, b.deck.name);
   const compare: Record<DeckGridSort, (a: DeckTileView, b: DeckTileView) => number> = {
     newest: (a, b) => b.deck.creationTime - a.deck.creationTime || byName(a, b),
     oldest: (a, b) => a.deck.creationTime - b.deck.creationTime || byName(a, b),

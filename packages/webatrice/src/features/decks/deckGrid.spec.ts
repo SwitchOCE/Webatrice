@@ -93,6 +93,32 @@ describe('filterDeckViews', () => {
 });
 
 describe('sortDeckViews', () => {
+  it.each(['en', 'sv'])('uses one collator per sort and preserves locale and tie ordering (%s)', (locale) => {
+    const inputs = [deck(5, 'ä'), deck(3, 'a'), deck(1, 'A'), deck(7, 'z'), deck(8, 'a 10'), deck(6, 'a 2')]
+      .map((d) => deckTileView({ ...d, creationTime: 1 }, undefined));
+    const byName = (a: typeof inputs[number], b: typeof inputs[number]) =>
+      a.deck.name.localeCompare(b.deck.name, locale, { sensitivity: 'base', numeric: true });
+    const collator = vi.spyOn(Intl, 'Collator');
+    try {
+      for (const sort of ['nameAsc', 'nameDesc', 'oldest', 'newest'] as const) {
+        collator.mockClear();
+        const expected = [...inputs].sort((a, b) => {
+          if (sort === 'nameAsc') {
+            return byName(a, b) || a.deck.id - b.deck.id;
+          }
+          if (sort === 'nameDesc') {
+            return byName(b, a) || a.deck.id - b.deck.id;
+          }
+          return byName(a, b);
+        });
+        expect(sortDeckViews(inputs, sort, locale)).toEqual(expected);
+        expect(collator).toHaveBeenCalledExactlyOnceWith(locale, { sensitivity: 'base', numeric: true });
+      }
+    } finally {
+      collator.mockRestore();
+    }
+  });
+
   const views = [deck(2, 'beta'), deck(1, 'Alpha'), deck(3, 'alpha 10'), deck(4, 'alpha 9')].map((d) => deckTileView(d, undefined));
   const names = (sort: Parameters<typeof sortDeckViews>[1]) => sortDeckViews(views, sort, 'en').map((v) => v.deck.name);
 

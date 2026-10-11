@@ -32,8 +32,9 @@ export function deckSectionOf(card: DeckCard, isCommanderDeck: boolean): DeckSec
 }
 
 export function sortIndicesByName(cards: DeckCard[], indices: number[]): number[] {
+  const collator = new Intl.Collator(undefined, { sensitivity: 'base' });
   return indices.sort((a, b) =>
-    cards[a].name.localeCompare(cards[b].name, undefined, { sensitivity: 'base' }),
+    collator.compare(cards[a].name, cards[b].name),
   );
 }
 
