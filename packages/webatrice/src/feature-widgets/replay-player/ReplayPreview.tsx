@@ -1,21 +1,25 @@
-import { useEffect, useMemo, useRef } from 'react';
+import { memo, useEffect, useMemo, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Pause, Play, RotateCcw, RotateCw, SkipBack, SkipForward } from 'lucide-react';
 
-import { games } from '@cockatrice/datatrice';
+import { games, type GameMessage } from '@cockatrice/datatrice';
 import { Button, Chip, IconButton, Kbd } from '@app/components';
 import { usePreference } from '@app/hooks';
 import { BIG_SKIP_MS, SMALL_SKIP_MS, type OpenedReplay } from '@app/services';
 import { useAppSelector } from '@app/store';
 import { formatReplayTime } from '@app/utils';
 
-import { GameLogRows } from './GameLogRows';
-import PreviewBoard from './PreviewBoard';
+import { GameLogRows as GameLogRowsView } from './GameLogRows';
+import PreviewBoardView from './PreviewBoard';
 import ReplayTimeline from './ReplayTimeline';
 import { noReplayShortcuts, type ReplayShortcutBinder } from './replayShortcuts';
 import { createTurnMarks, turnAt } from './replayTurnMarks';
 import { usePreviewBoardModel } from './usePreviewBoardModel';
 import { useReplayPlayback } from './useReplayPlayback';
+
+const GameLogRows = memo(GameLogRowsView);
+const PreviewBoard = memo(PreviewBoardView);
+const EMPTY_MESSAGES: readonly GameMessage[] = [];
 
 export interface ReplayPreviewProps {
   opened: OpenedReplay;
@@ -59,7 +63,7 @@ function ReplayPreview({ opened, onWatchFrom, useShortcuts = noReplayShortcuts }
             className="scrollable min-h-0 flex-1 overflow-y-auto py-1 text-xs"
             data-testid="replay-preview-log"
           >
-            <GameLogRows messages={messages ?? []} players={players} stampGameTime={stampGameTime} />
+            <GameLogRows messages={messages ?? EMPTY_MESSAGES} players={players} stampGameTime={stampGameTime} />
           </div>
         </div>
       </div>

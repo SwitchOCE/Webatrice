@@ -1,10 +1,10 @@
-import { useEffect, useRef, type Ref } from 'react';
+import { memo, useEffect, useRef, type Ref } from 'react';
 import { useTranslation } from 'react-i18next';
 import { MessageSquare, Send } from 'lucide-react';
 
 import { MessageText } from '@app/components';
 import { useAppSelector } from '@app/store';
-import { cx, isPrivilegedUser } from '@app/utils';
+import { cx, isPrivilegedUser, type ChatHighlight } from '@app/utils';
 
 import { server, type PrivateConversationEntry } from '@cockatrice/datatrice';
 import { getChatDraft, useChatDraft, useChatHighlight, useCommandFailureMessage, useReduxEffect } from '@app/hooks';
@@ -22,18 +22,7 @@ interface PrivateChatProps {
 
 export default function PrivateChat({ peerName, selfName, entries, isOnline, isIgnored, onSend, compact, inputRef }: PrivateChatProps) {
   const { t } = useTranslation();
-  const describeFailure = useCommandFailureMessage();
-  const highlights = useChatHighlight();
-  const users = useAppSelector(server.Selectors.getUsers);
-  const scrollRef = useRef<HTMLDivElement>(null);
   const [draft, setDraft] = useChatDraft(peerName);
-
-  useEffect(() => {
-    const el = scrollRef.current;
-    if (el) {
-      el.scrollTop = el.scrollHeight;
-    }
-  }, [entries.length]);
 
   useReduxEffect<{ userName: string; message: string }>((action) => {
     if (action.payload.userName === peerName) {
@@ -76,55 +65,7 @@ export default function PrivateChat({ peerName, selfName, entries, isOnline, isI
         </span>
       </div>}
 
-      <div
-        ref={scrollRef}
-        role="log"
-        aria-label={t('PrivateChat.log', { name: peerName })}
-        tabIndex={0}
-        className={cx(
-          'flex flex-1 min-h-0 flex-col overflow-y-auto',
-          'bg-bg-base/40 focus-visible:outline focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-accent',
-          compact ? 'gap-1 px-3 py-3' : 'gap-1.5 px-4 py-3',
-        )}
-      >
-        {entries.length > 0 && <div className="flex-1" aria-hidden />}
-        {entries.length === 0 && (
-          <div className="flex flex-1 items-center justify-center text-center text-xs text-text-muted italic">
-            {t('PrivateChat.empty')}
-          </div>
-        )}
-        {entries.map((entry, index) => {
-          if (entry.type === 'notice') {
-            return (
-              <div key={`notice-${entry.notice.id}`} className="py-1 text-center text-xs text-text-muted italic">
-                {t(`PrivateChat.notice.${entry.notice.kind}`, {
-                  name: peerName,
-                  reason: describeFailure(entry.notice.failure, ''),
-                })}
-              </div>
-            );
-          }
-          const m = entry.message;
-          const isSelf = selfName != null && m.senderName === selfName;
-          return (
-            <div
-              key={`message-${index}`}
-              className={`flex ${isSelf ? 'justify-end' : 'justify-start'}`}
-            >
-              <div
-                className={cx(
-                  'max-w-[78%] whitespace-pre-wrap break-words rounded-ui border px-3 text-text-primary',
-                  compact ? 'py-1 text-[12.5px]' : 'py-1.5 text-[13px]',
-                  isSelf ? 'border-accent/30 bg-accent-soft' : 'border-border-subtle bg-bg-elevated',
-                )}
-              >
-                <span className="sr-only">{`${m.senderName}: `}</span>
-                <MessageText text={m.message} highlight={isPrivilegedUser(users[m.senderName]) ? highlights.moderator : highlights.user} />
-              </div>
-            </div>
-          );
-        })}
-      </div>
+      <PrivateTranscript peerName={peerName} selfName={selfName} entries={entries} compact={compact} />
 
       <div
         role="status"
@@ -167,3 +108,84 @@ export default function PrivateChat({ peerName, selfName, entries, isOnline, isI
     </section>
   );
 }
+
+const PrivateTranscript = memo(function PrivateTranscript({ peerName, selfName, entries, compact }: Pick<
+  PrivateChatProps, 'peerName' | 'selfName' | 'entries' | 'compact'
+>) {
+  const { t } = useTranslation();
+  const describeFailure = useCommandFailureMessage();
+  const highlights = useChatHighlight();
+  const users = useAppSelector(server.Selectors.getUsers);
+  const scrollRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const el = scrollRef.current;
+    if (el) {
+      el.scrollTop = el.scrollHeight;
+    }
+  }, [entries.length]);
+
+  return (
+    <div
+      ref={scrollRef}
+      role="log"
+      aria-label={t('PrivateChat.log', { name: peerName })}
+      tabIndex={0}
+      className={cx(
+        'flex flex-1 min-h-0 flex-col overflow-y-auto',
+        'bg-bg-base/40 focus-visible:outline focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-accent',
+        compact ? 'gap-1 px-3 py-3' : 'gap-1.5 px-4 py-3',
+      )}
+    >
+      {entries.length > 0 && <div className="flex-1" aria-hidden />}
+      {entries.length === 0 && (
+        <div className="flex flex-1 items-center justify-center text-center text-xs text-text-muted italic">
+          {t('PrivateChat.empty')}
+        </div>
+      )}
+      {entries.map((entry, index) => {
+        if (entry.type === 'notice') {
+          return (
+            <div key={`notice-${entry.notice.id}`} className="py-1 text-center text-xs text-text-muted italic">
+              {t(`PrivateChat.notice.${entry.notice.kind}`, {
+                name: peerName,
+                reason: describeFailure(entry.notice.failure, ''),
+              })}
+            </div>
+          );
+        }
+        return (
+          <PrivateMessageRow
+            key={`message-${index}`}
+            message={entry.message}
+            isSelf={selfName != null && entry.message.senderName === selfName}
+            compact={compact}
+            highlight={isPrivilegedUser(users[entry.message.senderName]) ? highlights.moderator : highlights.user}
+          />
+        );
+      })}
+    </div>
+  );
+});
+
+const PrivateMessageRow = memo(function PrivateMessageRow({ message: m, isSelf, compact, highlight }: {
+  message: Extract<PrivateConversationEntry, { type: 'message' }>['message'];
+  isSelf: boolean;
+  compact: boolean | undefined;
+  highlight: ChatHighlight;
+}) {
+  return (
+    <div className={`flex ${isSelf ? 'justify-end' : 'justify-start'}`}>
+      <div
+        className={cx(
+          'max-w-[78%] whitespace-pre-wrap break-words rounded-ui border px-3 text-text-primary',
+          compact ? 'py-1 text-[12.5px]' : 'py-1.5 text-[13px]',
+          isSelf ? 'border-accent/30 bg-accent-soft' : 'border-border-subtle bg-bg-elevated',
+        )}
+      >
+        <span className="sr-only">{`${m.senderName}: `}</span>
+        <MessageText text={m.message} highlight={highlight} />
+      </div>
+    </div>
+  );
+});

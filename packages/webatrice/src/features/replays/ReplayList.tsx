@@ -1,3 +1,4 @@
+import { useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
 import { HardDrive, Lock, LockOpen } from 'lucide-react';
 
@@ -29,25 +30,36 @@ export function PlayerName({ name, country, avatar, className }: { name: string;
   );
 }
 
-export function formatItemDate(time: number, now: number, locale: string | undefined): string {
-  const group = dayGroupOf(time, now);
-  const date = new Date(time);
-  if (group === 'today' || group === 'yesterday') {
-    return date.toLocaleTimeString(locale, { hour: 'numeric', minute: '2-digit' });
-  }
-  return date.toLocaleString(locale, { day: 'numeric', month: 'short', hour: 'numeric', minute: '2-digit' });
+function dateFormatters(locale: string | undefined) {
+  return {
+    time: new Intl.DateTimeFormat(locale, { hour: 'numeric', minute: '2-digit' }),
+    dateTime: new Intl.DateTimeFormat(locale, { day: 'numeric', month: 'short', hour: 'numeric', minute: '2-digit' }),
+  };
 }
 
-function ListRow({ item, selected, countries, now, locale, onSelect }: {
+export function formatItemDate(time: number, now: number, locale: string | undefined, formatters = dateFormatters(locale)): string {
+  const group = dayGroupOf(time, now);
+  const date = new Date(time);
+  if (Number.isNaN(date.getTime())) {
+    return date.toString();
+  }
+  if (group === 'today' || group === 'yesterday') {
+    return formatters.time.format(date);
+  }
+  return formatters.dateTime.format(date);
+}
+
+function ListRow({ item, selected, countries, now, locale, formatters, onSelect }: {
   item: ReplayItem;
   selected: boolean;
   countries: Record<string, string>;
   now: number;
   locale: string | undefined;
+  formatters: ReturnType<typeof dateFormatters>;
   onSelect: () => void;
 }) {
   const { t } = useTranslation();
-  const date = formatItemDate(item.kind === 'match' ? item.startedAt ?? 0 : item.modifiedAt, now, locale);
+  const date = formatItemDate(item.kind === 'match' ? item.startedAt ?? 0 : item.modifiedAt, now, locale, formatters);
   return (
     <button
       type="button"
@@ -106,6 +118,7 @@ export interface ReplayListProps {
 function ReplayList({ library }: ReplayListProps) {
   const { t, i18n } = useTranslation();
   const locale = toBcp47(i18n.language) || undefined;
+  const formatters = useMemo(() => dateFormatters(locale), [locale]);
   const { server, local } = library;
   const serverNote = server.availability === 'disconnected'
     ? t('Replays.server.disconnected')
@@ -167,6 +180,7 @@ function ReplayList({ library }: ReplayListProps) {
                 countries={library.countries}
                 now={library.now}
                 locale={locale}
+                formatters={formatters}
                 onSelect={() => library.select(item.id)}
               />
             ))}
