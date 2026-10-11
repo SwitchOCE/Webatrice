@@ -3,26 +3,16 @@ import { useEffect, useRef, useState } from 'react';
 import { useCardScale } from '../../ui/CardScaleContext';
 import type { BattlefieldCardViewModel } from '../../ui/PlayerBoard/playerBoard.types';
 import {
-  BATTLEFIELD_GAP_PX as BATTLEFIELD_GAP_PX_BASE,
-  BATTLEFIELD_MARGIN_LEFT_PX as BATTLEFIELD_MARGIN_LEFT_PX_BASE,
-  BATTLEFIELD_MARGIN_RIGHT_PX as BATTLEFIELD_MARGIN_RIGHT_PX_BASE,
-  BATTLEFIELD_MARGIN_TOP_PX as BATTLEFIELD_MARGIN_TOP_PX_BASE,
   BATTLEFIELD_MIN_COLS,
-  BATTLEFIELD_ROW_PADDING_PX as BATTLEFIELD_ROW_PADDING_PX_BASE,
   BATTLEFIELD_ROWS,
+  battlefieldNaturalHeight,
   computeCellWidths,
-  computeContentHeight,
   computeContentWidth,
   rowTopY,
-  SEAT_CARD_HEIGHT_PX as CARD_H_PX_BASE,
-  SEAT_CARD_WIDTH_PX as CARD_W_PX_BASE,
+  scaledBattlefieldLayout,
   slotOriginPx,
   snapPxToSlot,
-  STACK_OFFSET_PX as STACK_OFFSET_PX_BASE,
-  STACK_OFFSET_Y_PX as STACK_OFFSET_Y_PX_BASE,
-  type BattlefieldLayoutOpts,
 } from './battlefieldLayout';
-import { MAX_SUBPOS } from './gridMath';
 
 type BattlefieldCard = BattlefieldCardViewModel;
 
@@ -33,43 +23,14 @@ export interface UseBattlefieldLayoutArgs {
 }
 
 export function useBattlefieldLayout({ cards, playerId, mirrored }: UseBattlefieldLayoutArgs) {
-  // Scaled versions of the base card-related pixel constants. Every layout
-  // computation in this component that measures against card size (grid
-  // fit, hit-testing, stack layouts, gaps between cards) uses these so a
-  // slider adjustment in the header immediately reshapes the play area.
-  // Non-card UI (mana pips, life total, sidebar preview, etc.) is
-  // unaffected because it doesn't reference these constants.
   const { scale } = useCardScale();
-  const CARD_W_PX = CARD_W_PX_BASE * scale;
-  const CARD_H_PX = CARD_H_PX_BASE * scale;
-  const BATTLEFIELD_GAP_PX = BATTLEFIELD_GAP_PX_BASE * scale;
-  const STACK_OFFSET_PX = STACK_OFFSET_PX_BASE * scale;
-  const STACK_OFFSET_Y_PX = STACK_OFFSET_Y_PX_BASE * scale;
-  const BATTLEFIELD_ROW_PADDING_PX = BATTLEFIELD_ROW_PADDING_PX_BASE * scale;
-  const BATTLEFIELD_MARGIN_LEFT_PX = BATTLEFIELD_MARGIN_LEFT_PX_BASE * scale;
-  const BATTLEFIELD_MARGIN_RIGHT_PX = BATTLEFIELD_MARGIN_RIGHT_PX_BASE * scale;
-  const BATTLEFIELD_MARGIN_TOP_PX = BATTLEFIELD_MARGIN_TOP_PX_BASE * scale;
-  // Shared layout options for every battlefield helper call on this
-  // board. All px values already include the card scale so the
-  // helpers stay unit-agnostic — they just do sums and lookups.
-  const battlefieldLayout: BattlefieldLayoutOpts = {
-    cardWidthPx: CARD_W_PX,
-    cardHeightPx: CARD_H_PX,
-    gapXPx: BATTLEFIELD_GAP_PX,
-    gapYPx: BATTLEFIELD_ROW_PADDING_PX,
-    marginLeftPx: BATTLEFIELD_MARGIN_LEFT_PX,
-    marginRightPx: BATTLEFIELD_MARGIN_RIGHT_PX,
-    marginTopPx: BATTLEFIELD_MARGIN_TOP_PX,
-    stackOffsetXPx: STACK_OFFSET_PX,
-    stackOffsetYPx: STACK_OFFSET_Y_PX,
-    minCols: BATTLEFIELD_MIN_COLS,
-    rows: BATTLEFIELD_ROWS,
-  };
-  // Reserved room at the visual bottom of the battlefield so a fully
-  // stacked bottom-row slot (up to MAX_SUBPOS cards, each
-  // offset by STACK_OFFSET_Y_PX from the last) doesn't clip past the
-  // container edge.
-  const stackExtPx = (MAX_SUBPOS - 1) * STACK_OFFSET_Y_PX;
+  const battlefieldLayout = scaledBattlefieldLayout(scale);
+  const CARD_W_PX = battlefieldLayout.cardWidthPx;
+  const BATTLEFIELD_GAP_PX = battlefieldLayout.gapXPx;
+  const STACK_OFFSET_PX = battlefieldLayout.stackOffsetXPx;
+  const BATTLEFIELD_ROW_PADDING_PX = battlefieldLayout.gapYPx;
+  const BATTLEFIELD_MARGIN_LEFT_PX = battlefieldLayout.marginLeftPx;
+  const BATTLEFIELD_MARGIN_RIGHT_PX = battlefieldLayout.marginRightPx;
 
   // The battlefield has TWO refs now that it can scroll horizontally:
   //   - `scrollContainerRef`: the visible/scrollable viewport. Measured
@@ -194,7 +155,7 @@ export function useBattlefieldLayout({ cards, playerId, mirrored }: UseBattlefie
     battlefieldForLayout,
     { ...battlefieldLayout, minCols: effectiveMinCols },
   );
-  const naturalContentH = computeContentHeight(battlefieldLayout) + stackExtPx;
+  const naturalContentH = battlefieldNaturalHeight(battlefieldLayout);
   const dropWidth = Math.max(naturalContentW, fitSize.w);
   const colsByWireRow = Array.from({ length: BATTLEFIELD_ROWS }, (_, row) => {
     const displayRow = mirrored ? BATTLEFIELD_ROWS - 1 - row : row;

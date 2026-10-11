@@ -18,6 +18,16 @@ import ValueFlashOverlay from '../../ui/ValueFlash/ValueFlashOverlay';
 import ZoneBackground from '../../ui/ZoneBackground/ZoneBackground';
 import ZoneStack from '../../ui/ZoneStack/ZoneStack';
 import { MANA_COLORS } from './manaColors';
+import {
+  INFO_FONT_MAX_PX,
+  INFO_FONT_MIN_PX,
+  INFO_GAP_EM,
+  INFO_PADDING_EM,
+  LIFE_TILE_EM,
+  MANA_GRID_COLUMNS,
+  MANA_GRID_GAP_PX,
+  MANA_PIP_EM,
+} from '../../ui/seatFit';
 import { GAME_FOCUS_RING } from '../../ui/focusRing';
 import { OVER_ART_ICON_SHADOW, OVER_ART_SHADOW_LIFE, OVER_ART_SHADOW_NAME, OVER_ART_SHADOW_PIP } from '../../ui/seatColors/seatColors';
 
@@ -63,8 +73,8 @@ function ManaPip({
     <div
       className={['relative rounded-full', clickable ? GAME_FOCUS_RING : ''].join(' ')}
       style={{
-        width: '2em',
-        height: '2em',
+        width: `${MANA_PIP_EM}em`,
+        height: `${MANA_PIP_EM}em`,
         cursor: clickable ? 'pointer' : undefined,
       }}
       title={label}
@@ -92,7 +102,7 @@ function ManaPip({
       }
     >
       {hasScryfallSvg ? (
-        <ManaSymbols cost={`{${symbol}}`} size="2em" />
+        <ManaSymbols cost={`{${symbol}}`} size={`${MANA_PIP_EM}em`} />
       ) : (
         // Solid tinted disc for symbols without a Scryfall SVG (e.g.
         // "O" = Cockatrice's Other/storm). Full-opacity fill with a
@@ -127,7 +137,15 @@ function ManaPip({
   );
 }
 
-const INFO_FONT_SIZE = `clamp(10px, calc(${CARD_WIDTH} * 14 / 72), 14px)`;
+const INFO_COLUMN_STYLE = {
+  fontSize: `clamp(${INFO_FONT_MIN_PX}px, calc(${CARD_WIDTH} * ${INFO_FONT_MAX_PX} / 72), ${INFO_FONT_MAX_PX}px)`,
+  padding: `${INFO_PADDING_EM}em`,
+  gap: `${INFO_GAP_EM}em`,
+};
+const MANA_GRID_STYLE = {
+  gridTemplateColumns: `repeat(${MANA_GRID_COLUMNS}, minmax(0, 1fr))`,
+  gap: `${MANA_GRID_GAP_PX}px`,
+};
 
 const NO_MODIFIERS = (event: KeyboardEvent) => !event.altKey && !event.ctrlKey && !event.metaKey && !event.shiftKey;
 
@@ -244,10 +262,9 @@ export default function PlayerInfoPanel() {
   return (
     <div
       className={cx(
-        'relative isolate flex min-h-0 flex-col gap-[0.5em] overflow-y-auto border-r border-border-subtle bg-bg-surface/70',
-        'p-[0.75em]',
+        'relative isolate flex min-h-0 flex-col overflow-y-auto border-r border-border-subtle bg-bg-surface/70',
       )}
-      style={{ ...seatGrid.info, fontSize: INFO_FONT_SIZE }}
+      style={{ ...seatGrid.info, ...INFO_COLUMN_STYLE }}
     >
       <ZoneBackground zone="playerInfo" />
       <div className="relative" ref={blockRef}>
@@ -310,6 +327,7 @@ export default function PlayerInfoPanel() {
             backgroundImage: backdrop ? `url(${backdrop})` : undefined,
             backgroundSize: 'cover',
             backgroundPosition: 'center',
+            minHeight: `${LIFE_TILE_EM}em`,
           }}
         >
           {!backdrop && (
@@ -396,7 +414,8 @@ export default function PlayerInfoPanel() {
         <div
           role="group"
           aria-label={t('PlayerInfoPanel.manaPool')}
-          className="shrink-0 grid grid-cols-3 gap-1 justify-items-center"
+          className="shrink-0 grid justify-items-center"
+          style={MANA_GRID_STYLE}
           onKeyDown={(e) => {
             if (!isSelf || (e.key !== 'ArrowLeft' && e.key !== 'ArrowRight')) {
               return;
@@ -436,13 +455,13 @@ export default function PlayerInfoPanel() {
             // it via flex so the odd-one-out sits under the middle
             // column instead of hugging the left edge.
             const isLastInPartialRow =
-            MANA_COLORS.length % 3 !== 0 &&
+            MANA_COLORS.length % MANA_GRID_COLUMNS !== 0 &&
             i === MANA_COLORS.length - 1;
             if (isLastInPartialRow) {
               return (
                 <div
                   key={m.symbol}
-                  className="col-span-3"
+                  style={{ gridColumn: `span ${MANA_GRID_COLUMNS}` }}
                 >
                   {pip}
                 </div>

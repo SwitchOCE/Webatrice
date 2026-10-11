@@ -8,10 +8,12 @@ import {
   BATTLEFIELD_ROWS,
   STACK_OFFSET_PX,
   STACK_OFFSET_Y_PX,
+  battlefieldNaturalHeight,
   computeCellWidths,
   computeContentHeight,
   computeContentWidth,
   rowTopY,
+  scaledBattlefieldLayout,
   SEAT_CARD_HEIGHT_PX,
   SEAT_CARD_WIDTH_PX,
   slotOriginPx,
@@ -83,6 +85,12 @@ describe('battlefieldLayout', () => {
       const opts = seatLayout(1);
       expect(computeContentWidth(new Map(), [], opts)).toBe(20 + 5 * 72 + 4 * 35 + 15);
       expect(computeContentHeight(opts)).toBe(10 + 3 * 102 + 2 * 30);
+    });
+
+    it('scales every desktop metric with the card and reserves room for a full stack below the lands', () => {
+      expect(scaledBattlefieldLayout(1.5)).toEqual(seatLayout(1.5));
+      expect(battlefieldNaturalHeight(scaledBattlefieldLayout(1))).toBe(10 + 3 * 102 + 2 * 30 + 2 * 10);
+      expect(battlefieldNaturalHeight(scaledBattlefieldLayout(2))).toBe(2 * (10 + 3 * 102 + 2 * 30 + 2 * 10));
     });
 
     it('extends one buffer column past the rightmost card of the widest row', () => {

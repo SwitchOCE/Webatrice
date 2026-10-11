@@ -7,7 +7,7 @@ export function useHorizontalWheelScroll(ref: RefObject<HTMLElement | null>) {
       return;
     }
     const handleWheel = (e: WheelEvent) => {
-      if (el.scrollWidth <= el.clientWidth) {
+      if (el.scrollWidth <= el.clientWidth || el.scrollHeight > el.clientHeight) {
         return;
       }
       if (e.deltaY === 0) {
