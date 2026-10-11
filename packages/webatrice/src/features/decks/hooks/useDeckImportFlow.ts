@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState, type RefObject } from 'react';
 import { useTranslation } from 'react-i18next';
 
+import { useUnloadRisk } from '@app/hooks';
 import type { ParsedDeck } from '@app/types';
 
 import {
@@ -55,6 +56,7 @@ export function useDeckImportFlow(open: boolean, onImport: DeckImportHandler, in
   const [fileName, setFileName] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const generation = useRef(0);
+  useUnloadRisk(open && (text.trim() !== '' || phase !== 'input'));
 
   const resetFileInput = () => {
     if (fileInputRef.current) {

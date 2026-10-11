@@ -5,7 +5,7 @@ import { server } from '@cockatrice/datatrice';
 import { useWebClient } from '@cockatrice/datatrice/react';
 import type { ServerInfo_DeckStorage_TreeItem } from '@cockatrice/sockatrice/generated';
 import { ServerInfo_User_UserLevelFlag } from '@cockatrice/sockatrice/generated';
-import { useReduxEffect } from '@app/hooks';
+import { useReduxEffect, useUnloadRisk } from '@app/hooks';
 import { importCustomSetFiles, importReplayFiles, type CardSourceImportSummary, type ImportSummary } from '@app/services';
 import { useAppSelector } from '@app/store';
 
@@ -140,6 +140,7 @@ export function useDeckMigration() {
   const [stopping, setStopping] = useState(false);
   const [result, setResult] = useState<MigrationResult | null>(null);
   const [error, setError] = useState<string | null>(null);
+  useUnloadRisk(stage === 'importing');
 
   const run = useRef(0);
   const cancelled = useRef(false);

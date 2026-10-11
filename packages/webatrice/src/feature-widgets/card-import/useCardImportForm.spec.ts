@@ -10,6 +10,7 @@ vi.mock('@app/services', async (importOriginal) => ({
 }));
 
 import { useCardImportForm } from './useCardImportForm';
+import { hasUnloadRisk } from '../../services/unloadGuard';
 
 const records = (overrides = {}) => ({
   cards: [{ name: { value: 'A Card' } }],
@@ -134,6 +135,26 @@ describe('useCardImportForm', () => {
       text: { headline: 'ImportSummary.imported.cardFiles', problems: [], severity: 'info' },
       unknownSets: ['CUB'],
     });
+  });
+
+  it('guards reload only while writing an import to the local database', async () => {
+    let finish!: (value: typeof savedSummary) => void;
+    hoisted.save.mockReturnValue(new Promise((resolve) => {
+      finish = resolve;
+    }));
+    const { result } = await scanned();
+
+    let saving!: Promise<void>;
+    act(() => {
+      saving = result.current.handleLocalSave();
+    });
+    expect(hasUnloadRisk()).toBe(true);
+
+    await act(async () => {
+      finish(savedSummary);
+      await saving;
+    });
+    expect(hasUnloadRisk()).toBe(false);
   });
 
   it('clears the new-sets question once it is answered', async () => {

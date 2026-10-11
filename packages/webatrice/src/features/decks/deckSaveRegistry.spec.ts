@@ -5,6 +5,7 @@ import { WebsocketTypes } from '@cockatrice/sockatrice/types';
 import { rootReducerMap, type RootState } from '@app/store';
 import { connectedState, createMockWebClient } from '../../__test-utils__';
 import { makeReduxHookWrapper } from '../../__test-utils__/makeHookWrapper';
+import { hasUnloadRisk } from '../../services/unloadGuard';
 import { clearDeckEditorCache, getCachedDeck, setCachedDeck } from './deckEditorCache';
 import { createDeckSaveRegistry, dropCleanCachedDeck, dropCleanCachedDecks, getDeckSaveRegistry } from './deckSaveRegistry';
 import { deckSaveSignature } from './deckPersistence';
@@ -28,6 +29,26 @@ function setup() {
 beforeEach(() => clearDeckEditorCache());
 
 describe('deckSaveRegistry', () => {
+  it('guards dirty, in-flight and failed saves, then releases clean or discarded work', () => {
+    const { registry, response } = setup();
+    expect(hasUnloadRisk()).toBe(false);
+
+    registry.markDirty(7);
+    expect(hasUnloadRisk()).toBe(true);
+    registry.save(7, first);
+    expect(hasUnloadRisk()).toBe(true);
+    response(0)(null);
+    expect(hasUnloadRisk()).toBe(false);
+
+    registry.markDirty(7);
+    registry.save(7, second);
+    response(1)({ responseCode: 1 });
+    expect(hasUnloadRisk()).toBe(true);
+    registry.discardChanges(7);
+    expect(hasUnloadRisk()).toBe(false);
+    registry.dispose();
+  });
+
   it('keeps saveNow waiters with each deck and waits for all of its requests', async () => {
     const { registry, response } = setup();
     const settledA = vi.fn();

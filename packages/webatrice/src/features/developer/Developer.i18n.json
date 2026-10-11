@@ -1,5 +1,9 @@
 {
   "Developer": {
+    "timings": {
+      "title": "Load timings",
+      "description": "Milliseconds since boot. Home data is the first room list received; route ready is the current route's React commit (background requests may still be running)."
+    },
     "table": {
       "stats": "Server statistics",
       "commands": "Command statistics"

@@ -13,3 +13,4 @@ export * from './scryfall';
 export * from './sound';
 export * from './storage';
 export * from './theme';
+export * from './unloadGuard';

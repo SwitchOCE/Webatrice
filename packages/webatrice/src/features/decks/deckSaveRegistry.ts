@@ -1,6 +1,7 @@
 import { server, type CommandFailedPayload } from '@cockatrice/datatrice';
 import type { WebClient } from '@cockatrice/sockatrice';
 import type { RootState } from '@app/store';
+import { setUnloadRisk } from '../../services/unloadGuard';
 
 import {
   clearDeckEditorCache,
@@ -50,10 +51,14 @@ export function createDeckSaveRegistry(store: SessionStore, client: WebClient) {
   let session = identity();
   const entries = new Map<number, Entry>();
   const listeners = new Set<() => void>();
+  const unloadRisk = {};
   let nextRequest = 0;
   let unsubscribe: (() => void) | undefined;
 
   const emit = () => listeners.forEach((listener) => listener());
+  const syncUnloadRisk = () => setUnloadRisk(unloadRisk, [...entries.values()].some(
+    ({ snapshot }) => snapshot.isModified || snapshot.pending.size > 0,
+  ));
   const answerWaiters = (entry: Entry, saved: boolean) => {
     const waiters = [...entry.waiters];
     entry.waiters.clear();
@@ -66,6 +71,7 @@ export function createDeckSaveRegistry(store: SessionStore, client: WebClient) {
       entries.forEach((entry) => answerWaiters(entry, false));
       entries.clear();
       clearDeckEditorCache();
+      syncUnloadRisk();
       emit();
     }
   };
@@ -86,6 +92,7 @@ export function createDeckSaveRegistry(store: SessionStore, client: WebClient) {
           : entry.lastSavedRequest ? 'saved' : 'idle';
     snapshot.isModified = snapshot.saveState === 'dirty' || snapshot.saveState === 'failed';
     entry.snapshot = snapshot;
+    syncUnloadRisk();
     if (snapshot.pending.size === 0 && (!entry.dirty || snapshot.lastFailure)) {
       answerWaiters(entry, !entry.dirty && !snapshot.lastFailure);
     }
@@ -102,6 +109,7 @@ export function createDeckSaveRegistry(store: SessionStore, client: WebClient) {
       unsubscribe = undefined;
       entries.forEach((entry) => answerWaiters(entry, false));
       entries.clear();
+      syncUnloadRisk();
     },
     subscribe(listener: () => void) {
       listeners.add(listener);

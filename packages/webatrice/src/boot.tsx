@@ -8,6 +8,7 @@ import { StyledEngineProvider } from '@mui/material/styles';
 
 import { DatatriceProvider, WebClientProvider } from '@cockatrice/datatrice/react';
 import { extensions } from '@app/store';
+import { loadTimingMiddleware } from './store/loadTimingMiddleware';
 import { AppThemeProvider, UserAvatarProvider } from '@app/components';
 import { bootColorScheme, debugLog, followBootColorScheme, initAnalytics, installConsoleCapture } from '@app/services';
 import { CLIENT_CONFIG, CLIENT_OPTIONS } from './clientConfig';
@@ -35,7 +36,7 @@ debugLog.setHeader([
 // classes. Without it, our mui-overrides.css never gets to color a
 // single MUI component.
 const App = () => (
-  <DatatriceProvider extensions={extensions}>
+  <DatatriceProvider extensions={extensions} additionalMiddleware={[loadTimingMiddleware]}>
     <WebClientProvider config={CLIENT_CONFIG} options={CLIENT_OPTIONS}>
       <StrictMode>
         <StyledEngineProvider injectFirst>

@@ -4,6 +4,7 @@ import { lookupCards, parseCod } from '@app/services';
 import { connectedState, createMockWebClient, renderWithProviders } from '../../../__test-utils__';
 import { useDeckImportFlow, type DeckImportFlow } from './useDeckImportFlow';
 import { useDeckList } from './useDeckList';
+import { hasUnloadRisk } from '../../../services/unloadGuard';
 
 vi.mock('@app/services', async (importOriginal) => ({
   ...(await importOriginal<typeof import('@app/services')>()),
@@ -29,6 +30,15 @@ const DESKTOP_COD = '<cockatrice_deck version="1"><deckname>Desktop</deckname>'
   + '<zone name="main"><card name="Lightning Bolt" number="4"/></zone>'
   + '<zone name="side"><card name="Negate" number="2"/></zone>'
   + '<zone name="tokens"><card name="Goblin" number="1"/></zone></cockatrice_deck>';
+
+it('guards pasted import work and releases it when the input is cleared', () => {
+  renderWithProviders(<Probe />, { preloadedState: connectedState, webClient: createMockWebClient() });
+  expect(hasUnloadRisk()).toBe(false);
+  act(() => flow.setText('4 Lightning Bolt'));
+  expect(hasUnloadRisk()).toBe(true);
+  act(() => flow.setText(''));
+  expect(hasUnloadRisk()).toBe(false);
+});
 
 it.each([
   ['paste', null],

@@ -1,4 +1,5 @@
 import { onSessionEnd } from '@app/services/session';
+import { setUnloadRisk } from '../../services/unloadGuard';
 
 import type { HydratedDeck } from './types';
 
@@ -36,9 +37,26 @@ export function deleteCachedDeck(deckId: number): void {
 
 const draftDocuments: Map<string, string> = new Map();
 const draftCache: Map<string, HydratedDeck> = new Map();
+const draftUnloadRisk = {};
+const draftHasWork = (deck: HydratedDeck) => Boolean(
+  deck.name.trim()
+  || deck.cards.length
+  || deck.format.trim()
+  || deck.meta.description?.trim()
+  || deck.meta.commanders?.length
+  || deck.bannerCard
+  || deck.bannerCardProviderId
+  || deck.playmatXml
+  || deck.sideboardPlansXml?.length
+  || deck.extraZonesXml?.length
+  || deck.tagsXml
+  || deck.bracketAssessment,
+);
+const syncDraftUnloadRisk = () => setUnloadRisk(draftUnloadRisk, [...draftCache.values()].some(draftHasWork));
 onSessionEnd(() => {
   draftDocuments.clear();
   draftCache.clear();
+  syncDraftUnloadRisk();
 });
 
 export function getDraftDocument(token: string): string | undefined {
@@ -55,6 +73,7 @@ export function setDraftDocument(token: string, cod: string): void {
     }
     draftDocuments.delete(oldest);
     draftCache.delete(oldest);
+    syncDraftUnloadRisk();
   }
 }
 
@@ -64,13 +83,16 @@ export function getCachedDraft(token: string): HydratedDeck | undefined {
 
 export function setCachedDraft(token: string, deck: HydratedDeck): void {
   draftCache.set(token, deck);
+  syncDraftUnloadRisk();
 }
 
 export function deleteCachedDraft(token: string): void {
   draftCache.delete(token);
+  syncDraftUnloadRisk();
 }
 
 export function deleteDraft(token: string): void {
   draftDocuments.delete(token);
   draftCache.delete(token);
+  syncDraftUnloadRisk();
 }

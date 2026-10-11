@@ -10,6 +10,7 @@ import {
 } from '@cockatrice/sockatrice/generated';
 import { parseCod } from '@app/services';
 import { endSession } from '@app/services/session';
+import { hasUnloadRisk } from '../../../services/unloadGuard';
 
 import { connectedState, createMockWebClient, disconnectedState, renderWithProviders } from '../../../__test-utils__';
 import { getCachedDeck, setCachedDeck } from '../deckEditorCache';
@@ -62,11 +63,11 @@ function folderTree() {
 function setup(folderPath?: string, preloadedState = connectedState) {
   const webClient = createMockWebClient();
   const onDeckCreated = vi.fn();
-  const { store } = renderWithProviders(<Probe onDeckCreated={onDeckCreated} folderPath={folderPath} />, {
+  const view = renderWithProviders(<Probe onDeckCreated={onDeckCreated} folderPath={folderPath} />, {
     preloadedState,
     webClient,
   });
-  return { webClient, store, onDeckCreated };
+  return { ...view, webClient, onDeckCreated };
 }
 
 beforeEach(() => {
@@ -163,6 +164,47 @@ describe('useDeckList', () => {
     expect(latest.createDeck('Brew', 'modern')).toBe(false);
     expect(latest.importDeck('<cockatrice_deck/>')).toBe(false);
     expect(webClient.request.session.deckUpload).not.toHaveBeenCalled();
+  });
+
+  it('keeps guarding an import after its route unmounts until its correlated success', () => {
+    const { store, webClient, unmount } = setup();
+    act(() => {
+      latest.importDeck('<cockatrice_deck version="1"><deckname>Imported</deckname></cockatrice_deck>');
+    });
+    const requestId = vi.mocked(webClient.request.session.deckUpload).mock.calls[0][5];
+    expect(hasUnloadRisk()).toBe(true);
+    unmount();
+
+    act(() => {
+      store.dispatch(server.Actions.deckUpload({
+        path: '', requestId: 'unrelated',
+        treeItem: create(ServerInfo_DeckStorage_TreeItemSchema, { id: 8, name: 'Imported' }),
+      }));
+    });
+    expect(hasUnloadRisk()).toBe(true);
+
+    act(() => {
+      store.dispatch(server.Actions.deckUpload({
+        path: '', requestId,
+        treeItem: create(ServerInfo_DeckStorage_TreeItemSchema, { id: 7, name: 'Imported' }),
+      }));
+    });
+    expect(hasUnloadRisk()).toBe(false);
+  });
+
+  it.each(['failure', 'session'] as const)('releases an unmounted import on %s end', (outcome) => {
+    const { store, webClient, unmount } = setup();
+    act(() => {
+      latest.importDeck('<cockatrice_deck version="1"><deckname>Imported</deckname></cockatrice_deck>');
+    });
+    const requestId = vi.mocked(webClient.request.session.deckUpload).mock.calls[0][5];
+    unmount();
+    expect(hasUnloadRisk()).toBe(true);
+
+    act(() => store.dispatch(outcome === 'failure'
+      ? server.Actions.deckUploadFailed({ path: '', responseCode: 1, requestId })
+      : server.Actions.disconnected()));
+    expect(hasUnloadRisk()).toBe(false);
   });
 
   it('creates a deck at the root and reports the id the server assigns', () => {
@@ -321,10 +363,12 @@ describe('useDeckList', () => {
       act(() => {
         latest.importDeck('<cockatrice_deck version="1"><zone name="main"/></cockatrice_deck>');
       });
+      const importRequestId = vi.mocked(webClient.request.session.deckUpload).mock.calls.at(-1)?.[5];
 
       act(() => {
         store.dispatch(server.Actions.deckUpload({
           path: 'Modern',
+          requestId: importRequestId,
           treeItem: create(ServerInfo_DeckStorage_TreeItemSchema, { id: 20, name: 'Unnamed deck' }),
         }));
       });

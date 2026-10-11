@@ -1,4 +1,5 @@
 import { Route, Routes } from 'react-router-dom';
+import RouteTimings from './RouteTimings';
 
 import { RouteEnum } from '@app/types';
 import { Account } from '@app/features/account';
@@ -52,6 +53,7 @@ const AppShellRoutes = () => (
       <Route path={RouteEnum.UNSUPPORTED} element={<Unsupported />} />
     </Routes>
     <RouteFocus />
+    <RouteTimings />
   </div>
 );
 
