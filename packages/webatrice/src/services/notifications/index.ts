@@ -5,6 +5,8 @@ export {
   notificationStore,
 } from './notificationStore';
 export type {
+  MentionCounts,
+  MentionScope,
   NotificationEntry,
   NotificationInput,
   NotificationKind,

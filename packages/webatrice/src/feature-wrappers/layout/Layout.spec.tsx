@@ -1,4 +1,4 @@
-import { act, fireEvent, screen } from '@testing-library/react';
+import { act, fireEvent, screen, within } from '@testing-library/react';
 
 import { connectedState, renderWithProviders } from '../../__test-utils__';
 import { RouteEnum } from '@app/types';
@@ -8,7 +8,7 @@ import Layout from './Layout';
 describe('Layout', () => {
   afterEach(() => {
     act(() => {
-      fireEvent.click(screen.queryByRole('button', { name: 'TopBar.rail.show' }) ?? document.body);
+      fireEvent.click(screen.queryByRole('button', { name: 'NavRail.toggle.show' }) ?? document.body);
     });
     window.localStorage.clear();
   });
@@ -21,14 +21,15 @@ describe('Layout', () => {
     expect(screen.getByRole('main')).toHaveTextContent('Page');
   });
 
-  it('hides the rail from the strip and brings it back', () => {
+  it('hides the rail from its own toggle and brings it back', () => {
     renderWithProviders(<Layout><p>Page</p></Layout>, { preloadedState: connectedState, route: RouteEnum.SERVER });
 
-    fireEvent.click(screen.getByRole('button', { name: 'TopBar.rail.hide' }));
+    expect(within(screen.getByRole('banner')).queryByRole('button', { name: /NavRail\.toggle/ })).not.toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: 'NavRail.toggle.hide' }));
     expect(screen.queryByRole('navigation', { name: 'NavRail.label' })).not.toBeInTheDocument();
     expect(screen.getByRole('main')).toHaveTextContent('Page');
 
-    fireEvent.click(screen.getByRole('button', { name: 'TopBar.rail.show' }));
+    fireEvent.click(screen.getByRole('button', { name: 'NavRail.toggle.show' }));
     expect(screen.getByRole('navigation', { name: 'NavRail.label' })).toBeInTheDocument();
   });
 

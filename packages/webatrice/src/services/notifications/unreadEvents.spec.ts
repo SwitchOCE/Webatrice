@@ -25,7 +25,7 @@ const state = {
   },
 } as unknown as RootState;
 
-const visible: VisibilityChecks = { roomMessage: () => true, privateMessage: () => true };
+const visible: VisibilityChecks = { roomMessage: () => true, privateMessage: () => true, mentionsSelf: () => false };
 const change = (action: { type: string; payload: unknown }, pathname = '/', checks = visible) =>
   unreadChange(action, state, state, currentView(pathname), checks);
 
@@ -93,5 +93,25 @@ describe('unreadChange', () => {
     expect(unreadChange(moved, state, state, view, visible)).toBeNull();
     expect(unreadChange(turn, withGame({ activePlayerId: 1, replay: true }), withGame({ activePlayerId: 2, replay: true }), view, visible))
       .toBeNull();
+  });
+
+  it('flags room and game chat that mentions you, asking with the sender', () => {
+    const mentionsSelf = vi.fn((text: string) => text.includes('@me'));
+    const checks = { ...visible, mentionsSelf };
+    const line = (message: string) =>
+      rooms.Actions.addMessage({ roomId: 1, message: { name: 'bob', message, messageType: 1, timeReceived: 0 } as never });
+    expect(change(line('hi @me'), '/', checks)).toEqual({ op: 'bump', scope: 'rooms', key: 1, mention: true });
+    expect(change(line('hi all'), '/', checks)).toEqual({ op: 'bump', scope: 'rooms', key: 1 });
+    expect(change(line('hi @me'), '/room/1', checks)).toBeNull();
+
+    const say = (message: string) => games.Actions.gameSay({ gameId: 4, playerId: 2, message, timeReceived: 0 } as never);
+    expect(change(say('gg @me'), '/', checks)).toEqual({ op: 'bump', scope: 'games', key: 4, mention: true });
+    expect(mentionsSelf).toHaveBeenLastCalledWith('gg @me', state.games.games[4].players[2].properties.userInfo, state);
+    expect(change(say('gg'), '/', checks)).toEqual({ op: 'bump', scope: 'games', key: 4 });
+
+    const left = games.Actions.playerLeft({ gameId: 4, playerId: 2, reason: 0 } as never);
+    mentionsSelf.mockClear();
+    expect(change(left, '/', checks)).toEqual({ op: 'bump', scope: 'games', key: 4 });
+    expect(mentionsSelf).not.toHaveBeenCalled();
   });
 });

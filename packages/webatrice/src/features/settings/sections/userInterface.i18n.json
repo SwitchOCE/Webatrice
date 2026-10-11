@@ -52,6 +52,12 @@
     "buddyConnectNotificationsEnabled": {
       "label": "Notify when users in your buddy list connect"
     },
+    "playBadge": {
+      "label": "Play badge",
+      "description": "What the number on Play in the navigation rail counts: chat in your rooms and games that mentions you, or every unread room line and game event.",
+      "mentions": "Mentions only",
+      "all": "All activity"
+    },
     "browserNotifications": {
       "label": "Desktop notifications",
       "description": "Lets Webatrice show system notifications while its tab is in the background. Without them, notifications appear inside the page.",
