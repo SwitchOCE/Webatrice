@@ -43,6 +43,7 @@ export interface DeckCardGroupProps {
   legality?: readonly CardLegality[];
   grid?: DeckCardGrid;
   density?: DeckRowDensity;
+  columnBreak?: boolean;
   collapsed?: boolean;
   onToggleCollapsed?: () => void;
 }
@@ -79,6 +80,7 @@ export function DeckCardGroup({
   legality,
   grid,
   density,
+  columnBreak = false,
   collapsed = false,
   onToggleCollapsed,
 }: DeckCardGroupProps) {
@@ -89,7 +91,13 @@ export function DeckCardGroup({
   const Icon = SECTION_ICON[label] ?? MoreHorizontal;
   const title = t(`DeckEditor.section.${label.toLowerCase()}`, { count: totalQty });
   return (
-    <section className={['min-w-0', density === 'compact' ? 'mb-3' : 'mb-4'].join(' ')}>
+    <section
+      className={[
+        'min-w-0 break-inside-avoid',
+        columnBreak ? 'break-before-column' : '',
+        density === 'compact' ? 'mb-3' : 'mb-4',
+      ].join(' ')}
+    >
       <h3
         id={headingId}
         className="flex items-center border-b border-border-subtle pb-1.5 font-display text-[13px] font-semibold text-text-primary"

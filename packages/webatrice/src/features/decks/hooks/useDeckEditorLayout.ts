@@ -67,6 +67,10 @@ export function useDeckEditorLayout() {
   const reset = useCallback(() => setPrefs(DEFAULT_DECK_EDITOR_LAYOUT), []);
 
   const collapsedGroups = useMemo(() => new Set(prefs.collapsedGroups), [prefs.collapsedGroups]);
+  const inspectorDocksWhenExpanded = useMemo(
+    () => resolveDeckEditorLayout(withPaneCollapsed(prefs, 'inspector', false), containerWidth).inspectorDocked,
+    [prefs, containerWidth],
+  );
 
   return {
     containerRef,
@@ -74,6 +78,7 @@ export function useDeckEditorLayout() {
     layout,
     prefs,
     collapsedGroups,
+    inspectorDocksWhenExpanded,
     isPaneCollapsed: (pane: DeckPane) => (pane === 'dock' ? prefs.dockCollapsed : prefs.inspectorCollapsed),
     setPaneWidth,
     resizePaneBy,

@@ -51,3 +51,24 @@ export function partitionIntoColumns(weights: readonly number[], columns: number
   }
   return result;
 }
+
+export interface DeckColumnGroup {
+  rows: number;
+  collapsed: boolean;
+}
+
+export interface DeckColumnLayout {
+  count: number;
+  breaks: ReadonlySet<number>;
+  maxWidth: number;
+}
+
+export function deckColumnLayout(width: number, density: DeckRowDensity, groups: readonly DeckColumnGroup[]): DeckColumnLayout {
+  const count = deckColumnCount(width, density, groups.length);
+  const columns = partitionIntoColumns(groups.map(({ rows, collapsed }) => deckGroupWeight(rows, collapsed)), count);
+  return {
+    count: Math.max(1, columns.length),
+    breaks: new Set(columns.slice(1).map((column) => column[0])),
+    maxWidth: count * DECK_COLUMN_MAX_WIDTH + (count - 1) * DECK_COLUMN_GAP,
+  };
+}
