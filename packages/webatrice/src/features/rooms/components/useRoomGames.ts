@@ -1,4 +1,4 @@
-import { useCallback, useMemo, useRef, useState } from 'react';
+import { useCallback, useRef, useState } from 'react';
 import type { ListImperativeAPI } from 'react-window';
 
 import { games as gamesSlice, server, rooms, type Game, type Room } from '@cockatrice/datatrice';
@@ -39,6 +39,8 @@ export function useRoomGames(room: Room) {
   useNavigateOnGameJoined();
 
   const roomGames = useAppSelector((state) => rooms.Selectors.getRoomGames(state, roomId));
+  const roomGamesRef = useRef(roomGames);
+  roomGamesRef.current = roomGames;
   const activeGameIds = useAppSelector(gamesSlice.Selectors.getActiveGameIds);
   const isJudgeUser = useAppSelector(server.Selectors.getIsUserJudge);
 
@@ -47,16 +49,16 @@ export function useRoomGames(room: Room) {
   const [infoGameId, setInfoGameId] = useState<number | null>(null);
 
   const startJoin = useCallback((gameId: number, action: RowAction, asJudge = false) => {
-    const game = roomGames[gameId];
+    const game = roomGamesRef.current[gameId];
     if (!game) {
       return;
     }
     setTrigger({ gameId, action });
     beginJoin(roomId, game.info, action === 'spectate', asJudge);
-  }, [roomGames, beginJoin, roomId]);
+  }, [beginJoin, roomId]);
 
   const activateGame = useCallback((gameId: number) => startJoin(gameId, 'join'), [startJoin]);
-  const { sortBy, games: gameList, selectedGameId, setSort, handleSelect, handleActivate } =
+  const { sortBy, games: gameList, gameKeys: keys, selectedGameId, setSort, handleSelect, handleActivate } =
     useOpenGames({ roomId, onActivateGame: activateGame });
 
   const sort = currentSortOption(sortBy);
@@ -69,7 +71,6 @@ export function useRoomGames(room: Room) {
   }, [setSort]);
 
   const listRef = useRef<ListImperativeAPI>(null);
-  const keys = useMemo(() => gameList.map((game) => String(game.info.gameId)), [gameList]);
   const selectRow = useCallback((key: string) => {
     handleSelect(Number(key));
     listRef.current?.scrollToRow({ index: keys.indexOf(key), align: 'smart' });
@@ -82,18 +83,6 @@ export function useRoomGames(room: Room) {
     onActivate: activateRow,
   });
 
-  const joinStates = useMemo(() => {
-    const states = new Map<number, RowJoinState>();
-    for (const game of gameList) {
-      states.set(game.info.gameId, rowJoinState(game.info, {
-        override: overrideRestrictions,
-        pending: joinPending,
-        alreadyJoined: activeGameIds.includes(game.info.gameId),
-      }));
-    }
-    return states;
-  }, [gameList, overrideRestrictions, joinPending, activeGameIds]);
-
   const onAction = useCallback((gameId: number, action: RowAction) => {
     handleSelect(gameId);
     startJoin(gameId, action);
@@ -105,7 +94,11 @@ export function useRoomGames(room: Room) {
   }, [handleSelect]);
 
   const menuGame = more ? roomGames[more.gameId] : undefined;
-  const menuState = menuGame ? joinStates.get(menuGame.info.gameId) : undefined;
+  const menuState = menuGame ? rowJoinState(menuGame.info, {
+    override: overrideRestrictions,
+    pending: joinPending,
+    alreadyJoined: activeGameIds.includes(menuGame.info.gameId),
+  }) : undefined;
   const moreMenu: RoomGamesMoreMenu | null = more && menuGame && menuState
     ? { game: menuGame, state: menuState, anchor: more.anchor, button: more.button }
     : null;
@@ -131,7 +124,6 @@ export function useRoomGames(room: Room) {
     listRef,
     getRowProps,
     onRowsRendered,
-    joinStates,
     handleSelect,
     handleActivate,
     onAction,

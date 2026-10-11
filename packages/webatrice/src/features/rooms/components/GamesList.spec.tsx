@@ -4,11 +4,11 @@ import { create, type MessageInitShape } from '@bufbuild/protobuf';
 
 import { ServerInfo_GameSchema, ServerInfo_User_UserLevelFlag } from '@cockatrice/sockatrice/generated';
 import { rooms as roomsSlice, type Room } from '@cockatrice/datatrice';
-import { VirtualRows } from '@app/components';
+import { SeatDots, VirtualRows } from '@app/components';
 
 vi.mock('@app/components', async (original) => {
   const components = await original<typeof import('@app/components')>();
-  return { ...components, VirtualRows: vi.fn(components.VirtualRows) };
+  return { ...components, SeatDots: vi.fn(components.SeatDots), VirtualRows: vi.fn(components.VirtualRows) };
 });
 
 import { connectedWithRoomsState, createMockWebClient, makeUser, renderWithProviders } from '../../../__test-utils__';
@@ -154,6 +154,20 @@ describe('GamesList', () => {
     fireEvent.click(screen.getByRole('button', { name: 'QuickFilterBar.more' }));
     expect(screen.getByRole('dialog', { name: 'QuickFilterBar.more' })).toBeInTheDocument();
     expect(vi.mocked(VirtualRows).mock.calls.at(-1)![0].renderRow).toBe(renderRow);
+  });
+
+  it('redraws only the changed game row when a game update arrives', () => {
+    const { store } = setup();
+    vi.mocked(SeatDots).mockClear();
+
+    act(() => {
+      store.dispatch(roomsSlice.Actions.updateGames({
+        roomId: 1,
+        games: [makeGame(1, 'Alpha', 2).info],
+      }));
+    });
+
+    expect(SeatDots).toHaveBeenCalledTimes(1);
   });
 
   it('keeps keyboard focus on the same game when a newer game is inserted above it', () => {

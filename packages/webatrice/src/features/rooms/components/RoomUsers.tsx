@@ -1,10 +1,9 @@
-import { Fragment } from 'react';
-import { List, type RowComponentProps } from 'react-window';
+import { Fragment, memo, useCallback } from 'react';
 import { ChevronDown, ChevronRight, MessageSquare, Swords } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import type { ServerInfo_User } from '@cockatrice/sockatrice/generated';
 
-import { Avatar, IconButton, Panel, SectionLabel, TextInput, UserDisplay } from '@app/components';
+import { Avatar, IconButton, Panel, SectionLabel, TextInput, UserDisplay, VirtualRows } from '@app/components';
 import { useUserGames } from '@app/feature-widgets/user-games';
 import { useOpenChat } from '@app/feature-widgets/chat-dock';
 import { cx } from '@app/utils';
@@ -32,10 +31,14 @@ const SECTION_KEYS = {
   everyone: 'RoomUsers.section.everyone',
 } as const satisfies Record<PeopleSection, string>;
 
-export default function RoomUsers({ roomId, roomName }: RoomUsersProps) {
+const peopleRowHeight = (index: number, { items }: { items: PeopleRow[] }) => ROW_HEIGHT[items[index].kind];
+
+export default memo(function RoomUsers({ roomId, roomName }: RoomUsersProps) {
   const { t } = useTranslation();
   const { people, rows, query, setQuery, toggle } = useRoomPeople(roomId);
-  const rowProps: PeopleRowProps = { rows, roomName, toggle };
+  const renderRow = useCallback((row: PeopleRow) => (
+    <PeopleRowView key={row.key} row={row} roomName={roomName} toggle={toggle} />
+  ), [roomName, toggle]);
 
   return (
     <Panel
@@ -55,42 +58,38 @@ export default function RoomUsers({ roomId, roomName }: RoomUsersProps) {
         />
       </div>
       <div className="min-h-0 flex-1 px-1.5 pb-2 pt-2">
-        <List<PeopleRowProps>
+        <VirtualRows
           aria-label={t('RoomUsers.list', { room: roomName })}
+          className="h-full"
           defaultHeight={600}
-          rowCount={rows.length}
-          rowHeight={(index, { rows: current }) => ROW_HEIGHT[current[index].kind]}
-          rowComponent={PeopleRowView}
-          rowProps={rowProps}
-          style={{ height: '100%' }}
+          items={rows}
+          rowHeight={peopleRowHeight}
+          renderRow={renderRow}
         />
       </div>
     </Panel>
   );
-}
+});
 
 interface PeopleRowProps {
-  rows: PeopleRow[];
+  row: PeopleRow;
   roomName: string;
   toggle: (section: PeopleSection) => void;
 }
 
-function PeopleRowView({ ariaAttributes, index, style, rows, roomName, toggle }: RowComponentProps<PeopleRowProps>) {
-  const row = rows[index];
+const PeopleRowView = memo(function PeopleRowView({ row, roomName, toggle }: PeopleRowProps) {
   return (
-    <div style={style} {...ariaAttributes}>
-      <Fragment key={row.key}>
-        {row.kind === 'section' && (
-          <SectionHeader section={row.section} open={row.open} count={row.count} roomName={roomName} onToggle={toggle} />
-        )}
-        {row.kind === 'buddy' && <BuddyRow entry={row.entry} roomName={roomName} />}
-        {row.kind === 'person' && <PersonRow user={row.user} muted={row.muted} />}
-        {row.kind === 'preview' && <EveryonePreview users={row.users} more={row.more} onOpen={() => toggle('everyone')} />}
-        {row.kind === 'empty' && <EmptyRow section={row.section} />}
-      </Fragment>
-    </div>
+    <Fragment key={row.key}>
+      {row.kind === 'section' && (
+        <SectionHeader section={row.section} open={row.open} count={row.count} roomName={roomName} onToggle={toggle} />
+      )}
+      {row.kind === 'buddy' && <BuddyRow entry={row.entry} roomName={roomName} />}
+      {row.kind === 'person' && <PersonRow user={row.user} muted={row.muted} />}
+      {row.kind === 'preview' && <EveryonePreview users={row.users} more={row.more} onOpen={() => toggle('everyone')} />}
+      {row.kind === 'empty' && <EmptyRow section={row.section} />}
+    </Fragment>
   );
-}
+});
 
 function SectionHeader({ section, open, count, roomName, onToggle }: {
   section: PeopleSection;

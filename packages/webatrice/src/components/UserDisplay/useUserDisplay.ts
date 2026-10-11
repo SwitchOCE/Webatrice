@@ -15,13 +15,10 @@ export interface UserDisplay {
 }
 
 export function useUserDisplay(userName: string): UserDisplay {
-  const buddyList = useAppSelector((state) => server.Selectors.getBuddyList(state));
-  const ignoreList = useAppSelector((state) => server.Selectors.getIgnoreList(state));
+  const isABuddy = useAppSelector((state) => Boolean(server.Selectors.getBuddyList(state)[userName]));
+  const isIgnored = useAppSelector((state) => Boolean(server.Selectors.getIgnoreList(state)[userName]));
   const menu = useContextMenu();
   const webClient = useWebClient();
-
-  const isABuddy = Boolean(buddyList[userName]);
-  const isIgnored = Boolean(ignoreList[userName]);
 
   const onAddBuddy = () => {
     webClient.request.session.addToBuddyList(userName);

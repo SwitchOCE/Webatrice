@@ -30,7 +30,7 @@ async function stubExternal(route: Route): Promise<void> {
 export interface HarnessOptions {
   players?: number;
   as?: 'player' | 'spectator';
-  route?: 'game' | 'home';
+  route?: 'game' | 'home' | 'room';
   previewMode?: 'image' | 'text' | 'both';
 }
 
@@ -80,6 +80,6 @@ export async function showCardInPreview(page: Page): Promise<void> {
 
 declare global {
   interface Window {
-    layoutHarness: { openChats: (open: number, minimised?: number) => void; closeChats: () => void };
+    layoutHarness: { openChats: (open: number, minimised?: number) => void; closeChats: () => void; say: (message: string) => void };
   }
 }

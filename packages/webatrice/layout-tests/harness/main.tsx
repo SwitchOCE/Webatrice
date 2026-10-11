@@ -1,17 +1,20 @@
 import '../../src/polyfills';
 
-import { Suspense } from 'react';
+import { Suspense, useEffect } from 'react';
+import { create } from '@bufbuild/protobuf';
+import { rooms } from '@cockatrice/datatrice';
+import { Event_RoomSaySchema } from '@cockatrice/sockatrice/generated';
 import { createRoot } from 'react-dom/client';
 import { StyledEngineProvider } from '@mui/material/styles';
 
 import { DatatriceProvider, WebClientProvider } from '@cockatrice/datatrice/react';
 import { makeUser } from '@cockatrice/datatrice/testing';
-import { extensions } from '@app/store';
+import { extensions, useAppDispatch } from '@app/store';
 import { AppThemeProvider } from '@app/components';
 import { currentMaxExpandedChats, dispatchChatDock } from '@app/hooks';
 import { CLIENT_CONFIG, CLIENT_OPTIONS } from '../../src/clientConfig';
 import AppShell from '../../src/AppShell';
-import { connected31State } from '../../src/__test-utils__/storeFixtures';
+import { connected31State, connectedWithRoomsState } from '../../src/__test-utils__/storeFixtures';
 import { buildLayoutGame } from './fixture';
 
 import '../../src/i18n';
@@ -23,7 +26,8 @@ const spectator = query.get('as') === 'spectator';
 const chatPeers = ['mainman879', 'Bobby4261789', 'Jsiggy54', 'GolbogDoomslay'];
 
 Object.defineProperty(window, 'onbeforeunload', { configurable: true, get: () => null, set: () => undefined });
-window.localStorage.setItem('webatrice.lastRoute', query.get('route') === 'home' ? '/' : '/game/1');
+const route = query.get('route');
+window.localStorage.setItem('webatrice.lastRoute', route === 'home' ? '/' : route === 'room' ? '/room/1' : '/game/1');
 
 const game = buildLayoutGame({ players, spectator });
 const self = makeUser({ name: spectator ? 'AzureJay' : 'Alex' });
@@ -35,7 +39,23 @@ const base = connected31State as Record<string, Record<string, unknown>>;
 const state = {
   ...base,
   server: { ...base.server, user: self, users: { ...(base.server.users as object), ...users } },
-  rooms: { ...base.rooms, joinedGameIds: { 1: { 1: true } } },
+  rooms: query.get('route') === 'room' ? {
+    ...connectedWithRoomsState.rooms,
+    rooms: { 1: { ...connectedWithRoomsState.rooms!.rooms[1], users: Object.fromEntries(
+      Array.from({ length: 403 }, (_, index) => {
+        const user = makeUser({ name: `person${index}` });
+        return [user.name, user];
+      }),
+    ) } },
+    messages: { 1: Array.from({ length: 320 }, (_, index) => ({
+      ...create(Event_RoomSaySchema, {
+        name: `speaker${index}`,
+        message: `speaker${index}: line ${index} https://example.com/${index} @person1 ${'wrapped words '.repeat(index % 5 * 12)}`,
+      }),
+      id: index + 1000,
+      timeReceived: 1,
+    })) },
+  } : { ...base.rooms, joinedGameIds: { 1: { 1: true } } },
   games: { ...base.games, games: { 1: game } },
 };
 
@@ -44,7 +64,7 @@ const keepSession = () => (next: (a: unknown) => unknown) => (a: { type?: string
 
 declare global {
   interface Window {
-    layoutHarness: { openChats: (open: number, minimised?: number) => void; closeChats: () => void };
+    layoutHarness: { openChats: (open: number, minimised?: number) => void; closeChats: () => void; say: (message: string) => void };
   }
 }
 window.layoutHarness = {
@@ -54,7 +74,18 @@ window.layoutHarness = {
     names.slice(0, minimised).forEach((name) => dispatchChatDock({ type: 'minimise', name }));
   },
   closeChats: () => chatPeers.forEach((name) => dispatchChatDock({ type: 'close', name })),
+  say: () => undefined,
 };
+
+function RoomActions() {
+  const dispatch = useAppDispatch();
+  useEffect(() => {
+    window.layoutHarness.say = (message) => dispatch(rooms.Actions.roomSayReceived({
+      roomId: 1, message: { ...create(Event_RoomSaySchema, { name: 'arrival', message }), timeReceived: Date.now() },
+    }));
+  }, [dispatch]);
+  return null;
+}
 
 createRoot(document.getElementById('root')!).render(
   <DatatriceProvider extensions={extensions} preloadedState={state as never} additionalMiddleware={[keepSession as never]}>
@@ -62,6 +93,7 @@ createRoot(document.getElementById('root')!).render(
       <StyledEngineProvider injectFirst>
         <AppThemeProvider>
           <Suspense fallback="loading">
+            <RoomActions />
             <AppShell />
           </Suspense>
         </AppThemeProvider>

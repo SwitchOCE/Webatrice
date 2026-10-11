@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo } from 'react';
+import { createSelector } from '@reduxjs/toolkit';
 import { generatePath, useLocation, useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 
@@ -17,6 +18,48 @@ import { useBackendDeckNames } from './useBackendDeckNames';
 import { useIdentityChange } from './useIdentityChange';
 import { usePersistLastRoute } from './usePersistLastRoute';
 import { useStickyTabs } from './useStickyTabs';
+
+export interface SessionRoomTab {
+  roomId: number;
+  name: string;
+}
+
+export interface SessionGameTab {
+  gameId: number;
+  description: string;
+  spectator: boolean;
+}
+
+function roomTabsEqual(a: SessionRoomTab[], b: SessionRoomTab[]): boolean {
+  return a.length === b.length
+    && a.every((room, index) => room.roomId === b[index].roomId && room.name === b[index].name);
+}
+
+function gameTabsEqual(a: SessionGameTab[], b: SessionGameTab[]): boolean {
+  return a.length === b.length
+    && a.every((game, index) => game.gameId === b[index].gameId
+      && game.description === b[index].description
+      && game.spectator === b[index].spectator);
+}
+
+export const selectSessionRoomTabs = createSelector(
+  [rooms.Selectors.getJoinedRooms],
+  (joinedRooms): SessionRoomTab[] => joinedRooms.map(({ info }) => ({
+    roomId: info.roomId,
+    name: info.name,
+  })),
+  { memoizeOptions: { resultEqualityCheck: roomTabsEqual } },
+);
+
+export const selectSessionGameTabs = createSelector(
+  [games.Selectors.getActiveGames],
+  (activeGames): SessionGameTab[] => activeGames.map(({ info, spectator }) => ({
+    gameId: info.gameId,
+    description: info.description,
+    spectator,
+  })),
+  { memoizeOptions: { resultEqualityCheck: gameTabsEqual } },
+);
 
 export interface SessionTabs {
   groups: StripGroup[];
@@ -39,8 +82,8 @@ export function useSessionTabs(): SessionTabs {
   const webClient = useWebClient();
   const leaveGameRequest = useLeaveGame();
   const unreadCounts = useUnreadCounts();
-  const joinedRooms = useAppSelector(rooms.Selectors.getJoinedRooms);
-  const activeGames = useAppSelector(games.Selectors.getActiveGames);
+  const roomTabs = useAppSelector(selectSessionRoomTabs);
+  const gameTabs = useAppSelector(selectSessionGameTabs);
   const openedReplays = useOpenedReplays();
 
   const [stickyTabs, setStickyTabs] = useStickyTabs();
@@ -83,12 +126,12 @@ export function useSessionTabs(): SessionTabs {
       },
     ];
 
-    for (const room of joinedRooms) {
-      const roomId = room.info.roomId;
+    for (const room of roomTabs) {
+      const roomId = room.roomId;
       list.push({
         key: `room:${roomId}`,
         type: 'room',
-        title: room.info.name || t('TopBar.tab.room', { id: String(roomId) }),
+        title: room.name || t('TopBar.tab.room', { id: String(roomId) }),
         route: generatePath(RouteEnum.ROOM, { roomId: roomId.toString() }),
         closeable: true,
         onClose: () => {
@@ -97,12 +140,12 @@ export function useSessionTabs(): SessionTabs {
       });
     }
 
-    for (const game of activeGames) {
-      const gameId = game.info.gameId;
+    for (const game of gameTabs) {
+      const gameId = game.gameId;
       list.push({
         key: `game:${gameId}`,
         type: 'game',
-        title: game.info.description || t('TopBar.tab.game', { id: String(gameId) }),
+        title: game.description || t('TopBar.tab.game', { id: String(gameId) }),
         route: generatePath(RouteEnum.GAME, { gameId: gameId.toString() }),
         closeable: true,
         spectating: game.spectator,
@@ -134,7 +177,7 @@ export function useSessionTabs(): SessionTabs {
     }
 
     return list;
-  }, [joinedRooms, activeGames, openedReplays, location.pathname, webClient, leaveGameRequest, stickyTabs, deckIdToName, t]);
+  }, [roomTabs, gameTabs, openedReplays, location.pathname, webClient, leaveGameRequest, stickyTabs, deckIdToName, t]);
 
   const activeKey = useMemo(
     () => tabs.find((tab) => routeMatches(location.pathname, tab.route))?.key ?? 'server',

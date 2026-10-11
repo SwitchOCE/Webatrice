@@ -1,26 +1,27 @@
-import type { CSSProperties } from 'react';
+import { memo, type CSSProperties } from 'react';
 import { useTranslation } from 'react-i18next';
 import type { TFunction } from 'i18next';
 import { Eye, EyeOff, Lock, MoreHorizontal } from 'lucide-react';
 
-import type { Game, GametypeMap } from '@cockatrice/datatrice';
+import { games, rooms, type Game, type GametypeMap } from '@cockatrice/datatrice';
 import { AvailabilityBadge, Button, Chip, IconButton, SeatDots, UserBadges, type Availability } from '@app/components';
-import type { GridRowProps } from '@app/hooks';
+import { useCanOverrideGameRestrictions, type GridRowProps } from '@app/hooks';
 import { Images } from '@app/images';
+import { useAppSelector } from '@app/store';
 import { cx } from '@app/utils';
 
-import { gameAge, gameAvailability, gameTypeNames, restrictionKeys, type AgeLabel, type RowJoinState } from './gameRowModel';
+import { gameAge, gameAvailability, gameTypeNames, restrictionKeys, rowJoinState, type AgeLabel } from './gameRowModel';
 
 export type RowAction = 'join' | 'spectate';
 
 export interface GameRowProps {
-  game: Game;
+  roomId: number;
+  gameId: number;
   index: number;
   style: CSSProperties;
   columns: string;
   selected: boolean;
-  rowProps: GridRowProps;
-  state: RowJoinState;
+  getRowProps: (key: string) => GridRowProps;
   nowSeconds: number;
   gametypeMap: GametypeMap;
   watchingColumn: boolean;
@@ -92,14 +93,19 @@ function Watching({ game, className }: { game: Game; className?: string }) {
   );
 }
 
-export default function GameRow({
-  game,
+function stylesEqual(a: CSSProperties, b: CSSProperties): boolean {
+  const keys = Object.keys(a) as (keyof CSSProperties)[];
+  return keys.length === Object.keys(b).length && keys.every((key) => a[key] === b[key]);
+}
+
+function GameRow({
+  roomId,
+  gameId,
   index,
   style,
   columns,
   selected,
-  rowProps,
-  state,
+  getRowProps,
   nowSeconds,
   gametypeMap,
   watchingColumn,
@@ -109,7 +115,16 @@ export default function GameRow({
   onMore,
 }: GameRowProps) {
   const { t } = useTranslation();
+  const game = useAppSelector((state) => rooms.Selectors.getRoomGames(state, roomId)[gameId]);
+  const alreadyJoined = useAppSelector((state) => games.Selectors.getActiveGameIds(state).includes(gameId));
+  const joinPending = useAppSelector(rooms.Selectors.getJoinGamePending);
+  const overrideRestrictions = useCanOverrideGameRestrictions();
+  if (!game) {
+    return null;
+  }
   const { info } = game;
+  const rowProps = getRowProps(String(gameId));
+  const state = rowJoinState(info, { override: overrideRestrictions, pending: joinPending, alreadyJoined });
   const availability = gameAvailability(info);
   const name = gameName(t, game);
   const formats = gameTypeNames(info, gametypeMap);
@@ -255,4 +270,20 @@ export default function GameRow({
     </div>
   );
 }
+
+export default memo(GameRow, (previous, next) =>
+  previous.roomId === next.roomId
+  && previous.gameId === next.gameId
+  && previous.index === next.index
+  && stylesEqual(previous.style, next.style)
+  && previous.columns === next.columns
+  && previous.selected === next.selected
+  && previous.getRowProps === next.getRowProps
+  && previous.nowSeconds === next.nowSeconds
+  && previous.gametypeMap === next.gametypeMap
+  && previous.watchingColumn === next.watchingColumn
+  && previous.onSelect === next.onSelect
+  && previous.onActivate === next.onActivate
+  && previous.onAction === next.onAction
+  && previous.onMore === next.onMore);
 
