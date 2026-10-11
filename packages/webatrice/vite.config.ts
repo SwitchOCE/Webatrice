@@ -4,6 +4,7 @@ import { fileURLToPath } from 'node:url';
 import path from 'node:path';
 import react from '@vitejs/plugin-react';
 import { defineConfig } from 'vitest/config';
+import serviceWorkerPlugin from './scripts/service-worker-plugin.mjs';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const srcPath = (...segments: string[]) => path.resolve(__dirname, 'src', ...segments);
@@ -31,7 +32,7 @@ function lastCommitDate(): string {
 // (`vitest.integration.config.ts`); tests that need a real browser against a
 // real Servatrice belong in the e2e suite (`playwright.config.ts`).
 export default defineConfig({
-  plugins: [react()],
+  plugins: [react(), serviceWorkerPlugin()],
   define: {
     __WEBATRICE_VERSION__: JSON.stringify(packageVersion),
     __WEBATRICE_BUILD_DATE__: JSON.stringify(lastCommitDate()),

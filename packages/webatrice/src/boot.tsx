@@ -16,6 +16,7 @@ import CardPreviewPopupPage from './features/game/components/CardPreviewPopup/Ca
 
 import './i18n';
 import './index.css';
+import { registerAfterPaint } from './services/serviceWorker/register';
 
 installConsoleCapture();
 debugLog.setHeader([
@@ -75,3 +76,4 @@ const container = document.getElementById('root');
 const root = createRoot(container!);
 
 root.render(isCardPreviewPopup ? <CardPreviewPopupPage /> : <App />);
+registerAfterPaint();
