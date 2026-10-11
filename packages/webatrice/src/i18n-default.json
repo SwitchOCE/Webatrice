@@ -3729,44 +3729,69 @@
   },
   "People": {
     "title": "People",
-    "subtitle": "Conversations from this session, your buddies and the people you ignore",
+    "subtitle": "{online} of {buddies} buddies online · {others, plural, one {# other player} other {# other players}} online",
+    "search": {
+      "label": "Search buddies and online players, or type a name to add",
+      "noMatches": "Nobody matches “{query}”."
+    },
     "add": {
-      "label": "Add a player by name",
-      "placeholder": "Player name",
       "buddy": "Add buddy",
-      "ignore": "Ignore"
+      "ignore": "Ignore",
+      "ignoreLabel": "Ignore a player by name"
     },
-    "conversations": {
-      "title": "Conversations",
-      "empty": "No conversations yet. Private messages you send or receive appear here.",
-      "note": "The server does not keep private messages. Conversations last until you sign out."
+    "myGame": {
+      "hosting": "You are hosting {description}",
+      "seated": "You are in {description}",
+      "untitled": "an untitled game",
+      "seats": "{seated} of {max} seats taken.",
+      "hintBuddies": "Invite a buddy from the list.",
+      "hintOthers": "No buddies online. Invite anyone from Everyone else online.",
+      "hintNoLink": "To invite from here, set this server's desktop port in its settings."
     },
-    "conversation": {
-      "open": "Open chat with {name}, {presence}",
-      "openUnread": "Open chat with {name}, {presence}, {count} unread",
-      "details": "{preview}, {time}",
-      "you": "You:"
+    "online": {
+      "title": "Buddies online",
+      "noBuddies": "No buddies yet. Search for a player above or open Everyone else online and add the people you play with.",
+      "noneOnline": "None of your buddies are online right now."
     },
-    "buddies": {
-      "title": "Buddies",
-      "count": "{online} online · {total}",
-      "empty": "No buddies yet. Add one by name above."
+    "activity": {
+      "hosting": "Hosting “{description}” in {room} · {open, plural, one {# seat open} other {# seats open}}",
+      "waiting": "Waiting in “{description}” in {room} · {open, plural, one {# seat open} other {# seats open}}",
+      "playing": "Playing “{description}” in {room} · {minutes} min",
+      "playingNoTime": "Playing “{description}” in {room}",
+      "untitled": "game #{gameId}",
+      "idle": "Online, not in a game",
+      "unknown": "Online"
     },
-    "groups": {
-      "onlineBuddies": "Online buddies · {count}",
-      "offlineBuddies": "Offline buddies · {count}",
-      "othersOnline": "Everyone else online · {count}"
+    "action": {
+      "join": "Join",
+      "joinLabel": "Join {name}'s game",
+      "watch": "Watch",
+      "watchLabel": "Spectate {name}'s game",
+      "invite": "Invite",
+      "inviteLabel": "Invite {name} to your game",
+      "message": "Message",
+      "messageLabel": "Message {name}",
+      "messageUnread": "Message {name}, {count} unread",
+      "more": "More actions for {name}",
+      "addBuddy": "Add {name} to buddies",
+      "unignore": "Stop ignoring {name}",
+      "profile": "Open {name}'s profile"
     },
-    "buddy": {
-      "message": "Message {name}",
-      "add": "Add {name} to buddies",
-      "showGames": "Show games of {name}",
-      "remove": "Remove {name} from buddies"
+    "offline": {
+      "title": "Offline buddies"
+    },
+    "others": {
+      "title": "Everyone else online"
     },
     "ignored": {
       "title": "Ignored",
-      "empty": "You are not ignoring anyone.",
-      "remove": "Stop ignoring {name}"
+      "empty": "You are not ignoring anyone."
+    },
+    "section": {
+      "preview": "{count, plural, =1 {{first}} =2 {{first} and {second}} other {{first}, {second} and {more} more}}"
+    },
+    "join": {
+      "roomTimeout": "Could not open the game's room in time. Try again, or join the room from Play first."
     }
   },
   "Player": {

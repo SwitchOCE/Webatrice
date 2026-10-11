@@ -46,3 +46,17 @@ export function groupPeople({ buddyList, ignoreList, onlineUsers, selfName, loca
     ignored: Object.values(ignoreList).map((user) => row(user, onlineUsers)).sort(compare),
   };
 }
+
+export function filterGroups(groups: PeopleGroups, query: string): PeopleGroups {
+  const needle = query.trim().toLowerCase();
+  if (!needle) {
+    return groups;
+  }
+  const keep = (rows: PersonRow[]) => rows.filter((person) => person.name.toLowerCase().includes(needle));
+  return {
+    onlineBuddies: keep(groups.onlineBuddies),
+    offlineBuddies: keep(groups.offlineBuddies),
+    othersOnline: keep(groups.othersOnline),
+    ignored: keep(groups.ignored),
+  };
+}

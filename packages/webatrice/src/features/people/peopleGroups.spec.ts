@@ -1,5 +1,5 @@
 import { makeUser } from '../../__test-utils__';
-import { groupPeople } from './peopleGroups';
+import { filterGroups, groupPeople } from './peopleGroups';
 
 const users = (...names: string[]) => Object.fromEntries(names.map((name) => [name, makeUser({ name })]));
 const names = (rows: { name: string }[]) => rows.map((row) => row.name);
@@ -52,5 +52,26 @@ describe('groupPeople', () => {
   it('keeps a stable order for names that differ only by case', () => {
     const groups = groupPeople({ buddyList: {}, ignoreList: {}, onlineUsers: users('kim', 'Kim'), selfName: null });
     expect(names(groups.othersOnline)).toEqual(['Kim', 'kim']);
+  });
+});
+
+describe('filterGroups', () => {
+  const groups = groupPeople({
+    buddyList: users('Kira', 'Kess', 'Mei'),
+    ignoreList: users('troll'),
+    onlineUsers: users('Kira', 'kim', 'troll'),
+    selfName: null,
+  });
+
+  it('keeps every group as is for an empty query', () => {
+    expect(filterGroups(groups, '  ')).toBe(groups);
+  });
+
+  it('matches names case-insensitively in every group', () => {
+    const found = filterGroups(groups, 'KI');
+    expect(names(found.onlineBuddies)).toEqual(['Kira']);
+    expect(names(found.offlineBuddies)).toEqual([]);
+    expect(names(found.othersOnline)).toEqual(['kim']);
+    expect(names(filterGroups(groups, 'rol').ignored)).toEqual(['troll']);
   });
 });

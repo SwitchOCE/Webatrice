@@ -47,3 +47,4 @@ export * from './useMarkRead';
 export * from './useRecentDecks';
 export * from './useNotificationLog';
 export * from './useUnreadTracker';
+export * from './useElementWidth';

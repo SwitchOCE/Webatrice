@@ -2,7 +2,8 @@ import { useId, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Link, UserPlus } from 'lucide-react';
 
-import { useGameInvite } from '../../hooks/useGameInvite';
+import { useGameInvite } from '@app/feature-widgets/game-invite';
+import { useLiveServerEndpoint } from '@app/feature-widgets/known-hosts';
 import InviteToGameDialog from '../../dialogs/InviteToGameDialog/InviteToGameDialog';
 
 interface GameInviteControlsProps {
@@ -18,7 +19,7 @@ const BUTTON_CLASS = [
 
 export default function GameInviteControls({ gameId, className }: GameInviteControlsProps) {
   const { t } = useTranslation();
-  const invite = useGameInvite(gameId);
+  const invite = useGameInvite(gameId, useLiveServerEndpoint());
   const [dialogOpen, setDialogOpen] = useState(false);
   const disabled = !invite.link;
   const unavailableReasonId = useId();

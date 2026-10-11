@@ -7,10 +7,9 @@ import { useWebClient } from '@cockatrice/datatrice/react';
 import { Response_ResponseCode } from '@cockatrice/sockatrice/generated';
 import type { WebsocketTypes } from '@cockatrice/sockatrice/types';
 import { usePushToast } from '@app/components';
-import { useLiveServerEndpoint } from '@app/feature-widgets/known-hosts';
 import { useCommandFailureMessage, useReduxEffect } from '@app/hooks';
 import { useAppSelector } from '@app/store';
-import { makeGameJoinLink } from '@app/utils';
+import { makeGameJoinLink, type LiveGameServer } from '@app/utils';
 
 export interface GameInvite {
   link: string | null;
@@ -21,10 +20,9 @@ export interface GameInvite {
   sendInvite: (userName: string) => void;
 }
 
-export function useGameInvite(gameId: number): GameInvite {
+export function useGameInvite(gameId: number, liveServer: LiveGameServer | null): GameInvite {
   const { t } = useTranslation();
   const webClient = useWebClient();
-  const liveServer = useLiveServerEndpoint();
   const pushToast = usePushToast();
   const game = useAppSelector((state) => games.Selectors.getGame(state, gameId));
   const selfName = useAppSelector((state) => server.Selectors.getUser(state)?.name ?? null);
