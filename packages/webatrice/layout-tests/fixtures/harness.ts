@@ -30,7 +30,7 @@ async function stubExternal(route: Route): Promise<void> {
 export interface HarnessOptions {
   players?: number;
   as?: 'player' | 'spectator';
-  route?: 'game' | 'home' | 'room';
+  route?: 'game' | 'home' | 'room' | 'deck';
   previewMode?: 'image' | 'text' | 'both';
 }
 
