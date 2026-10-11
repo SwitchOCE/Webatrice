@@ -13,7 +13,7 @@ const folders: DeckFolderNode[] = [
 function setup(patch: Partial<DeckStorageSidebarProps> = {}) {
   const props: DeckStorageSidebarProps = {
     loading: false, deckTotal: 5, folders, activePath: '', isConnected: true,
-    onSelect: vi.fn(), onCreate: vi.fn(), onImport: vi.fn(), onNewFolder: vi.fn(), ...patch,
+    onSelect: vi.fn(), onCreate: vi.fn(), onImport: vi.fn(), onMigrate: vi.fn(), onNewFolder: vi.fn(), ...patch,
   };
   render(<DeckStorageSidebar {...props} />);
   return props;
@@ -37,12 +37,16 @@ it('collapses a branch that does not hold the open folder', () => {
   expect(screen.getByRole('button', { name: /^Testing/ })).toBeInTheDocument();
 });
 
-it('creates, imports and adds folders', () => {
+it('creates, imports from desktop or a list, and adds folders', () => {
   const props = setup();
   fireEvent.click(screen.getByRole('button', { name: 'Decks.list.newDeck' }));
-  fireEvent.click(screen.getByRole('button', { name: 'Decks.list.import' }));
+  fireEvent.click(screen.getByRole('button', { name: 'ImportMenu.import' }));
+  fireEvent.click(screen.getByRole('menuitem', { name: 'ImportMenu.fromCockatrice' }));
+  fireEvent.click(screen.getByRole('button', { name: 'ImportMenu.import' }));
+  fireEvent.click(screen.getByRole('menuitem', { name: 'ImportMenu.pasteOrOpen' }));
   fireEvent.click(screen.getByRole('button', { name: 'DeckFolders.newFolder' }));
   expect(props.onCreate).toHaveBeenCalledOnce();
+  expect(props.onMigrate).toHaveBeenCalledOnce();
   expect(props.onImport).toHaveBeenCalledOnce();
   expect(props.onNewFolder).toHaveBeenCalledOnce();
 });
@@ -50,6 +54,8 @@ it('creates, imports and adds folders', () => {
 it('disables storage actions while disconnected', () => {
   setup({ isConnected: false });
   expect(screen.getByRole('button', { name: 'Decks.list.newDeck' })).toBeDisabled();
+  fireEvent.click(screen.getByRole('button', { name: 'ImportMenu.import' }));
+  expect(screen.getByRole('menuitem', { name: /ImportMenu.pasteOrOpen/ })).toHaveAttribute('aria-disabled', 'true');
   expect(screen.getByRole('button', { name: 'DeckFolders.newFolder' })).toBeDisabled();
 });
 

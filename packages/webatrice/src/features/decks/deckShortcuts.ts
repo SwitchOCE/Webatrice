@@ -1,3 +1,3 @@
 export interface DecksLocationState {
-  open: 'create' | 'import';
+  open: 'create' | 'import' | 'migrate';
 }

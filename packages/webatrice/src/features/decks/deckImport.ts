@@ -33,27 +33,40 @@ function uniqueByName<T extends { name: string }>(items: readonly T[]): T[] {
   return Array.from(seen.values());
 }
 
-export async function resolveImportEntries(entries: readonly ImportEntry[]): Promise<ResolvedImportRow[]> {
+export interface ImportLookups {
+  hinted: Map<string, LookupResult>;
+  byName: Map<string, LookupResult>;
+}
+
+export async function lookupImportEntries(entries: readonly ImportEntry[]): Promise<ImportLookups> {
   const hints = uniqueByName(entries).map((e) => ({
     name: e.name,
     set: e.set,
     collectorNumber: e.collectorNumber,
     ...(e.scryfallId ? { scryfallId: e.scryfallId } : {}),
   }));
-  const lookupMap = await lookupCards(hints);
-  const misses = uniqueByName(entries.filter((e) => hasHint(e) && !lookupMap.get(e.name)?.found));
+  const hinted = await lookupCards(hints);
+  const misses = uniqueByName(entries.filter((e) => hasHint(e) && !hinted.get(e.name)?.found));
   const byName = misses.length ? await lookupCards(misses.map((e) => e.name)) : new Map<string, LookupResult>();
+  return { hinted, byName };
+}
+
+export function resolveWithLookups(entries: readonly ImportEntry[], { hinted, byName }: ImportLookups): ResolvedImportRow[] {
   return entries.map((entry) => {
-    const hinted = lookupMap.get(entry.name);
-    if (hinted?.found) {
-      return { entry, lookup: hinted };
+    const hit = hinted.get(entry.name);
+    if (hit?.found) {
+      return { entry, lookup: hit };
     }
     const named = byName.get(entry.name);
     if (named?.found) {
       return { entry, lookup: named, hintDropped: true };
     }
-    return { entry, lookup: hinted ?? unknownLookup(entry.name) };
+    return { entry, lookup: hit ?? unknownLookup(entry.name) };
   });
+}
+
+export async function resolveImportEntries(entries: readonly ImportEntry[]): Promise<ResolvedImportRow[]> {
+  return resolveWithLookups(entries, await lookupImportEntries(entries));
 }
 
 function rowCard({ entry, lookup, hintDropped }: ResolvedImportRow): DeckCard {

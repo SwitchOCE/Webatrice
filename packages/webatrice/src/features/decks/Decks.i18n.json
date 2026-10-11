@@ -13,17 +13,19 @@
         "compact": "List"
       },
       "refreshLabel": "Refresh deck list",
-      "import": "Import",
       "newDeck": "New deck",
       "defaultDeckName": "New Deck",
       "loading": "Loading decks…",
       "emptyTitle": "No decks yet",
-      "emptyBody": "Decks live on the Servatrice server tied to your account. Create your first one to get started.",
+      "emptyBody": "Decks are saved to your account on this server. Bring your decks over from desktop Cockatrice, paste a list from another site, or start a new one.",
       "created": "Created {age}",
       "age": {
         "unknown": "unknown",
         "justNow": "just now"
-      }
+      },
+      "emptyFromDesktop": "Import from Cockatrice",
+      "emptyPaste": "Paste a deck list",
+      "emptySources": "Lists from Moxfield, Archidekt, MTG Arena, MTGO and TappedOut work too."
     },
     "badge": {
       "bracket": "Commander Bracket {level}",
@@ -40,6 +42,7 @@
       "disconnected": "Connect to the server to change this deck.",
       "stillLoading": "Still loading this deck from the server.",
       "noMatches": "No decks match these filters."
-    }
+    },
+    "dropToImport": "Drop to import into your deck library"
   }
 }

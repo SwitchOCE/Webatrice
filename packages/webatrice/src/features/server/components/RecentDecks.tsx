@@ -53,7 +53,7 @@ function DeckTile({ deck, onOpen }: { deck: RecentDeck; onOpen: (deckId: number)
 function RecentDecksEmpty({ savedDecks }: { savedDecks: number }) {
   const { t } = useTranslation();
   const navigate = useNavigate();
-  const openDecks = (open?: 'create' | 'import') => navigate(RouteEnum.DECKS, open ? { state: { open } } : undefined);
+  const openDecks = (open?: 'create' | 'migrate') => navigate(RouteEnum.DECKS, open ? { state: { open } } : undefined);
   const newDeck = (
     <Button size="sm" icon={<Plus size={14} aria-hidden />} onClick={() => openDecks('create')}>
       {t('RecentDecks.newDeck')}
@@ -82,7 +82,7 @@ function RecentDecksEmpty({ savedDecks }: { savedDecks: number }) {
       actions={(
         <>
           {newDeck}
-          <Button size="sm" icon={<FileUp size={14} aria-hidden />} onClick={() => openDecks('import')}>
+          <Button size="sm" icon={<FileUp size={14} aria-hidden />} onClick={() => openDecks('migrate')}>
             {t('RecentDecks.importDeck')}
           </Button>
         </>
