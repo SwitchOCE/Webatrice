@@ -28,11 +28,16 @@ export interface NotificationEntry extends NotificationInput {
 
 export type UnreadScope = 'rooms' | 'games' | 'chats';
 
+export type MentionScope = 'rooms' | 'games';
+
+export type MentionCounts = Readonly<Record<MentionScope, Readonly<Record<number, number>>>>;
+
 export interface NotificationState {
   entries: readonly NotificationEntry[];
   rooms: Readonly<Record<number, number>>;
   games: Readonly<Record<number, number>>;
   chats: Readonly<Record<string, number>>;
+  mentions: MentionCounts;
   seq: number;
   drawerOpen: boolean;
 }
@@ -41,7 +46,7 @@ export type NotificationAction =
   | { type: 'append'; entry: NotificationInput; time: number; read: boolean }
   | { type: 'markEntryRead'; id: number }
   | { type: 'markAllRead' }
-  | { type: 'bump'; scope: UnreadScope; key: number | string }
+  | { type: 'bump'; scope: UnreadScope; key: number | string; mention?: boolean }
   | { type: 'clear'; scope: UnreadScope; key: number | string }
   | { type: 'setDrawer'; open: boolean };
 
@@ -52,6 +57,7 @@ export const initialNotificationState: NotificationState = {
   rooms: {},
   games: {},
   chats: {},
+  mentions: { rooms: {}, games: {} },
   seq: 0,
   drawerOpen: false,
 };
@@ -89,6 +95,26 @@ function withoutKey<T>(record: Readonly<Record<string | number, T>>, key: number
   return next;
 }
 
+function isMentionScope(scope: UnreadScope): scope is MentionScope {
+  return scope === 'rooms' || scope === 'games';
+}
+
+function bumpMention(mentions: MentionCounts, scope: UnreadScope, key: number | string): MentionCounts {
+  if (!isMentionScope(scope)) {
+    return mentions;
+  }
+  const counts = mentions[scope];
+  return { ...mentions, [scope]: { ...counts, [key]: (counts[key as number] ?? 0) + 1 } };
+}
+
+function clearMention(mentions: MentionCounts, scope: UnreadScope, key: number | string): MentionCounts {
+  if (!isMentionScope(scope)) {
+    return mentions;
+  }
+  const counts = withoutKey(mentions[scope], key);
+  return counts === mentions[scope] ? mentions : { ...mentions, [scope]: counts };
+}
+
 function markEntries(entries: readonly NotificationEntry[], match: (entry: NotificationEntry) => boolean) {
   if (!entries.some((entry) => !entry.read && match(entry))) {
     return entries;
@@ -113,16 +139,18 @@ export function notificationReducer(state: NotificationState, action: Notificati
     }
     case 'bump': {
       const counts = state[action.scope] as Record<string | number, number>;
-      return { ...state, [action.scope]: { ...counts, [action.key]: (counts[action.key] ?? 0) + 1 } };
+      const mentions = action.mention ? bumpMention(state.mentions, action.scope, action.key) : state.mentions;
+      return { ...state, mentions, [action.scope]: { ...counts, [action.key]: (counts[action.key] ?? 0) + 1 } };
     }
     case 'clear': {
       const before = state[action.scope] as Record<string | number, number>;
       const counts = withoutKey(before, action.key);
+      const mentions = clearMention(state.mentions, action.scope, action.key);
       const entries = markEntries(state.entries, (entry) => targetsMatch(entry.target, action.scope, action.key));
-      if (counts === before && entries === state.entries) {
+      if (counts === before && mentions === state.mentions && entries === state.entries) {
         return state;
       }
-      return { ...state, [action.scope]: counts, entries };
+      return { ...state, [action.scope]: counts, mentions, entries };
     }
     case 'setDrawer':
       return state.drawerOpen === action.open ? state : { ...state, drawerOpen: action.open };

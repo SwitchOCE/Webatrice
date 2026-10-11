@@ -5,6 +5,9 @@ import type { Tab } from '../topBarTabs';
 const STORAGE_KEY = 'webatrice.stickyTabs';
 
 const decks: Tab = { key: 'decks', type: 'decks', titleKey: 'TopBar.tab.myDecks', route: '/decks', closeable: true };
+const deck: Tab = {
+  key: 'deck:4', type: 'deck', titleKey: 'TopBar.tab.deck', titleParams: { id: '4' }, route: '/deck/4', closeable: true,
+};
 const bob: Tab = { key: 'player:bob', type: 'player', title: 'bob', route: '/player/bob', closeable: true };
 
 async function loadModule() {
@@ -30,12 +33,12 @@ describe('useStickyTabs', () => {
   });
 
   it('restores saved tabs, dropping the ones it cannot show', async () => {
-    persist([decks, { key: 'x' }, { ...bob, type: 'bogus' }, { ...bob, title: undefined }, bob]);
+    persist([decks, { key: 'x' }, { ...deck, type: 'bogus' }, { ...deck, titleKey: undefined }, deck, bob]);
     const { useStickyTabs } = await loadModule();
 
     const { result } = renderHook(() => useStickyTabs());
 
-    expect(result.current[0]).toEqual([decks, bob]);
+    expect(result.current[0]).toEqual([decks, deck]);
   });
 
   it('retitles a tab saved with a translated title from its route', async () => {
@@ -76,10 +79,10 @@ describe('useStickyTabs', () => {
     const writer = renderHook(() => useStickyTabs());
     const reader = renderHook(() => useStickyTabs());
 
-    act(() => writer.result.current[1](() => [{ ...bob, onClose: () => {} }]));
+    act(() => writer.result.current[1](() => [{ ...deck, onClose: () => {} }]));
 
-    expect(reader.result.current[0].map(({ key }) => key)).toEqual(['player:bob']);
-    expect(persisted()).toEqual([bob]);
+    expect(reader.result.current[0].map(({ key }) => key)).toEqual(['deck:4']);
+    expect(persisted()).toEqual([deck]);
   });
 
   it('neither saves nor notifies when the updater returns the same list', async () => {

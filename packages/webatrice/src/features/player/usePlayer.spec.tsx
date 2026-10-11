@@ -35,7 +35,7 @@ function setup(preloadedState: Partial<RootState>, name: string | undefined) {
     );
   }
   const { result } = renderHook(() => usePlayer(), { wrapper: Wrapper });
-  return { result, webClient };
+  return { result, webClient, store };
 }
 
 const stateWithPlayer = (name: string, overrides = {}) => ({
@@ -64,6 +64,16 @@ describe('usePlayer', () => {
     expect(result.current.name).toBeNull();
     expect(result.current.userInfo).toBeUndefined();
     expect(webClient.request.session.getUserInfo).not.toHaveBeenCalled();
+  });
+
+  it('opens the conversation while the page shows another player, so presence notices land in it', () => {
+    const { store } = setup(stateWithPlayer('alice'), 'alice');
+    expect(store.getState().server.messages.alice).toEqual([]);
+  });
+
+  it('opens no conversation with yourself', () => {
+    const { store } = setup(stateWithPlayer('testUser'), 'testUser');
+    expect(store.getState().server.messages.testUser).toBeUndefined();
   });
 
   it('marks the current user as self', () => {

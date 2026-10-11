@@ -52,8 +52,9 @@ describe('detectTransientTab', () => {
 });
 
 describe('isStickyTabType', () => {
-  it('keeps deck lists, decks, shortcuts and private chats', () => {
-    expect(['decks', 'deck', 'shortcuts', 'player'].every((type) => isStickyTabType(type as Tab['type']))).toBe(true);
+  it('keeps deck lists, decks and shortcuts, not private chats', () => {
+    expect(['decks', 'deck', 'shortcuts'].every((type) => isStickyTabType(type as Tab['type']))).toBe(true);
+    expect(isStickyTabType('player')).toBe(false);
   });
 
   it('lets every other page go when the user leaves it', () => {
@@ -144,6 +145,10 @@ describe('withDeckNames', () => {
 describe('stripGroups', () => {
   const tab = (key: string, type: Tab['type']): Tab => ({ key, type, title: key, route: `/${key}`, closeable: true });
 
+  it('leaves private chats to the chat dock and the People page', () => {
+    expect(stripGroupOf(tab('player:bob', 'player'))).toBeNull();
+  });
+
   it('leaves places to the rail', () => {
     for (const place of [tab('server', 'server'), tab('decks', 'decks'), tab('replays', 'replays'), tab('settings', 'settings')]) {
       expect(isPlaceTab(place)).toBe(true);
@@ -153,12 +158,11 @@ describe('stripGroups', () => {
 
   it('files sessions by kind, with public deck lists among decks and other pages last', () => {
     expect(stripGroupOf(tab('public-decks:bob', 'decks'))).toBe('decks');
-    expect(stripGroupOf(tab('player:bob', 'player'))).toBe('chats');
     expect(stripGroupOf(tab('report-queue', 'staff'))).toBe('pages');
     expect(stripGroupOf(tab('account', 'account'))).toBe('pages');
   });
 
-  it('orders groups rooms, games, decks, replays, chats, pages and keeps tab order within each', () => {
+  it('orders groups rooms, games, decks, replays, pages and keeps tab order within each', () => {
     const groups = stripGroups([
       tab('server', 'server'),
       tab('player:a', 'player'),
@@ -175,7 +179,6 @@ describe('stripGroups', () => {
       ['games', ['game:2', 'game:3']],
       ['decks', ['deck:4']],
       ['replays', ['replay:x']],
-      ['chats', ['player:a']],
       ['pages', ['account']],
     ]);
   });
@@ -186,12 +189,11 @@ describe('stripGroups', () => {
 });
 
 describe('tabUnread', () => {
-  const counts = { rooms: { 1: 3 }, games: { 9: 2 }, chats: { 'bob:smith': 5 } };
+  const counts = { rooms: { 1: 3 }, games: { 9: 2 } };
 
-  it('reads the count of the room, game or chat behind a tab', () => {
+  it('reads the count of the room or game behind a tab', () => {
     expect(tabUnread({ key: 'room:1', type: 'room' }, counts)).toBe(3);
     expect(tabUnread({ key: 'game:9', type: 'game' }, counts)).toBe(2);
-    expect(tabUnread({ key: 'player:bob:smith', type: 'player' }, counts)).toBe(5);
   });
 
   it('is zero for anything else or anything unknown', () => {
