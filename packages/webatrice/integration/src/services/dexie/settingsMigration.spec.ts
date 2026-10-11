@@ -1,7 +1,7 @@
 import Dexie from 'dexie';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
-import { PREFERENCE_DEFAULTS, SETTINGS_VERSION, ThemeMode } from '@app/types';
+import { PREFERENCE_DEFAULTS, SETTINGS_VERSION, ThemeMode, ThemeName } from '@app/types';
 import { schemaV1 } from '../../../../src/services/dexie/DexieSchemas/v1.schema';
 import { schemaV2, Stores } from '../../../../src/services/dexie/DexieSchemas/v2.schema';
 import { schemaV6 } from '../../../../src/services/dexie/DexieSchemas/v6.schema';
@@ -61,6 +61,7 @@ describe('settings schema v6 upgrade (real Dexie)', () => {
       invertVerticalCoordinate: true,
       shortcuts: { 'game.drawCard': ['Ctrl+KeyD'] },
       themeMode: ThemeMode.Dark,
+      themeName: ThemeName.Midnight,
     });
   });
 

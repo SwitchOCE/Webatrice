@@ -77,6 +77,7 @@ function stubWideViewport() {
 
 beforeEach(async () => {
   vi.useRealTimers();
+  vi.spyOn(HTMLElement.prototype, 'getBoundingClientRect').mockReturnValue(new DOMRect(0, 0, 1204, 800));
   stubWideViewport();
   clearDeckEditorCache();
   clearDecksListCache();
@@ -89,6 +90,7 @@ beforeEach(async () => {
 
 afterEach(() => {
   vi.unstubAllGlobals();
+  vi.restoreAllMocks();
   window.localStorage.clear();
 });
 
@@ -106,7 +108,7 @@ async function openDeck(xml: string) {
   act(() => {
     respondToDeckDownload(DECK_ID, xml);
   });
-  await screen.findByRole('textbox', { name: 'CardSearch.label' }, { timeout: 5000 });
+  await screen.findByDisplayValue(parseCod(xml).name, {}, { timeout: 5000 });
 }
 
 function searchResults(): HTMLElement {
@@ -328,11 +330,12 @@ describe('DeckEditor (integration)', () => {
     expect(uploads()).toHaveLength(before);
   });
 
-  it('writes a default format back for legacy decks that have none', async () => {
+  it('leaves the format unset when a legacy deck has no evidence for inference', async () => {
     await openDeck(codXml({ name: 'Legacy', main: [{ name: 'Sol Ring' }] }));
 
-    const saved = await autosaved((d) => d.format === 'commander');
-    expect(saved.name).toBe('Legacy');
+    expect(screen.getByRole('combobox', { name: 'FormatPicker.label' })).toHaveValue('');
+    const saved = await autosaved((d) => d.meta.priceUsd === 1.5);
+    expect(saved).toMatchObject({ name: 'Legacy', format: '' });
   });
 
   it('the search dock looks the card up, appends a mainboard row, and Enter increments an existing one', async () => {
