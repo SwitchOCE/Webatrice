@@ -20,6 +20,7 @@ import { PrivateMessageNotifier } from '@app/features/player';
 import { ReportNotifier } from '@app/features/reports';
 import { AppAlerts, CommandFailureNotices, FeatureDetection, MissingFeaturesNotice, ServerNotices } from '@app/features/shell';
 import { usePlaymatSync } from './features/game/hooks/usePlaymatSync';
+import { useDeckSummaryInvalidation } from './features/decks/hooks/useDeckSummaryInvalidation';
 import { SessionScope } from './SessionScope';
 import { useGuestGameUnloadRisk } from './hooks/useGuestGameUnloadRisk';
 
@@ -28,6 +29,7 @@ import { useGuestGameUnloadRisk } from './hooks/useGuestGameUnloadRisk';
 // live in index.css so we control them without MUI's opinions.
 function AppShell() {
   useGuestGameUnloadRisk();
+  useDeckSummaryInvalidation();
   usePlaymatSync();
   useSyncLocaleToStore();
   useAdminLockSession();

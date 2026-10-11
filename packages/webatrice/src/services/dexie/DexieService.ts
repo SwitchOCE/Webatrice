@@ -4,6 +4,7 @@ import { schemaV1 } from './DexieSchemas/v1.schema';
 import { Stores, schemaV2 } from './DexieSchemas/v2.schema';
 import { schemaV6 } from './DexieSchemas/v6.schema';
 import { schemaV7 } from './DexieSchemas/v7.schema';
+import { schemaV8 } from './DexieSchemas/v8.schema';
 
 class DexieService {
   private db: Dexie = new Dexie('Webatrice');
@@ -13,10 +14,19 @@ class DexieService {
     schemaV2(this.db);
     schemaV6(this.db);
     schemaV7(this.db);
+    schemaV8(this.db);
   }
 
   get settings() {
     return this.db.table(Stores.SETTINGS);
+  }
+
+  get scryfallPrices() {
+    return this.db.table('scryfallPrices');
+  }
+
+  get deckSummaries() {
+    return this.db.table('deckSummaries');
   }
 
   get cards() {
