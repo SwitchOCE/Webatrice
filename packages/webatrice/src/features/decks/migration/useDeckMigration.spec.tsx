@@ -4,6 +4,7 @@ import { create } from '@bufbuild/protobuf';
 import { server } from '@cockatrice/datatrice';
 import { ServerInfo_DeckStorage_TreeItemSchema, ServerInfo_User_UserLevelFlag } from '@cockatrice/sockatrice/generated';
 import { importReplayFiles, lookupCards, parseCod } from '@app/services';
+import { hasUnloadRisk } from '../../../services/unloadGuard';
 
 import { connectedState, createMockWebClient, makeUser, renderWithProviders } from '../../../__test-utils__';
 import type { SourceFile } from './fileSources';
@@ -78,6 +79,7 @@ it('creates folders, uploads with pacing, retries a flood and summarises every l
   act(() => {
     started = migration.start();
   });
+  expect(hasUnloadRisk()).toBe(true);
 
   await waitFor(() => expect(webClient.request.session.deckNewDir).toHaveBeenCalledTimes(1));
   const dir = vi.mocked(webClient.request.session.deckNewDir).mock.calls[0];
@@ -111,6 +113,7 @@ it('creates folders, uploads with pacing, retries a flood and summarises every l
   await act(() => started);
 
   expect(migration.stage).toBe('done');
+  expect(hasUnloadRisk()).toBe(false);
   expect(migration.result?.decks).toEqual({
     imported: [expect.objectContaining({ deckId: 41, name: 'burn', path: 'Burn', unknownCount: 2 })],
     skipped: [],

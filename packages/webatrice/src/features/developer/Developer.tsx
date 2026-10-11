@@ -18,6 +18,7 @@ import { cx } from '@app/utils';
 
 import { buildCommandRows, buildStatRows, type CommandRow } from './serverStatsRows';
 import { MAX_REFRESH_INTERVAL_SECS, MIN_REFRESH_INTERVAL_SECS, useDeveloper } from './useDeveloper';
+import LoadTimings from './LoadTimings';
 
 const DeveloperContent = () => {
   const { t } = useTranslation();
@@ -81,6 +82,7 @@ const DeveloperContent = () => {
           </>
         )}
       />
+      <LoadTimings />
       <div className="flex min-h-0 flex-1 border-t border-border-subtle">
         <StaffTable
           label={t('Developer.table.commands')}

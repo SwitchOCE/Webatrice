@@ -48,3 +48,4 @@ export * from './useRecentDecks';
 export * from './useNotificationLog';
 export * from './useUnreadTracker';
 export * from './useElementWidth';
+export * from './useUnloadRisk';

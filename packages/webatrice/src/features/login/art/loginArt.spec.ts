@@ -1,4 +1,14 @@
-import { LOGIN_ART_CARDS, loginArtUrl, pickLoginArt } from './loginArt';
+import {
+  LOGIN_ART_CARDS,
+  LOGIN_ART_STORAGE_KEY,
+  createLoginArt,
+  loginArtUrl,
+  pickLoginArt,
+  readLoginArt,
+  writeLoginArt,
+} from './loginArt';
+
+beforeEach(() => window.localStorage.clear());
 
 describe('loginArt', () => {
   test('builds a Scryfall art crop URL for the exact card name', () => {
@@ -22,5 +32,14 @@ describe('loginArt', () => {
 
   test('stays in range when the random source returns 1', () => {
     expect(LOGIN_ART_CARDS).toContain(pickLoginArt(() => 1));
+  });
+
+  test('persists the exact URL and attribution and rejects altered records', () => {
+    const art = createLoginArt(() => 0);
+    writeLoginArt(art);
+    expect(readLoginArt()).toEqual(art);
+
+    window.localStorage.setItem(LOGIN_ART_STORAGE_KEY, JSON.stringify({ ...art, url: 'https://example.test/tracker' }));
+    expect(readLoginArt()).toBeUndefined();
   });
 });

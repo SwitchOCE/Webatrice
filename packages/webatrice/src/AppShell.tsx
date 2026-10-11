@@ -7,7 +7,7 @@ import './AppShell.css';
 import { GameLinkJoinHost, RouteErrorBoundary, ToastProvider } from '@app/components';
 import { ReportUserProvider } from '@app/dialogs';
 import { useAdminLockSession, useApplyLanguagePreference, useDocumentLanguage, useSyncLocaleToStore } from '@app/hooks';
-import { loadPersistedLastRoute } from '@app/services';
+import { handleBeforeUnload, loadPersistedLastRoute } from '@app/services';
 import { ShortcutProvider } from '@app/feature-widgets/shortcuts';
 import { ModerationProvider } from '@app/feature-widgets/moderation';
 import { UserGamesProvider } from '@app/feature-widgets/user-games';
@@ -21,11 +21,13 @@ import { ReportNotifier } from '@app/features/reports';
 import { AppAlerts, CommandFailureNotices, FeatureDetection, MissingFeaturesNotice, ServerNotices } from '@app/features/shell';
 import { usePlaymatSync } from './features/game/hooks/usePlaymatSync';
 import { SessionScope } from './SessionScope';
+import { useGuestGameUnloadRisk } from './hooks/useGuestGameUnloadRisk';
 
 // CssBaseline removed: it was MUI's global body reset (font, color,
 // background, box-sizing, anchor styles). The equivalent rules now
 // live in index.css so we control them without MUI's opinions.
 function AppShell() {
+  useGuestGameUnloadRisk();
   usePlaymatSync();
   useSyncLocaleToStore();
   useAdminLockSession();
@@ -34,10 +36,8 @@ function AppShell() {
   const liveServer = useLiveServerEndpoint();
 
   useEffect(() => {
-    window.onbeforeunload = () => true;
-    return () => {
-      window.onbeforeunload = null;
-    };
+    window.addEventListener('beforeunload', handleBeforeUnload);
+    return () => window.removeEventListener('beforeunload', handleBeforeUnload);
   }, []);
 
   // Rehydrate the last route from localStorage so an F5 refresh drops

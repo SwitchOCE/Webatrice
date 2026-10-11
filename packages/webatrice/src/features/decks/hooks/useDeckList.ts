@@ -12,6 +12,7 @@ import { onSessionEnd } from '@app/services/session';
 import type { RootState } from '@app/store';
 
 import { deleteCachedDeck } from '../deckEditorCache';
+import { trackDeckImport } from '../deckImportUnload';
 import { dropCleanCachedDecks, getDeckSaveRegistry } from '../deckSaveRegistry';
 import {
   allDeckFolderPaths,
@@ -177,9 +178,13 @@ export function useDeckList({ onDeckCreated, folderPath = '' }: {
     [describeFailure, t],
   );
 
-  const upload = (entry: PendingUpload, xml: string, isPublic?: boolean, colorIdentity?: string) => {
+  const upload = (entry: PendingUpload, xml: string, isPublic?: boolean, colorIdentity?: string, requestId?: string) => {
     pendingUploadsRef.current.push(entry);
-    webClient.request.session.deckUpload(entry.path, 0, xml, isPublic, colorIdentity);
+    if (requestId === undefined) {
+      webClient.request.session.deckUpload(entry.path, 0, xml, isPublic, colorIdentity);
+    } else {
+      webClient.request.session.deckUpload(entry.path, 0, xml, isPublic, colorIdentity, requestId);
+    }
   };
 
   const createDeck = (name: string, format: string): boolean => {
@@ -195,7 +200,9 @@ export function useDeckList({ onDeckCreated, folderPath = '' }: {
     if (!isConnected) {
       return false;
     }
-    upload({ kind: 'create', path: folder.path, name: storedName(xml) }, xml, undefined, colorIdentity);
+    const requestId = crypto.randomUUID();
+    trackDeckImport(store, requestId);
+    upload({ kind: 'create', path: folder.path, name: storedName(xml) }, xml, undefined, colorIdentity, requestId);
     return true;
   };
 

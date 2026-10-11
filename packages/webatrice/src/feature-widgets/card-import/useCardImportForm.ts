@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 
-import { useImportSummaryText, type ImportSummaryText } from '@app/hooks';
+import { useImportSummaryText, useUnloadRisk, type ImportSummaryText } from '@app/hooks';
 import {
   cardDatabaseService,
   saveCardSourceScan,
@@ -63,6 +63,7 @@ export function useCardImportForm(): CardImportForm {
   const [review, setReview] = useState<CardImportReview | null>(null);
   const [result, setResult] = useState<CardImportResult | null>(null);
   const [error, setError] = useState<string | null>(null);
+  useUnloadRisk(activeStep === 1);
 
   const steps = STEP_KEYS.map(key => ({ key, label: `CardImportForm.steps.${key}` }));
 
