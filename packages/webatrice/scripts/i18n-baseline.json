@@ -4082,11 +4082,6 @@
       "count": 1
     },
     {
-      "file": "src/features/game/components/right-sidebar/PlayerList/PlayerListDialogs.tsx",
-      "prefix": "PlayerListDialogs.level.",
-      "count": 1
-    },
-    {
       "file": "src/features/game/components/ui/PlayerBoard/useLibraryOps.ts",
       "prefix": "ZoneLabel.title.",
       "count": 1

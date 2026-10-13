@@ -224,6 +224,7 @@ describe('ToastProvider + usePushToast', () => {
     const saved = await screen.findByText('saved');
     const region = saved.closest('section') as HTMLElement;
     expect(region).toHaveAccessibleName('Toast.region');
+    expect(region).toHaveAttribute('data-modal-exempt');
     expect(saved.closest('[aria-live]')).toHaveAttribute('aria-live', 'polite');
     expect(within(region).getByText('failed').closest('[aria-live]')).toHaveAttribute('aria-live', 'assertive');
   });

@@ -21,7 +21,7 @@ function refresh() {
     const parent = branch.parentElement;
     observer?.observe(parent, { childList: true });
     for (const sibling of parent.children) {
-      if (sibling !== branch && sibling instanceof HTMLElement) {
+      if (sibling !== branch && sibling instanceof HTMLElement && !sibling.hasAttribute('data-modal-exempt')) {
         previous.set(sibling, sibling.hasAttribute('inert'));
         sibling.setAttribute('inert', '');
       }

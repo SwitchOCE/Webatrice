@@ -35,3 +35,22 @@ it('refreshes isolation for sibling additions but not modal descendant changes',
     root.remove();
   }
 });
+
+it('leaves exempt siblings such as the toast region reachable while a modal is open', () => {
+  const toasts = document.createElement('section');
+  const background = document.createElement('main');
+  const modal = document.createElement('div');
+  toasts.setAttribute('data-modal-exempt', '');
+  document.body.append(background, toasts, modal);
+
+  const release = registerModal(modal);
+  try {
+    expect(background).toHaveAttribute('inert');
+    expect(toasts).not.toHaveAttribute('inert');
+  } finally {
+    release();
+    background.remove();
+    toasts.remove();
+    modal.remove();
+  }
+});

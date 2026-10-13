@@ -116,6 +116,7 @@ export const ToastProvider: FC<PropsWithChildren> = ({ children }) => {
           <section
             aria-label={t('Toast.region')}
             data-lane={lane}
+            data-modal-exempt
             className={[
               'pointer-events-none fixed inset-x-0 z-40 flex flex-col items-center gap-2 px-4',
               lane === 'top' ? 'top-[52px]' : 'bottom-6',

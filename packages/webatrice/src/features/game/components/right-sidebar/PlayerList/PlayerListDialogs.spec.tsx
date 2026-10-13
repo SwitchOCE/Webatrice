@@ -14,14 +14,17 @@ const BOB = makeUser({
 });
 
 describe('UserDetailsModal', () => {
-  it('is a modal named by the user and described by the privilege level', () => {
+  it('is a modal named by the user', () => {
     renderWithProviders(<UserDetailsModal user={BOB} onClose={vi.fn()} />);
     const dialog = screen.getByRole('dialog', { name: 'Bob' });
     expect(dialog).toHaveAttribute('aria-modal', 'true');
-    expect(dialog).toHaveAccessibleDescription('PlayerListDialogs.privilegeLevel');
     expect(within(dialog).getByText('Robert')).toBeInTheDocument();
-    expect(within(within(dialog).getByRole('list', { name: 'PlayerListDialogs.userLevel' })).getAllByRole('listitem')
-      .map((item) => item.textContent)).toEqual(['PlayerListDialogs.level.judge', 'PlayerListDialogs.level.registered']);
+  });
+
+  it('formats the user level and privilege with the shared desktop-style formatter', () => {
+    renderWithProviders(<UserDetailsModal user={BOB} onClose={vi.fn()} />);
+    expect(within(screen.getByRole('dialog', { name: 'Bob' }))
+      .getByText('Account.level.registered | Account.level.judge | VIP')).toBeInTheDocument();
   });
 
   it('formats the account age with the shared desktop-style formatter', () => {

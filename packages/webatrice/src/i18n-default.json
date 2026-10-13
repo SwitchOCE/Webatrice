@@ -3147,19 +3147,11 @@
   },
   "PlayerListDialogs": {
     "unknownUser": "(unknown user)",
-    "privilegeLevel": "Privilege level: {level}",
     "close": "Close",
     "realName": "Real name",
     "country": "Country",
     "accountAge": "Account age",
-    "userLevel": "User level",
-    "level": {
-      "admin": "Admin",
-      "moderator": "Moderator",
-      "judge": "Judge",
-      "registered": "Registered",
-      "unregistered": "Unregistered"
-    }
+    "userLevel": "User level"
   },
   "HandZone": {
     "button": "Hand — {count, plural, one {# card} other {# cards}}",

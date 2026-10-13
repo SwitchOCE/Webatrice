@@ -17,7 +17,7 @@ const TONE_CLASS: Record<LogTone, string> = {
 const SEGMENT_CLASS: Record<LogSegment['kind'], string> = {
   plain: '',
   player: 'font-semibold text-text-primary',
-  card: 'italic text-accent-primary hover:text-accent-primary-hover cursor-pointer underline decoration-dotted underline-offset-2',
+  card: 'italic text-accent hover:text-accent-hover cursor-pointer underline decoration-dotted underline-offset-2',
   number: 'font-semibold text-cyan-300 light:text-cyan-700 tabular-nums',
 };
 
