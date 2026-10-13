@@ -63,6 +63,17 @@ describe('useCardPrintings', () => {
     expect(result.current.loading).toBe(false);
   });
 
+  it('derives the canonical name from loaded printings without a second lookup', async () => {
+    vi.mocked(fetchAllPrintings).mockResolvedValue([
+      { name: 'Lightning Bolt', scryfallId: 'id-lea' },
+    ]);
+    vi.mocked(fetchPricesForCards).mockResolvedValue(emptyPriceLookup());
+    const { result } = renderHook(() => useCardPrintings('lightning bolt'));
+    await waitFor(() => expect(result.current.loading).toBe(false));
+    expect(result.current.canonicalName).toBe('Lightning Bolt');
+    expect(lookupCard).not.toHaveBeenCalled();
+  });
+
   it('aborts the abandoned lookup when the card changes', () => {
     vi.mocked(fetchAllPrintings).mockImplementation(() => new Promise(() => {}));
     const { rerender } = renderHook(({ name }) => useCardPrintings(name), {

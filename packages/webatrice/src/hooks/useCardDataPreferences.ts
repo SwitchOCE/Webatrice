@@ -6,6 +6,8 @@ import { useMemo, useState } from 'react';
 
 import {
 
+  cardOverride,
+
   currentCardDataPreferences,
 
   DEFAULT_PICTURE_URL_TEMPLATES,
@@ -115,6 +117,8 @@ export function useCardImageUrls(
       setLongNames: value?.setLongNames,
 
       preferredSet,
+
+      pinnedPrintingId: cardOverride(value?.cardOverrides, card.name?.value ?? ''),
 
       fallbackSize,
 

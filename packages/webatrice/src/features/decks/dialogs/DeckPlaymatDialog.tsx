@@ -6,7 +6,7 @@ import { z } from 'zod';
 
 import { games } from '@cockatrice/datatrice';
 import { PlaymatCropEditor } from '@app/components';
-import { lookupCard, type PrintingSummary } from '@app/services';
+import { lookupCard, preferredPrinting, type PrintingSummary } from '@app/services';
 import { PLAYMAT_NAME_MAX_LENGTH } from '@app/types';
 
 import { useQuickAddSuggestions } from '../hooks/useQuickAddSuggestions';
@@ -67,7 +67,7 @@ export function DeckPlaymatDialog({ playmat, onClose, onSave }: {
         if (active) {
           setPrintings(card.printings);
           if (name !== playmat?.cardName && !getValues('cardProviderId')) {
-            setValue('cardProviderId', card.printings[0]?.scryfallId ?? '');
+            setValue('cardProviderId', preferredPrinting(card)?.scryfallId ?? '');
           }
         }
       }).catch(() => {
@@ -98,7 +98,7 @@ export function DeckPlaymatDialog({ playmat, onClose, onSave }: {
           return;
         }
         if (!value.cardProviderId) {
-          value.cardProviderId = card.printings[0]?.scryfallId ?? '';
+          value.cardProviderId = preferredPrinting(card)?.scryfallId ?? '';
         }
       } catch {
         if (mounted.current) {

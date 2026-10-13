@@ -36,6 +36,7 @@ describe('CreateTokenDialog', () => {
       annotation: 'ETB',
       destroyOnZoneChange: true,
       faceDown: false,
+      providerId: '',
     });
   });
 

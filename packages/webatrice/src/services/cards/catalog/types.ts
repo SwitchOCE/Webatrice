@@ -1,6 +1,7 @@
 /** Unified result shape returned by all `lookup*` functions. Callers
  *  can render straight from this without switching on the source. */
 export interface LookupResult {
+  pinnedPrintingId?: string;
   fetchedAt?: number;
   found: boolean;
   source: 'dexie' | 'scryfall' | 'dexie+scryfall' | 'unknown';
@@ -90,6 +91,7 @@ export interface RelatedCardRef {
 }
 
 export interface PrintingSummary {
+  name?: string;
   set?: string;
   collectorNumber?: string;
   scryfallId?: string;

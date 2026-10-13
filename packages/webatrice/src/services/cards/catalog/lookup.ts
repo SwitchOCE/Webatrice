@@ -1,4 +1,4 @@
-import { currentCardDataPreferences, type CardDataPreferences } from '../../cardDatabase';
+import { cardOverride, currentCardDataPreferences, type CardDataPreferences } from '../../cardDatabase';
 import { fetchCollection, fetchNamedCard, fetchPrintings, SCRYFALL_NAMED_RETRY_CAP } from '../../scryfall/client';
 import { throwIfAborted } from '../../scryfall/scheduler';
 import { bulkGetFromDexie, dexieToLookup, getFromDexie } from './dexieCardMapper';
@@ -53,7 +53,9 @@ export async function lookupCard(name: string, signal?: AbortSignal): Promise<Lo
     }
   }
 
-  return mergeLookup(name, xmlLookup, scryfallLookup);
+  const result = mergeLookup(name, xmlLookup, scryfallLookup);
+  const pins = await resolvePins([result], [scryfallCached, scryfallLookup], preferences, signal);
+  return applyPin(result, pins.get(result.name));
 }
 
 /**
@@ -91,7 +93,7 @@ export async function lookupCardsCached(
   throwIfAborted(signal);
   const out = new Map<string, LookupResult>();
   const missing: string[] = [];
-  await readCardDataPreferences();
+  const preferences = await readCardDataPreferences();
   throwIfAborted(signal);
   for (const name of names) {
     const cached = sessionCache.get(name);
@@ -107,9 +109,10 @@ export async function lookupCardsCached(
     return out;
   }
   const fresh = await lookupCards(missing, signal);
+  const canRemember = preferences === await readCardDataPreferences();
   for (const [name, result] of fresh) {
     out.set(name, result);
-    if (result.source !== 'unknown') {
+    if (canRemember && result.source !== 'unknown') {
       sessionCache.set(name, result);
     }
   }
@@ -162,10 +165,10 @@ export async function lookupCards(
   for (const hint of hints) {
     const entry = local.get(printingKey(hint))!;
     const refreshed = fetched.get(hint.name);
-    out.set(hint.name, refreshed ? mergeHintedPrintingLookup(hint, entry.xml, refreshed) : entry.matchedLookup);
+    out.set(hint.name, refreshed ? applyPin(mergeHintedPrintingLookup(hint, entry.xml, refreshed), entry.pin) : entry.matchedLookup);
   }
 
-  return out;
+  return completePins(out, signal);
 }
 
 export function printingKey(hint: LookupHint): string {
@@ -205,6 +208,7 @@ export async function fetchAllPrintings(name: string, signal?: AbortSignal): Pro
   const cards = await fetchPrintings(name, signal);
   try {
     return cards.map((c) => ({
+      name: c.name,
       set: c.set,
       collectorNumber: c.collector_number,
       scryfallId: c.id,
@@ -414,9 +418,87 @@ interface LocalCardLookup {
   lookup: LookupResult;
   matchedLookup: LookupResult;
   needsRefresh: boolean;
+  pin?: CardPin;
 }
 
-async function readLocalLookups(hints: readonly LookupHint[], signal?: AbortSignal): Promise<Map<string, LocalCardLookup>> {
+interface CardPin {
+  id: string;
+  card?: LookupResult;
+  printing?: PrintingSummary;
+}
+
+async function resolvePins(
+  cards: LookupResult[], cached: Array<LookupResult | undefined>,
+  preferences: CardDataPreferences | undefined, signal?: AbortSignal, fetchMissing = true,
+): Promise<Map<string, CardPin>> {
+  const pins = new Map<string, CardPin>();
+  const missing: LookupHint[] = [];
+  for (const card of cards) {
+    const id = cardOverride(preferences?.cardOverrides, card.name);
+    if (!id || pins.has(card.name)) {
+      continue;
+    }
+    const cachedCard = cached.find((entry) => entry?.name === card.name
+      && entry.printings.some((printing) => printing.scryfallId === id));
+    const printing = card.printings.find((entry) => entry.scryfallId === id)
+      ?? cachedCard?.printings.find((entry) => entry.scryfallId === id);
+    pins.set(card.name, { id, printing });
+    if (!printing) {
+      missing.push({ name: card.name, scryfallId: id });
+    }
+  }
+  if (missing.length && fetchMissing) {
+    const fetched = await fetchForLookup(fetchCollection(missing, signal));
+    throwIfAborted(signal);
+    const toCache: LookupResult[] = [];
+    for (const hint of missing) {
+      const hit = fetched?.get(hint.name);
+      if (hit?.id === hint.scryfallId && hit.name === hint.name) {
+        const card = { ...scryfallToLookup(hit), fetchedAt: Date.now() };
+        pins.set(hint.name, { id: hit.id, card, printing: card.printings.find((printing) => printing.scryfallId === hit.id) });
+        const previous = cached.find((entry) => entry?.name === card.name);
+        toCache.push(previous ? { ...previous, printings: [...previous.printings, ...card.printings] } : card);
+      }
+    }
+    await bulkPutScryfallCache(toCache);
+  }
+  return pins;
+}
+
+function applyPin(card: LookupResult, pin?: CardPin): LookupResult {
+  if (!pin) {
+    return card;
+  }
+  const base = !card.found && pin.card ? pin.card : card;
+  const printings = pin.printing && !base.printings.some((printing) => printing.scryfallId === pin.id)
+    ? [...base.printings, pin.printing] : base.printings;
+  return { ...base, printings, pinnedPrintingId: pin.id };
+}
+
+async function completePins(
+  lookups: Map<string, LookupResult>, signal?: AbortSignal,
+): Promise<Map<string, LookupResult>> {
+  const preferences = await readCardDataPreferences();
+  for (const [key, card] of lookups) {
+    if (card.pinnedPrintingId && card.pinnedPrintingId !== cardOverride(preferences?.cardOverrides, card.name)) {
+      const unpinned = { ...card };
+      delete unpinned.pinnedPrintingId;
+      lookups.set(key, unpinned);
+    }
+  }
+  const wanted = [...lookups.values()].filter((card) => cardOverride(preferences?.cardOverrides, card.name)
+    && (!card.pinnedPrintingId || !card.printings.some((printing) => printing.scryfallId === card.pinnedPrintingId)));
+  if (!wanted.length) {
+    return lookups;
+  }
+  const cached = await bulkGetFromScryfallCache(wanted.map((card) => card.name));
+  const pins = await resolvePins(wanted, cached, preferences, signal);
+  return new Map([...lookups].map(([key, card]) => [key, applyPin(card, pins.get(card.name))]));
+}
+
+async function readLocalLookups(
+  hints: readonly LookupHint[], signal?: AbortSignal,
+): Promise<Map<string, LocalCardLookup>> {
   throwIfAborted(signal);
   const names = [...new Set(hints.map((hint) => hint.name))];
   const [xmlHits, cached, preferences] = await Promise.all([
@@ -425,15 +507,20 @@ async function readLocalLookups(hints: readonly LookupHint[], signal?: AbortSign
   throwIfAborted(signal);
   const xml = new Map(names.map((name, index) => [name, xmlHits[index] ? dexieToLookup(xmlHits[index]!, preferences) : undefined]));
   const scryfall = new Map(names.map((name, index) => [name, cached[index]]));
+  const pins = await resolvePins(
+    names.map((name) => mergeLookup(name, xml.get(name), scryfall.get(name))), cached, preferences, signal, false,
+  );
   return new Map(hints.map((hint) => {
     const xmlLookup = xml.get(hint.name);
     const cachedLookup = scryfall.get(hint.name);
     const matching = cachedLookup && matchesHint(cachedLookup.printings, hint) ? cachedLookup : undefined;
-    const lookup = mergeHintedPrintingLookup(hint, xmlLookup, cachedLookup);
+    const pin = pins.get((xmlLookup ?? cachedLookup)?.name ?? hint.name);
+    const lookup = applyPin(mergeHintedPrintingLookup(hint, xmlLookup, cachedLookup), pin);
     return [printingKey(hint), {
       xml: xmlLookup,
       lookup,
-      matchedLookup: matching ? lookup : mergeHintedPrintingLookup(hint, xmlLookup, undefined),
+      pin,
+      matchedLookup: matching ? lookup : applyPin(mergeHintedPrintingLookup(hint, xmlLookup, undefined), pin),
       needsRefresh: !matching || !isScryfallCacheFresh(matching),
     }];
   }));
@@ -446,6 +533,7 @@ export interface HydrationLookups {
 
 export async function lookupCardsForHydration(input: LookupInput[], signal?: AbortSignal): Promise<HydrationLookups> {
   throwIfAborted(signal);
+  const preferences = await readCardDataPreferences();
   const hints = [...new Map(input.map((item) => {
     const hint = typeof item === 'string' ? { name: item } : item;
     return [printingKey(hint), hint] as const;
@@ -459,19 +547,28 @@ export async function lookupCardsForHydration(input: LookupInput[], signal?: Abo
     lookups.set(printingKey(hint), entry.lookup);
     if (!entry.lookup.found) {
       missing.push(hint);
-    } else if (entry.needsRefresh) {
+    } else if (entry.needsRefresh || (entry.pin && !entry.pin.printing)) {
       stale.push(hint);
     }
   }
   const fetchHints = async (wanted: LookupHint[], abort?: AbortSignal) => {
-    const batches = await Promise.all(printingRounds(wanted).map(async (round) => {
+    const needsData = wanted.filter((hint) => local.get(printingKey(hint))!.needsRefresh);
+    const batches = await Promise.all(printingRounds(needsData).map(async (round) => {
       const found = await fetchLookupBatch(round, abort);
       return round.flatMap((hint) => {
         const hit = found.get(hint.name);
-        return hit ? [[printingKey(hint), mergeHintedPrintingLookup(hint, local.get(printingKey(hint))!.xml, hit)] as const] : [];
+        const entry = local.get(printingKey(hint))!;
+        return hit ? [[printingKey(hint), applyPin(mergeHintedPrintingLookup(hint, entry.xml, hit), entry.pin)] as const] : [];
       });
     }));
-    return new Map(batches.flat());
+    const results = new Map(batches.flat());
+    for (const hint of wanted) {
+      const entry = local.get(printingKey(hint))!;
+      if (entry.pin && !entry.pin.printing && !results.has(printingKey(hint))) {
+        results.set(printingKey(hint), entry.lookup);
+      }
+    }
+    return completePins(results, abort);
   };
   for (const [key, lookup] of await fetchHints(missing, signal)) {
     lookups.set(key, lookup);
@@ -480,9 +577,11 @@ export async function lookupCardsForHydration(input: LookupInput[], signal?: Abo
   for (const hint of stale) {
     hydrationOnlyResults.add(lookups.get(printingKey(hint))!);
   }
-  rememberHydration(lookups, hints);
-  const refreshed = fetchHints(stale).then((results) => {
-    if (!signal?.aborted) {
+  if (preferences === await readCardDataPreferences()) {
+    rememberHydration(lookups, hints);
+  }
+  const refreshed = fetchHints(stale).then(async (results) => {
+    if (!signal?.aborted && preferences === await readCardDataPreferences()) {
       rememberHydration(results, hints);
     }
     return results;

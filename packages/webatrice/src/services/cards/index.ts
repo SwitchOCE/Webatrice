@@ -10,6 +10,7 @@ export {
   cardLookupRevision,
   imageCandidatesOf,
   primaryImageUri,
+  preferredPrinting,
   type ImageCandidateSource,
   type LookupCardFace,
   type LookupHint,

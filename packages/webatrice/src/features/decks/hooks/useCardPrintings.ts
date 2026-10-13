@@ -6,6 +6,7 @@ import { fetchAllPrintings, lookupCard, type PrintingSummary } from '@app/servic
 import { emptyPriceLookup, fetchPricesForCards, type PriceLookup } from '../pricing';
 
 export interface CardPrintings {
+  canonicalName?: string;
   printings: PrintingSummary[];
   loading: boolean;
   error: string | null;
@@ -15,6 +16,7 @@ export interface CardPrintings {
 export function useCardPrintings(cardName: string | undefined): CardPrintings {
   const { t } = useTranslation();
   const [printings, setPrintings] = useState<PrintingSummary[]>([]);
+  const [canonicalName, setCanonicalName] = useState<string>();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [prices, setPrices] = useState<PriceLookup>(() => emptyPriceLookup());
@@ -24,6 +26,7 @@ export function useCardPrintings(cardName: string | undefined): CardPrintings {
       return;
     }
     setPrintings([]);
+    setCanonicalName(undefined);
     setPrices(emptyPriceLookup());
     setError(null);
     setLoading(true);
@@ -37,12 +40,14 @@ export function useCardPrintings(cardName: string | undefined): CardPrintings {
         let resolved: PrintingSummary[];
         if (scryfall.length > 0) {
           resolved = scryfall;
+          setCanonicalName(scryfall[0].name ?? cardName);
         } else {
           const local = await lookupCard(cardName, controller.signal);
           if (controller.signal.aborted) {
             return;
           }
           resolved = local.printings;
+          setCanonicalName(local.name);
         }
         setPrintings(resolved);
         setLoading(false);
@@ -75,5 +80,5 @@ export function useCardPrintings(cardName: string | undefined): CardPrintings {
     };
   }, [cardName, t]);
 
-  return { printings, loading, error, prices };
+  return { printings, canonicalName, loading, error, prices };
 }

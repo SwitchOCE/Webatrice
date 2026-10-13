@@ -1,11 +1,14 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import {
+  cardOverride,
   lookupCard,
   lookupCards,
+  preferredPrinting,
   type LookupCardFace,
   type LookupResult,
   type RelatedCardRef,
 } from '@app/services';
+import { useCardDataPreferences } from '@app/hooks';
 
 import type { FilterableCard } from '../../../utils/cardFilter';
 import { deckCardImageUrl } from './deckCardImageUrl';
@@ -64,7 +67,7 @@ export function seatCardMetaFromLookup(r: LookupResult): SeatCardMeta {
     related: r.related,
     layout: r.layout,
     faces: r.faces,
-    scryfallId: r.printings[0]?.scryfallId,
+    scryfallId: preferredPrinting(r)?.scryfallId,
   };
 }
 
@@ -83,6 +86,7 @@ export function useSeatCardMetadata({
   battlefieldCards,
   otherVisibleCards = NO_OTHER_CARDS,
 }: UseSeatCardMetadataArgs) {
+  const cardDataPreferences = useCardDataPreferences();
   // Preload every image in the viewer's deck the moment we have the deck
   // list, so drawing feels instant instead of waiting on Scryfall. Only for
   // the local player — opponents' hand cards never reveal their face, so
@@ -309,5 +313,21 @@ export function useSeatCardMetadata({
     };
   }, [cardMetaByName]);
 
-  return { cardMetaByName, setCardMetaByName, tokenMetaByName, resolveFaceImageUri, describeCard };
+  const currentTokenMetaByName = useMemo(() => {
+    const next = new Map<string, LookupResult>();
+    for (const [name, meta] of tokenMetaByName) {
+      const { pinnedPrintingId: _stalePin, ...withoutPin } = meta;
+      const pinnedPrintingId = cardOverride(cardDataPreferences.value?.cardOverrides, name);
+      next.set(name, pinnedPrintingId ? { ...withoutPin, pinnedPrintingId } : withoutPin);
+    }
+    return next;
+  }, [tokenMetaByName, cardDataPreferences.value]);
+
+  return {
+    cardMetaByName,
+    setCardMetaByName,
+    tokenMetaByName: currentTokenMetaByName,
+    resolveFaceImageUri,
+    describeCard,
+  };
 }

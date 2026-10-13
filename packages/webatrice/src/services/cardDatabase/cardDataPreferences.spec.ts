@@ -32,6 +32,18 @@ describe('currentCardDataPreferences', () => {
     expect(first.pictureUrlTemplates).toEqual(['https://a/!name!']);
   });
 
+  it('carries exact-name card overrides in the shared snapshot', async () => {
+    hoisted.settings.mockResolvedValue({
+      cardOverrides: { Bolt: 'printing-id' },
+      pictureUrlTemplates: [],
+    });
+    const { currentCardDataPreferences, getCardPreferenceOverride } = await load();
+
+    expect((await currentCardDataPreferences()).cardOverrides).toEqual({ Bolt: 'printing-id' });
+    await expect(getCardPreferenceOverride('Bolt')).resolves.toBe('printing-id');
+    await expect(getCardPreferenceOverride('bolt')).resolves.toBe('');
+  });
+
   it('returns the latest value after a refresh, not the first load', async () => {
     const { currentCardDataPreferences, refreshCardDataPreferences } = await load();
     hoisted.settings.mockResolvedValueOnce({ pictureUrlTemplates: ['https://a/!name!'] });

@@ -115,3 +115,17 @@ it('restores the original printing when the original card name is retyped', asyn
   fireEvent.click(screen.getByRole('button', { name: 'DeckPlaymat.ok' }));
   await waitFor(() => expect(onSave).toHaveBeenCalledWith(playmat));
 });
+
+it('keeps the default printing empty when the card pin is stale', async () => {
+  vi.mocked(lookupCard).mockResolvedValue({
+    found: true, name: 'Island', source: 'dexie', pinnedPrintingId: 'stale',
+    printings: [{ set: 'ABC', collectorNumber: '12', scryfallId: 'other' }],
+  });
+  const onSave = vi.fn();
+  render(<DeckPlaymatDialog playmat={null} onClose={vi.fn()} onSave={onSave} />);
+  fireEvent.change(screen.getByRole('combobox', { name: 'DeckPlaymat.card' }), { target: { value: 'Island' } });
+  await screen.findByRole('option', { name: 'ABC 12' });
+  expect(screen.getByRole('combobox', { name: 'DeckPlaymat.printing' })).toHaveValue('');
+  fireEvent.click(screen.getByRole('button', { name: 'DeckPlaymat.ok' }));
+  await waitFor(() => expect(onSave).toHaveBeenCalledWith(expect.objectContaining({ cardName: 'Island', cardProviderId: '' })));
+});

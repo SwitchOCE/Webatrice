@@ -138,6 +138,17 @@ describe('scryfallCache', () => {
     await expect(bulkGetFromScryfallCache(['Opt', 'Ponder'])).resolves.toEqual([undefined, undefined]);
   });
 
+  it('retains earlier printing ids when ordinary refreshes overwrite the named card', async () => {
+    const old = { ...WITH_COMBO, printings: [{ scryfallId: 'pinned' }] };
+    cache.get.mockResolvedValue(old);
+    cache.bulkGet.mockResolvedValue([old]);
+    await putScryfallCache(WITH_COMBO);
+    await bulkPutScryfallCache([WITH_COMBO]);
+    const expected = expect.objectContaining({ printings: [...WITH_COMBO.printings, ...old.printings] });
+    expect(cache.put).toHaveBeenCalledWith(expected);
+    expect(cache.bulkPut).toHaveBeenCalledWith([expected]);
+  });
+
   it('swallows write failures and skips an empty bulk write', async () => {
     cache.put.mockRejectedValue(new Error('quota'));
     cache.bulkPut.mockRejectedValue(new Error('quota'));

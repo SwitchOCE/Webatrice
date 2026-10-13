@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 
-import { usePreference } from '@app/hooks';
+import { useCardOverride, usePreference } from '@app/hooks';
 import { TokenDTO, dexieService } from '@app/services';
 
 import type { CreateTokenSubmit } from './CreateTokenDialog';
@@ -74,10 +74,6 @@ function colorFromToken(token: TokenDTO): string {
   return '';
 }
 
-function providerIdFromToken(token: TokenDTO): string | undefined {
-  return token.set?.[0]?.value ?? undefined;
-}
-
 export function useCreateTokenDialog({
   isOpen,
   onSubmit,
@@ -86,6 +82,7 @@ export function useCreateTokenDialog({
 }: UseCreateTokenDialogArgs): CreateTokenDialogState {
   const { t } = useTranslation();
   const [name, setName] = useState('');
+  const { pinnedPrintingId } = useCardOverride(name.trim());
   const [color, setColor] = useState(CREATE_TOKEN_DEFAULT_COLOR);
   const [pt, setPT] = useState('');
   const [annotation, setAnnotation] = useState('');
@@ -97,7 +94,6 @@ export function useCreateTokenDialog({
   const [search, setSearch] = useState('');
   const [availableTokens, setAvailableTokens] = useState<TokenDTO[]>([]);
   const [selectedTokenName, setSelectedTokenName] = useState<string | null>(null);
-  const [provider, setProvider] = useState<{ id: string; name: string } | undefined>(undefined);
   const annotateTokens = usePreference('annotateTokens');
 
   useEffect(() => {
@@ -111,7 +107,6 @@ export function useCreateTokenDialog({
       setError(null);
       setSearch('');
       setSelectedTokenName(null);
-      setProvider(initial?.providerId ? { id: initial.providerId, name: initial.name } : undefined);
       setScope(predefinedTokenNames?.length ? 'deck' : 'all');
     }
   }, [isOpen, initial, predefinedTokenNames]);
@@ -169,8 +164,6 @@ export function useCreateTokenDialog({
     if (annotateTokens) {
       setAnnotation((token.text?.value ?? '').slice(0, MAX_ANNOTATION_LEN));
     }
-    const id = providerIdFromToken(token);
-    setProvider(id ? { id, name: tokenName.slice(0, MAX_NAME_LEN).trim() } : undefined);
     if (error) {
       setError(null);
     }
@@ -190,9 +183,7 @@ export function useCreateTokenDialog({
       destroyOnZoneChange,
       faceDown,
     };
-    if (provider && provider.name === payload.name) {
-      payload.providerId = provider.id;
-    }
+    payload.providerId = pinnedPrintingId ?? '';
     onSubmit(payload);
   };
 

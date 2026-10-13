@@ -138,6 +138,21 @@ describe('useCardDataPreferences', () => {
 
 
 
+  it('useCardImageUrls follows the exact-name pinned printing', async () => {
+    hoisted.load.mockResolvedValueOnce({
+      ...makePreferences(['https://img/!setcode!/!set:uuid!.jpg']),
+      cardOverrides: { Bolt: 'cccc' },
+    });
+    const card = {
+      name: { value: 'Bolt' },
+      set: [{ value: 'LEA', uuid: 'aaaa' }, { value: 'OFF', uuid: 'cccc' }],
+    };
+
+    const { result } = renderHook(() => useCardImageUrls(card));
+
+    await waitFor(() => expect(result.current[0]).toBe('https://img/OFF/cccc.jpg'));
+  });
+
   it('useCardImageUrls returns nothing for a missing card', async () => {
 
     hoisted.load.mockResolvedValueOnce(makePreferences([]));

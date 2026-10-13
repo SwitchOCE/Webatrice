@@ -9,6 +9,13 @@ import { connectedState, createMockWebClient, makeUser, renderWithProviders } fr
 import CardArtRules from './CardArtRules';
 import { loadCardPrintings, type CardPrinting } from './cardPrintings';
 
+const pins = vi.hoisted(() => ({ overrides: {} as Record<string, string> }));
+
+vi.mock('@app/hooks', async (importOriginal) => ({
+  ...(await importOriginal<typeof import('@app/hooks')>()),
+  useCardOverride: (name: string) => ({ pinnedPrintingId: pins.overrides[name] }),
+}));
+
 vi.mock('./cardPrintings', () => ({
   loadCardPrintings: vi.fn(async (name: string) => (name === 'Island'
     ? [{ providerId: 'uuid-1', label: 'Alpha #1' }, { providerId: 'uuid-2', label: 'Beta #2' }]
@@ -44,6 +51,10 @@ const rule = (cardName: string, cardProviderId: string, mode = 'DENY') =>
   create(Response_CardArtRuleEntrySchema, { cardName, cardProviderId, mode, reason: '' });
 
 describe('CardArtRules', () => {
+  beforeEach(() => {
+    pins.overrides = {};
+  });
+
   it('is unavailable on a 3.0 server, and never asks it for the rules', () => {
     const { webClient } = setup('3.0.0 ()');
     expect(screen.getByText('server-page')).toBeInTheDocument();
@@ -74,6 +85,15 @@ describe('CardArtRules', () => {
 
     expect(webClient.request.moderator.addCardArtRule).toHaveBeenCalledWith('Island', 'uuid-1', 'ALLOW', 'nsfw');
     expect(webClient.request.moderator.listCardArtRules).toHaveBeenCalledTimes(2);
+  });
+
+  it('defaults a local card to its pinned printing', async () => {
+    pins.overrides = { Island: 'uuid-2' };
+    setup();
+    const card = screen.getByRole('textbox', { name: /label\.card/ });
+    fireEvent.change(card, { target: { value: 'Island' } });
+    fireEvent.blur(card);
+    await waitFor(() => expect(screen.getByRole('combobox', { name: /label\.providerId/ })).toHaveValue('uuid-2'));
   });
 
   it('accepts a typed provider id when the card is not in the local database', async () => {

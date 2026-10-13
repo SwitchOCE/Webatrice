@@ -1,7 +1,7 @@
 import { act, renderHook } from '@testing-library/react';
 
 import { lookupCardsCached } from '../../../../services/cards/catalog/lookup';
-import { useCardCatalogMeta } from './useCardCatalogMeta';
+import { useCardCatalogMeta, zoneViewMetaFromLookup } from './useCardCatalogMeta';
 
 vi.mock('../../../../services/cards/catalog/lookup', () => ({
   lookupCardsCached: vi.fn(),
@@ -29,6 +29,19 @@ beforeEach(() => {
 const flush = () => act(async () => undefined);
 
 describe('useCardCatalogMeta', () => {
+  it('uses the pinned printing and no set for a stale pin', () => {
+    expect(zoneViewMetaFromLookup('Pinned', {
+      ...BEARS,
+      pinnedPrintingId: 'second',
+      printings: [{ set: 'first', scryfallId: 'first' }, { set: 'second', scryfallId: 'second' }],
+    })).toMatchObject({ set: 'second' });
+    expect(zoneViewMetaFromLookup('Stale', {
+      ...BEARS,
+      pinnedPrintingId: 'missing',
+      printings: [{ set: 'first', scryfallId: 'first' }],
+    })).toMatchObject({ set: null });
+  });
+
   it('maps the catalog fields by name once every name is answered', async () => {
     const { result } = renderHook(() => useCardCatalogMeta([{ name: 'Grizzly Bears' }, { name: 'Grizzly Bears' }, { name: '' }]));
     expect(result.current.metadataLoaded).toBe(false);

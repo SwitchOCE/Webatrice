@@ -32,7 +32,9 @@ const row = (item: CardMenuItem) => {
 
 describe('buildRelatedTokenItems', () => {
   const tokenMeta = new Map([
-    ['Soldier', lookup('Soldier', { power: '1', toughness: '1', colors: ['W'], printings: [{ scryfallId: 'sol-1' } as never] })],
+    ['Soldier', lookup('Soldier', {
+      power: '1', toughness: '1', colors: ['W'], pinnedPrintingId: 'sol-1', printings: [{ scryfallId: 'sol-1' } as never],
+    })],
     ['Treasure', lookup('Treasure', { colors: [] })],
     ['Spirit', lookup('Spirit', { power: '1', toughness: '1', colors: ['W', 'B'] })],
   ]);
@@ -89,6 +91,19 @@ describe('buildRelatedTokenItems', () => {
       ['Spirit', 'm', '1/1', true],
       ['Soldier', 'w', '1/1', false],
     ]);
+  });
+
+  it('uses the exact pin for related tokens and sends no default printing without a pin', () => {
+    const create = vi.fn();
+    const meta = new Map([
+      ['Pinned', lookup('Pinned', { pinnedPrintingId: 'stale-pin', printings: [{ scryfallId: 'known' }] })],
+      ['Unpinned', lookup('Unpinned', { printings: [{ scryfallId: 'known' }] })],
+    ]);
+    const [pinned, unpinned] = buildRelatedTokenItems(t, [ref('Pinned'), ref('Unpinned')], meta, create).map(row);
+
+    pinned.onClick!();
+    unpinned.onClick!();
+    expect(create.mock.calls.map(([request]) => request.providerId)).toEqual(['stale-pin', '']);
   });
 
   it('still renders items when no create-token command is available', () => {
@@ -254,7 +269,8 @@ describe('create all related tokens', () => {
 
   it('builds "Create another token" from the token\'s card, not from the relation', () => {
     const spirit = lookup('Spirit', {
-      power: '1', toughness: '1', colors: ['W', 'B'], text: 'Flying', printings: [{ scryfallId: 'spirit-id' }],
+      power: '1', toughness: '1', colors: ['W', 'B'], text: 'Flying',
+      pinnedPrintingId: 'spirit-id', printings: [{ scryfallId: 'other-id' }],
     });
     const tokenMeta = new Map([['Spirit', spirit]]);
     const plan = createAllRelated(source({ related: [ref('Spirit', { persistent: 'persistent' })], tokenMeta }));

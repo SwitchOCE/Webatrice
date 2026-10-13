@@ -1,4 +1,5 @@
 import { fireEvent, render, screen } from '@testing-library/react';
+import { useCardOverride } from '../../../hooks/useCardOverride';
 
 import { useCardPrintings } from '../hooks/useCardPrintings';
 import { emptyPriceLookup } from '../pricing';
@@ -6,6 +7,7 @@ import type { DeckCard } from '../types';
 import { PrintingPickerDialog } from './PrintingPickerDialog';
 
 vi.mock('../hooks/useCardPrintings', () => ({ useCardPrintings: vi.fn() }));
+vi.mock('../../../hooks/useCardOverride', () => ({ useCardOverride: vi.fn() }));
 
 const bolt: DeckCard = {
   name: 'Lightning Bolt', quantity: 4, category: 'main', lookupSource: 'scryfall', scryfallId: 'm11-id',
@@ -20,6 +22,9 @@ function printings(overrides: Partial<ReturnType<typeof useCardPrintings>>) {
 }
 
 describe('PrintingPickerDialog', () => {
+  beforeEach(() => {
+    vi.mocked(useCardOverride).mockReturnValue({ pinnedPrintingId: '', savingPin: false, togglePin: vi.fn() });
+  });
   it('renders nothing without a request', () => {
     printings({});
     render(<PrintingPickerDialog request={null} onClose={vi.fn()} onPick={vi.fn()} />);
@@ -90,5 +95,23 @@ describe('PrintingPickerDialog', () => {
     const image = screen.getByAltText('Lightning Bolt (m11)');
     fireEvent.error(image);
     expect(image).toHaveAttribute('src', 'https://cards.scryfall.io/normal/front/second.jpg');
+  });
+
+  it('puts the pin before deck printings and toggles it without changing the saved choice', () => {
+    const togglePin = vi.fn().mockResolvedValue(undefined);
+    vi.mocked(useCardOverride).mockReturnValue({ pinnedPrintingId: 'm11-id', savingPin: false, togglePin });
+    printings({ printings: [a25, m11], canonicalName: 'Lightning Bolt' });
+    const onPick = vi.fn();
+    render(<PrintingPickerDialog request={{ index: 0, card: { ...bolt, name: 'lightning bolt' } }}
+      deckCards={[{ ...bolt, name: 'lightning bolt', scryfallId: 'a25-id' }]} onClose={vi.fn()} onPick={onPick} />);
+    expect(useCardOverride).toHaveBeenLastCalledWith('Lightning Bolt');
+    expect(screen.getAllByTitle(/· lightning bolt$/).map((node) => node.title)).toEqual(['M11 · lightning bolt', 'A25 · lightning bolt']);
+    const unpin = screen.getByRole('button', { name: 'PrintingPicker.unpin' });
+    expect(unpin).toHaveAttribute('aria-pressed', 'true');
+    fireEvent.click(unpin);
+    expect(togglePin).toHaveBeenCalledWith('m11-id');
+    fireEvent.click(screen.getByRole('button', { name: 'PrintingPicker.pin' }));
+    expect(togglePin).toHaveBeenLastCalledWith('a25-id');
+    expect(onPick).not.toHaveBeenCalled();
   });
 });

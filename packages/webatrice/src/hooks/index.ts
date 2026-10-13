@@ -39,6 +39,7 @@ export * from './useWatchReplay';
 
 export * from './useActionFeed';
 export * from './useCardDataPreferences';
+export * from './useCardOverride';
 export * from './usePlaymatSettings';
 export * from './useAnimationPreferences';
 export * from './useApplyCardPresentation';

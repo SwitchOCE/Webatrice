@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 
-import { lookupCardsCached, type LookupResult } from '@app/services';
+import { lookupCardsCached, preferredPrinting, type LookupResult } from '@app/services';
 
 import { placeholderMeta, type ZoneViewCardMetadata } from './zoneViewSort';
 
@@ -10,7 +10,7 @@ export function zoneViewMetaFromLookup(name: string, r: LookupResult): ZoneViewC
     type_line: r.typeLine ?? null,
     cmc: r.cmc ?? null,
     colors: r.colors ?? [],
-    set: r.printings[0]?.set ?? null,
+    set: preferredPrinting(r)?.set ?? null,
     power: r.power ?? null,
     toughness: r.toughness ?? null,
   };
