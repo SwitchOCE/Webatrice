@@ -55,6 +55,16 @@ it.each([
   });
 });
 
+it('skips v3 cards without a name while importing the remaining records', () => {
+  const parsed = cockatriceXmlParser.parse(`<cockatrice_carddatabase version="3"><cards>
+    <card><text>Missing name</text><set>BAD</set></card>
+    <card><name>   </name></card>
+    <card><name/></card>
+    <card><name>Kept</name><set>GOOD</set></card>
+  </cards></cockatrice_carddatabase>`);
+  expect(parsed.cards).toEqual([expect.objectContaining({ name: { value: 'Kept' } })]);
+});
+
 it('keeps v3 import results indexed by name.value in the actual Dexie tables', async () => {
   const parsed = cockatriceXmlParser.parseSource(legacyXml);
   const tables = [dexieService.cards, dexieService.sets, dexieService.tokens];

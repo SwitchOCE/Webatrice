@@ -6,6 +6,7 @@ import {
   Event_GameJoinedSchema,
   Response_ResponseCode,
   ServerInfo_GameSchema,
+  ServerInfo_User_UserLevelFlag,
   ServerInfo_RoomSchema,
   type ServerInfo_Game,
 } from '@cockatrice/sockatrice/generated';
@@ -15,6 +16,7 @@ import {
   connectedWithRoomsState,
   createMockWebClient,
   makeStoreState,
+  makeUser,
   renderWithProviders,
 } from '../../__test-utils__';
 import { makeGameJoinLink } from '@app/utils';
@@ -38,10 +40,14 @@ function listedGame(overrides: MessageInitShape<typeof ServerInfo_GameSchema> = 
   });
 }
 
-function stateWith(game: ServerInfo_Game | null) {
+function stateWith(game: ServerInfo_Game | null, userLevel?: number) {
   const room = connectedWithRoomsState.rooms!.rooms[1];
   return makeStoreState({
     ...connectedWithRoomsState,
+    server: userLevel !== undefined ? {
+      ...connectedWithRoomsState.server!,
+      user: makeUser({ userLevel }),
+    } : connectedWithRoomsState.server,
     rooms: {
       ...connectedWithRoomsState.rooms,
       rooms: { 1: { ...room, games: game ? { [game.gameId]: { info: game, gameType: '' } } : {} } },
@@ -133,8 +139,61 @@ describe('GameLinkJoinHost (GAME-033 incoming links)', () => {
     const { webClient } = renderHost(link(), listedGame({ playerCount: 2, maxPlayers: 2 }));
     fireEvent.click(dialogButton('GameLink.yes'));
     expect(within(screen.getByRole('dialog')).getByText('GameLink.full')).toBeInTheDocument();
+    expect(dialogButton('GameLink.no')).toHaveFocus();
     fireEvent.click(dialogButton('GameLink.yes'));
     expect(webClient.request.rooms.joinGame).toHaveBeenCalledWith(1, expect.objectContaining({ spectator: true }), expect.any(String));
+  });
+
+  it.each([
+    ['moderator', ServerInfo_User_UserLevelFlag.IsModerator],
+    ['admin', ServerInfo_User_UserLevelFlag.IsAdmin | ServerInfo_User_UserLevelFlag.IsModerator],
+    ['judge', ServerInfo_User_UserLevelFlag.IsJudge],
+  ])('joins a full game without prompting as %s', (_role, userLevel) => {
+    const webClient = createMockWebClient() as unknown as WebClient;
+    renderWithProviders(
+      <>
+        <GameLinkButton url={link()} />
+        <GameLinkJoinHost endpoint={LIVE_SERVER} />
+      </>,
+      { preloadedState: stateWith(listedGame({ playerCount: 2, maxPlayers: 2 }), userLevel), webClient },
+    );
+    fireEvent.click(screen.getByRole('button', { name: /GameLink\.anchor/ }));
+    fireEvent.click(dialogButton('GameLink.yes'));
+    expect(screen.queryByText('GameLink.full')).not.toBeInTheDocument();
+    expect(webClient.request.rooms.joinGame).toHaveBeenCalledWith(1, expect.objectContaining({
+      spectator: true,
+      overrideRestrictions: true,
+    }), expect.any(String));
+  });
+
+  it('declining spectator confirmation clears the join and allows a fresh attempt', async () => {
+    const { webClient } = renderHost(link(), listedGame({ playerCount: 2, maxPlayers: 2 }));
+    fireEvent.click(dialogButton('GameLink.yes'));
+    fireEvent.click(dialogButton('GameLink.no'));
+    await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument());
+    expect(webClient.request.rooms.joinGame).not.toHaveBeenCalled();
+    fireEvent.click(screen.getByRole('button', { name: /GameLink\.anchor/ }));
+    fireEvent.click(dialogButton('GameLink.yes'));
+    expect(dialogButton('GameLink.no')).toHaveFocus();
+    fireEvent.click(dialogButton('GameLink.yes'));
+    expect(webClient.request.rooms.joinGame).toHaveBeenCalledTimes(1);
+  });
+
+  it('asks for a spectator password only after accepting spectator confirmation', () => {
+    const { webClient } = renderHost(link(), listedGame({
+      playerCount: 2, maxPlayers: 2, withPassword: true, spectatorsNeedPassword: true,
+    }));
+    fireEvent.click(dialogButton('GameLink.yes'));
+    expect(screen.queryByLabelText('GameLink.password.description')).not.toBeInTheDocument();
+    expect(webClient.request.rooms.joinGame).not.toHaveBeenCalled();
+    fireEvent.click(dialogButton('GameLink.yes'));
+    fireEvent.change(within(screen.getByRole('dialog')).getByLabelText('GameLink.password.description'), {
+      target: { value: 'spectator-secret' },
+    });
+    fireEvent.click(dialogButton('GameLink.join'));
+    expect(webClient.request.rooms.joinGame).toHaveBeenCalledWith(1, expect.objectContaining({
+      spectator: true, password: 'spectator-secret', overrideRestrictions: false,
+    }), expect.any(String));
   });
 
   it('asks for the password of a protected game', () => {

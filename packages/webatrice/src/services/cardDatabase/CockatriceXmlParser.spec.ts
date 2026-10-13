@@ -180,6 +180,14 @@ describe('CockatriceXmlParser', () => {
       expect(result.tokens![0].name.value).toBe('Soldier Token');
     });
 
+    it('skips cards without a name while importing the remaining records', () => {
+      const parsed = cockatriceXmlParser.parse(`<cockatrice_carddatabase version="4"><cards>
+        <card><text>Missing name</text><set>BAD</set></card>
+        <card><name>Kept</name><set>GOOD</set></card>
+      </cards></cockatrice_carddatabase>`);
+      expect(parsed.cards).toEqual([expect.objectContaining({ name: { value: 'Kept' } })]);
+    });
+
     it('keeps the first classification when a file defines a token before a card of the same name', () => {
       const parsed = cockatriceXmlParser.parse(`<cockatrice_carddatabase version="4"><cards>
         <card><name>Shared</name><token>1</token><set>A</set></card>

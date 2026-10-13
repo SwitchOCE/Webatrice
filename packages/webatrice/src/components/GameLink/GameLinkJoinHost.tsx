@@ -18,22 +18,26 @@ type Flow =
   | { step: 'notice'; title: string; message: string }
   | { step: 'confirm'; link: GameJoinLink }
   | { step: 'awaitGame'; link: GameJoinLink }
-  | { step: 'confirmSpectate'; link: GameJoinLink; game: ServerInfo_Game }
   | { step: 'joining'; link: GameJoinLink; game: ServerInfo_Game };
 
 const IDLE: Flow = { step: 'idle' };
 
-function NavigateOnLinkJoin({ onJoined }: { onJoined: (gameId: number) => void }) {
-  useNavigateOnGameJoined(onJoined);
-  return null;
-}
-
-export default function GameLinkJoinHost({ endpoint }: { endpoint: LiveGameServer | null }) {
+function useGameLinkJoinHost(endpoint: LiveGameServer | null) {
   const { t } = useTranslation();
   const webClient = useWebClient();
   const request = useGameLinkRequest();
   const [flow, setFlow] = useState<Flow>(IDLE);
-  const { beginJoin, passwordRequired, submitPassword, cancelPassword, joinError, clearJoinError } = useJoinGame();
+  const {
+    beginJoin,
+    passwordRequired,
+    submitPassword,
+    cancelPassword,
+    spectatorConfirmationRequired,
+    confirmSpectatorJoin,
+    cancelSpectatorJoin,
+    joinError,
+    clearJoinError,
+  } = useJoinGame();
 
   const joinErrorMessage = useJoinGameErrorMessage(joinError);
 
@@ -70,13 +74,9 @@ export default function GameLinkJoinHost({ endpoint }: { endpoint: LiveGameServe
 
   const joinListedGame = useCallback(
     (link: GameJoinLink, game: ServerInfo_Game) => {
-      if (!activeGameIds.includes(game.gameId) && game.playerCount >= game.maxPlayers) {
-        setFlow({ step: 'confirmSpectate', link, game });
-        return;
-      }
       startJoin(link, game, false);
     },
-    [activeGameIds, startJoin],
+    [startJoin],
   );
 
   const confirmJoin = useCallback(
@@ -139,6 +139,11 @@ export default function GameLinkJoinHost({ endpoint }: { endpoint: LiveGameServe
     setFlow(IDLE);
   };
 
+  const cancelSpectatorConfirmation = () => {
+    cancelSpectatorJoin();
+    setFlow(IDLE);
+  };
+
   const confirmMessage = (link: GameJoinLink) => {
     const roomName = joinedRoomIds[link.roomId] ? room?.info.name : undefined;
     const args = { description: link.description, gameId: link.gameId, room: roomName, server: serverLabel(link) };
@@ -148,52 +153,69 @@ export default function GameLinkJoinHost({ endpoint }: { endpoint: LiveGameServe
     return roomName ? t('GameLink.confirm.idInRoom', args) : t('GameLink.confirm.id', args);
   };
 
+  return {
+    confirmation: {
+      isOpen: flow.step === 'confirm',
+      title: t('GameLink.confirm.title'),
+      message: flow.step === 'confirm' ? confirmMessage(flow.link) : '',
+      confirmLabel: t('GameLink.yes'),
+      cancelLabel: t('GameLink.no'),
+      onConfirm: () => flow.step === 'confirm' && confirmJoin(flow.link),
+      onCancel: close,
+    },
+    spectatorConfirmation: {
+      cancelDefault: true,
+      isOpen: spectatorConfirmationRequired,
+      title: t('GameLink.confirm.title'),
+      message: t('GameLink.full'),
+      confirmLabel: t('GameLink.yes'),
+      cancelLabel: t('GameLink.no'),
+      onConfirm: confirmSpectatorJoin,
+      onCancel: cancelSpectatorConfirmation,
+    },
+    passwordPrompt: {
+      isOpen: joining !== null && passwordRequired,
+      title: t('GameLink.confirm.title'),
+      label: joining?.game.description
+        ? t('GameLink.password.description', { description: joining.game.description })
+        : t('GameLink.password.id', { gameId: joining?.link.gameId ?? 0 }),
+      submitLabel: t('GameLink.join'),
+      type: 'password' as const,
+      onSubmit: submitPassword,
+      onCancel: cancelJoinPassword,
+    },
+    notice: {
+      isOpen: flow.step === 'notice',
+      title: flow.step === 'notice' ? flow.title : '',
+      message: flow.step === 'notice' ? flow.message : '',
+      onDismiss: close,
+    },
+    error: {
+      isOpen: joinFailed,
+      title: t('GameLink.confirm.title'),
+      message: joinErrorMessage,
+      onDismiss: dismissJoinError,
+    },
+    joining: joining !== null,
+    onLinkJoined,
+  };
+}
+
+function NavigateOnLinkJoin({ onJoined }: { onJoined: (gameId: number) => void }) {
+  useNavigateOnGameJoined(onJoined);
+  return null;
+}
+
+export default function GameLinkJoinHost({ endpoint }: { endpoint: LiveGameServer | null }) {
+  const flow = useGameLinkJoinHost(endpoint);
   return (
     <>
-      <ConfirmDialog
-        isOpen={flow.step === 'confirm'}
-        title={t('GameLink.confirm.title')}
-        message={flow.step === 'confirm' ? confirmMessage(flow.link) : ''}
-        confirmLabel={t('GameLink.yes')}
-        cancelLabel={t('GameLink.no')}
-        onConfirm={() => flow.step === 'confirm' && confirmJoin(flow.link)}
-        onCancel={close}
-      />
-      <ConfirmDialog
-        isOpen={flow.step === 'confirmSpectate'}
-        title={t('GameLink.confirm.title')}
-        message={t('GameLink.full')}
-        confirmLabel={t('GameLink.yes')}
-        cancelLabel={t('GameLink.no')}
-        onConfirm={() => flow.step === 'confirmSpectate' && startJoin(flow.link, flow.game, true)}
-        onCancel={close}
-      />
-      <PromptDialog
-        isOpen={joining !== null && passwordRequired}
-        title={t('GameLink.confirm.title')}
-        label={
-          joining?.game.description
-            ? t('GameLink.password.description', { description: joining.game.description })
-            : t('GameLink.password.id', { gameId: joining?.link.gameId ?? 0 })
-        }
-        submitLabel={t('GameLink.join')}
-        type="password"
-        onSubmit={submitPassword}
-        onCancel={cancelJoinPassword}
-      />
-      <AlertDialog
-        isOpen={flow.step === 'notice'}
-        title={flow.step === 'notice' ? flow.title : ''}
-        message={flow.step === 'notice' ? flow.message : ''}
-        onDismiss={close}
-      />
-      {joining && <NavigateOnLinkJoin onJoined={onLinkJoined} />}
-      <AlertDialog
-        isOpen={joinFailed}
-        title={t('GameLink.confirm.title')}
-        message={joinErrorMessage}
-        onDismiss={dismissJoinError}
-      />
+      <ConfirmDialog {...flow.confirmation} />
+      <ConfirmDialog {...flow.spectatorConfirmation} />
+      <PromptDialog {...flow.passwordPrompt} />
+      <AlertDialog {...flow.notice} />
+      {flow.joining && <NavigateOnLinkJoin onJoined={flow.onLinkJoined} />}
+      <AlertDialog {...flow.error} />
     </>
   );
 }
