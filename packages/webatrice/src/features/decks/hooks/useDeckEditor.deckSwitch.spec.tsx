@@ -11,7 +11,10 @@ import { makeReduxWebClientHookWrapper } from '../../../__test-utils__/makeHookW
 
 vi.mock('@app/services', async (importOriginal) => {
   const actual = await importOriginal<typeof import('@app/services')>();
-  return { ...actual, lookupCards: vi.fn(async () => new Map()), trackEvent: vi.fn() };
+  return { ...actual,
+    lookupCardsForHydration: vi.fn(async () => ({ lookups: new Map(), refreshed: Promise.resolve(new Map()) })),
+    trackEvent: vi.fn(),
+  };
 });
 
 import { emptyCod, parseCod, serializeCod } from '@app/services';

@@ -51,7 +51,7 @@ import {
 } from '../deckHistory';
 import { deckSaveSignature } from '../deckPersistence';
 import type { BannerCandidate } from '../deckTags';
-import { assembleDeckCard, hydrateDeck } from '../hydrate';
+import { applyDeckCardDataRefresh, assembleDeckCard, hydrateDeck, type DeckCardDataRefresh } from '../hydrate';
 import type { DeckCard, HydratedDeck } from '../types';
 import { useDeckAutosave, type SaveState } from './useDeckAutosave';
 import { useDeckHistory } from './useDeckHistory';
@@ -177,6 +177,18 @@ export function useDeckEditor(deckId: number | null, draftToken: string | null =
   const history = useDeckHistory();
   const { record, clear: clearHistory, undo: undoHistory, redo: redoHistory } = history;
 
+  const applyCardDataRefresh = useCallback((refresh: DeckCardDataRefresh, signal: AbortSignal) => {
+    const current = deckRef.current;
+    if (signal.aborted || !current) {
+      return;
+    }
+    const next = applyDeckCardDataRefresh(current, refresh);
+    if (next !== current) {
+      deckRef.current = next;
+      setDeck(next);
+    }
+  }, []);
+
   const identity = deckId ?? draftToken;
   const [seededIdentity, setSeededIdentity] = useState(identity);
   if (seededIdentity !== identity) {
@@ -221,12 +233,16 @@ export function useDeckEditor(deckId: number | null, draftToken: string | null =
       try {
         const parsed = parseCod(cod);
         publishProvisional(cod, parsed);
-        const hydrated = await hydrateDeck(parsed, controller.signal);
+        let refresh: Promise<DeckCardDataRefresh> | undefined;
+        const hydrated = await hydrateDeck(parsed, controller.signal, (pending) => {
+          refresh = pending;
+        });
         if (controller.signal.aborted) {
           return;
         }
         deckRef.current = hydrated;
         setCachedDraft(draftToken, hydrated);
+        void refresh?.then((data) => applyCardDataRefresh(data, controller.signal));
         setDeck(hydrated);
         setHydrating(false);
         provisionalDocumentRef.current = null;
@@ -246,7 +262,7 @@ export function useDeckEditor(deckId: number | null, draftToken: string | null =
       controller.abort();
       unsubscribe();
     };
-  }, [isDraft, draftToken, clearHistory, publishProvisional, clearProvisional]);
+  }, [isDraft, draftToken, clearHistory, publishProvisional, clearProvisional, applyCardDataRefresh]);
 
   // --- Load ---
   useEffect(() => {
@@ -334,7 +350,10 @@ export function useDeckEditor(deckId: number | null, draftToken: string | null =
         try {
           const parsed = parseCod(payload.deck);
           publishProvisional(payload.deck, parsed);
-          const hydrated = await hydrateDeck(parsed, controller.signal);
+          let refresh: Promise<DeckCardDataRefresh> | undefined;
+          const hydrated = await hydrateDeck(parsed, controller.signal, (pending) => {
+            refresh = pending;
+          });
           if (controller.signal.aborted || !requests.isCurrent(payload.requestId)) {
             return;
           }
@@ -354,6 +373,7 @@ export function useDeckEditor(deckId: number | null, draftToken: string | null =
           }
           trackEvent('deck_opened', { format: hydrated.format });
           setCachedDeck(payload.deckId, { deck: hydrated, savedSignature: signature });
+          void refresh?.then((data) => applyCardDataRefresh(data, controller.signal));
           setLoading(false);
           if (needsMigration) {
             scheduleSave();
@@ -372,7 +392,7 @@ export function useDeckEditor(deckId: number | null, draftToken: string | null =
       })();
     },
     server.Types.DECK_DOWNLOADED,
-    [deckId, requests, publishProvisional, clearProvisional],
+    [deckId, requests, publishProvisional, clearProvisional, applyCardDataRefresh],
   );
 
   useReduxEffect<CommandFailedPayload & { deckId: number }>(

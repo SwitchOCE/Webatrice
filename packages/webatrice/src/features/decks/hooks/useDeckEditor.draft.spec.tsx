@@ -15,11 +15,13 @@ vi.mock('../../../services/cards/catalog/lookup', async (importOriginal) => {
   return {
     ...actual,
     lookupCard: vi.fn(async (name: string) => unknown(name)),
-    lookupCards: vi.fn(async (inputs: Array<string | { name: string }>) =>
-      new Map(inputs.map((i) => {
-        const name = typeof i === 'string' ? i : i.name;
-        return [name, unknown(name)];
-      }))),
+    lookupCardsForHydration: vi.fn(async (inputs: Array<string | { name: string }>) => ({
+      lookups: new Map(inputs.map((input) => {
+        const hint = typeof input === 'string' ? { name: input } : input;
+        return [actual.printingKey(hint), unknown(hint.name)];
+      })),
+      refreshed: Promise.resolve(new Map()),
+    })),
   };
 });
 

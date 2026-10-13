@@ -82,6 +82,6 @@ describe('useDeckLegality', () => {
 
     expect(firstSignal).toBeInstanceOf(AbortSignal);
     expect(firstSignal?.aborted).toBe(true);
-    expect(lookupCardsCached).toHaveBeenLastCalledWith(['Opt'], expect.any(AbortSignal));
+    expect(lookupCardsCached).toHaveBeenLastCalledWith(['Opt'], expect.any(AbortSignal), true);
   });
 });

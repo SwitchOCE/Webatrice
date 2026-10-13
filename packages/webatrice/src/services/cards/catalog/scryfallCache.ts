@@ -59,7 +59,7 @@ function readCached(
   return sanitizeCached(result);
 }
 
-function matchesHint(
+export function matchesHint(
   printings: PrintingSummary[],
   hint?: ScryfallCacheHint,
 ): boolean {

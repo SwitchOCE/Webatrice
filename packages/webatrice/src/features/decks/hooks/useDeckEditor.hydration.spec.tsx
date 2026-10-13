@@ -12,7 +12,7 @@ import { deckSaveSignature } from '../deckPersistence';
 import { deckSummaryScope, invalidateDeckSummary, writeDeckSummary, deckSummaryRevision } from '../deckSummaryCache';
 import * as summaryCache from '../deckSummaryCache';
 import { summarizeDeck } from '../deckSummary';
-import { assembleDeckCard, hydrateDeck } from '../hydrate';
+import { assembleDeckCard, hydrateDeck, type DeckCardDataRefresh } from '../hydrate';
 import type { HydratedDeck } from '../types';
 import { useDeckEditor, type UseDeckEditor } from './useDeckEditor';
 
@@ -129,7 +129,7 @@ it.each([true, false])('shows the saved file and uses downloaded truth (equal: %
   if (equal) {
     expect(editor.deck).toBe(provisional);
   }
-  expect(hydrateDeck).toHaveBeenCalledWith(parseCod(document), expect.any(AbortSignal));
+  expect(hydrateDeck).toHaveBeenCalledWith(parseCod(document), expect.any(AbortSignal), expect.any(Function));
   await act(async () => pending.resolve(hydrated(document)));
   expect(editor.deck).toEqual(hydrated(document));
   expect(getCachedDeck(5)?.savedSignature).toBe(deckSaveSignature(hydrated(document)));
@@ -354,4 +354,121 @@ it.each(['dirty', 'saving'] as const)('does not show deck A\'s %s state while de
   expect(editor.isModified).toBe(false);
   expect(editor.saveState).toBe('idle');
   expect(getCachedDeck(6)).toBeUndefined();
+});
+
+it.each([false, true])('patches metadata without changing dirty state or scheduling a save (dirty: %s)', async (dirty) => {
+  const pending = deferred<DeckCardDataRefresh>();
+  const initial = hydrated();
+  vi.mocked(hydrateDeck).mockImplementation(async (_parsed, _signal, receiveRefresh) => {
+    receiveRefresh?.(pending.promise);
+    return initial;
+  });
+  const view = setup();
+  view.download();
+  await waitFor(() => expect(editor.hydrating).toBe(false));
+  act(() => editor.pauseAutosave());
+  if (dirty) {
+    act(() => {
+      editor.incQuantity(0, 2); editor.setCategory(0, 'sideboard'); editor.deleteCard(1);
+    });
+  }
+  const before = editor.deck!;
+  const history = editor.history;
+  await act(async () => pending.resolve([{ card: initial.cards[0], lookup: {
+    name: 'Lightning Bolt', found: true, source: 'scryfall', typeLine: 'Sorcery', manaCost: '{R}',
+    printings: [{ set: 'M11', collectorNumber: '146', scryfallId: 'new-id', imageUri: 'https://new/image' }],
+    legalities: { modern: 'banned' },
+  } }]));
+  expect(editor.deck?.cards[0]).toMatchObject({ typeLine: 'Sorcery', manaCost: '{R}', imageUri: 'https://new/image' });
+  expect(deckSaveSignature(editor.deck!)).toBe(deckSaveSignature(before));
+  expect(editor.isModified).toBe(dirty);
+  expect(editor.history).toBe(history);
+  expect(editor.deck?.cards[0].quantity).toBe(dirty ? 6 : 4);
+  expect(editor.deck?.cards[0].category).toBe(dirty ? 'sideboard' : 'main');
+  expect(editor.deck?.cards).toHaveLength(dirty ? 1 : 2);
+  expect(view.webClient.request.session.deckUpdate).not.toHaveBeenCalled();
+  expect(view.webClient.request.session.deckUpload).not.toHaveBeenCalled();
+  if (!dirty) {
+    act(() => {
+      editor.resumeAutosave(); editor.flushSave();
+    });
+    expect(view.webClient.request.session.deckUpdate).not.toHaveBeenCalled();
+  }
+  act(() => editor.discardChanges());
+});
+
+it('does not patch a printing chosen while refresh was pending', async () => {
+  const pending = deferred<DeckCardDataRefresh>();
+  const initial = hydrated();
+  vi.mocked(hydrateDeck).mockImplementation(async (_parsed, _signal, receiveRefresh) => {
+    receiveRefresh?.(pending.promise);
+    return initial;
+  });
+  const view = setup();
+  view.download();
+  await waitFor(() => expect(editor.hydrating).toBe(false));
+  act(() => {
+    editor.pauseAutosave(); editor.setPrinting(0, { set: 'NEW', scryfallId: 'chosen', imageUri: 'https://chosen/image' });
+  });
+  const before = editor.deck;
+  await act(async () => pending.resolve([{ card: initial.cards[0], lookup: {
+    name: 'Lightning Bolt', found: true, source: 'scryfall', typeLine: 'Sorcery', printings: [],
+  } }]));
+  expect(editor.deck).toBe(before);
+  expect(editor.deck?.cards[0].scryfallId).toBe('chosen');
+  act(() => editor.discardChanges());
+});
+
+it.each(['switch', 'unmount', 'session'] as const)('drops a background refresh after %s', async (reason) => {
+  const pending = deferred<DeckCardDataRefresh>();
+  const initial = hydrated();
+  vi.mocked(hydrateDeck).mockImplementation(async (_parsed, _signal, receiveRefresh) => {
+    receiveRefresh?.(pending.promise);
+    return initial;
+  });
+  const view = setup();
+  view.download();
+  await waitFor(() => expect(editor.hydrating).toBe(false));
+  if (reason === 'switch') {
+    vi.mocked(hydrateDeck).mockResolvedValueOnce(hydrated(cod('Other')));
+    view.rerender(<Probe id={6} />);
+    act(() => view.store.dispatch(server.Actions.deckDownloaded({ deckId: 6, deck: cod('Other'),
+      requestId: vi.mocked(view.webClient.request.session.deckDownload).mock.lastCall![1],
+    })));
+    await waitFor(() => expect(editor.hydrating).toBe(false));
+  }
+  if (reason === 'unmount') {
+    view.unmount();
+  }
+  if (reason === 'session') {
+    act(() => endSession());
+  }
+  const before = editor.deck;
+  await act(async () => pending.resolve([{ card: initial.cards[0], lookup: {
+    name: 'Lightning Bolt', found: true, source: 'scryfall', typeLine: 'Sorcery', printings: [],
+  } }]));
+  expect(editor.deck).toBe(before);
+  expect(getCachedDeck(5)?.deck.cards[0].typeLine).not.toBe('Sorcery');
+  expect(view.webClient.request.session.deckUpdate).not.toHaveBeenCalled();
+});
+
+it('keeps the deck object and render count unchanged for identical refreshed data', async () => {
+  const lookup = { name: 'Lightning Bolt', found: true, source: 'scryfall' as const, typeLine: 'Instant',
+    printings: [{ set: 'M11', imageUri: 'https://same/image' }],
+  };
+  const initial = hydrated();
+  initial.cards[0] = assembleDeckCard(initial.cards[0], lookup);
+  const pending = deferred<DeckCardDataRefresh>();
+  vi.mocked(hydrateDeck).mockImplementation(async (_parsed, _signal, receiveRefresh) => {
+    receiveRefresh?.(pending.promise);
+    return initial;
+  });
+  const view = setup();
+  view.download();
+  await waitFor(() => expect(editor.hydrating).toBe(false));
+  const before = editor;
+  await act(async () => pending.resolve([{ card: initial.cards[0], lookup: { ...lookup, fetchedAt: Date.now() } }]));
+  expect(editor).toBe(before);
+  expect(editor.deck).toBe(initial);
+  expect(view.webClient.request.session.deckUpdate).not.toHaveBeenCalled();
 });

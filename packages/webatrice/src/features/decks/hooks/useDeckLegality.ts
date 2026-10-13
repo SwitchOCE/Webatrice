@@ -1,6 +1,6 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useState, useSyncExternalStore } from 'react';
 
-import { getFormatRules, lookupCardsCached } from '@app/services';
+import { cardLookupRevision, getFormatRules, lookupCardsCached, subscribeCardLookups } from '@app/services';
 
 import { deckLegality, legalityFacts, toFormatRules, type DeckLegality, type FormatRules, type LegalityFacts } from '../deckLegality';
 import type { HydratedDeck } from '../types';
@@ -12,6 +12,7 @@ export interface UseDeckLegality extends DeckLegality {
 const EMPTY_FACTS: ReadonlyMap<string, LegalityFacts | undefined> = new Map();
 
 export function useDeckLegality(deck: HydratedDeck | null): UseDeckLegality {
+  const lookupRevision = useSyncExternalStore(subscribeCardLookups, cardLookupRevision);
   const format = deck?.format ?? '';
   const namesKey = useMemo(
     () => Array.from(new Set((deck?.cards ?? []).map((c) => c.name))).sort().join('\n'),
@@ -27,7 +28,7 @@ export function useDeckLegality(deck: HydratedDeck | null): UseDeckLegality {
       return;
     }
     const controller = new AbortController();
-    lookupCardsCached(namesKey.split('\n'), controller.signal)
+    lookupCardsCached(namesKey.split('\n'), controller.signal, true)
       .then((lookups) => {
         if (!controller.signal.aborted) {
           const byName = new Map<string, LegalityFacts | undefined>();
@@ -45,7 +46,7 @@ export function useDeckLegality(deck: HydratedDeck | null): UseDeckLegality {
     return () => {
       controller.abort();
     };
-  }, [namesKey]);
+  }, [namesKey, lookupRevision]);
 
   useEffect(() => {
     let cancelled = false;
