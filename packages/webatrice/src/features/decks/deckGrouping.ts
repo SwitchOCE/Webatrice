@@ -17,7 +17,7 @@ export const DECK_SECTION_ORDER = [
 export type DeckSection = typeof DECK_SECTION_ORDER[number];
 
 export interface DeckCardGroup {
-  label: DeckSection;
+  label: DeckSection | 'Main';
   indices: number[];
 }
 

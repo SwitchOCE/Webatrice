@@ -8,7 +8,7 @@ import { RouteEnum } from '@app/types';
 
 import { deckEditorGridStyle } from './editorLayout';
 
-export function DeckEditorSkeleton({ loaded, total }: { loaded: number; total: number }) {
+export function DeckEditorSkeleton() {
   const { t } = useTranslation();
   return (
     <Layout>
@@ -41,9 +41,7 @@ export function DeckEditorSkeleton({ loaded, total }: { loaded: number; total: n
           <div className="h-20 w-full animate-pulse rounded-ui bg-bg-elevated" />
           <div className="mt-auto flex items-center justify-center gap-2 text-xs italic text-text-muted">
             <Loader2 size={12} className="animate-spin text-accent" />
-            {total > 0
-              ? t('DeckEditor.shell.preloading', { loaded: String(loaded), total: String(total) })
-              : t('DeckEditor.shell.loadingDeck')}
+            {t('DeckEditor.shell.loadingDeck')}
           </div>
         </div>
       </div>

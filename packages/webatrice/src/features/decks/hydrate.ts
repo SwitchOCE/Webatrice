@@ -3,7 +3,8 @@ import { ScryfallImageSize } from '@cockatrice/datatrice';
 import {
   getScryfallUrlById,
   imageCandidatesOf,
-  lookupCards,
+  lookupCardsForHydration,
+  printingKey,
   parseCod,
   primaryImageUri,
   type LookupResult,
@@ -15,14 +16,30 @@ import { mergeDuplicateRows } from './deckEdits';
 import { inferDeckFormat } from './decklistParser';
 import type { DeckCard, HydratedDeck } from './types';
 
-export async function hydrateDeck(parsed: ParsedDeck, signal?: AbortSignal): Promise<HydratedDeck> {
-  const uniqueNames = Array.from(new Set(parsed.cards.map((c) => c.name)));
-  const lookups = await lookupCards(uniqueNames, signal);
+export type DeckCardDataRefresh = ReadonlyArray<{ card: DeckCard; lookup: LookupResult }>;
+
+export async function hydrateDeck(
+  parsed: ParsedDeck,
+  signal?: AbortSignal,
+  receiveRefresh?: (refresh: Promise<DeckCardDataRefresh>) => void,
+): Promise<HydratedDeck> {
+  const local = await lookupCardsForHydration(parsed.cards.map(({ name, set, collectorNumber, scryfallId }) => (
+    { name, set, collectorNumber, scryfallId }
+  )), signal);
+  const lookups = local.lookups;
 
   const cards: DeckCard[] = mergeDuplicateRows(parsed.cards.map((row) => {
-    const lookup = lookups.get(row.name);
+    const lookup = lookups.get(printingKey(row));
     return assembleDeckCard(row, lookup);
   }));
+
+  if (receiveRefresh) {
+    receiveRefresh(local.refreshed.then((refreshed) => parsed.cards.flatMap((row) => {
+      const lookup = refreshed.get(printingKey(row));
+      const card = assembleDeckCard(row, lookups.get(printingKey(row)));
+      return lookup ? [{ card, lookup }] : [];
+    })));
+  }
 
   return {
     name: parsed.name,
@@ -127,4 +144,35 @@ function pickPrinting(
   }
 
   return printings[0];
+}
+
+export function applyDeckCardDataRefresh(deck: HydratedDeck, refresh: DeckCardDataRefresh): HydratedDeck {
+  const byIdentity = new Map(refresh.map(({ card, lookup }) => [printingKey(card), lookup]));
+  let changed = false;
+  const cards = deck.cards.map((card) => {
+    const lookup = byIdentity.get(printingKey(card));
+    if (!lookup) {
+      return card;
+    }
+    const next = assembleDeckCard(card, lookup);
+    const patched: DeckCard = {
+      ...card,
+      typeLine: next.typeLine,
+      manaCost: next.manaCost,
+      cmc: next.cmc,
+      colors: next.colors,
+      colorIdentity: next.colorIdentity,
+      power: next.power,
+      toughness: next.toughness,
+      imageUri: next.imageUri ?? card.imageUri,
+      imageUris: next.imageUris?.length ? next.imageUris : card.imageUris,
+      lookupSource: next.lookupSource,
+    };
+    if (JSON.stringify(card) === JSON.stringify(patched)) {
+      return card;
+    }
+    changed = true;
+    return patched;
+  });
+  return changed ? { ...deck, cards } : deck;
 }

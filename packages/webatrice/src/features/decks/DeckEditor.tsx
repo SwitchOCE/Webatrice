@@ -17,7 +17,7 @@ import { isCommanderFormat, isMtgFormat, RouteEnum } from '@app/types';
 import { DeckBreakdown } from './components/breakdown/DeckBreakdown';
 import CardSearchDock, { type CardSearchDockApi } from './components/CardSearchDock/CardSearchDock';
 import { DeckEditorHeader } from './components/editor/DeckEditorHeader';
-import { DeckEditorSkeleton, DeckNotFound } from './components/editor/DeckEditorShells';
+import { DeckNotFound } from './components/editor/DeckEditorShells';
 import { DeckHistoryControls } from './components/editor/DeckHistoryControls';
 import { DeckInspector } from './components/editor/DeckInspector';
 import { DeckLegalitySummary } from './components/editor/DeckLegalitySummary';
@@ -38,7 +38,6 @@ import { groupDeckCards } from './deckGrouping';
 import { deckColorIdentity, serializeDeckForSave } from './deckPersistence';
 import { isBlankDeck } from './deckSharing';
 import type { DecksLocationState } from './deckShortcuts';
-import { readDeckTags } from './deckTags';
 import type { ScryfallSearchCard } from './search';
 import { CardDetailDialog } from './dialogs/CardDetailDialog';
 import { ExportDeckDialog } from './dialogs/ExportDeckDialog';
@@ -46,7 +45,9 @@ import { DeckPlaymatDialog } from './dialogs/DeckPlaymatDialog';
 import { PrintingPickerDialog, type PrintingRequest } from './dialogs/PrintingPickerDialog';
 import { ShareDeckDialog } from './dialogs/ShareDeckDialog';
 import { useDeckEditor } from './hooks/useDeckEditor';
-import { useDeckImagePreload } from './hooks/useDeckImagePreload';
+import { useDeckEditorFrame } from './hooks/useDeckEditorFrame';
+import { useProvisionalDeckGroups } from './hooks/useProvisionalDeckGroups';
+import { useDeckImageWarmer } from './hooks/useDeckImageWarmer';
 import { useDeckLegality } from './hooks/useDeckLegality';
 import { useDeckPricing } from './hooks/useDeckPricing';
 import { useDeckShareCreate, useDeckSharingSupported } from './hooks/useDeckSharing';
@@ -64,7 +65,10 @@ const DeckEditor = () => {
   const deckId = Number.isFinite(parsedDeckId) ? parsedDeckId : null;
 
   const editor = useDeckEditor(deckId, draftToken ?? null);
-  useRecordRecentDeck(deckId, editor.loading ? null : editor.deck);
+  const frame = useDeckEditorFrame(deckId, editor);
+  const { deck } = frame;
+  const readyDeck = editor.hydrating ? null : editor.deck;
+  useRecordRecentDeck(deckId, editor.loading ? null : readyDeck);
 
   const [selected, setSelected] = useState<InspectedCard | null>(null);
   const [printingRequest, setPrintingRequest] = useState<PrintingRequest | null>(null);
@@ -87,10 +91,10 @@ const DeckEditor = () => {
   const [shareOpen, setShareOpen] = useState(false);
   const [shareRefusal, setShareRefusal] = useState<string | null>(null);
 
-  const pricing = useDeckPricing(editor.deck, editor.setPriceCache);
-  const legality = useDeckLegality(editor.deck);
+  const pricing = useDeckPricing(readyDeck, editor.setPriceCache);
+  const legality = useDeckLegality(readyDeck);
 
-  const editing = !editor.loading && editor.deck != null;
+  const editing = !editor.loading && readyDeck != null;
   useShortcut('deck.undo', () => editor.undo(), { scope: ShortcutScope.DECK_EDITOR, enabled: editing });
   useShortcut('deck.redo', () => editor.redo(), { scope: ShortcutScope.DECK_EDITOR, enabled: editing });
   useShortcut(
@@ -103,18 +107,21 @@ const DeckEditor = () => {
   useShortcut('deck.new', () => openDecksDialog('create'), { scope: ShortcutScope.DECK_EDITOR });
   useShortcut('deck.load', () => openDecksDialog('import'), { scope: ShortcutScope.DECK_EDITOR });
 
-  const isMtg = isMtgFormat(editor.deck?.format);
-  const isCommander = isCommanderFormat(editor.deck?.format);
+  const isMtg = isMtgFormat(deck.format);
+  const isCommander = isCommanderFormat(deck.format);
 
-  const tags = useMemo(() => readDeckTags(editor.deck?.tagsXml), [editor.deck?.tagsXml]);
+  const tags = frame.tags;
 
-  const groups = useMemo(
-    () => groupDeckCards(editor.deck?.cards ?? [], isCommander),
-    [editor.deck?.cards, isCommander],
+  const hydratedGroups = useMemo(
+    () => groupDeckCards(readyDeck?.cards ?? [], isCommander),
+    [readyDeck?.cards, isCommander],
   );
+  const provisionalGroups = useProvisionalDeckGroups(editor.hydrating ? editor.deck?.cards ?? NO_CARDS : NO_CARDS);
+  const groups = editor.hydrating ? provisionalGroups : hydratedGroups;
   const cards = editor.deck?.cards ?? NO_CARDS;
-  const colorIdentity = useMemo(() => dockColorIdentity(cards, isCommander), [cards, isCommander]);
-  const bracketLevel = useBracketCache(cards, editor.deck?.bracketAssessment, editor.setBracketAssessment, isCommander);
+  const readyCards = readyDeck?.cards ?? NO_CARDS;
+  const colorIdentity = useMemo(() => dockColorIdentity(readyCards, isCommander), [readyCards, isCommander]);
+  const bracketLevel = useBracketCache(readyCards, readyDeck?.bracketAssessment, editor.setBracketAssessment, isCommander && editing);
   const selectedIndex = useMemo(() => resolveInspectedRow(cards, selected), [cards, selected]);
   const preview = useInspectorPreview(cards, selected);
   useEffect(() => {
@@ -123,9 +130,10 @@ const DeckEditor = () => {
     }
   }, [selected, selectedIndex]);
 
-  const preload = useDeckImagePreload(
+  useDeckImageWarmer(
     deckId ?? (draftToken != null ? `draft:${draftToken}` : null),
     editor.deck,
+    groups,
     editor.loading,
   );
 
@@ -191,14 +199,8 @@ const DeckEditor = () => {
     [collapsedGroups, setGroupsCollapsed],
   );
 
-  if (editor.loading) {
-    return <DeckEditorSkeleton loaded={0} total={0} />;
-  }
-  if (editor.notFound || !editor.deck) {
+  if (editor.notFound || (!editor.loading && !editor.deck)) {
     return <DeckNotFound reason={editor.loadError} />;
-  }
-  if (!preload.ready) {
-    return <DeckEditorSkeleton loaded={preload.loaded} total={preload.total} />;
   }
 
   const { layout, prefs } = paneLayout;
@@ -255,12 +257,16 @@ const DeckEditor = () => {
           </IconButton>
         )}
       </div>
-      {isMtg && (
+      {frame.readOnly ? (
+        <div role="status" className="animate-pulse text-sm text-text-muted">
+          {frame.waitingMessage ?? t('DeckEditor.shell.loadingDeck')}
+        </div>
+      ) : isMtg && (
         <>
           <DeckInspector
             selected={preview.card}
             index={preview.index}
-            deckCards={editor.deck.cards}
+            deckCards={deck.cards}
             prices={pricing.prices}
             isCommanderDeck={isCommander}
             onInc={editor.incQuantity}
@@ -273,15 +279,15 @@ const DeckEditor = () => {
           <section className="flex flex-col gap-3 border-t border-border-subtle pt-4" aria-label={t('DeckEditor.inspector.stats')}>
             <SectionLabel>{t('DeckEditor.inspector.stats')}</SectionLabel>
             <DeckBreakdown
-              cards={editor.deck.cards}
-              format={editor.deck.format}
-              cachedAssessment={editor.deck.bracketAssessment}
+              cards={deck.cards}
+              format={deck.format}
+              cachedAssessment={deck.bracketAssessment}
               onAssessmentComputed={editor.setBracketAssessment}
             />
           </section>
         </>
       )}
-      <SampleHandPanel cards={editor.deck.cards} showImages={isMtg} />
+      {!frame.readOnly && <SampleHandPanel cards={deck.cards} showImages={isMtg} />}
     </aside>
   );
 
@@ -308,15 +314,19 @@ const DeckEditor = () => {
             />
           )}
           <div hidden={dockCollapsed} inert={dockCollapsed} className="flex min-h-0 flex-1 flex-col">
-            {isMtg ? (
+            {frame.readOnly ? (
+              <div role="status" className="animate-pulse p-pad text-sm text-text-muted">
+                {frame.waitingMessage ?? t('DeckEditor.shell.loadingDeck')}
+              </div>
+            ) : isMtg ? (
               <CardSearchDock
                 onAdd={addCard}
                 onPreview={previewSearchCard}
                 onHoverPreview={hoverSearchCard}
                 onReady={onDockReady}
                 colorIdentity={colorIdentity}
-                format={editor.deck.format}
-                deckCards={editor.deck.cards}
+                format={deck.format}
+                deckCards={deck.cards}
                 headerAction={(
                   <IconButton
                     ref={paneFocus.target('dock-collapse')}
@@ -360,85 +370,91 @@ const DeckEditor = () => {
         )}
 
         <main className="relative flex min-h-0 min-w-0 flex-col">
-          <DeckEditorHeader
-            deck={editor.deck}
-            saveState={editor.saveState}
-            onRetrySave={editor.retrySave}
-            totalMainboardCount={editor.totalMainboardCount}
-            totalSideboardCount={editor.totalSideboardCount}
-            tags={tags}
-            onNameChange={editor.setName}
-            onFormatChange={editor.setFormat}
-            onTagsChange={editor.setTags}
-            onBannerChange={editor.setBanner}
-            onEditPlaymat={() => setPlaymatOpen(true)}
-            onExport={() => setExportOpen(true)}
-            onShare={sharingSupported ? startShare : undefined}
-            openDeck={{
-              deckId,
-              isModified: editor.isModified,
-              isBlank: !editor.isModified && isBlankDeck(editor.deck),
-              saveNow: editor.saveNow,
-              discardChanges: editor.discardChanges,
-              pauseAutosave: editor.pauseAutosave,
-              resumeAutosave: editor.resumeAutosave,
-            }}
-            history={(
-              <DeckHistoryControls
-                history={editor.history}
-                canUndo={editor.canUndo}
-                canRedo={editor.canRedo}
-                onUndo={editor.undo}
-                onRedo={editor.redo}
-              />
-            )}
-            legality={(
-              <DeckLegalitySummary
-                format={editor.deck.format}
-                status={legality.status}
-                illegalCount={legality.illegalCount}
-                unknownCount={legality.unknownCount}
-                loading={legality.loading}
-              />
-            )}
-            prices={pricing.prices}
-            pricesLoading={pricing.loading}
-            isMtg={isMtg}
-            bracketLevel={bracketLevel}
-            onResetLayout={resetLayout}
-            viewControls={isMtg && groupLabels.length > 0 && (
-              <>
+          {frame.readOnlyReason && (
+            <p role="status" className="px-5 pt-3 text-sm text-text-secondary">{frame.readOnlyReason}</p>
+          )}
+          <fieldset disabled={frame.readOnly} className="min-w-0 shrink-0" aria-label={frame.readOnlyReason ?? undefined}>
+            <DeckEditorHeader
+              deck={deck}
+              saveState={editor.saveState}
+              onRetrySave={editor.retrySave}
+              totalMainboardCount={frame.totalMainboardCount}
+              totalSideboardCount={frame.totalSideboardCount}
+              tags={tags}
+              colors={frame.colors}
+              onNameChange={editor.setName}
+              onFormatChange={editor.setFormat}
+              onTagsChange={editor.setTags}
+              onBannerChange={editor.setBanner}
+              onEditPlaymat={() => setPlaymatOpen(true)}
+              onExport={() => setExportOpen(true)}
+              onShare={sharingSupported ? startShare : undefined}
+              openDeck={{
+                deckId,
+                isModified: editor.isModified,
+                isBlank: !editor.isModified && isBlankDeck(deck),
+                saveNow: editor.saveNow,
+                discardChanges: editor.discardChanges,
+                pauseAutosave: editor.pauseAutosave,
+                resumeAutosave: editor.resumeAutosave,
+              }}
+              history={(
+                <DeckHistoryControls
+                  history={editor.history}
+                  canUndo={editor.canUndo}
+                  canRedo={editor.canRedo}
+                  onUndo={editor.undo}
+                  onRedo={editor.redo}
+                />
+              )}
+              legality={(
+                <DeckLegalitySummary
+                  format={deck.format}
+                  status={legality.status}
+                  illegalCount={legality.illegalCount}
+                  unknownCount={legality.unknownCount}
+                  loading={frame.readOnly || legality.loading}
+                />
+              )}
+              prices={pricing.prices}
+              pricesLoading={frame.readOnly || pricing.loading}
+              isMtg={isMtg}
+              bracketLevel={bracketLevel}
+              onResetLayout={resetLayout}
+              viewControls={isMtg && groupLabels.length > 0 && (
+                <>
+                  <IconButton
+                    size="sm"
+                    label={t(allGroupsCollapsed ? 'DeckEditor.layout.expandAll' : 'DeckEditor.layout.collapseAll')}
+                    onClick={() => paneLayout.setGroupsCollapsed(groupLabels, !allGroupsCollapsed)}
+                  >
+                    {allGroupsCollapsed ? <ChevronsUpDown size={14} /> : <ChevronsDownUp size={14} />}
+                  </IconButton>
+                  <IconButton
+                    size="sm"
+                    label={t('DeckEditor.layout.compactRows')}
+                    active={prefs.density === 'compact'}
+                    onClick={() => paneLayout.setDensity(prefs.density === 'compact' ? 'comfortable' : 'compact')}
+                  >
+                    <Rows4 size={14} />
+                  </IconButton>
+                </>
+              )}
+              trailing={!docked && (
                 <IconButton
-                  size="sm"
-                  label={t(allGroupsCollapsed ? 'DeckEditor.layout.expandAll' : 'DeckEditor.layout.collapseAll')}
-                  onClick={() => paneLayout.setGroupsCollapsed(groupLabels, !allGroupsCollapsed)}
+                  label={t('DeckEditor.inspector.toggle')}
+                  className="border border-border-subtle"
+                  active={inspectorOpen}
+                  aria-expanded={inspectorOpen}
+                  onClick={() => setInspectorOpen((open) => !open)}
                 >
-                  {allGroupsCollapsed ? <ChevronsUpDown size={14} /> : <ChevronsDownUp size={14} />}
+                  <PanelRight size={15} />
                 </IconButton>
-                <IconButton
-                  size="sm"
-                  label={t('DeckEditor.layout.compactRows')}
-                  active={prefs.density === 'compact'}
-                  onClick={() => paneLayout.setDensity(prefs.density === 'compact' ? 'comfortable' : 'compact')}
-                >
-                  <Rows4 size={14} />
-                </IconButton>
-              </>
-            )}
-            trailing={!docked && (
-              <IconButton
-                label={t('DeckEditor.inspector.toggle')}
-                className="border border-border-subtle"
-                active={inspectorOpen}
-                aria-expanded={inspectorOpen}
-                onClick={() => setInspectorOpen((open) => !open)}
-              >
-                <PanelRight size={15} />
-              </IconButton>
-            )}
-          />
+              )}
+            />
+          </fieldset>
           <DeckMainPane
-            deck={editor.deck}
+            deck={deck}
             groups={groups}
             selectedIndex={selectedIndex}
             onSelect={selectCard}
@@ -452,6 +468,9 @@ const DeckEditor = () => {
             onLastRowRemoved={focusAddField}
             isMtg={isMtg}
             isCommander={isCommander}
+            readOnly={frame.readOnly}
+            placeholderRows={frame.placeholderRows}
+            waitingMessage={frame.waitingMessage}
             legality={legality.rows}
             density={prefs.density}
             collapsedGroups={paneLayout.collapsedGroups}
@@ -488,8 +507,8 @@ const DeckEditor = () => {
       </div>
 
       <PrintingPickerDialog
-        request={printingRequest}
-        deckCards={editor.deck?.cards}
+        request={frame.readOnly ? null : printingRequest}
+        deckCards={deck?.cards}
         onClose={() => setPrintingRequest(null)}
         onPick={(printing) => {
           if (!printingRequest) {
@@ -500,10 +519,10 @@ const DeckEditor = () => {
         }}
       />
 
-      {isMtg && (
+      {isMtg && !frame.readOnly && (
         <CardDetailDialog
           snapshot={detailSnapshot}
-          deckCards={editor.deck.cards}
+          deckCards={deck.cards}
           isCommanderDeck={isCommander}
           prices={pricing.prices}
           onClose={() => setDetailSnapshot(null)}
@@ -523,9 +542,9 @@ const DeckEditor = () => {
         />
       )}
 
-      {playmatOpen && (
+      {playmatOpen && !frame.readOnly && (
         <DeckPlaymatDialog
-          playmat={readDeckPlaymat(editor.deck.playmatXml)}
+          playmat={readDeckPlaymat(deck.playmatXml)}
           onClose={() => setPlaymatOpen(false)}
           onSave={(playmat) => {
             editor.setPlaymat(playmat);
@@ -535,13 +554,13 @@ const DeckEditor = () => {
       )}
 
       <ExportDeckDialog
-        open={exportOpen}
+        open={exportOpen && !frame.readOnly}
         onClose={() => setExportOpen(false)}
-        deck={editor.deck}
+        deck={deck}
       />
 
       <ShareDeckDialog
-        open={shareOpen}
+        open={shareOpen && !frame.readOnly}
         defaultName={t('DeckSharing.defaultDeckName')}
         state={share.state}
         onClose={() => {

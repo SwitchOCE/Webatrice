@@ -10,6 +10,7 @@ import { hydrateDeck } from './hydrate';
 vi.mock('@app/services', async (importOriginal) => ({
   ...(await importOriginal<typeof import('@app/services')>()),
   lookupCards: vi.fn(),
+  lookupCardsForHydration: vi.fn().mockResolvedValue({ lookups: new Map(), refreshed: Promise.resolve(new Map()) }),
 }));
 
 function plans(xml: string): string[] {

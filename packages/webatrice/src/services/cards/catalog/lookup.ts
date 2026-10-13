@@ -7,6 +7,7 @@ import {
   bulkPutScryfallCache,
   getFromScryfallCache,
   isScryfallCacheFresh,
+  matchesHint,
   putScryfallCache,
 } from './scryfallCache';
 import { scryfallToLookup } from './scryfallCardMapper';
@@ -67,6 +68,7 @@ export async function lookupCard(name: string, signal?: AbortSignal): Promise<Lo
  * dialogs opened in a session referencing the same names).
  */
 const sessionCache = new Map<string, LookupResult>();
+const hydrationOnlyResults = new WeakSet<LookupResult>();
 
 let sessionCachePreferences: CardDataPreferences | undefined;
 
@@ -83,7 +85,9 @@ async function readCardDataPreferences(): Promise<CardDataPreferences | undefine
   }
 }
 
-export async function lookupCardsCached(names: string[], signal?: AbortSignal): Promise<Map<string, LookupResult>> {
+export async function lookupCardsCached(
+  names: string[], signal?: AbortSignal, allowStale = false,
+): Promise<Map<string, LookupResult>> {
   throwIfAborted(signal);
   const out = new Map<string, LookupResult>();
   const missing: string[] = [];
@@ -91,7 +95,9 @@ export async function lookupCardsCached(names: string[], signal?: AbortSignal): 
   throwIfAborted(signal);
   for (const name of names) {
     const cached = sessionCache.get(name);
-    if (cached && ((cached.source === 'dexie' && cached.fetchedAt === undefined) || isScryfallCacheFresh(cached))) {
+    const fresh = cached && !hydrationOnlyResults.has(cached)
+      && ((cached.source === 'dexie' && cached.fetchedAt === undefined) || isScryfallCacheFresh(cached));
+    if (cached && (allowStale || fresh)) {
       out.set(name, cached);
     } else {
       missing.push(name);
@@ -144,94 +150,19 @@ export async function lookupCards(
     return out;
   }
 
-  const uniqueNames = Array.from(uniqueHints.keys());
-
-  const [xmlHits, scryfallCached, preferences] = await Promise.all([
-    bulkGetFromDexie(uniqueNames),
-    bulkGetFromScryfallCache(uniqueNames, uniqueNames.map((name) => uniqueHints.get(name))),
-    readCardDataPreferences(),
-  ]);
-  throwIfAborted(signal);
+  const hints = Array.from(uniqueHints.values());
+  const local = await readLocalLookups(hints, signal);
 
   // Names we still need to fetch from Scryfall. Any name without a
   // scryfallCache hit — regardless of whether cards.xml has it —
   // because we want Scryfall's `all_parts` list for the related-
   // tokens menu.
-  const scryfallLookups = new Map<string, LookupResult>();
-  for (let i = 0; i < uniqueNames.length; i++) {
-    const cached = scryfallCached[i];
-    if (cached) {
-      scryfallLookups.set(uniqueNames[i], cached);
-    }
-  }
-
-  const needScryfall: LookupHint[] = [];
-  for (const name of uniqueNames) {
-    const cached = scryfallLookups.get(name);
-    if (!cached || !isScryfallCacheFresh(cached)) {
-      needScryfall.push(uniqueHints.get(name)!);
-    }
-  }
-
-  if (needScryfall.length > 0) {
-    const collected = await fetchForLookup(fetchCollection(needScryfall, signal));
-    const toCache: LookupResult[] = [];
-    for (const hint of needScryfall) {
-      const hit = collected?.get(hint.name);
-      if (hit) {
-        const parsed = { ...scryfallToLookup(hit), fetchedAt: Date.now() };
-        scryfallLookups.set(hint.name, parsed);
-        toCache.push(parsed);
-      }
-    }
-    // Retry batch misses individually via `/cards/named?exact=`. The
-    // batch `/cards/collection` endpoint silently drops names it can't
-    // resolve (e.g. odd Unicode variants, network partial failures),
-    // which for zone-view flows like an opponent's revealed library
-    // would leave most cards with `typeLine=null` and bucket every
-    // creature under "Other" in the group-by-type view. The individual
-    // endpoint has more permissive matching so a second pass usually
-    // recovers what the batch missed. Capped at 50 to avoid a
-    // self-inflicted DoS when the batch endpoint fails wholesale —
-    // 700 concurrent /cards/named calls would blow past Scryfall's
-    // recommended rate limit and be actively slower than a single
-    // clean batch failure. If more than 50 names are unresolved, the
-    // batch is broken for reasons individual calls won't fix and we
-    // give up gracefully; the console.warn on the batch failure is
-    // the actionable signal.
-    const stillMissing = needScryfall.filter(
-      (h) => collected && !collected.has(h.name) && !h.scryfallId && !h.set && !h.collectorNumber,
-    );
-    if (stillMissing.length > 0 && stillMissing.length <= SCRYFALL_NAMED_RETRY_CAP) {
-      const retried = await Promise.all(
-        stillMissing.map((h) => fetchForLookup(fetchNamedCard(h.name, signal))),
-      );
-      for (let i = 0; i < stillMissing.length; i++) {
-        const hit = retried[i];
-        if (hit) {
-          const parsed = { ...scryfallToLookup(hit), fetchedAt: Date.now() };
-          scryfallLookups.set(stillMissing[i].name, parsed);
-          toCache.push(parsed);
-        }
-      }
-    } else if (stillMissing.length > SCRYFALL_NAMED_RETRY_CAP) {
-      console.warn(
-        `Skipping per-name Scryfall retry: ${stillMissing.length} names unresolved (over ${SCRYFALL_NAMED_RETRY_CAP}-name cap).`
-        + ' Batch endpoint likely failed wholesale; individual retries would exceed Scryfall rate limits.',
-      );
-    }
-    if (toCache.length > 0) {
-      // Fire-and-forget. Cache misses on write don't affect the
-      // return value — we've already got the parsed data in-hand.
-      void bulkPutScryfallCache(toCache);
-    }
-  }
-
-  for (let i = 0; i < uniqueNames.length; i++) {
-    const key = uniqueNames[i];
-    const xmlLookup = xmlHits[i] ? dexieToLookup(xmlHits[i]!, preferences) : undefined;
-    const scryfallLookup = scryfallLookups.get(key);
-    out.set(key, mergeLookup(key, xmlLookup, scryfallLookup));
+  const needScryfall = hints.filter((hint) => local.get(printingKey(hint))!.needsRefresh);
+  const fetched = await fetchLookupBatch(needScryfall, signal);
+  for (const hint of hints) {
+    const entry = local.get(printingKey(hint))!;
+    const refreshed = fetched.get(hint.name);
+    out.set(hint.name, refreshed ? mergeHintedPrintingLookup(hint, entry.xml, refreshed) : entry.matchedLookup);
   }
 
   return out;
@@ -352,4 +283,209 @@ function mergeLookup(
     landscape: xml!.landscape || scryfall!.landscape,
     legalities: xml!.legalities ?? scryfall!.legalities,
   };
+}
+
+async function fetchLookupBatch(hints: LookupHint[], signal?: AbortSignal): Promise<Map<string, LookupResult>> {
+  const scryfallLookups = new Map<string, LookupResult>();
+  if (hints.length > 0) {
+    const collected = await fetchForLookup(fetchCollection(hints, signal));
+    const toCache: LookupResult[] = [];
+    for (const hint of hints) {
+      const hit = collected?.get(hint.name);
+      if (hit) {
+        const parsed = { ...scryfallToLookup(hit), fetchedAt: Date.now() };
+        scryfallLookups.set(hint.name, parsed);
+        toCache.push(parsed);
+      }
+    }
+    // Retry batch misses individually via `/cards/named?exact=`. The
+    // batch `/cards/collection` endpoint silently drops names it can't
+    // resolve (e.g. odd Unicode variants, network partial failures),
+    // which for zone-view flows like an opponent's revealed library
+    // would leave most cards with `typeLine=null` and bucket every
+    // creature under "Other" in the group-by-type view. The individual
+    // endpoint has more permissive matching so a second pass usually
+    // recovers what the batch missed. Capped at 50 to avoid a
+    // self-inflicted DoS when the batch endpoint fails wholesale —
+    // 700 concurrent /cards/named calls would blow past Scryfall's
+    // recommended rate limit and be actively slower than a single
+    // clean batch failure. If more than 50 names are unresolved, the
+    // batch is broken for reasons individual calls won't fix and we
+    // give up gracefully; the console.warn on the batch failure is
+    // the actionable signal.
+    const stillMissing = hints.filter(
+      (h) => collected && !collected.has(h.name) && !h.scryfallId && !h.set && !h.collectorNumber,
+    );
+    if (stillMissing.length > 0 && stillMissing.length <= SCRYFALL_NAMED_RETRY_CAP) {
+      const retried = await Promise.all(
+        stillMissing.map((h) => fetchForLookup(fetchNamedCard(h.name, signal))),
+      );
+      for (let i = 0; i < stillMissing.length; i++) {
+        const hit = retried[i];
+        if (hit) {
+          const parsed = { ...scryfallToLookup(hit), fetchedAt: Date.now() };
+          scryfallLookups.set(stillMissing[i].name, parsed);
+          toCache.push(parsed);
+        }
+      }
+    } else if (stillMissing.length > SCRYFALL_NAMED_RETRY_CAP) {
+      console.warn(
+        `Skipping per-name Scryfall retry: ${stillMissing.length} names unresolved (over ${SCRYFALL_NAMED_RETRY_CAP}-name cap).`
+        + ' Batch endpoint likely failed wholesale; individual retries would exceed Scryfall rate limits.',
+      );
+    }
+    if (toCache.length > 0) {
+      // Fire-and-forget. Cache misses on write don't affect the
+      // return value — we've already got the parsed data in-hand.
+      void bulkPutScryfallCache(toCache);
+    }
+  }
+
+  return scryfallLookups;
+}
+
+let lookupRevision = 0;
+const lookupListeners = new Set<() => void>();
+
+export function subscribeCardLookups(listener: () => void): () => void {
+  lookupListeners.add(listener);
+  return () => {
+    lookupListeners.delete(listener);
+  };
+}
+
+export function cardLookupRevision(): number {
+  return lookupRevision;
+}
+
+function fingerprint(value: unknown): string {
+  return JSON.stringify(value, (key, item: unknown) => {
+    if (key === 'fetchedAt') {
+      return undefined;
+    }
+    if (item && typeof item === 'object' && !Array.isArray(item)) {
+      return Object.fromEntries(Object.entries(item).sort(([a], [b]) => a.localeCompare(b)));
+    }
+    return item;
+  });
+}
+
+function rememberHydration(lookups: ReadonlyMap<string, LookupResult>, hints: readonly LookupHint[]): void {
+  let changed = false;
+  for (const hint of hints) {
+    const lookup = lookups.get(printingKey(hint));
+    if (lookup) {
+      changed ||= fingerprint(sessionCache.get(hint.name)) !== fingerprint(lookup);
+      sessionCache.set(hint.name, lookup);
+    }
+  }
+  if (changed) {
+    lookupRevision++;
+    lookupListeners.forEach((listener) => listener());
+  }
+}
+
+function mergeHintedPrintingLookup(
+  hint: LookupHint, xml: LookupResult | undefined, scryfall: LookupResult | undefined,
+): LookupResult {
+  const result = mergeLookup(hint.name, xml, scryfall);
+  if (!xml || !scryfall || !(hint.scryfallId || hint.set || hint.collectorNumber)) {
+    return result;
+  }
+  const printings = [...xml.printings];
+  for (const printing of scryfall.printings.filter((candidate) => matchesHint([candidate], hint))) {
+    const index = printings.findIndex((item) => printing.scryfallId && item.scryfallId
+      ? printing.scryfallId === item.scryfallId
+      : printing.set?.toLowerCase() === item.set?.toLowerCase() && printing.collectorNumber === item.collectorNumber);
+    if (index < 0) {
+      printings.push(printing);
+    } else {
+      printings[index] = { ...printing, ...printings[index],
+        imageUri: printings[index].imageUri ?? printing.imageUri,
+        imageUris: printings[index].imageUris?.length ? printings[index].imageUris : printing.imageUris,
+      };
+    }
+  }
+  return { ...result, printings };
+}
+
+interface LocalCardLookup {
+  xml: LookupResult | undefined;
+  lookup: LookupResult;
+  matchedLookup: LookupResult;
+  needsRefresh: boolean;
+}
+
+async function readLocalLookups(hints: readonly LookupHint[], signal?: AbortSignal): Promise<Map<string, LocalCardLookup>> {
+  throwIfAborted(signal);
+  const names = [...new Set(hints.map((hint) => hint.name))];
+  const [xmlHits, cached, preferences] = await Promise.all([
+    bulkGetFromDexie(names), bulkGetFromScryfallCache(names), readCardDataPreferences(),
+  ]);
+  throwIfAborted(signal);
+  const xml = new Map(names.map((name, index) => [name, xmlHits[index] ? dexieToLookup(xmlHits[index]!, preferences) : undefined]));
+  const scryfall = new Map(names.map((name, index) => [name, cached[index]]));
+  return new Map(hints.map((hint) => {
+    const xmlLookup = xml.get(hint.name);
+    const cachedLookup = scryfall.get(hint.name);
+    const matching = cachedLookup && matchesHint(cachedLookup.printings, hint) ? cachedLookup : undefined;
+    const lookup = mergeHintedPrintingLookup(hint, xmlLookup, cachedLookup);
+    return [printingKey(hint), {
+      xml: xmlLookup,
+      lookup,
+      matchedLookup: matching ? lookup : mergeHintedPrintingLookup(hint, xmlLookup, undefined),
+      needsRefresh: !matching || !isScryfallCacheFresh(matching),
+    }];
+  }));
+}
+
+export interface HydrationLookups {
+  lookups: Map<string, LookupResult>;
+  refreshed: Promise<Map<string, LookupResult>>;
+}
+
+export async function lookupCardsForHydration(input: LookupInput[], signal?: AbortSignal): Promise<HydrationLookups> {
+  throwIfAborted(signal);
+  const hints = [...new Map(input.map((item) => {
+    const hint = typeof item === 'string' ? { name: item } : item;
+    return [printingKey(hint), hint] as const;
+  })).values()].filter((hint) => hint.name);
+  const local = await readLocalLookups(hints, signal);
+  const lookups = new Map<string, LookupResult>();
+  const missing: LookupHint[] = [];
+  const stale: LookupHint[] = [];
+  for (const hint of hints) {
+    const entry = local.get(printingKey(hint))!;
+    lookups.set(printingKey(hint), entry.lookup);
+    if (!entry.lookup.found) {
+      missing.push(hint);
+    } else if (entry.needsRefresh) {
+      stale.push(hint);
+    }
+  }
+  const fetchHints = async (wanted: LookupHint[], abort?: AbortSignal) => {
+    const batches = await Promise.all(printingRounds(wanted).map(async (round) => {
+      const found = await fetchLookupBatch(round, abort);
+      return round.flatMap((hint) => {
+        const hit = found.get(hint.name);
+        return hit ? [[printingKey(hint), mergeHintedPrintingLookup(hint, local.get(printingKey(hint))!.xml, hit)] as const] : [];
+      });
+    }));
+    return new Map(batches.flat());
+  };
+  for (const [key, lookup] of await fetchHints(missing, signal)) {
+    lookups.set(key, lookup);
+  }
+  throwIfAborted(signal);
+  for (const hint of stale) {
+    hydrationOnlyResults.add(lookups.get(printingKey(hint))!);
+  }
+  rememberHydration(lookups, hints);
+  const refreshed = fetchHints(stale).then((results) => {
+    if (!signal?.aborted) {
+      rememberHydration(results, hints);
+    }
+    return results;
+  }).catch(() => new Map<string, LookupResult>());
+  return { lookups, refreshed };
 }

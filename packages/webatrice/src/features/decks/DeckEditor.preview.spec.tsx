@@ -44,6 +44,27 @@ async function renderEditor() {
 const rowOf = (name: string) => screen.getAllByRole('row').find((row) => within(row).queryByRole('button', { name }))!;
 
 describe('DeckEditor inspector preview', () => {
+  it('renders hydrated rows while every image load is still pending', async () => {
+    vi.stubGlobal('Image', class {
+      src = '';
+    });
+    const deck: HydratedDeck = {
+      name: 'Pending images', format: 'standard', meta: { v: 1, updatedAt: '' },
+      cards: [{ ...card('Pending card'), imageUri: 'https://img/pending.jpg' }],
+    };
+    setCachedDeck(6, { deck, savedSignature: deckSaveSignature(deck) });
+    try {
+      renderWithProviders(
+        <Routes><Route path="/deck/:deckId" element={<DeckEditor />} /></Routes>,
+        { route: '/deck/6', preloadedState: connected31State, webClient: createMockWebClient() },
+      );
+      expect(await screen.findByRole('button', { name: 'Pending card' })).toBeInTheDocument();
+      expect(screen.queryByText('DeckEditor.shell.preloading')).not.toBeInTheDocument();
+    } finally {
+      vi.unstubAllGlobals();
+    }
+  });
+
   it('updates hover previews without rendering unchanged deck rows', async () => {
     const inspector = await renderEditor();
     fireEvent.click(rowOf('Ponder'));

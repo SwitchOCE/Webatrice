@@ -88,3 +88,9 @@ describe('DeckMainPane', () => {
     expect(props.onLastRowRemoved).toHaveBeenCalled();
   });
 });
+
+it('shows loading rather than edit instructions for an empty provisional deck', () => {
+  renderPane({ deck: { ...deck, cards: [] }, groups: [], readOnly: true });
+  expect(screen.getByText('DeckEditor.shell.loadingDeck')).toHaveAttribute('role', 'status');
+  expect(screen.queryByText('DeckEditor.shell.emptyMtg')).not.toBeInTheDocument();
+});

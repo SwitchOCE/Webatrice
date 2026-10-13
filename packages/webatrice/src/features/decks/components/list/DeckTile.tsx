@@ -13,6 +13,7 @@ import { BracketBadge, DeckPriceBadge, DeckVisibilityBadge, IdentityPips, TagChi
 export interface DeckTileProps {
   view: DeckTileView;
   actions: DeckActions;
+  onPrefetch?: () => void;
 }
 
 const AGE_KEYS = { unknown: 'Decks.list.age.unknown', justNow: 'Decks.list.age.justNow' } as const;
@@ -51,7 +52,7 @@ function DeckArt({ url, className }: { url: string | null; className?: string })
   );
 }
 
-export function DeckTile({ view, actions }: DeckTileProps) {
+export function DeckTile({ view, actions, onPrefetch }: DeckTileProps) {
   const { t } = useTranslation();
   const { deck, summary } = view;
   const [menuOpen, setMenuOpen] = useState(false);
@@ -60,6 +61,8 @@ export function DeckTile({ view, actions }: DeckTileProps) {
   return (
     <article
       aria-label={deck.name}
+      onFocus={onPrefetch}
+      onPointerEnter={onPrefetch}
       className={cx(
         'relative flex flex-col rounded-ui-lg border bg-bg-surface transition-colors',
         menuOpen ? 'border-accent/70' : 'border-border-subtle hover:border-border-strong',
@@ -113,7 +116,7 @@ export function DeckTile({ view, actions }: DeckTileProps) {
   );
 }
 
-export function DeckListRow({ view, actions }: DeckTileProps) {
+export function DeckListRow({ view, actions, onPrefetch }: DeckTileProps) {
   const { t } = useTranslation();
   const { deck, summary } = view;
   const formatLine = useFormatLine(view);
@@ -121,6 +124,8 @@ export function DeckListRow({ view, actions }: DeckTileProps) {
   return (
     <article
       aria-label={deck.name}
+      onFocus={onPrefetch}
+      onPointerEnter={onPrefetch}
       className={cx(
         'flex items-center gap-3 rounded-ui border border-border-subtle bg-bg-surface pr-2 transition-colors',
         'hover:border-border-strong',

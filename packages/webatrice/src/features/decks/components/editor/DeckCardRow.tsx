@@ -24,6 +24,7 @@ export interface DeckCardRowProps {
   onShowDetails?: () => void;
   isMtg: boolean;
   isCommander: boolean;
+  readOnly?: boolean;
   legality?: CardLegality;
   rowProps?: GridRowProps;
   density?: DeckRowDensity;
@@ -42,6 +43,7 @@ export function DeckCardRow({
   onShowDetails,
   isMtg,
   isCommander,
+  readOnly = false,
   legality,
   rowProps,
   density = 'comfortable',
@@ -52,7 +54,7 @@ export function DeckCardRow({
   const [quantityAtOpen, setQuantityAtOpen] = useState(card.quantity);
   const illegal = legality?.status === 'illegal' ? legality : undefined;
   const illegalText = illegal && t(`DeckLegality.reason.${illegal.reason}`, { max: illegal.max });
-  const unknownText = card.lookupSource === 'unknown' ? t('DeckEditor.row.unknown') : '';
+  const unknownText = !readOnly && card.lookupSource === 'unknown' ? t('DeckEditor.row.unknown') : '';
   const description = [unknownText, illegalText].filter(Boolean).join(' ');
 
   const openMenu = (trigger: HTMLElement, anchor: MenuAnchor) => {
@@ -107,8 +109,8 @@ export function DeckCardRow({
           onSelect();
         }
       }}
-      onKeyDown={onKeyDown}
-      onContextMenu={onContextMenu}
+      onKeyDown={readOnly ? rowProps?.onKeyDown : onKeyDown}
+      onContextMenu={readOnly ? undefined : onContextMenu}
       title={illegalText}
     >
       <span role="gridcell" className={['w-5 shrink-0 text-right tabular-nums', selected ? 'text-accent' : 'text-text-muted'].join(' ')}>
@@ -131,7 +133,7 @@ export function DeckCardRow({
         )}
       </span>
       <span role="gridcell" className="flex shrink-0 items-center gap-1.5">
-        {card.lookupSource === 'unknown' && (
+        {unknownText && (
           <span className="shrink-0 text-warning" title={unknownText} role="img" aria-label={unknownText}>
             <CircleAlert size={12} />
           </span>
@@ -143,7 +145,7 @@ export function DeckCardRow({
         )}
         <ManaSymbols cost={card.manaCost ?? ''} size={12} className="shrink-0 opacity-90" />
       </span>
-      <span role="gridcell" className="shrink-0">
+      {!readOnly && <span role="gridcell" className="shrink-0">
         <button
           type="button"
           tabIndex={-1}
@@ -172,8 +174,8 @@ export function DeckCardRow({
             {card.quantity !== quantityAtOpen ? t('DeckEditor.rowActions.quantityNow', { count: card.quantity }) : ''}
           </span>
         )}
-      </span>
-      {menuAnchor && (
+      </span>}
+      {!readOnly && menuAnchor && (
         <DeckRowActionsMenu
           card={card}
           anchor={menuAnchor}

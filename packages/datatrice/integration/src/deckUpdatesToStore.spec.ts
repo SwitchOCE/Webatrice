@@ -34,14 +34,16 @@ function setup(deckList: Data.Response_DeckList | null = originalDecks()) {
   return store;
 }
 
-function sendUpdate(deckId = 7) {
+function sendUpdate(deckId = 7, colorIdentity?: string) {
   const socket = getMockWebSocket();
   socket.send.mockClear();
   const settled = vi.fn();
-  SessionCommands.deckUpdate(deckId, '<updated/>', undefined, undefined, settled);
+  SessionCommands.deckUpdate(deckId, '<updated/>', undefined, colorIdentity, settled);
   const command = findLastSessionCommand(Data.Command_DeckUpload_ext);
   expect(socket.send.mock.calls).toHaveLength(1);
-  expect({ ...command.value }).toEqual({ $typeName: 'Command_DeckUpload', deckId, deckList: '<updated/>' });
+  expect({ ...command.value }).toEqual({
+    $typeName: 'Command_DeckUpload', deckId, deckList: '<updated/>', ...(colorIdentity === undefined ? {} : { colorIdentity }),
+  });
   return { cmdId: command.cmdId, settled };
 }
 
@@ -63,7 +65,7 @@ describe('deck update responses through the socket and store', () => {
     const store = setup();
     const before = store.getState().server.backendDecks;
     expect(before).toEqual(originalDecks());
-    const { cmdId, settled } = sendUpdate();
+    const { cmdId, settled } = sendUpdate(7, 'WU');
     acknowledge(cmdId, create(Data.ServerInfo_DeckStorage_TreeItemSchema, {
       id: 7, name: 'After', file: { creationTime: 20, isPublic: false },
     }));
@@ -130,7 +132,7 @@ describe('deck update responses through the socket and store', () => {
     acknowledge(cmdId, create(Data.ServerInfo_DeckStorage_TreeItemSchema, { id: 7, file: { creationTime: 20 } }));
 
     expect(store.getState().server.backendDecks).toEqual(create(Data.Response_DeckListSchema, {
-      root: { items: [{ id: 7, name: 'Before', file: { creationTime: 20 } }] },
+      root: { items: [{ id: 7, name: 'Before', file: { creationTime: 20, colorIdentity: '' } }] },
     }));
     expect(settled.mock.calls).toEqual([[null]]);
   });

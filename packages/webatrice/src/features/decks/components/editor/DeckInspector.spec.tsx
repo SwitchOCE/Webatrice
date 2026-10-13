@@ -36,6 +36,35 @@ function renderInspector(overrides: Partial<DeckInspectorProps> = {}) {
 }
 
 describe('DeckInspector', () => {
+  it('keeps a sized placeholder until the preview loads and after failure', () => {
+    renderInspector();
+    const image = screen.getByAltText('Lightning Bolt');
+    expect(image).toHaveStyle({ opacity: '0' });
+    expect(image.closest('.aspect-\\[5\\/7\\]')).not.toBeNull();
+    expect(screen.queryByText('DeckInspector.noImage')).toBeNull();
+    fireEvent.load(image);
+    expect(image).toHaveStyle({ opacity: '1' });
+    expect(screen.queryByText('DeckInspector.noImage')).toBeNull();
+    fireEvent.error(image);
+    expect(screen.getByText('DeckInspector.noImage')).toBeVisible();
+    expect(screen.queryByAltText('Lightning Bolt')).toBeNull();
+  });
+
+  it('shows no failure message while candidates load and shows it only when all fail', () => {
+    renderInspector({ deckCards: [{
+      ...bolt,
+      imageUris: [bolt.imageUri!, 'https://img/fallback.jpg'],
+    }] });
+    const image = screen.getByAltText('Lightning Bolt');
+    expect(screen.queryByText('DeckInspector.noImage')).toBeNull();
+    fireEvent.error(image);
+    expect(image).toHaveAttribute('src', 'https://img/fallback.jpg');
+    expect(screen.queryByText('DeckInspector.noImage')).toBeNull();
+    fireEvent.error(image);
+    expect(screen.getByText('DeckInspector.noImage')).toBeVisible();
+    expect(screen.queryByAltText('Lightning Bolt')).toBeNull();
+  });
+
   it('invites a selection before any card is picked', () => {
     renderInspector({ selected: null });
     expect(screen.getByText('DeckInspector.empty')).toBeInTheDocument();

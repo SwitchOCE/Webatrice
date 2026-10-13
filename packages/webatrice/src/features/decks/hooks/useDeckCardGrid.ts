@@ -15,6 +15,7 @@ export interface DeckCardGridOptions {
   onDelete: (index: number) => void;
   onSetCategory?: (index: number, category: DeckCategory) => void;
   onLastRowRemoved?: () => void;
+  readOnly?: boolean;
 }
 
 export interface DeckCardRowProps extends GridRowProps {
@@ -33,7 +34,7 @@ function swappedCategory(card: DeckCard): DeckCategory | null {
   return card.isCommander ? null : 'sideboard';
 }
 
-export function useDeckCardGrid({ cards, order, onInc, onDelete, onSetCategory, onLastRowRemoved }: DeckCardGridOptions) {
+export function useDeckCardGrid({ cards, order, onInc, onDelete, onSetCategory, onLastRowRemoved, readOnly = false }: DeckCardGridOptions) {
   const [selectedKey, setSelectedKey] = useState<string | null>(null);
 
   const { keys, indexByKey } = useMemo(() => {
@@ -49,10 +50,10 @@ export function useDeckCardGrid({ cards, order, onInc, onDelete, onSetCategory, 
 
   const adjust = useCallback((key: string, delta: number) => {
     const index = indexByKey.get(key);
-    if (index != null) {
+    if (!readOnly && index != null) {
       onInc(index, delta);
     }
-  }, [indexByKey, onInc]);
+  }, [indexByKey, onInc, readOnly]);
 
   const { getRowProps, focusRow } = useGridRows({
     keys,
@@ -63,7 +64,7 @@ export function useDeckCardGrid({ cards, order, onInc, onDelete, onSetCategory, 
 
   const remove = (key: string) => {
     const index = indexByKey.get(key);
-    if (index == null) {
+    if (readOnly || index == null) {
       return;
     }
     const position = keys.indexOf(key);
@@ -86,7 +87,7 @@ export function useDeckCardGrid({ cards, order, onInc, onDelete, onSetCategory, 
   };
 
   const move = (index: number, category: DeckCategory) => {
-    if (!onSetCategory) {
+    if (readOnly || !onSetCategory) {
       return;
     }
     onSetCategory(index, category);
@@ -109,13 +110,13 @@ export function useDeckCardGrid({ cards, order, onInc, onDelete, onSetCategory, 
     if (key != null) {
       adjust(key, 1);
     }
-  }, { scope: ShortcutScope.DECK_EDITOR, enabled: keys.length > 0 });
+  }, { scope: ShortcutScope.DECK_EDITOR, enabled: !readOnly && keys.length > 0 });
   useShortcut('deck.removeCard', () => {
     const key = focusedKey();
     if (key != null) {
       decrement(key);
     }
-  }, { scope: ShortcutScope.DECK_EDITOR, enabled: keys.length > 0 });
+  }, { scope: ShortcutScope.DECK_EDITOR, enabled: !readOnly && keys.length > 0 });
 
   const getDeckRowProps = (index: number): DeckCardRowProps => {
     const key = deckRowKey(cards[index]);

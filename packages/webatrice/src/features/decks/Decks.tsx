@@ -9,6 +9,7 @@ import { ShortcutScope, useShortcut } from '@app/feature-widgets/shortcuts';
 import { Layout } from '@app/feature-wrappers/layout';
 import { useAppSelector } from '@app/store';
 import { RouteEnum } from '@app/types';
+import { useDeckEditorRoutePrefetch } from '../../RoutePrefetch';
 
 import type { DeckActions, DeckStorageEditKind } from './components/list/DeckActionsMenu';
 import { DeckGridToolbar } from './components/list/DeckGridToolbar';
@@ -44,6 +45,7 @@ const FOLDER_PARAM = 'folder';
 
 function Decks() {
   const navigate = useNavigate();
+  const prefetchDeckEditor = useDeckEditorRoutePrefetch();
   const { t } = useTranslation();
   const [searchParams, setSearchParams] = useSearchParams();
   const requestedPath = searchParams.get(FOLDER_PARAM) ?? '';
@@ -284,7 +286,7 @@ function Decks() {
                 >
                   {grid.tiles.map((view) => (
                     <li key={view.deck.id} {...{ [DECK_LIST_ROW_ATTRIBUTE]: view.deck.id }}>
-                      <Item view={view} actions={deckActions(view)} />
+                      <Item view={view} actions={deckActions(view)} onPrefetch={prefetchDeckEditor} />
                     </li>
                   ))}
                 </ul>

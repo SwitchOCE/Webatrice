@@ -108,7 +108,8 @@ async function openDeck(xml: string) {
   act(() => {
     respondToDeckDownload(DECK_ID, xml);
   });
-  await screen.findByDisplayValue(parseCod(xml).name, {}, { timeout: 5000 });
+  const name = await screen.findByDisplayValue(parseCod(xml).name, {}, { timeout: 5000 });
+  await waitFor(() => expect(name).toBeEnabled());
 }
 
 function searchResults(): HTMLElement {

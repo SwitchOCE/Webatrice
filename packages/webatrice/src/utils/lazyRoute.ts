@@ -13,14 +13,20 @@ export function reloadRoute() {
 
 export function lazyRoute<T extends ComponentType<any>>(load: () => Promise<{ default: T }>) {
   let pending: Promise<{ default: T }> | undefined;
+  let loaded = false;
   const preload = () => {
-    pending ??= load().catch((cause: unknown) => {
-      pending = undefined;
-      throw new RouteChunkError(cause);
-    });
+    pending ??= load()
+      .then((module) => {
+        loaded = true;
+        return module;
+      })
+      .catch((cause: unknown) => {
+        pending = undefined;
+        throw new RouteChunkError(cause);
+      });
     return pending;
   };
-  return { Component: lazy(preload), preload };
+  return { Component: lazy(preload), isLoaded: () => loaded, preload };
 }
 
 export function scheduleRoutePrefetch(prefetch: () => void): () => void {

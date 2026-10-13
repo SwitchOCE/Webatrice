@@ -8,6 +8,7 @@ import { useRecentDecks } from '@app/hooks';
 import { recentDeckArtUrl, type RecentDeck } from '@app/services';
 import { useAppSelector } from '@app/store';
 import { RouteEnum } from '@app/types';
+import { useDeckEditorRoutePrefetch } from '../../../RoutePrefetch';
 
 import { deckFormatLabel, liveRecentDecks, serverDeckCount } from '../homeModel';
 import HomeEmpty from './HomeEmpty';
@@ -15,7 +16,11 @@ import SectionHead from './SectionHead';
 
 export const RECENT_DECKS_SHOWN = 4;
 
-function DeckTile({ deck, onOpen }: { deck: RecentDeck; onOpen: (deckId: number) => void }) {
+function DeckTile({ deck, onOpen, onPrefetch }: {
+  deck: RecentDeck;
+  onOpen: (deckId: number) => void;
+  onPrefetch: () => void;
+}) {
   const { t } = useTranslation();
   const art = recentDeckArtUrl(deck);
   const format = deck.format ? deckFormatLabel(deck.format, t) : null;
@@ -24,6 +29,8 @@ function DeckTile({ deck, onOpen }: { deck: RecentDeck; onOpen: (deckId: number)
       <button
         type="button"
         onClick={() => onOpen(deck.deckId)}
+        onFocus={onPrefetch}
+        onPointerEnter={onPrefetch}
         className={[
           'group flex w-full min-w-0 flex-col overflow-hidden rounded-ui-lg border border-border-subtle bg-bg-surface text-left',
           'shadow-panel hover:border-accent/60 focus-visible:outline focus-visible:outline-2 focus-visible:outline-accent',
@@ -96,6 +103,7 @@ function RecentDecksEmpty({ savedDecks }: { savedDecks: number }) {
 export default function RecentDecks() {
   const { t } = useTranslation();
   const navigate = useNavigate();
+  const prefetchDeckEditor = useDeckEditorRoutePrefetch();
   const recent = useRecentDecks();
   const tree = useAppSelector(server.Selectors.getBackendDecks);
   const decks = liveRecentDecks(recent, tree?.root).slice(0, RECENT_DECKS_SHOWN);
@@ -118,7 +126,7 @@ export default function RecentDecks() {
       ) : (
         <ul className="grid grid-cols-[repeat(auto-fill,minmax(min(100%,180px),1fr))] gap-gap">
           {decks.map((deck) => (
-            <DeckTile key={deck.deckId} deck={deck} onOpen={openDeck} />
+            <DeckTile key={deck.deckId} deck={deck} onOpen={openDeck} onPrefetch={prefetchDeckEditor} />
           ))}
           <li className="flex min-h-[150px] min-w-0">
             <button

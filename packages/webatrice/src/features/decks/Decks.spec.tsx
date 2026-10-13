@@ -19,10 +19,23 @@ import { renderWithProviders, connected31State, connectedState, disconnectedStat
 import Decks from './Decks';
 import type { DecksLocationState } from './deckShortcuts';
 
+const prefetchMocks = vi.hoisted(() => ({
+  hook: vi.fn(() => vi.fn()),
+}));
+
+vi.mock('../../RoutePrefetch', () => ({
+  useDeckEditorRoutePrefetch: prefetchMocks.hook,
+}));
+
 // Piece 2 coverage: smoke-test the new MyDecks list. Full RTL
 // coverage (create/delete flows, useReduxEffect navigation) lives in
 // integration tests to be added alongside Piece 3.
 describe('Decks (MyDecks page)', () => {
+  it('registers deck editor idle prefetch on mount', () => {
+    renderWithProviders(<Decks />, { preloadedState: connectedState });
+    expect(prefetchMocks.hook).toHaveBeenCalled();
+  });
+
   it('renders the page header + New Deck button when connected', () => {
     renderWithProviders(<Decks />, { preloadedState: connectedState });
     expect(screen.getByRole('heading', { name: 'Decks.list.title' })).toBeInTheDocument();

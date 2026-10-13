@@ -35,6 +35,15 @@ describe.each([['tile', DeckTile], ['row', DeckListRow]] as const)('Deck%s', (_k
     expect(a.onOpen).toHaveBeenCalledOnce();
   });
 
+  it('prefetches the editor on pointer enter and focus', () => {
+    const onPrefetch = vi.fn();
+    render(<Item view={view} actions={actions()} onPrefetch={onPrefetch} />);
+    const article = screen.getByRole('article', { name: 'Atraxa' });
+    fireEvent.pointerEnter(article);
+    fireEvent.focus(within(article).getByRole('button', { name: 'DeckTile.open' }));
+    expect(onPrefetch).toHaveBeenCalledTimes(2);
+  });
+
   it('offers every action from a visible menu button', () => {
     const a = actions();
     render(<Item view={view} actions={a} />);

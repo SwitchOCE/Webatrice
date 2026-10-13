@@ -295,7 +295,7 @@ describe('deck operations: update acknowledgements', () => {
     acknowledge(secondId, Data.Response_ResponseCode.RespOk,
       create(Data.ServerInfo_DeckStorage_TreeItemSchema, { id: 7, name: 'Saved', file: { creationTime: 20 } }));
     expect(vi.mocked(session.updateServerDeck!).mock.calls).toEqual([
-      [7, create(Data.ServerInfo_DeckStorage_TreeItemSchema, { id: 7, name: 'Saved', file: { creationTime: 20 } })],
+      [7, create(Data.ServerInfo_DeckStorage_TreeItemSchema, { id: 7, name: 'Saved', file: { creationTime: 20, colorIdentity: '' } })],
     ]);
     expect(second.mock.calls).toEqual([[null]]);
     expect(first.mock.calls).toEqual([]);
@@ -308,7 +308,7 @@ describe('deck operations: update acknowledgements', () => {
     expect(first.mock.calls).toEqual([[{ responseCode: Data.Response_ResponseCode.RespContextError, failure: undefined }]]);
     expect(second.mock.calls).toEqual([[null]]);
     expect(vi.mocked(session.updateServerDeck!).mock.calls).toEqual([
-      [7, create(Data.ServerInfo_DeckStorage_TreeItemSchema, { id: 7, name: 'Saved', file: { creationTime: 20 } })],
+      [7, create(Data.ServerInfo_DeckStorage_TreeItemSchema, { id: 7, name: 'Saved', file: { creationTime: 20, colorIdentity: '' } })],
     ]);
     expect(vi.mocked(session.updateServerDeckFailed!).mock.invocationCallOrder[0]).toBeLessThan(first.mock.invocationCallOrder[0]);
     expect(vi.mocked(session.uploadServerDeck).mock.calls).toEqual([]);

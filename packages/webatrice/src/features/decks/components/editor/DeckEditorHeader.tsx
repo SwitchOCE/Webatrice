@@ -20,6 +20,7 @@ import { DeckBuyButton } from './DeckBuyButton';
 import { DeckOnlineServiceItems } from './DeckOnlineServices';
 import { DeckTagsEditor } from './DeckTagsEditor';
 import { useOpenDeck, type OpenDeckFlowProps } from './OpenDeckButton';
+import { IdentityPips } from '../list/DeckBadges';
 
 export interface DeckEditorHeaderProps {
   deck: HydratedDeck;
@@ -28,6 +29,7 @@ export interface DeckEditorHeaderProps {
   totalMainboardCount: number;
   totalSideboardCount: number;
   tags: readonly string[];
+  colors?: string;
   onNameChange: (name: string) => void;
   onFormatChange: (format: string) => void;
   onTagsChange: (tags: string[]) => void;
@@ -54,6 +56,7 @@ export function DeckEditorHeader({
   totalMainboardCount,
   totalSideboardCount,
   tags,
+  colors,
   onNameChange,
   onFormatChange,
   onTagsChange,
@@ -153,6 +156,7 @@ export function DeckEditorHeader({
           <FormatPicker value={deck.format} onChange={onFormatChange} variant="sidebar" />
         </div>
         {legality}
+        {colors != null && <IdentityPips colours={colors} />}
         {bracketLevel != null && (
           <Chip tone={BRACKET_CHIP_TONE[bracketLevel] ?? 'neutral'} title={t('DeckHeader.bracketHint')}>
             {t('DeckBracket.bracket')} {bracketLevel} · {t(`DeckBracket.level.${bracketLevel}`)}
