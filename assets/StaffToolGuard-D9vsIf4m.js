@@ -1,1 +1,0 @@
-import{xc as e}from"./vendor-CZh2_cxz.js";import{s as t}from"./vendor-react-CHGvAzz1.js";import{pa as n,s as r}from"./layout-pGoMRdnf.js";var i=e();function a({tool:e,children:a}){return r(e)?(0,i.jsx)(i.Fragment,{children:a}):(0,i.jsx)(t,{to:n.SERVER,replace:!0})}export{a as t};
