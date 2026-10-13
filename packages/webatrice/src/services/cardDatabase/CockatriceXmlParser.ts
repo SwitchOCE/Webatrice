@@ -83,6 +83,9 @@ class CockatriceXmlParser {
 
       cardElements.forEach(el => {
         const parsed = (isV3 ? this.parseV3Card(el) : this.parseElement(el)) as unknown as Card;
+        if (this.hasNoName(parsed)) {
+          return;
+        }
         this.requireName(parsed);
         const printings = Array.isArray(parsed.set) ? parsed.set : parsed.set ? [parsed.set] : [];
         if (printings.some(printing => typeof printing.value !== 'string' || !printing.value.trim())) {
@@ -112,6 +115,10 @@ class CockatriceXmlParser {
     if (typeof record.name?.value !== 'string' || !record.name.value.trim()) {
       throw new Error('Cockatrice XML contains a record without a valid name');
     }
+  }
+
+  private hasNoName(record: { name?: XmlNode<string> }): boolean {
+    return record.name === undefined || (typeof record.name.value === 'string' && !record.name.value.trim());
   }
 
   private parseV3Card(el: Element): Record<string, unknown> {

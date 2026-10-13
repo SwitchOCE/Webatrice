@@ -24,7 +24,6 @@ describe('card data preservation (real Dexie)', () => {
     '<html/>',
     '<cockatrice_carddatabase version="2"><cards/></cockatrice_carddatabase>',
     '<cockatrice_carddatabase><cards/></cockatrice_carddatabase>',
-    '<cockatrice_carddatabase version="4"><cards><card><text>Missing name</text></card></cards></cockatrice_carddatabase>',
     '<cockatrice_carddatabase version="4"><sets><set><name/></set></sets></cockatrice_carddatabase>',
   ])('rejects invalid replacement XML without changing the source or its tables: %s', async (invalid) => {
     await cardDatabaseService.addSources([{ fileName: 'cards.xml', xml: xml('Kept'), origin: 'file' }]);
@@ -41,6 +40,15 @@ describe('card data preservation (real Dexie)', () => {
     expect(await dexieService.sets.toArray()).toEqual(sets);
     await cardDatabaseService.reload();
     expect(await dexieService.cards.toArray()).toEqual(cards);
+  });
+
+  it('skips an unnamed card without discarding the valid replacement records', async () => {
+    await cardDatabaseService.addSources([{ fileName: 'cards.xml', xml: xml('Old'), origin: 'file' }]);
+    await cardDatabaseService.addSources([{ fileName: 'cards.xml', origin: 'file', xml:
+      '<cockatrice_carddatabase version="4"><cards><card><text>Missing name</text></card>'
+      + '<card><name>Kept</name><set>CUBE</set></card></cards></cockatrice_carddatabase>',
+    }]);
+    expect((await dexieService.cards.toArray()).map(card => card.name.value)).toEqual(['Kept']);
   });
 
   it('preserves both concurrent token additions and edits through reload', async () => {
