@@ -50,6 +50,7 @@ describe('deck draft route (integration)', () => {
   it('stores the draft on its first edit as a new root deck that keeps every printing field', async () => {
     renderDraft();
     const name = await screen.findByDisplayValue('Burn', {}, { timeout: 5000 });
+    await waitFor(() => expect(name).toBeEnabled());
 
     fireEvent.change(name, { target: { value: 'Burn v2' } });
 
