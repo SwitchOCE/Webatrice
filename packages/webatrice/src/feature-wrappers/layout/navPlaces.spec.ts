@@ -1,10 +1,13 @@
+import type { Room } from '@cockatrice/datatrice';
 import { PlayBadgeMode, PREFERENCE_DEFAULTS, RouteEnum } from '@app/types';
 
-import { NAV_PLACES, placeBadges, placeForPath, railPlaces } from './navPlaces';
+import { NAV_PLACES, placeBadges, placeForPath, playPath, railPlaces } from './navPlaces';
+
+const joined = (...roomIds: number[]) => roomIds.map((roomId) => ({ info: { roomId } }) as Room);
 
 describe('NAV_PLACES', () => {
   it('lists the fixed places, Play, Decks, Replays, People and Settings, in rail order', () => {
-    expect(NAV_PLACES.map(({ key, route }) => [key, route])).toEqual([
+    expect(NAV_PLACES.map(({ key, to }) => [key, to])).toEqual([
       ['play', RouteEnum.SERVER],
       ['decks', RouteEnum.DECKS],
       ['replays', RouteEnum.REPLAYS],
@@ -16,7 +19,6 @@ describe('NAV_PLACES', () => {
 
 describe('placeForPath', () => {
   it.each([
-    ['/server', 'play'],
     ['/room/3', 'play'],
     ['/game/12', 'play'],
     ['/decks', 'decks'],
@@ -38,7 +40,8 @@ describe('placeForPath', () => {
     });
   });
 
-  it('lights nothing for account pages', () => {
+  it('lights nothing for Home or account pages', () => {
+    expect(placeForPath('/server')).toBeNull();
     expect(placeForPath('/account')).toBeNull();
     expect(placeForPath('/shortcuts')).toBeNull();
   });
@@ -52,7 +55,26 @@ describe('railPlaces', () => {
   it('puts Staff before Settings, opening the staff home', () => {
     const places = railPlaces(RouteEnum.MODERATION);
     expect(places.map(({ key }) => key)).toEqual(['play', 'decks', 'replays', 'people', 'staff', 'settings']);
-    expect(places.find(({ key }) => key === 'staff')?.route).toBe(RouteEnum.MODERATION);
+    expect(places.find(({ key }) => key === 'staff')?.to).toBe(RouteEnum.MODERATION);
+  });
+
+  it('points Play at the given room', () => {
+    expect(railPlaces(null, '/room/2').find(({ key }) => key === 'play')?.to).toBe('/room/2');
+  });
+});
+
+describe('playPath', () => {
+  it('opens the last room while it is still joined', () => {
+    expect(playPath(3, joined(1, 3))).toBe('/room/3');
+  });
+
+  it('opens another joined room once the last room is left', () => {
+    expect(playPath(3, joined(1, 2))).toBe('/room/1');
+    expect(playPath(null, joined(2))).toBe('/room/2');
+  });
+
+  it('opens Home with no room joined', () => {
+    expect(playPath(3, [])).toBe(RouteEnum.SERVER);
   });
 });
 

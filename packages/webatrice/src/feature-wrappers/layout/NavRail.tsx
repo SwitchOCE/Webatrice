@@ -1,4 +1,4 @@
-import { generatePath, Link } from 'react-router-dom';
+import { generatePath, Link, NavLink } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { PanelLeftClose, PanelLeftOpen } from 'lucide-react';
 
@@ -33,9 +33,9 @@ export default function NavRail() {
     >
       <div className="flex flex-col items-center gap-2 self-start">
         {!hidden && (
-          <Link to={generatePath(RouteEnum.SERVER)} aria-label={t('NavRail.home')} className={`rounded-ui ${focusRing}`}>
+          <NavLink end to={generatePath(RouteEnum.SERVER)} aria-label={t('NavRail.home')} className={`rounded-ui ${focusRing}`}>
             <img src={Images.Logo} alt="" className="h-[34px] w-[34px] rounded-ui-sm" />
-          </Link>
+          </NavLink>
         )}
         <IconButton
           id={RAIL_TOGGLE_ID}
@@ -49,12 +49,12 @@ export default function NavRail() {
       {!hidden && (
         <nav aria-label={t('NavRail.label')} className="py-3">
           <ul className="flex flex-col items-center gap-1">
-            {places.map(({ key, icon: Icon, route }) => {
+            {places.map(({ key, icon: Icon, to }) => {
               const active = current === key;
               return (
                 <li key={key}>
                   <Link
-                    to={generatePath(route)}
+                    to={to}
                     aria-current={active ? 'page' : undefined}
                     className={[
                       'relative flex h-[58px] w-16 flex-col items-center justify-center gap-1 rounded-ui text-[11px] font-semibold',

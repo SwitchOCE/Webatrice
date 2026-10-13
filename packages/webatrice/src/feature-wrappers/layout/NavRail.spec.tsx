@@ -1,9 +1,9 @@
 import { act, fireEvent, screen, within } from '@testing-library/react';
 import { useLocation } from 'react-router-dom';
 
-import { server } from '@cockatrice/datatrice';
+import { rooms, server } from '@cockatrice/datatrice';
 import { ServerInfo_User_UserLevelFlag as Level } from '@cockatrice/sockatrice/generated';
-import { connectedState, makeUser, renderWithProviders } from '../../__test-utils__';
+import { connectedState, connectedWithRoomsState, makeUser, renderWithProviders } from '../../__test-utils__';
 import { PlayBadgeMode, PREFERENCE_DEFAULTS, RouteEnum } from '@app/types';
 
 import { settingsStore } from '../../hooks/useSettings';
@@ -199,11 +199,67 @@ describe('NavRail', () => {
     expect(screen.getByTestId('location')).toHaveTextContent(RouteEnum.SHORTCUTS);
   });
 
-  it('goes home from the logo', () => {
-    renderRail(RouteEnum.DECKS);
+  it('goes home from the logo, which Play does not light', () => {
+    renderRail(RouteEnum.DECKS, connectedWithRoomsState);
 
     fireEvent.click(screen.getByRole('link', { name: 'NavRail.home' }));
 
     expect(screen.getByTestId('location')).toHaveTextContent(RouteEnum.SERVER);
+    expect(screen.getByRole('link', { name: 'NavRail.home' })).toHaveAttribute('aria-current', 'page');
+    expect(screen.getByRole('link', { name: 'NavRail.place.play' })).not.toHaveAttribute('aria-current');
+  });
+
+  describe('Play', () => {
+    const fixture = connectedWithRoomsState.rooms as any;
+    const twoRooms = {
+      ...connectedWithRoomsState,
+      rooms: {
+        ...fixture,
+        rooms: { ...fixture.rooms, 2: { ...fixture.rooms[1], info: { ...fixture.rooms[1].info, roomId: 2, name: 'Second' } } },
+        joinedRoomIds: { 1: true, 2: true },
+      },
+    };
+    const play = () => screen.getByRole('link', { name: 'NavRail.place.play' });
+
+    it('opens Home with no room joined', () => {
+      renderRail(RouteEnum.DECKS);
+
+      expect(play()).toHaveAttribute('href', RouteEnum.SERVER);
+    });
+
+    it('opens a joined room when none was visited', () => {
+      renderRail(RouteEnum.DECKS, connectedWithRoomsState);
+
+      fireEvent.click(play());
+
+      expect(screen.getByTestId('location')).toHaveTextContent('/room/1');
+    });
+
+    it('returns to the room visited last, after a reload too', () => {
+      renderRail('/room/2', twoRooms).unmount();
+      renderRail(RouteEnum.DECKS, twoRooms);
+
+      fireEvent.click(play());
+
+      expect(screen.getByTestId('location')).toHaveTextContent('/room/2');
+    });
+
+    it('ignores a room visited by another account', () => {
+      const asBob = { ...twoRooms, server: { ...(twoRooms.server as any), user: makeUser({ name: 'bob' }) } };
+      renderRail('/room/2', asBob).unmount();
+      renderRail(RouteEnum.DECKS, twoRooms);
+
+      expect(play()).toHaveAttribute('href', '/room/1');
+    });
+
+    it('falls back to another joined room once the last room is left', () => {
+      const { store } = renderRail('/room/2', twoRooms);
+
+      act(() => {
+        store.dispatch(rooms.Actions.leaveRoom({ roomId: 2 }));
+      });
+
+      expect(play()).toHaveAttribute('href', '/room/1');
+    });
   });
 });

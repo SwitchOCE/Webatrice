@@ -12,6 +12,7 @@ import { placeBadges, placeForPath, railPlaces, type NavPlace, type PlaceKey } f
 import type { UserMenuProps } from '../UserMenu';
 import type { UserMenuDialog } from '../userMenuEntries';
 import { useOwnAvatarUrl } from './useOwnAvatarUrl';
+import { usePlayPath } from './usePlayPath';
 import { clearHomeSnapshot } from '../../../services/storage/homeSnapshot';
 
 export interface NavRailController {
@@ -39,9 +40,10 @@ export function useNavRailController(): NavRailController {
   const unresolvedReports = queueLoaded ? reportCounts.open + reportCounts.assigned : null;
   const badges = placeBadges(useUnreadCounts(), usePreference('playBadge'), unresolvedReports);
   const closeDialog = useCallback(() => setOpenDialog(null), []);
+  const play = usePlayPath();
 
   return {
-    places: railPlaces(staff.home),
+    places: railPlaces(staff.home, play),
     current: placeForPath(pathname),
     badges,
     openDialog,
