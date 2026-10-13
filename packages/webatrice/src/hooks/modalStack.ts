@@ -36,7 +36,8 @@ function refresh() {
 function containFocus(event: FocusEvent) {
   const top = stack.at(-1);
   const layer = top?.closest('[data-modal-layer],.MuiModal-root') ?? top;
-  if (top && event.target instanceof Node && !layer?.contains(event.target)) {
+  const exempt = event.target instanceof Element && event.target.closest('[data-modal-exempt]');
+  if (top && event.target instanceof Node && !layer?.contains(event.target) && !exempt) {
     top.focus({ preventScroll: true });
   }
 }
