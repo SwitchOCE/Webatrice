@@ -7,6 +7,11 @@ import { seatCardMetaFromLookup, useSeatCardMetadata, type UseSeatCardMetadataAr
 const catalog = vi.hoisted(() => ({
   lookupCard: vi.fn(),
   lookupCards: vi.fn(),
+  preferences: { cardOverrides: {} as Record<string, string> },
+}));
+
+vi.mock('@app/hooks', () => ({
+  useCardDataPreferences: () => ({ value: catalog.preferences }),
 }));
 
 vi.mock('@app/services', async (importOriginal) => ({
@@ -52,12 +57,24 @@ function renderMetadata(args: Partial<UseSeatCardMetadataArgs> = {}) {
 }
 
 beforeEach(() => {
+  catalog.preferences = { cardOverrides: {} };
   catalog.lookupCard.mockImplementation(async (name: string) => RECORDS[name] ?? record(name));
   catalog.lookupCards.mockImplementation(async (names: string[]) =>
     new Map(names.filter((n) => n !== 'Unknown token').map((n) => [n, record(n)])));
 });
 
 describe('seatCardMetaFromLookup', () => {
+  it('uses the pinned printing and does not substitute for a stale pin', () => {
+    expect(seatCardMetaFromLookup(record('Pinned', {
+      pinnedPrintingId: 'second',
+      printings: [{ scryfallId: 'first' }, { scryfallId: 'second' }],
+    })).scryfallId).toBe('second');
+    expect(seatCardMetaFromLookup(record('Stale', {
+      pinnedPrintingId: 'missing',
+      printings: [{ scryfallId: 'first' }],
+    })).scryfallId).toBeUndefined();
+  });
+
   it('keeps the catalog fields the seat reads and joins the printed P/T', () => {
     expect(seatCardMetaFromLookup(BEAR)).toEqual({
       typeLine: 'Creature — Bear',
@@ -126,6 +143,16 @@ describe('useSeatCardMetadata', () => {
       power: '2',
       toughness: '2',
     });
+  });
+
+  it('uses the current exact-name pin for cached related-token metadata', async () => {
+    catalog.preferences = { cardOverrides: { Goblin: 'pin-a' } };
+    const { result, rerender } = renderMetadata({ battlefieldCards: [battlefieldCard(1, 'Maker')] });
+    await waitFor(() => expect(result.current.tokenMetaByName.get('Goblin')?.pinnedPrintingId).toBe('pin-a'));
+    catalog.preferences = { cardOverrides: { Goblin: 'pin-b' } };
+    rerender();
+    expect(result.current.tokenMetaByName.get('Goblin')?.pinnedPrintingId).toBe('pin-b');
+    expect(catalog.lookupCards).toHaveBeenCalledOnce();
   });
 
   it('caches a token the catalog does not know as unknown, so it is not asked again', async () => {

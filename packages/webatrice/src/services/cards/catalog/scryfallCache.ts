@@ -90,7 +90,8 @@ function sanitizeCached(result: ScryfallCacheRecord): LookupResult {
 
 export async function putScryfallCache(result: LookupResult): Promise<void> {
   try {
-    await dexieService.scryfallCache.put(toCacheRecord(result, Date.now()));
+    const previous = await getFromScryfallCache(result.name);
+    await dexieService.scryfallCache.put(toCacheRecord(retainPrintings(result, previous), Date.now()));
   } catch {
     return;
   }
@@ -102,10 +103,21 @@ export async function bulkPutScryfallCache(results: LookupResult[]): Promise<voi
   }
   try {
     const fetchedAt = Date.now();
-    await dexieService.scryfallCache.bulkPut(results.map((result) => toCacheRecord(result, fetchedAt)));
+    const previous = await bulkGetFromScryfallCache(results.map((result) => result.name));
+    await dexieService.scryfallCache.bulkPut(results.map((result, index) =>
+      toCacheRecord(retainPrintings(result, previous[index]), fetchedAt)));
   } catch {
     return;
   }
+}
+
+function retainPrintings(result: LookupResult, previous?: LookupResult): LookupResult {
+  if (!previous || previous.name !== result.name) {
+    return result;
+  }
+  const ids = new Set(result.printings.map((printing) => printing.scryfallId));
+  const retained = previous.printings.filter((printing) => printing.scryfallId && !ids.has(printing.scryfallId));
+  return retained.length ? { ...result, printings: [...result.printings, ...retained] } : result;
 }
 
 function toCacheRecord(result: LookupResult, fallbackFetchedAt: number): ScryfallCacheRecord {

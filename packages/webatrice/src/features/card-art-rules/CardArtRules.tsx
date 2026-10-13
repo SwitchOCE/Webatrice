@@ -56,7 +56,7 @@ const FieldError = ({ message }: { message?: string }) =>
 const CardArtRulesContent = () => {
   const { t } = useTranslation();
   const rulesState = useCardArtRules();
-  const { rules, selectedIndex, printings } = rulesState;
+  const { rules, selectedIndex, printings, defaultProviderId } = rulesState;
   const selected = selectedIndex === null ? undefined : rules[selectedIndex];
   const ids = { card: useId(), provider: useId(), mode: useId(), reason: useId() };
 
@@ -64,8 +64,8 @@ const CardArtRulesContent = () => {
   const { control, handleSubmit, setValue } = useForm<RuleFormValues>({ defaultValues: DEFAULT_VALUES, resolver });
 
   useEffect(() => {
-    setValue('cardProviderId', printings[0]?.providerId ?? '');
-  }, [printings, setValue]);
+    setValue('cardProviderId', defaultProviderId);
+  }, [defaultProviderId, setValue]);
 
   const rows = useMemo<RuleRow[]>(() => rules.map((rule, index) => ({ index, rule })), [rules]);
   const columns = useMemo<StaffColumn<RuleRow>[]>(() => [

@@ -22,6 +22,19 @@ const scryfallByName = (name: string) =>
   `https://api.scryfall.com/cards/named?exact=${encodeURIComponent(name)}&format=image&version=normal`;
 
 describe('cardImageUrls', () => {
+  it('uses the pinned printing ahead of set preferences', () => {
+    const urls = resolveCardImageUrls(card, { templates, setPreferences: new Map(), pinnedPrintingId: 'cccc' });
+    expect(urls[0]).toBe('https://img.example/OFF/cccc.jpg');
+  });
+
+  it('renders a stale pin by name without choosing a different printing', () => {
+    expect(resolveCardImageUrls(card, {
+      templates: ['https://img.example/!name!.jpg', ...templates],
+      setPreferences: new Map(),
+      pinnedPrintingId: 'missing',
+    })).toEqual(['https://img.example/Lightning%20Bolt.jpg', scryfallByName('Lightning Bolt')]);
+  });
+
   it('folds picURL into picurl and drops the set code value', () => {
     expect(printingProperties({ value: 'M10', picURL: 'u', num: '1' })).toEqual({ picurl: 'u', num: '1' });
   });

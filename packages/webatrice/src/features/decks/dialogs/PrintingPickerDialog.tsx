@@ -1,12 +1,12 @@
 import { useId } from 'react';
 import { useTranslation } from 'react-i18next';
-import { CheckCircle2, CircleAlert, Loader2, X } from 'lucide-react';
+import { CheckCircle2, CircleAlert, Loader2, Pin, PinOff, X } from 'lucide-react';
 
-import { useImageCandidates, usePreference } from '@app/hooks';
+import { IconButton } from '@app/components';
+import { useImageCandidates } from '@app/hooks';
 import { imageCandidatesOf, type PrintingSummary } from '@app/services';
 
-import { useCardPrintings } from '../hooks/useCardPrintings';
-import { bumpPrintingsInDeck } from '../printingOrder';
+import { usePrintingPicker } from '../hooks/usePrintingPicker';
 import { upgradeScryfallImageSize } from '../scryfallImage';
 import type { DeckCard } from '../types';
 import { DeckDialogFrame } from './DeckDialogFrame';
@@ -28,11 +28,7 @@ export function PrintingPickerDialog({
   onPick: (printing: PrintingSummary) => void;
 }) {
   const { t } = useTranslation();
-  const { printings: allPrintings, loading, error, prices } = useCardPrintings(request?.card.name);
-  const bumpSetsInDeck = usePreference('bumpSetsWithCardsInDeckToTop');
-  const printings = bumpSetsInDeck && request
-    ? bumpPrintingsInDeck(allPrintings, request.card.name, deckCards)
-    : allPrintings;
+  const { printings, loading, error, prices, pinnedPrintingId, savingPin, pin, pinError } = usePrintingPicker(request?.card, deckCards);
   const titleId = useId();
 
   if (!request) {
@@ -84,6 +80,8 @@ export function PrintingPickerDialog({
           </div>
         )}
 
+        {pinError && <p role="alert" className="mt-4 text-sm text-danger">{pinError}</p>}
+
         {!loading && !error && printings.length === 0 && (
           <div className="flex-1 flex items-center justify-center py-16 text-text-muted text-sm">
             {t('PrintingPicker.empty')}
@@ -99,61 +97,77 @@ export function PrintingPickerDialog({
               {printings.map((p, i) => {
                 const isCurrent = p.scryfallId != null && p.scryfallId === currentId;
                 return (
-                  <button
+                  <div
                     key={p.scryfallId ?? `${p.set}-${p.collectorNumber}-${i}`}
-                    type="button"
-                    onClick={() => onPick(p)}
-                    className={[
-                      'rounded-lg overflow-hidden border transition-all group relative bg-bg-base text-left',
-                      isCurrent
-                        ? 'border-accent ring-2 ring-accent/50'
-                        : 'border-border-subtle hover:border-accent hover:shadow-glow',
-                    ].join(' ')}
-                    title={`${p.set?.toUpperCase() ?? '?'} · ${request.card.name}`}
+                    className="relative"
                   >
-                    <div className="aspect-[5/7] w-full">
-                      <PrintingImage printing={p} cardName={request.card.name} />
-                    </div>
-                    <div
+                    <button
+                      type="button"
+                      onClick={() => onPick(p)}
                       className={[
-                        'px-2 py-1.5 text-xs flex items-center',
-                        'justify-between gap-1 border-t border-border-subtle bg-bg-surface',
+                        'w-full rounded-lg overflow-hidden border transition-all group relative bg-bg-base text-left',
+                        isCurrent
+                          ? 'border-accent ring-2 ring-accent/50'
+                          : 'border-border-subtle hover:border-accent hover:shadow-glow',
                       ].join(' ')}
+                      title={`${p.set?.toUpperCase() ?? '?'} · ${request.card.name}`}
                     >
-                      <span className="font-medium text-text-primary uppercase tracking-wider truncate">
-                        {p.set ?? '—'}
-                      </span>
-                      {(() => {
-                        const usd = p.scryfallId ? prices.byId.get(p.scryfallId)?.usd : undefined;
-                        return (
-                          <span
-                            className={[
-                              'tabular-nums shrink-0',
-                              usd != null ? 'text-success font-medium' : 'text-text-muted',
-                            ].join(' ')}
-                            title={usd != null ? t('PrintingPicker.priceUsd') : t('PrintingPicker.noPrice')}
-                          >
-                            {usd != null ? `$${usd.toFixed(2)}` : '—'}
-                          </span>
-                        );
-                      })()}
-                      {p.collectorNumber && (
-                        <span className="text-text-muted tabular-nums shrink-0">
-                          #{p.collectorNumber}
-                        </span>
-                      )}
-                    </div>
-                    {isCurrent && (
+                      <div className="aspect-[5/7] w-full">
+                        <PrintingImage printing={p} cardName={request.card.name} />
+                      </div>
                       <div
                         className={[
-                          'absolute top-2 left-2 flex items-center gap-1 px-2 py-0.5',
-                          'rounded bg-accent text-on-accent text-[10px] font-semibold shadow-glow',
+                          'px-2 py-1.5 text-xs flex items-center',
+                          'justify-between gap-1 border-t border-border-subtle bg-bg-surface',
                         ].join(' ')}
                       >
-                        <CheckCircle2 size={10} /> {t('PrintingPicker.current')}
+                        <span className="font-medium text-text-primary uppercase tracking-wider truncate">
+                          {p.set ?? '—'}
+                        </span>
+                        {(() => {
+                          const usd = p.scryfallId ? prices.byId.get(p.scryfallId)?.usd : undefined;
+                          return (
+                            <span
+                              className={[
+                                'tabular-nums shrink-0',
+                                usd != null ? 'text-success font-medium' : 'text-text-muted',
+                              ].join(' ')}
+                              title={usd != null ? t('PrintingPicker.priceUsd') : t('PrintingPicker.noPrice')}
+                            >
+                              {usd != null ? `$${usd.toFixed(2)}` : '—'}
+                            </span>
+                          );
+                        })()}
+                        {p.collectorNumber && (
+                          <span className="text-text-muted tabular-nums shrink-0">
+                            #{p.collectorNumber}
+                          </span>
+                        )}
                       </div>
+                      {isCurrent && (
+                        <div
+                          className={[
+                            'absolute top-2 left-2 flex items-center gap-1 px-2 py-0.5',
+                            'rounded bg-accent text-on-accent text-[10px] font-semibold shadow-glow',
+                          ].join(' ')}
+                        >
+                          <CheckCircle2 size={10} /> {t('PrintingPicker.current')}
+                        </div>
+                      )}
+                    </button>
+                    {p.scryfallId && (
+                      <IconButton
+                        label={t(p.scryfallId === pinnedPrintingId ? 'PrintingPicker.unpin' : 'PrintingPicker.pin')}
+                        active={p.scryfallId === pinnedPrintingId}
+                        disabled={savingPin}
+                        size="sm"
+                        className="absolute top-2 right-2 bg-bg-surface shadow-glow"
+                        onClick={() => pin(p.scryfallId!)}
+                      >
+                        {p.scryfallId === pinnedPrintingId ? <PinOff size={14} /> : <Pin size={14} />}
+                      </IconButton>
                     )}
-                  </button>
+                  </div>
                 );
               })}
             </div>

@@ -2,6 +2,7 @@ export * from './setPriority';
 export * from './pictureUrlTemplates';
 export * from './cardImageUrls';
 export * from './cardDataPreferences';
+export * from './cardOverrides';
 export * from './cardImportLimits';
 export * from './CardDatabaseService';
 export * from './CockatriceXmlParser';

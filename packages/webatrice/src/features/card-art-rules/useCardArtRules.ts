@@ -2,7 +2,8 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 
 import { useTranslation } from 'react-i18next';
 
-import { useCommandFailureMessage, useReduxEffect } from '@app/hooks';
+import { useCardOverride, useCommandFailureMessage, useReduxEffect } from '@app/hooks';
+import { preferredPrinting } from '@app/services';
 import type { WebsocketTypes } from '@cockatrice/sockatrice/types';
 import { server } from '@cockatrice/datatrice';
 import { useWebClient } from '@cockatrice/datatrice/react';
@@ -28,6 +29,7 @@ export interface CardArtRules {
   selectedIndex: number | null;
   select: (index: number) => void;
   printings: CardPrinting[];
+  defaultProviderId: string;
   printingsPending: boolean;
   lookUpPrintings: (cardName: string) => void;
   addRule: (rule: NewCardArtRule) => void;
@@ -57,6 +59,8 @@ export function useCardArtRules(): CardArtRules {
   const rules = useAppSelector(server.Selectors.getCardArtRules) ?? NO_RULES;
   const [selectedIndex, setSelectedIndex] = useState<number | null>(null);
   const [printings, setPrintings] = useState<CardPrinting[]>([]);
+  const [printingCardName, setPrintingCardName] = useState('');
+  const { pinnedPrintingId } = useCardOverride(printingCardName);
   const [printingsPending, setPrintingsPending] = useState(false);
   const lookup = useRef({ cardName: '', ready: false, sequence: 0 });
   useEffect(() => () => {
@@ -80,6 +84,7 @@ export function useCardArtRules(): CardArtRules {
     }
     const sequence = lookup.current.sequence + 1;
     lookup.current = { cardName, ready: false, sequence };
+    setPrintingCardName(cardName);
     setPrintingsPending(true);
     const finish = (next: CardPrinting[]) => {
       if (lookup.current.sequence !== sequence) {
@@ -116,6 +121,10 @@ export function useCardArtRules(): CardArtRules {
     selectedIndex,
     select: setSelectedIndex,
     printings,
+    defaultProviderId: preferredPrinting({
+      pinnedPrintingId,
+      printings: printings.map((printing) => ({ scryfallId: printing.providerId })),
+    })?.scryfallId ?? '',
     printingsPending,
     lookUpPrintings,
     addRule,

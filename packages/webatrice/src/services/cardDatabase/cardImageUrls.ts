@@ -16,6 +16,7 @@ export interface CardImageOptions {
   setPreferences: SetPreferenceMap;
   setLongNames?: ReadonlyMap<string, string>;
   preferredSet?: string;
+  pinnedPrintingId?: string;
   lang?: string;
   fallbackSize?: ScryfallImageSize;
 }
@@ -75,7 +76,9 @@ export function resolvePrintingImageUrls(
 }
 
 export function resolveCardImageUrls(card: CardImageSubject, options: CardImageOptions): string[] {
-  const sorted = sortBySetPreference(printingsOf(card), (p) => p.value, options.setPreferences);
+  const sorted = options.pinnedPrintingId && !options.preferredSet
+    ? printingsOf(card).filter((printing) => printing.uuid === options.pinnedPrintingId)
+    : sortBySetPreference(printingsOf(card), (p) => p.value, options.setPreferences);
   if (options.preferredSet) {
     const index = sorted.findIndex((p) => p.value === options.preferredSet);
     if (index > 0) {

@@ -1,9 +1,11 @@
 import { CardDataSettingsDTO, SetDTO, SetPreferenceDTO } from '../dexie/DexieDTOs';
 import { dexieService } from '../dexie/DexieService';
 import type { Set } from '../dexie/types';
+import { cardOverride } from './cardOverrides';
 import type { SetPreferenceMap } from './setPriority';
 
 export interface CardDataPreferences {
+  cardOverrides?: Readonly<Record<string, string>>;
   setPreferences: SetPreferenceMap;
   setLongNames: ReadonlyMap<string, string>;
   pictureUrlTemplates: readonly string[];
@@ -16,6 +18,7 @@ export async function loadCardDataPreferences(): Promise<CardDataPreferences> {
     CardDataSettingsDTO.get(),
   ]);
   return {
+    cardOverrides: settings.cardOverrides,
     setPreferences: new Map(preferences.map((p) => [p.code, p])),
     setLongNames: new Map(
       sets
@@ -24,6 +27,10 @@ export async function loadCardDataPreferences(): Promise<CardDataPreferences> {
     ),
     pictureUrlTemplates: settings.pictureUrlTemplates,
   };
+}
+
+export async function getCardPreferenceOverride(name: string): Promise<string> {
+  return cardOverride((await currentCardDataPreferences()).cardOverrides, name) ?? '';
 }
 
 let snapshot: Promise<CardDataPreferences> | undefined;

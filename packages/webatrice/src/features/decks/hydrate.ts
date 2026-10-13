@@ -6,6 +6,7 @@ import {
   lookupCardsForHydration,
   printingKey,
   parseCod,
+  preferredPrinting,
   primaryImageUri,
   type LookupResult,
   type PrintingSummary,
@@ -80,7 +81,7 @@ export function assembleDeckCard(
     };
   }
 
-  const chosen = pickPrinting(row, lookup.printings);
+  const chosen = pickPrinting(row, lookup);
 
   const fallbackImageUri = row.scryfallId
     ? getScryfallUrlById(row.scryfallId, ScryfallImageSize.Normal)
@@ -99,9 +100,9 @@ export function assembleDeckCard(
     colorIdentity: lookup.colorIdentity,
     power: lookup.power,
     toughness: lookup.toughness,
-    set: chosen?.set ?? row.set,
-    collectorNumber: chosen?.collectorNumber ?? row.collectorNumber,
-    scryfallId: chosen?.scryfallId ?? row.scryfallId,
+    set: row.set ?? chosen?.set,
+    collectorNumber: row.collectorNumber ?? chosen?.collectorNumber,
+    scryfallId: row.scryfallId ?? chosen?.scryfallId,
     imageUri: primaryImageUri({ imageUris }),
     imageUris,
     ...(row.zonePath ? { zonePath: row.zonePath } : {}),
@@ -111,8 +112,9 @@ export function assembleDeckCard(
 
 function pickPrinting(
   hint: ParsedCard,
-  printings: PrintingSummary[],
+  lookup: Pick<LookupResult, 'printings' | 'pinnedPrintingId'>,
 ): PrintingSummary | undefined {
+  const { printings } = lookup;
   if (!printings.length) {
     return undefined;
   }
@@ -143,7 +145,11 @@ function pickPrinting(
     return undefined;
   }
 
-  return printings[0];
+  if (hint.collectorNumber) {
+    return printings.find((p) => p.collectorNumber === hint.collectorNumber);
+  }
+
+  return preferredPrinting(lookup);
 }
 
 export function applyDeckCardDataRefresh(deck: HydratedDeck, refresh: DeckCardDataRefresh): HydratedDeck {
@@ -155,6 +161,7 @@ export function applyDeckCardDataRefresh(deck: HydratedDeck, refresh: DeckCardDa
       return card;
     }
     const next = assembleDeckCard(card, lookup);
+    const keepsSavedPrinting = Boolean(card.scryfallId || card.set || card.collectorNumber);
     const patched: DeckCard = {
       ...card,
       typeLine: next.typeLine,
@@ -166,6 +173,9 @@ export function applyDeckCardDataRefresh(deck: HydratedDeck, refresh: DeckCardDa
       toughness: next.toughness,
       imageUri: next.imageUri ?? card.imageUri,
       imageUris: next.imageUris?.length ? next.imageUris : card.imageUris,
+      set: keepsSavedPrinting ? card.set : next.set,
+      collectorNumber: keepsSavedPrinting ? card.collectorNumber : next.collectorNumber,
+      scryfallId: keepsSavedPrinting ? card.scryfallId : next.scryfallId,
       lookupSource: next.lookupSource,
     };
     if (JSON.stringify(card) === JSON.stringify(patched)) {

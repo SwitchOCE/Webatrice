@@ -440,8 +440,8 @@ describe('fetchAllPrintings', () => {
     }));
 
     await expect(fetchAllPrintings('Opt')).resolves.toEqual([
-      { set: 'dmr', collectorNumber: '1', scryfallId: 'new', imageUri: 'n.jpg' },
-      { set: 'inv', collectorNumber: '64', scryfallId: 'old', imageUri: 's.jpg' },
+      { name: 'Opt', set: 'dmr', collectorNumber: '1', scryfallId: 'new', imageUri: 'n.jpg' },
+      { name: 'Opt', set: 'inv', collectorNumber: '64', scryfallId: 'old', imageUri: 's.jpg' },
     ]);
     expect(fetchMock.mock.calls[0][0]).toBe(
       `https://api.scryfall.com/cards/search?q=${encodeURIComponent('!"Opt"')}&unique=prints&order=released&dir=desc`,
