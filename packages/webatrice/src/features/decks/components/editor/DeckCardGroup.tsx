@@ -40,6 +40,7 @@ export interface DeckCardGroupProps {
   onShowDetails?: (card: DeckCard) => void;
   isMtg: boolean;
   isCommander: boolean;
+  readOnly?: boolean;
   legality?: readonly CardLegality[];
   grid?: DeckCardGrid;
   density?: DeckRowDensity;
@@ -77,6 +78,7 @@ export function DeckCardGroup({
   onShowDetails,
   isMtg,
   isCommander,
+  readOnly = false,
   legality,
   grid,
   density,
@@ -127,7 +129,7 @@ export function DeckCardGroup({
         )}
       </h3>
       {!collapsed && (
-        <div role="grid" id={gridId} aria-labelledby={headingId} className="mt-1 flex flex-col">
+        <div role="grid" id={gridId} aria-labelledby={headingId} aria-readonly={readOnly} className="mt-1 flex flex-col">
           {indices.map((i) => (
             <DeckCardRow
               key={deckRowKey(deck[i])}
@@ -144,6 +146,7 @@ export function DeckCardGroup({
               onShowDetails={onShowDetails ? () => onShowDetails(deck[i]) : undefined}
               isMtg={isMtg}
               isCommander={isCommander}
+              readOnly={readOnly}
               legality={legality?.[i]}
               density={density}
             />

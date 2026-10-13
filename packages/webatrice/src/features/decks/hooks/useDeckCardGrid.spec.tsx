@@ -12,13 +12,16 @@ import { useDeckCardGrid } from './useDeckCardGrid';
 const card = (name: string, quantity = 1, extra: Partial<DeckCard> = {}): DeckCard =>
   ({ name, quantity, category: 'main', lookupSource: 'scryfall', ...extra });
 
-function DeckList({ initial, onLastRowRemoved }: { initial: DeckCard[]; onLastRowRemoved?: () => void }) {
+function DeckList({ initial, onLastRowRemoved, readOnly = false }: {
+  initial: DeckCard[]; onLastRowRemoved?: () => void; readOnly?: boolean;
+}) {
   const [cards, setCards] = useState(initial);
   const order = [
     ...cards.map((c, i) => (c.category === 'main' ? i : -1)),
     ...cards.map((c, i) => (c.category === 'sideboard' ? i : -1)),
   ].filter((i) => i >= 0);
   const grid = useDeckCardGrid({
+    readOnly,
     cards,
     order,
     onInc: (index, delta) => setCards((prev) => prev
@@ -159,4 +162,17 @@ describe('useDeckCardGrid', () => {
     await user.keyboard('{Shift>}S{/Shift}');
     expect(row('Atraxa')).toHaveTextContent('1 main');
   });
+});
+
+it('allows row navigation while blocking keyboard mutations in a provisional deck', async () => {
+  const user = userEvent.setup();
+  renderWithProviders(<ShortcutProvider><DeckList initial={[card('Bolt', 2), card('Shock')]} readOnly /></ShortcutProvider>,
+    { route: '/deck/1' });
+  const bolt = screen.getByRole('row', { name: 'Bolt' });
+  bolt.focus();
+  await user.keyboard('{Enter}{Shift>}{ArrowRight}{ArrowLeft}s{/Shift}{Delete}{Control>}{Alt>}={/Alt}{/Control}');
+  expect(bolt).toHaveTextContent('2 main');
+  expect(screen.getAllByRole('row')).toHaveLength(2);
+  await user.keyboard('{ArrowDown}');
+  expect(screen.getByRole('row', { name: 'Shock' })).toHaveFocus();
 });

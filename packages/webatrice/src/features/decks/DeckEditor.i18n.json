@@ -41,7 +41,8 @@
       "artifact": "Artifacts",
       "land": "Lands",
       "other": "Other",
-      "sideboard": "Sideboard"
+      "sideboard": "Sideboard",
+      "main": "Main deck"
     },
     "row": {
       "unknown": "Not in your card DB and Scryfall couldn''t find it. The card is saved but details/images can''t be shown.",
@@ -78,6 +79,7 @@
       "pricing": "Pricing {count, plural, one {# card} other {# cards}}… ({priced}/{total})",
       "missing": "{count, plural, one {# card has} other {# cards have}} no price on Scryfall",
       "missingShort": "{count, plural, one {# unpriced} other {# unpriced}}"
-    }
+    },
+    "hydrating": "Loading card data. Editing is available when loading finishes."
   }
 }

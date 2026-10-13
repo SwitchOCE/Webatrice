@@ -43,6 +43,21 @@ function storedPreview(file: ServerInfo_DeckStorage_File): Pick<FlatDeck, 'banne
   return preview;
 }
 
+export function findDeckFile(folder: ServerInfo_DeckStorage_Folder | undefined, deckId: number): ServerInfo_DeckStorage_File | undefined {
+  for (const item of folder?.items ?? []) {
+    if (item.id === deckId && item.file) {
+      return item.file;
+    }
+    if (item.folder) {
+      const file = findDeckFile(item.folder, deckId);
+      if (file) {
+        return file;
+      }
+    }
+  }
+  return undefined;
+}
+
 export function flattenFolder(
   folder: ServerInfo_DeckStorage_Folder,
   pathPrefix: string,

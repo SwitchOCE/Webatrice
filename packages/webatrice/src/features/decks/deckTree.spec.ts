@@ -6,7 +6,7 @@ import {
   type ServerInfo_DeckStorage_TreeItem,
 } from '@cockatrice/sockatrice/generated';
 
-import { deckVisibility, flattenFolder, formatDeckAge } from './deckTree';
+import { deckVisibility, findDeckFile, flattenFolder, formatDeckAge } from './deckTree';
 
 function file(id: number, name: string, creationTime: number): ServerInfo_DeckStorage_TreeItem {
   return create(ServerInfo_DeckStorage_TreeItemSchema, {
@@ -22,6 +22,20 @@ function folder(name: string, items: ServerInfo_DeckStorage_TreeItem[]): ServerI
     folder: create(ServerInfo_DeckStorage_FolderSchema, { items }),
   });
 }
+
+describe('findDeckFile', () => {
+  it('finds a single file at the root or in a nested folder', () => {
+    const rootFile = file(1, 'Root', 100);
+    const nestedFile = file(2, 'Nested', 200);
+    const root = create(ServerInfo_DeckStorage_FolderSchema, {
+      items: [rootFile, folder('Outer', [folder('Inner', [nestedFile])])],
+    });
+    expect(findDeckFile(root, 1)).toBe(rootFile.file);
+    expect(findDeckFile(root, 2)).toBe(nestedFile.file);
+    expect(findDeckFile(root, 3)).toBeUndefined();
+    expect(findDeckFile(undefined, 1)).toBeUndefined();
+  });
+});
 
 describe('flattenFolder', () => {
   it('collects files from nested folders with their path', () => {

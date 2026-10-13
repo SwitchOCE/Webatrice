@@ -45,6 +45,20 @@ export async function invalidateDeckSummary(scope: string, deckId: number): Prom
   }
 }
 
+export async function readDeckSummary(scope: string, deckId: number, creationTime: number): Promise<CachedDeckSummary | undefined> {
+  const id = key(scope, deckId);
+  if (typeof indexedDB === 'undefined' || invalidated.has(id)) {
+    return undefined;
+  }
+  try {
+    const row = await dexieService.deckSummaries.where('[scope+deckId]').equals([scope, deckId])
+      .filter((entry) => entry.creationTime === creationTime).first();
+    return invalidated.has(id) ? undefined : row;
+  } catch {
+    return undefined;
+  }
+}
+
 export function readDeckSummaries(scope: string, decks: FlatDeck[]): Promise<CachedDeckSummary[]> | undefined {
   if (typeof indexedDB === 'undefined') {
     return undefined;

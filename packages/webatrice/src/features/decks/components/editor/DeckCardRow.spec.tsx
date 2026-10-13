@@ -126,3 +126,13 @@ describe('DeckCardRow', () => {
     expect(within(row).queryByRole('img', { name: /DeckLegality/ })).toBeNull();
   });
 });
+
+it('keeps a provisional row readable while suppressing warnings and all row menus', () => {
+  renderRow({ card: { ...bolt, lookupSource: 'unknown' }, readOnly: true });
+  expect(screen.getByRole('button', { name: 'Lightning Bolt' })).toBeVisible();
+  expect(screen.queryByRole('img', { name: 'DeckEditor.row.unknown' })).not.toBeInTheDocument();
+  expect(screen.queryByRole('button', { name: 'DeckEditor.rowActions.trigger' })).not.toBeInTheDocument();
+  fireEvent.contextMenu(screen.getByRole('row'));
+  fireEvent.keyDown(screen.getByRole('row'), { key: 'F10', shiftKey: true });
+  expect(screen.queryByRole('menu')).not.toBeInTheDocument();
+});

@@ -1,4 +1,5 @@
 import { memo, useMemo } from 'react';
+import { useTranslation } from 'react-i18next';
 
 import type { DeckCategory } from '@app/types';
 
@@ -28,6 +29,7 @@ export interface DeckMainPaneProps {
   onLastRowRemoved?: () => void;
   isMtg: boolean;
   isCommander: boolean;
+  readOnly?: boolean;
   legality?: readonly CardLegality[];
   density?: DeckRowDensity;
   collapsedGroups?: ReadonlySet<string>;
@@ -51,17 +53,19 @@ export const DeckMainPane = memo(function DeckMainPane({
   onLastRowRemoved,
   isMtg,
   isCommander,
+  readOnly = false,
   legality,
   density = 'comfortable',
   collapsedGroups = NO_GROUPS,
   onToggleGroup,
 }: DeckMainPaneProps) {
+  const { t } = useTranslation();
   const [measureRef, width] = useElementWidth<HTMLDivElement>();
   const rowOrder = useMemo(
-    () => (isMtg
+    () => (isMtg || readOnly
       ? groups.flatMap(({ label, indices }) => (collapsedGroups.has(label) ? [] : indices))
       : sortIndicesByName(deck.cards, deck.cards.map((_, i) => i))),
-    [isMtg, groups, deck.cards, collapsedGroups],
+    [isMtg, readOnly, groups, deck.cards, collapsedGroups],
   );
   const columns = useMemo(
     () => deckColumnLayout(width, density, groups.map(({ label, indices }) => ({
@@ -71,6 +75,7 @@ export const DeckMainPane = memo(function DeckMainPane({
     [width, density, groups, collapsedGroups],
   );
   const grid = useDeckCardGrid({
+    readOnly,
     cards: deck.cards,
     order: rowOrder,
     onInc,
@@ -83,8 +88,9 @@ export const DeckMainPane = memo(function DeckMainPane({
     <div className="relative min-h-0 flex-1 overflow-y-auto px-5 pb-10 pt-4">
       <div ref={measureRef} aria-hidden className="h-0" />
       {deck.cards.length === 0 ? (
-        <EmptyCardsHint isMtg={isMtg} />
-      ) : isMtg ? (
+        readOnly ? <p role="status" className="text-sm text-text-muted">{t('DeckEditor.shell.loadingDeck')}</p>
+          : <EmptyCardsHint isMtg={isMtg} />
+      ) : isMtg || readOnly ? (
         <div style={{ columnCount: columns.count, columnGap: DECK_COLUMN_GAP, maxWidth: columns.maxWidth }}>
           {groups.map(({ label, indices }, position) => (
             <DeckCardGroup
@@ -103,6 +109,7 @@ export const DeckMainPane = memo(function DeckMainPane({
               onShowDetails={onShowDetails}
               isMtg={isMtg}
               isCommander={isCommander}
+              readOnly={readOnly}
               legality={legality}
               grid={grid}
               density={density}
