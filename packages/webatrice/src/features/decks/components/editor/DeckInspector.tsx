@@ -2,7 +2,6 @@ import { useTranslation } from 'react-i18next';
 import { Archive, ImageOff, Info, Layers, Minus, PackageOpen, Plus, Trash2 } from 'lucide-react';
 
 import { Button, ManaSymbols, SectionLabel } from '@app/components';
-import { useImageCandidates } from '@app/hooks';
 import { imageCandidatesOf } from '@app/services';
 import type { DeckCategory } from '@app/types';
 
@@ -10,6 +9,7 @@ import { priceForCard, type PriceLookup } from '../../pricing';
 import { upgradeScryfallImageSize } from '../../scryfallImage';
 import type { DeckCard } from '../../types';
 import type { InspectedCard } from './editorSelection';
+import { DeckCardImage } from './DeckCardImage';
 
 export interface DeckInspectorProps {
   selected: InspectedCard | null;
@@ -117,7 +117,6 @@ function CardSummary({ card, prices, children }: { card: DeckCard; prices: Price
   const imageUris = imageCandidatesOf(card)
     .map(upgradeScryfallImageSize)
     .filter((url): url is string => Boolean(url));
-  const { src, onError } = useImageCandidates(imageUris);
   const price = priceForCard(prices, card)?.usd;
   const stats = card.power != null && card.toughness != null ? `${card.power}/${card.toughness}` : undefined;
 
@@ -127,14 +126,12 @@ function CardSummary({ card, prices, children }: { card: DeckCard; prices: Price
         className="aspect-[5/7] w-full overflow-hidden border border-border-subtle bg-bg-elevated"
         style={{ borderRadius: '4.75% / 3.4%' }}
       >
-        {src ? (
-          <img src={src} alt={card.name} className="h-full w-full object-cover" draggable={false} onError={onError} />
-        ) : (
+        <DeckCardImage urls={imageUris} alt={card.name}>
           <div className="flex h-full flex-col items-center justify-center gap-2 px-3 text-center text-[12px] text-text-muted">
             <ImageOff size={20} />
             {t('DeckInspector.noImage')}
           </div>
-        )}
+        </DeckCardImage>
       </div>
       <div className="flex min-w-0 flex-col gap-1">
         <div className="flex items-start justify-between gap-2">

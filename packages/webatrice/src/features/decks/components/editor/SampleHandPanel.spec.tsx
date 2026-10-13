@@ -29,6 +29,20 @@ beforeEach(() => {
 });
 
 describe('SampleHandPanel', () => {
+  it('reserves the final card size before loading and after failure', () => {
+    open([card('Bolt', 1, { imageUri: 'https://img/bolt.jpg' })]);
+    const image = screen.getByAltText('Bolt');
+    expect(image).toHaveStyle({ opacity: '0' });
+    expect(screen.queryByText('Bolt')).toBeNull();
+    const frame = image.closest('.aspect-\\[5\\/7\\]');
+    expect(frame).not.toBeNull();
+    fireEvent.load(image);
+    expect(image).toHaveStyle({ opacity: '1' });
+    fireEvent.error(image);
+    expect(frame).toHaveTextContent('Bolt');
+    expect(screen.queryByAltText('Bolt')).toBeNull();
+  });
+
   it('is collapsed until opened, then shows a 7-card hand from the main deck', () => {
     render(<SampleHandPanel cards={deck} showImages />);
     expect(screen.queryByRole('list')).toBeNull();

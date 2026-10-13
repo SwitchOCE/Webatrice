@@ -1814,7 +1814,6 @@
     "downloadFailed": "Failed to download this deck from the server.",
     "loadFailedTitle": "Deck could not be loaded",
     "shell": {
-      "preloading": "Preloading {loaded}/{total} cards…",
       "loadingDeck": "Loading deck…",
       "notFoundTitle": "Deck not found",
       "notFoundBody": "Servatrice didn''t return this deck. Might have been deleted.",

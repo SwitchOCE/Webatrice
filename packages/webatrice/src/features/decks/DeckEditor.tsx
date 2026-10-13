@@ -46,7 +46,7 @@ import { DeckPlaymatDialog } from './dialogs/DeckPlaymatDialog';
 import { PrintingPickerDialog, type PrintingRequest } from './dialogs/PrintingPickerDialog';
 import { ShareDeckDialog } from './dialogs/ShareDeckDialog';
 import { useDeckEditor } from './hooks/useDeckEditor';
-import { useDeckImagePreload } from './hooks/useDeckImagePreload';
+import { useDeckImageWarmer } from './hooks/useDeckImageWarmer';
 import { useDeckLegality } from './hooks/useDeckLegality';
 import { useDeckPricing } from './hooks/useDeckPricing';
 import { useDeckShareCreate, useDeckSharingSupported } from './hooks/useDeckSharing';
@@ -123,9 +123,10 @@ const DeckEditor = () => {
     }
   }, [selected, selectedIndex]);
 
-  const preload = useDeckImagePreload(
+  useDeckImageWarmer(
     deckId ?? (draftToken != null ? `draft:${draftToken}` : null),
     editor.deck,
+    groups,
     editor.loading,
   );
 
@@ -192,13 +193,10 @@ const DeckEditor = () => {
   );
 
   if (editor.loading) {
-    return <DeckEditorSkeleton loaded={0} total={0} />;
+    return <DeckEditorSkeleton />;
   }
   if (editor.notFound || !editor.deck) {
     return <DeckNotFound reason={editor.loadError} />;
-  }
-  if (!preload.ready) {
-    return <DeckEditorSkeleton loaded={preload.loaded} total={preload.total} />;
   }
 
   const { layout, prefs } = paneLayout;

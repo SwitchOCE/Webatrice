@@ -2,12 +2,12 @@ import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { ChevronDown, ChevronRight, Hand, Shuffle } from 'lucide-react';
 
-import { useImageCandidates } from '@app/hooks';
 import { imageCandidatesOf } from '@app/services';
 
 import { MIN_SAMPLE_HAND_SIZE } from '../../sampleHand';
 import { useSampleHand } from '../../hooks/useSampleHand';
 import type { DeckCard } from '../../types';
+import { DeckCardImage } from './DeckCardImage';
 
 export interface SampleHandPanelProps {
   cards: readonly DeckCard[];
@@ -86,12 +86,11 @@ function SampleHand({ cards, showImages, random }: SampleHandPanelProps) {
 }
 
 function SampleHandImage({ card }: { card: DeckCard }) {
-  const { src, onError } = useImageCandidates(imageCandidatesOf(card));
-  return src
-    ? <img src={src} alt={card.name} className="w-full rounded-md shadow" loading="lazy" onError={onError} />
-    : (
-      <div className="h-36 rounded-md border border-border-subtle bg-bg-elevated p-2 text-xs text-text-primary">
+  return (
+    <DeckCardImage urls={imageCandidatesOf(card)} alt={card.name} className="aspect-[5/7] w-full rounded-md shadow" lazy>
+      <div className="h-full rounded-md border border-border-subtle bg-bg-elevated p-2 text-xs text-text-primary">
         {card.name}
       </div>
-    );
+    </DeckCardImage>
+  );
 }

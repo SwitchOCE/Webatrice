@@ -16,11 +16,10 @@ const testI18n = i18n.createInstance();
 testI18n.use(initReactI18next).init({ lng: 'en-US', resources: { 'en-US': { translation: {} } } });
 
 describe('DeckEditorShells', () => {
-  it('shows hydration, then preload progress, in the skeleton', () => {
-    const { rerender } = render(<DeckEditorSkeleton loaded={0} total={0} />);
+  it('shows hydration without image progress in the skeleton', () => {
+    render(<DeckEditorSkeleton />);
     expect(screen.getByText('DeckEditor.shell.loadingDeck')).toBeInTheDocument();
-    rerender(<DeckEditorSkeleton loaded={3} total={10} />);
-    expect(screen.getByText('DeckEditor.shell.preloading')).toBeInTheDocument();
+    expect(screen.queryByText('DeckEditor.shell.preloading')).not.toBeInTheDocument();
   });
 
   it('links a missing deck back to My Decks', () => {
