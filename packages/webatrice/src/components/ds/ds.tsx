@@ -467,9 +467,9 @@ const PIP: Record<string, string> = {
   C: 'bg-[#D4CFCB]',
 };
 
-export function ColorPips({ colors, size = 10 }: { colors: string[]; size?: number }) {
+export function ColorPips({ colors, size = 10, label }: { colors: string[]; size?: number; label?: string }) {
   return (
-    <span className="inline-flex items-center gap-[3px]" role="img" aria-label={colors.join('')}>
+    <span className="inline-flex shrink-0 items-center gap-[3px]" role="img" aria-label={label ?? colors.join('')}>
       {colors.map((c) => (
         <span key={c} style={{ width: size, height: size }} className={cx('rounded-full ring-1 ring-black/20', PIP[c] ?? PIP.C)} />
       ))}

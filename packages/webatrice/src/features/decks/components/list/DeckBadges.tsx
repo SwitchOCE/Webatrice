@@ -1,6 +1,7 @@
 import { useTranslation } from 'react-i18next';
 import { Globe } from 'lucide-react';
 
+import { ColorPips } from '@app/components';
 import { bracketToneClass, cx, toBcp47 } from '@app/utils';
 
 import { IDENTITY_COLOURS } from '../../deckGrid';
@@ -58,25 +59,13 @@ export function DeckPriceBadge({
   );
 }
 
-const PIP_BG: Record<string, string> = { W: 'bg-mana-w', U: 'bg-mana-u', B: 'bg-mana-b', R: 'bg-mana-r', G: 'bg-mana-g' };
-
 export function IdentityPips({ colours, size = 10 }: { colours: string; size?: number }) {
   const { t } = useTranslation();
-  return (
-    <span
-      role="img"
-      className="inline-flex shrink-0 items-center gap-[3px]"
-      aria-label={t('Decks.badge.identity', { colours: colours || t('Decks.badge.colourless') })}
-    >
-      {IDENTITY_COLOURS.map((c) => (
-        <span
-          key={c}
-          style={{ width: size, height: size }}
-          className={cx('rounded-full ring-1 ring-inset ring-black/25', PIP_BG[c], !colours.includes(c) && 'opacity-[0.18]')}
-        />
-      ))}
-    </span>
-  );
+  const present = IDENTITY_COLOURS.filter((c) => colours.includes(c));
+  if (present.length === 0) {
+    return null;
+  }
+  return <ColorPips colors={present} size={size} label={t('Decks.badge.identity', { colours: present.join('') })} />;
 }
 
 export function TagChip({ children, className }: { children: string; className?: string }) {

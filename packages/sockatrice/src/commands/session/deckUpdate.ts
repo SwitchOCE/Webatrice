@@ -3,6 +3,7 @@ import { WebClient } from '../../WebClient';
 import type { CommandFailure } from '../../types/CommandFailure';
 
 import { Command_DeckUpload_ext, Command_DeckUploadSchema, Response_DeckUpload_ext } from '../../generated';
+import { deckUploadedItem } from './deckUploadedItem';
 
 export function deckUpdate(
   deckId: number,
@@ -17,7 +18,7 @@ export function deckUpdate(
     {
       responseExt: Response_DeckUpload_ext,
       onSuccess: (response) => {
-        WebClient.instance.response.session.updateServerDeck?.(deckId, response.newFile);
+        WebClient.instance.response.session.updateServerDeck?.(deckId, deckUploadedItem(response.newFile, colorIdentity));
         onSettled?.(null);
       },
       onError: (responseCode, _raw, failure) => {

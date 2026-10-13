@@ -28,7 +28,7 @@ describe.each([['tile', DeckTile], ['row', DeckListRow]] as const)('Deck%s', (_k
     render(<Item view={view} actions={a} />);
     const article = screen.getByRole('article', { name: 'Atraxa' });
     expect(within(article).getByText('Decks.badge.bracketShort')).toBeInTheDocument();
-    expect(within(article).getByRole('img', { name: 'Decks.badge.identity' })).toBeInTheDocument();
+    expect(within(article).getByRole('img', { name: 'Decks.badge.identity' }).children).toHaveLength(4);
     expect(within(article).getByText('DeckSharing.public')).toBeInTheDocument();
     expect(within(article).getByTitle('Decks.badge.priceTotal')).toHaveTextContent(/12.50/);
     fireEvent.click(screen.getByRole('button', { name: 'DeckTile.open' }));
@@ -67,5 +67,10 @@ it('leaves out sharing and moving when unavailable and explains disabled edits',
 it('shows a loading price and no identity before anything is known', () => {
   render(<DeckTile view={deckTileView({ ...deck, colorIdentity: undefined }, undefined)} actions={actions()} />);
   expect(screen.getByTitle('Decks.badge.priceLoading')).toBeInTheDocument();
+  expect(screen.queryByRole('img', { name: 'Decks.badge.identity' })).toBeNull();
+});
+
+it('shows no identity pips for a colourless deck', () => {
+  render(<DeckTile view={deckTileView({ ...deck, colorIdentity: '' }, undefined)} actions={actions()} />);
   expect(screen.queryByRole('img', { name: 'Decks.badge.identity' })).toBeNull();
 });
