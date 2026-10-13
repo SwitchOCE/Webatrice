@@ -19,8 +19,11 @@ beforeEach(() => {
 
 it('shares a successful prefetch with navigation without importing again', async () => {
   const load = vi.fn().mockResolvedValue({ default: () => <div>ready</div> });
-  const { Component, preload } = lazyRoute(load);
+  const { Component, isLoaded, preload } = lazyRoute(load);
+  expect(isLoaded()).toBe(false);
   await Promise.all([preload(), preload()]);
+  expect(isLoaded()).toBe(true);
+  await preload();
   renderWithProviders(<Suspense fallback="waiting"><Component /></Suspense>);
   expect(await screen.findByText('ready')).toBeInTheDocument();
   expect(load).toHaveBeenCalledTimes(1);
@@ -29,8 +32,9 @@ it('shares a successful prefetch with navigation without importing again', async
 it('retries a failed background prefetch when the user navigates', async () => {
   const load = vi.fn().mockRejectedValueOnce(new TypeError('Failed to fetch dynamically imported module'))
     .mockResolvedValueOnce({ default: () => <div>ready</div> });
-  const { Component, preload } = lazyRoute(load);
+  const { Component, isLoaded, preload } = lazyRoute(load);
   await expect(preload()).rejects.toBeInstanceOf(RouteChunkError);
+  expect(isLoaded()).toBe(false);
   renderWithProviders(<Suspense fallback="waiting"><Component /></Suspense>);
   expect(await screen.findByText('ready')).toBeInTheDocument();
   expect(load).toHaveBeenCalledTimes(2);

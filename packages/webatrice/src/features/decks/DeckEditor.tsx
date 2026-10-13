@@ -17,7 +17,7 @@ import { isCommanderFormat, isMtgFormat, RouteEnum } from '@app/types';
 import { DeckBreakdown } from './components/breakdown/DeckBreakdown';
 import CardSearchDock, { type CardSearchDockApi } from './components/CardSearchDock/CardSearchDock';
 import { DeckEditorHeader } from './components/editor/DeckEditorHeader';
-import { DeckEditorSkeleton, DeckNotFound } from './components/editor/DeckEditorShells';
+import { DeckNotFound } from './components/editor/DeckEditorShells';
 import { DeckHistoryControls } from './components/editor/DeckHistoryControls';
 import { DeckInspector } from './components/editor/DeckInspector';
 import { DeckLegalitySummary } from './components/editor/DeckLegalitySummary';
@@ -38,7 +38,6 @@ import { groupDeckCards } from './deckGrouping';
 import { deckColorIdentity, serializeDeckForSave } from './deckPersistence';
 import { isBlankDeck } from './deckSharing';
 import type { DecksLocationState } from './deckShortcuts';
-import { readDeckTags } from './deckTags';
 import type { ScryfallSearchCard } from './search';
 import { CardDetailDialog } from './dialogs/CardDetailDialog';
 import { ExportDeckDialog } from './dialogs/ExportDeckDialog';
@@ -46,6 +45,7 @@ import { DeckPlaymatDialog } from './dialogs/DeckPlaymatDialog';
 import { PrintingPickerDialog, type PrintingRequest } from './dialogs/PrintingPickerDialog';
 import { ShareDeckDialog } from './dialogs/ShareDeckDialog';
 import { useDeckEditor } from './hooks/useDeckEditor';
+import { useDeckEditorFrame } from './hooks/useDeckEditorFrame';
 import { useProvisionalDeckGroups } from './hooks/useProvisionalDeckGroups';
 import { useDeckImageWarmer } from './hooks/useDeckImageWarmer';
 import { useDeckLegality } from './hooks/useDeckLegality';
@@ -65,6 +65,8 @@ const DeckEditor = () => {
   const deckId = Number.isFinite(parsedDeckId) ? parsedDeckId : null;
 
   const editor = useDeckEditor(deckId, draftToken ?? null);
+  const frame = useDeckEditorFrame(deckId, editor);
+  const { deck } = frame;
   const readyDeck = editor.hydrating ? null : editor.deck;
   useRecordRecentDeck(deckId, editor.loading ? null : readyDeck);
 
@@ -105,10 +107,10 @@ const DeckEditor = () => {
   useShortcut('deck.new', () => openDecksDialog('create'), { scope: ShortcutScope.DECK_EDITOR });
   useShortcut('deck.load', () => openDecksDialog('import'), { scope: ShortcutScope.DECK_EDITOR });
 
-  const isMtg = isMtgFormat(editor.deck?.format);
-  const isCommander = isCommanderFormat(editor.deck?.format);
+  const isMtg = isMtgFormat(deck.format);
+  const isCommander = isCommanderFormat(deck.format);
 
-  const tags = useMemo(() => readDeckTags(editor.deck?.tagsXml), [editor.deck?.tagsXml]);
+  const tags = frame.tags;
 
   const hydratedGroups = useMemo(
     () => groupDeckCards(readyDeck?.cards ?? [], isCommander),
@@ -197,10 +199,7 @@ const DeckEditor = () => {
     [collapsedGroups, setGroupsCollapsed],
   );
 
-  if (editor.loading && !editor.deck) {
-    return <DeckEditorSkeleton />;
-  }
-  if (editor.notFound || !editor.deck) {
+  if (editor.notFound || (!editor.loading && !editor.deck)) {
     return <DeckNotFound reason={editor.loadError} />;
   }
 
@@ -258,14 +257,16 @@ const DeckEditor = () => {
           </IconButton>
         )}
       </div>
-      {editor.hydrating ? (
-        <div role="status" className="animate-pulse text-sm text-text-muted">{t('DeckEditor.shell.loadingDeck')}</div>
+      {frame.readOnly ? (
+        <div role="status" className="animate-pulse text-sm text-text-muted">
+          {frame.waitingMessage ?? t('DeckEditor.shell.loadingDeck')}
+        </div>
       ) : isMtg && (
         <>
           <DeckInspector
             selected={preview.card}
             index={preview.index}
-            deckCards={editor.deck.cards}
+            deckCards={deck.cards}
             prices={pricing.prices}
             isCommanderDeck={isCommander}
             onInc={editor.incQuantity}
@@ -278,15 +279,15 @@ const DeckEditor = () => {
           <section className="flex flex-col gap-3 border-t border-border-subtle pt-4" aria-label={t('DeckEditor.inspector.stats')}>
             <SectionLabel>{t('DeckEditor.inspector.stats')}</SectionLabel>
             <DeckBreakdown
-              cards={editor.deck.cards}
-              format={editor.deck.format}
-              cachedAssessment={editor.deck.bracketAssessment}
+              cards={deck.cards}
+              format={deck.format}
+              cachedAssessment={deck.bracketAssessment}
               onAssessmentComputed={editor.setBracketAssessment}
             />
           </section>
         </>
       )}
-      {!editor.hydrating && <SampleHandPanel cards={editor.deck.cards} showImages={isMtg} />}
+      {!frame.readOnly && <SampleHandPanel cards={deck.cards} showImages={isMtg} />}
     </aside>
   );
 
@@ -313,8 +314,10 @@ const DeckEditor = () => {
             />
           )}
           <div hidden={dockCollapsed} inert={dockCollapsed} className="flex min-h-0 flex-1 flex-col">
-            {editor.hydrating ? (
-              <div role="status" className="animate-pulse p-pad text-sm text-text-muted">{t('DeckEditor.shell.loadingDeck')}</div>
+            {frame.readOnly ? (
+              <div role="status" className="animate-pulse p-pad text-sm text-text-muted">
+                {frame.waitingMessage ?? t('DeckEditor.shell.loadingDeck')}
+              </div>
             ) : isMtg ? (
               <CardSearchDock
                 onAdd={addCard}
@@ -322,8 +325,8 @@ const DeckEditor = () => {
                 onHoverPreview={hoverSearchCard}
                 onReady={onDockReady}
                 colorIdentity={colorIdentity}
-                format={editor.deck.format}
-                deckCards={editor.deck.cards}
+                format={deck.format}
+                deckCards={deck.cards}
                 headerAction={(
                   <IconButton
                     ref={paneFocus.target('dock-collapse')}
@@ -367,17 +370,18 @@ const DeckEditor = () => {
         )}
 
         <main className="relative flex min-h-0 min-w-0 flex-col">
-          {editor.readOnlyReason && (
-            <p role="status" className="px-5 pt-3 text-sm text-text-secondary">{editor.readOnlyReason}</p>
+          {frame.readOnlyReason && (
+            <p role="status" className="px-5 pt-3 text-sm text-text-secondary">{frame.readOnlyReason}</p>
           )}
-          <fieldset disabled={editor.hydrating} className="min-w-0 shrink-0" aria-label={editor.readOnlyReason ?? undefined}>
+          <fieldset disabled={frame.readOnly} className="min-w-0 shrink-0" aria-label={frame.readOnlyReason ?? undefined}>
             <DeckEditorHeader
-              deck={editor.deck}
+              deck={deck}
               saveState={editor.saveState}
               onRetrySave={editor.retrySave}
-              totalMainboardCount={editor.totalMainboardCount}
-              totalSideboardCount={editor.totalSideboardCount}
+              totalMainboardCount={frame.totalMainboardCount}
+              totalSideboardCount={frame.totalSideboardCount}
               tags={tags}
+              colors={frame.colors}
               onNameChange={editor.setName}
               onFormatChange={editor.setFormat}
               onTagsChange={editor.setTags}
@@ -388,7 +392,7 @@ const DeckEditor = () => {
               openDeck={{
                 deckId,
                 isModified: editor.isModified,
-                isBlank: !editor.isModified && isBlankDeck(editor.deck),
+                isBlank: !editor.isModified && isBlankDeck(deck),
                 saveNow: editor.saveNow,
                 discardChanges: editor.discardChanges,
                 pauseAutosave: editor.pauseAutosave,
@@ -405,15 +409,15 @@ const DeckEditor = () => {
               )}
               legality={(
                 <DeckLegalitySummary
-                  format={editor.deck.format}
+                  format={deck.format}
                   status={legality.status}
                   illegalCount={legality.illegalCount}
                   unknownCount={legality.unknownCount}
-                  loading={editor.hydrating || legality.loading}
+                  loading={frame.readOnly || legality.loading}
                 />
               )}
               prices={pricing.prices}
-              pricesLoading={editor.hydrating || pricing.loading}
+              pricesLoading={frame.readOnly || pricing.loading}
               isMtg={isMtg}
               bracketLevel={bracketLevel}
               onResetLayout={resetLayout}
@@ -450,7 +454,7 @@ const DeckEditor = () => {
             />
           </fieldset>
           <DeckMainPane
-            deck={editor.deck}
+            deck={deck}
             groups={groups}
             selectedIndex={selectedIndex}
             onSelect={selectCard}
@@ -464,7 +468,9 @@ const DeckEditor = () => {
             onLastRowRemoved={focusAddField}
             isMtg={isMtg}
             isCommander={isCommander}
-            readOnly={editor.hydrating}
+            readOnly={frame.readOnly}
+            placeholderRows={frame.placeholderRows}
+            waitingMessage={frame.waitingMessage}
             legality={legality.rows}
             density={prefs.density}
             collapsedGroups={paneLayout.collapsedGroups}
@@ -501,8 +507,8 @@ const DeckEditor = () => {
       </div>
 
       <PrintingPickerDialog
-        request={editor.hydrating ? null : printingRequest}
-        deckCards={editor.deck?.cards}
+        request={frame.readOnly ? null : printingRequest}
+        deckCards={deck?.cards}
         onClose={() => setPrintingRequest(null)}
         onPick={(printing) => {
           if (!printingRequest) {
@@ -513,10 +519,10 @@ const DeckEditor = () => {
         }}
       />
 
-      {isMtg && !editor.hydrating && (
+      {isMtg && !frame.readOnly && (
         <CardDetailDialog
           snapshot={detailSnapshot}
-          deckCards={editor.deck.cards}
+          deckCards={deck.cards}
           isCommanderDeck={isCommander}
           prices={pricing.prices}
           onClose={() => setDetailSnapshot(null)}
@@ -536,9 +542,9 @@ const DeckEditor = () => {
         />
       )}
 
-      {playmatOpen && !editor.hydrating && (
+      {playmatOpen && !frame.readOnly && (
         <DeckPlaymatDialog
-          playmat={readDeckPlaymat(editor.deck.playmatXml)}
+          playmat={readDeckPlaymat(deck.playmatXml)}
           onClose={() => setPlaymatOpen(false)}
           onSave={(playmat) => {
             editor.setPlaymat(playmat);
@@ -548,13 +554,13 @@ const DeckEditor = () => {
       )}
 
       <ExportDeckDialog
-        open={exportOpen && !editor.hydrating}
+        open={exportOpen && !frame.readOnly}
         onClose={() => setExportOpen(false)}
-        deck={editor.deck}
+        deck={deck}
       />
 
       <ShareDeckDialog
-        open={shareOpen && !editor.hydrating}
+        open={shareOpen && !frame.readOnly}
         defaultName={t('DeckSharing.defaultDeckName')}
         state={share.state}
         onClose={() => {

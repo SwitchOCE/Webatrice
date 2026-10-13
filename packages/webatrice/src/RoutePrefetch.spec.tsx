@@ -1,10 +1,18 @@
 import { StrictMode } from 'react';
-import { act, cleanup } from '@testing-library/react';
+import { act, cleanup, fireEvent, screen } from '@testing-library/react';
 import { renderWithProviders, connectedState, disconnectedState } from './__test-utils__';
-import RoutePrefetch from './RoutePrefetch';
+import RoutePrefetch, { useDeckEditorRoutePrefetch } from './RoutePrefetch';
 import { prefetchRoutes } from './lazyRoutes';
 
-vi.mock('./lazyRoutes', () => ({ prefetchRoutes: vi.fn() }));
+const routeMocks = vi.hoisted(() => ({
+  isLoaded: vi.fn(() => false),
+  preload: vi.fn(() => Promise.resolve({ default: () => null })),
+}));
+
+vi.mock('./lazyRoutes', () => ({
+  lazyRoutes: { DeckEditor: routeMocks },
+  prefetchRoutes: vi.fn(),
+}));
 
 let frames: Map<number, FrameRequestCallback>;
 let idleCallbacks: Map<number, IdleRequestCallback>;
@@ -12,6 +20,8 @@ let nextId: number;
 
 beforeEach(() => {
   vi.useFakeTimers();
+  routeMocks.isLoaded.mockReturnValue(false);
+  routeMocks.preload.mockResolvedValue({ default: () => null });
   frames = new Map();
   idleCallbacks = new Map();
   nextId = 0;
@@ -40,6 +50,11 @@ function frame() {
 
 function mount() {
   return renderWithProviders(<StrictMode><RoutePrefetch /></StrictMode>, { preloadedState: connectedState });
+}
+
+function DeckEditorPrefetchProbe() {
+  const prefetch = useDeckEditorRoutePrefetch();
+  return <button type="button" onPointerEnter={prefetch} onFocus={prefetch}>Open deck</button>;
 }
 
 it('waits for Home to paint and then for idle, including under StrictMode', () => {
@@ -92,4 +107,28 @@ it('does not prefetch while Home is redirecting a signed-out user', () => {
   renderWithProviders(<RoutePrefetch />, { preloadedState: disconnectedState });
   expect(frames.size).toBe(0);
   expect(prefetchRoutes).not.toHaveBeenCalled();
+});
+
+it('prefetches the deck editor on idle after the caller mounts', () => {
+  renderWithProviders(<DeckEditorPrefetchProbe />);
+  frame();
+  frame();
+  expect(routeMocks.preload).not.toHaveBeenCalled();
+  act(() => [...idleCallbacks.values()].forEach(callback => callback({ didTimeout: false, timeRemaining: () => 50 })));
+  expect(routeMocks.preload).toHaveBeenCalledTimes(1);
+});
+
+it('does not schedule idle work when the deck editor is loaded', () => {
+  routeMocks.isLoaded.mockReturnValue(true);
+  renderWithProviders(<DeckEditorPrefetchProbe />);
+  expect(frames.size).toBe(0);
+  expect(routeMocks.preload).not.toHaveBeenCalled();
+});
+
+it('deduplicates pointer and focus prefetches for the same mount', () => {
+  renderWithProviders(<DeckEditorPrefetchProbe />);
+  const button = screen.getByRole('button', { name: 'Open deck' });
+  fireEvent.pointerEnter(button);
+  fireEvent.focus(button);
+  expect(routeMocks.preload).toHaveBeenCalledTimes(1);
 });

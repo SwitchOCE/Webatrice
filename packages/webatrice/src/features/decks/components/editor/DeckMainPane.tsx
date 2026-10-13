@@ -30,6 +30,8 @@ export interface DeckMainPaneProps {
   isMtg: boolean;
   isCommander: boolean;
   readOnly?: boolean;
+  placeholderRows?: readonly number[];
+  waitingMessage?: string;
   legality?: readonly CardLegality[];
   density?: DeckRowDensity;
   collapsedGroups?: ReadonlySet<string>;
@@ -54,6 +56,8 @@ export const DeckMainPane = memo(function DeckMainPane({
   isMtg,
   isCommander,
   readOnly = false,
+  placeholderRows,
+  waitingMessage,
   legality,
   density = 'comfortable',
   collapsedGroups = NO_GROUPS,
@@ -87,7 +91,18 @@ export const DeckMainPane = memo(function DeckMainPane({
   return (
     <div className="relative min-h-0 flex-1 overflow-y-auto px-5 pb-10 pt-4">
       <div ref={measureRef} aria-hidden className="h-0" />
-      {deck.cards.length === 0 ? (
+      {placeholderRows ? (
+        <ul aria-label={t('DeckEditor.shell.loadingDeck')} aria-busy="true" className="max-w-md">
+          {placeholderRows.map((row) => (
+            <li key={row} className={density === 'compact' ? 'flex h-7 items-center gap-3' : 'flex h-9 items-center gap-3'}>
+              <span className="h-4 w-6 animate-pulse rounded bg-bg-elevated" />
+              <span className="h-4 w-3/5 animate-pulse rounded bg-bg-elevated" />
+            </li>
+          ))}
+        </ul>
+      ) : waitingMessage ? (
+        <p role="status" className="text-sm text-text-muted">{waitingMessage}</p>
+      ) : deck.cards.length === 0 ? (
         readOnly ? <p role="status" className="text-sm text-text-muted">{t('DeckEditor.shell.loadingDeck')}</p>
           : <EmptyCardsHint isMtg={isMtg} />
       ) : isMtg || readOnly ? (
