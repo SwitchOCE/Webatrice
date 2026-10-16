@@ -1,6 +1,6 @@
 ---
 name: design-feedback
-description: Turn a designer's UI/UX feedback on Webatrice into exact, approved visual changes and a pull request, without the designer needing to know the code. Use whenever someone gives design feedback, critique, a Notion or Figma export, annotated screenshots, "this should look like…", "move X", "rename Y", "too much padding", or asks to mock up, wireframe or submit a design change for the Webatrice app. Also use when the designer says "new feedback", "show me", "approve", "park it" or "submit".
+description: Turn a designer's UI/UX feedback on Webatrice into exact, approved visual changes and a pull request, without the designer needing to know the code. Use whenever someone gives design feedback, critique, a Notion or Figma export, annotated screenshots, "this should look like…", "move X", "rename Y", "too much padding", or asks to mock up, wireframe or submit a design change for the Webatrice app, including editing the app's screens in Brilliant. Also use when the designer says "new feedback", "show me", "approve", "park it", "submit", or "done" after editing in Brilliant.
 ---
 
 # Design feedback → exact visual PRs
@@ -34,6 +34,7 @@ The designer can say at any time:
 - "approve #3" / "yes, that's it" – item becomes *Approved*
 - "park #3" – set aside
 - "submit" – start the PR handoff for all *Approved* items
+- "let me do it in Brilliant" / "done" (after editing there) – see Brilliant mode below
 
 Tell the designer these commands once, at the start of the first session.
 
@@ -71,6 +72,8 @@ Done when: <one or two checks a reviewer can see in a screenshot>
 Write the spec to `.design-feedback/<session>/items/<nn>-<slug>.md`, read it back to the designer in plain language, and ask "Is this right?" with options *Yes / Change something*.
 
 If the designer offers alternatives ("options: A, B or C"), ask them to pick one, or offer to mock all of them side by side and let them choose from the pictures.
+
+**Brilliant mode.** If the designer works in Brilliant, they can show you instead of telling you: you build the real area in Brilliant as editable frames, they change it by hand, and you read back an exact list of what changed. Offer it once per round for layout and spacing items; use it whenever they ask. Follow [references/brilliant.md](references/brilliant.md) exactly. It uses scripts only; never call Brilliant's tools directly, they're too large. The diff lines feed the spec above; you still confirm the spec and still do the real-app mock.
 
 ## Step 3 — Mock
 

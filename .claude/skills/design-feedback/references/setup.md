@@ -41,6 +41,10 @@ Check it serves `http://localhost:<port>/layout-tests/harness.html?route=dashboa
 
 If the app has a built-in browser pane (Claude desktop app), also open the harness there so the designer can look around live; it hot-reloads as you edit.
 
+## 4b. Brilliant (only if the designer uses it)
+
+Run `node .claude/skills/design-feedback/scripts/brilliant/check.mjs` and follow what it prints ([brilliant.md](brilliant.md#setup-once-per-machine-then-at-the-start-of-each-brilliant-round)). Don't add Brilliant as an MCP server in Claude Code; the scripts talk to it directly.
+
 ## 5. Failure handling
 
 One retry per step. If it still fails, tell the designer: "I can't start the preview on this machine yet (<one-line reason>). I'll write up your feedback as specs and wireframes for now; Alex can fix the setup." Then continue Steps 1–3 using wireframes only, and mark real-app mocks as pending.
