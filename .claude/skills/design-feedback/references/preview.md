@@ -6,7 +6,8 @@ URL: `http://localhost:5179/layout-tests/harness.html?<query>` (server started i
 
 | Query | Shows |
 |---|---|
-| `route=home` | Dashboard (welcome card, buddies' games, recent decks, "From the server", rooms list) |
+| `route=home` | Dashboard in its empty states (no rooms, games, buddies or recent decks) |
+| `route=dashboard` | Dashboard with content: Magic room joined, buddies' and open games, recent decks, long "From the server" message, rooms list, buddies online |
 | `route=room` | A room with 403 users and 320 chat lines |
 | `route=deck` | Deck editor with an empty draft |
 | `route=game&players=2..6` | Game board; add `&as=spectator` to watch instead of play |
@@ -16,7 +17,7 @@ Useful selectors for cropped shots:
 - Top bar: `body > #root header` (first `header`); open tabs: `nav[aria-label="Open tabs"]`
 - Page content: `main`
 
-**Seed data gaps.** `route=home` seeds no rooms, no open games and no recent decks, so the dashboard shows its empty states. When an item is about content that isn't seeded (game cards, a Magic room, the decks row), add the data you need to `packages/webatrice/layout-tests/harness/main.tsx` on a separate local commit titled `wip: harness seed` and drop that commit before the PR (see [handoff.md](handoff.md)). Keep seeds realistic: names, counts and formats like the designer's screenshots. Tell the designer when a mock uses invented data.
+**Seed data.** `route=dashboard` seeds a server with 105 people online; four rooms (Magic joined and usual, 58 games, plus Commander, Tournaments, Español); 11 games in Magic in Commander, Legacy, Modern, Pauper and Pioneer, with flags, spectators, a password game and two started ones, three of them hosted by buddies; 4 of 6 buddies online; an announcement long enough to collapse; and 7 recent decks. The seed lives in `packages/webatrice/layout-tests/harness/dashboard.ts`. Card art and the hero image load from Scryfall, so they need network. The dashboard shows only 2 open games and 4 decks because the app limits them, not the seed. When an item needs content that still isn't seeded, add it to `dashboard.ts` on a separate local commit titled `wip: harness seed` and drop that commit before the PR (see [handoff.md](handoff.md)). Keep seeds realistic: names, counts and formats like the designer's screenshots. Tell the designer when a mock uses invented data.
 
 ## Screenshots
 
