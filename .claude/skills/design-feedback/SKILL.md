@@ -48,7 +48,7 @@ Accept anything: a Notion/HTML export, a zip, screenshots, a Figma link, a parag
 1. Read all of it, including every image. Extracted downloads go in a fresh empty folder under `.design-feedback/<session>/input/`.
 2. Split it into **items**: one item = one change a reviewer could approve or reject on its own. "Rename the section and show more games" is two items.
 3. Tag each item: **Visual** (layout, spacing, size, type, colour, icon, copy, show/hide, order), **Behaviour** (what something does, navigation, new controls, when data appears) or **Bug** (looks or acts broken).
-4. Take a **Current** screenshot of the affected area for each item ([references/preview.md](references/preview.md)).
+4. Take the **Current** screenshots now, before any code change: full page for each screen involved, plus the area of each item and its other states ([references/preview.md](references/preview.md)). Later screenshots show your edits, so Current must come from here.
 5. Show the tracker and say which item you'll clarify first. Go in the order of the source document unless the designer picks otherwise.
 
 ## Step 2 — Clarify until firm

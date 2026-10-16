@@ -31,6 +31,7 @@ Anything else: search the visible English text in `**/*.i18n.json`; the file nex
 - **Tests that check the old look or words** (`*.spec.tsx` next to the component) get updated in the same change. Don't delete a test to make it pass.
 - **Accessibility stays intact**: keep `aria-label`s, focus outlines and contrast. If the designer's request would remove one (e.g. an icon-only button), keep an accessible name and mention it in the PR.
 - **Both themes.** Check dark and light when colours, borders or backgrounds change.
+- **Line endings.** Edit files with the Edit tool. Scripted edits (sed, Python, `git show > file`) can leave LF endings in a Windows checkout, and lint then fails with `linebreak-style`. The commit is fine either way; fix the working copy with `git checkout -- <file>` after committing, or run `npm run -w @cockatrice/webatrice lint:fix`.
 
 ## Checks before handoff
 

@@ -2,7 +2,7 @@
 
 ## The offline harness
 
-URL: `http://localhost:5179/layout-tests/harness.html?<query>` (server started in [setup.md](setup.md)). It renders the real app shell (left nav, top bar, tabs, pages) from seeded data. No login, no game server.
+URL: `http://localhost:<port>/layout-tests/harness.html?<query>`, with the port from `.design-feedback/server.json` (server started in [setup.md](setup.md)). It renders the real app shell (left nav, top bar, tabs, pages) from seeded data. No login, no game server.
 
 | Query | Shows |
 |---|---|
@@ -12,8 +12,9 @@ URL: `http://localhost:5179/layout-tests/harness.html?<query>` (server started i
 | `route=deck` | Deck editor with an empty draft |
 | `route=game&players=2..6` | Game board; add `&as=spectator` to watch instead of play |
 
-Useful selectors for cropped shots:
-- Left nav: `nav[aria-label="Main navigation"]`; its collapse button: `button[aria-label="Hide the navigation rail"]`
+Useful crops:
+- Whole left nav (logo, toggle, items, avatar): `clip:0,0,76,<height>`. `nav[aria-label="Main navigation"]` is only the item list.
+- Collapse button: `button[aria-label="Hide the navigation rail"]` (collapse with `click:` on it; the expand button is then `#nav-rail-toggle`)
 - Top bar: `body > #root header` (first `header`); open tabs: `nav[aria-label="Open tabs"]`
 - Page content: `main`
 
@@ -22,13 +23,22 @@ Useful selectors for cropped shots:
 ## Screenshots
 
 ```bash
-node .claude/skills/design-feedback/scripts/shoot.mjs <outDir> "<name>|<query>|<w>x<h>[|dark|light][|<selector>]" ...
+node .claude/skills/design-feedback/scripts/shoot.mjs <outDir> "<name>|<query>|<w>x<h>[|dark|light][|<selector>][|<extras>...]" ...
 ```
+
+Extras, in any order after the size:
+- `click:<selector>`, `hover:<selector>`, `press:<key>`, `wait:<ms>`: run in order before the shot, for hover, selected, focus, collapsed or dialog-open states.
+- `clip:<x>,<y>,<w>,<h>`: crop to a region instead of an element.
+- `scale:<n>`: zoom (pixel density). Use `scale:3` or `4` with a tight `clip:` for changes of a few pixels; at 1× they're invisible.
+
+The script refuses to run if the server on that port is serving a different checkout, so you can't screenshot the wrong code by accident.
 
 - Default sizes: 1440x900 (main), 1280x720 (narrow desktop), 1920x1080 (wide). Use the widths the spec lists; default to 1440x900 dark.
 - Name shots `<item#>-<what>-before` and `<item#>-<what>-after`, in `.design-feedback/<session>/shots/`.
 - Light theme too when the change touches colour, borders or backgrounds.
-- For hover, selected, focus, collapsed or dialog-open states, copy `shoot.mjs` into `.design-feedback/<session>/` and add the interaction (`page.hover`, `page.click`, `page.keyboard.press('Tab')`) before the screenshot. Never commit those copies.
+- **Current means the unchanged app.** Take every Current shot you may need in Step 1, before any code change: full page for each route involved plus the areas the items touch. Once you've edited code, the harness shows your edits. For a Current crop you didn't take, crop the full-page Current PNG instead: `HARNESS_URL=file:///<abs path>/<full>.png node … "<name>||<w>x<h>|clip:x,y,w,h"`.
+- Make before and after pairs identical in route, size, theme, crop, scale and steps.
+- For spacing, alignment and size changes, measure in the page (`getBoundingClientRect`) before and after, and put the numbers in the caption and the spec's "Done when" ("was 0px left / 12px right; now 5.5px each side"). Remember borders when judging "centred".
 - Look at every screenshot yourself before showing it. If it shows a loading screen, the login page or an error, fix the shot first.
 
 ## Wireframes
@@ -36,7 +46,7 @@ node .claude/skills/design-feedback/scripts/shoot.mjs <outDir> "<name>|<query>|<
 For structure and option choices, before any code change.
 
 - One HTML file per item in `.design-feedback/<session>/mocks/<nn>-<slug>.html`, self-contained (inline CSS, no external requests).
-- Left column: the **Current** screenshot (`<img>` with a relative path). Right: **Proposed** (or **A / B / C** for options), drawn at the same scale.
+- Left column: the **Current** screenshot (`<img>` with a relative path), cropped to the same region the wireframe frames show and displayed at 1:1 (fixed `width`/`height` in px, not `width: 100%`). Right: **Proposed** (or **A / B / C** for options), drawn at the same scale.
 - Draw with neutral grey boxes, 1px borders, the app's real words, and the real sizes where they matter (nav widths, card sizes). Highlight only what changed, with a numbered marker that matches the spec line it implements.
 - Render it to PNG for the conversation:
   `HARNESS_URL=file:///<absolute path to mock.html> node .claude/skills/design-feedback/scripts/shoot.mjs <outDir> "<name>||1600x900"`

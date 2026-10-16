@@ -5,8 +5,10 @@ The designer sees none of this except the two go-ahead questions and the final l
 ## 1. Working branch (start of the first real-app mock in a round)
 
 ```bash
-git switch -c design-feedback/<yyyy-mm-dd>-<topic> <upstream>/design/redesign
+git switch --no-track -c design-feedback/<yyyy-mm-dd>-<topic> <upstream>/design/redesign
 ```
+
+Always `--no-track`: without it the branch tracks `design/redesign`, and a bare `git push` would go to the main line.
 
 - If the harness needs seed data, commit it first, alone: `wip: harness seed`. Note its SHA in `tracker.md`.
 - **One item at a time.** Finish an item's real-app mock (Approved or Parked) before editing code for the next one.
@@ -20,7 +22,7 @@ git switch -c design-feedback/<yyyy-mm-dd>-<topic> <upstream>/design/redesign
 1. Group Approved items into PRs by area (left nav, top bar, dashboard welcome card, dashboard sections, game card, right column, visual bugs). Up to ~6 items per PR. Items whose commits touch the same files stay in one PR.
 2. For each PR, build a clean branch:
    ```bash
-   git switch -c design-feedback/<yyyy-mm-dd>-<area> <upstream>/design/redesign
+   git switch --no-track -c design-feedback/<yyyy-mm-dd>-<area> <upstream>/design/redesign
    git cherry-pick <item commit SHAs, in order>
    ```
    The `wip: harness seed` commit is never picked. A conflict means the items belong together: abort and merge the groups.
@@ -30,7 +32,7 @@ git switch -c design-feedback/<yyyy-mm-dd>-<topic> <upstream>/design/redesign
 
 ## 3. Push and open
 
-- Push to the designer's own fork, never to `SwitchOCE/Webatrice` directly (its branch list is kept to the main lines). If the designer has no fork: `gh repo fork SwitchOCE/Webatrice --remote --remote-name mine` (only after their yes above).
+- Push with an explicit remote and branch (`git push mine <branch>`), to the designer's own fork, never to `SwitchOCE/Webatrice` directly (its branch list is kept to the main lines). If the designer has no fork: `gh repo fork SwitchOCE/Webatrice --remote --remote-name mine` (only after their yes above).
 - Screenshots: put the round's before/after PNGs on a branch of the designer's fork that holds only images, then reference them by URL:
   ```bash
   git worktree add --orphan -b design-feedback-assets ../webatrice-assets   # first time only

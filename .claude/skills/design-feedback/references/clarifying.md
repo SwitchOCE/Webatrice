@@ -38,6 +38,8 @@ Goal: every line of the item spec (SKILL.md, Step 2) filled in without guessing.
 
 **States** — ask about each that applies: hover, selected/current, keyboard focus, disabled, empty, loading, collapsed/expanded, dialog open.
 
+**States the designer hasn't seen.** Their screenshots show one state; the element may look different in others. Before calling an item firm, check the code and the seeded preview for variants and show them: "When your buddies have games, a grey line 'in Magic, open seats first' appears next to this title. Keep it or remove it?" 
+
 **Behaviour** (tag: Needs developer) — what triggers it, what happens, what if the person cancels, where do they end up, what do they see while waiting.
 
 ## Patterns in the designer's feedback, and the question each needs
