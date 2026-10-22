@@ -100,15 +100,15 @@ it('selects the snapshot before login, paints while disconnected, and replaces i
     store.dispatch(rooms.Actions.updateRooms({ rooms: [liveRoom] }));
     store.dispatch(server.Actions.updateUsers({ users: [makeUser({ name: 'joe' })] }));
   });
-  expect(screen.getByText('Cached room')).toBeVisible();
+  expect(screen.getAllByText('Cached room')[0]).toBeVisible();
   act(() => {
     store.dispatch(server.Actions.sessionCommandFailed({ command: 'reportDetails', responseCode: 13, target: '4' }));
   });
-  expect(screen.getByText('Cached room')).toBeVisible();
+  expect(screen.getAllByText('Cached room')[0]).toBeVisible();
   act(() => {
     store.dispatch(rooms.Actions.joinRoom({ roomInfo: liveRoom, userInitiated: false }));
   });
-  await waitFor(() => expect(screen.queryByText('Cached room')).not.toBeInTheDocument());
+  await waitFor(() => expect(screen.queryAllByText('Cached room')).toHaveLength(0));
   const roomsPanel = screen.getByRole('heading', { name: 'Rooms' }).closest('section')!;
   expect(within(roomsPanel).getByText('Live room')).toBeVisible();
   expect(screen.getByRole('button', { name: 'Open Live room' })).toBeEnabled();
@@ -124,7 +124,7 @@ it.each([{ userName: 'jane' }, { autoConnect: false }, { remember: false }])(
       preloadedState: disconnectedState, route: '/server', webClient: client,
     });
     await waitFor(() => expect(screen.getByText('Login.header.headline')).toBeVisible());
-    expect(screen.queryByText('Cached room')).not.toBeInTheDocument();
+    expect(screen.queryAllByText('Cached room')).toHaveLength(0);
     if (options.autoConnect === false || options.remember === false) {
       expect(client.request.authentication.login).not.toHaveBeenCalled();
     }
@@ -190,7 +190,7 @@ it.each(['boot', 'page'] as const)('allows only the %s winner to log in and pers
   );
   await waitFor(() => expect(client.request.authentication.login).toHaveBeenCalledTimes(1));
   expect(autoLoginGate.source).toBe(winner);
-  expect(screen.getByText('Cached room')).toBeVisible();
+  expect(screen.getAllByText('Cached room')[0]).toBeVisible();
   if (winner === 'page') {
     await act(async () => {
       release([settings, hosts]);
@@ -213,7 +213,7 @@ it.each(['disconnect', 'failure', 'disable', 'switch'])(
     const { store } = renderWithProviders(<BootSession preparation={preparation}><AppShellRoutes /></BootSession>, {
       preloadedState: disconnectedState, route: '/server', webClient: client,
     });
-    await waitFor(() => expect(screen.getByText('Cached room')).toBeVisible());
+    await waitFor(() => expect(screen.getAllByText('Cached room')[0]).toBeVisible());
     act(() => {
       if (event === 'disable') {
         settingsStore.setValue({ ...settings, autoConnect: false } as typeof settings);
@@ -224,7 +224,7 @@ it.each(['disconnect', 'failure', 'disable', 'switch'])(
         store.dispatch(event === 'disconnect' ? server.Actions.disconnected() : server.Actions.loginFailed(undefined));
       }
     });
-    expect(screen.queryByText('Cached room')).not.toBeInTheDocument();
+    expect(screen.queryAllByText('Cached room')).toHaveLength(0);
     if (event === 'disable') {
       expect(loadHomeSnapshot(cached.host, 'joe')).toBeNull();
     } else {

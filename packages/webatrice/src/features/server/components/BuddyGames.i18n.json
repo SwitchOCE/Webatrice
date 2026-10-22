@@ -1,6 +1,6 @@
 {
   "BuddyGames": {
-    "title": "Hosted by your buddies",
+    "title": "Buddies games",
     "whereOne": "in {room}, open seats first",
     "whereMany": "in the {count} rooms you joined, open seats first",
     "allGames": "All games in {room}",

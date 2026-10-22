@@ -1,8 +1,6 @@
 {
   "RecentDecks": {
-    "title": "Recent decks",
-    "where": "opened in this browser",
-    "allDecks": "All decks",
+    "title": "Decks",
     "newDeck": "New deck",
     "empty": "Coming from desktop Cockatrice? Bring your decks, replays and custom sets over in one go, or start a new deck.",
     "cards": "{count, plural, one {# card} other {# cards}}",

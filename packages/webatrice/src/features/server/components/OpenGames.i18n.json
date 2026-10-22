@@ -1,8 +1,6 @@
 {
   "OpenGames": {
-    "title": "Open seats in {room}",
-    "where": "closest to starting first",
-    "allGames": "All {count, plural, one {# game} other {# games}}",
+    "title": "Open games in <room>{room}</room>",
     "empty": "No open seats in {room} right now. Create a game and players can join you.",
     "createGame": "Create game"
   }
