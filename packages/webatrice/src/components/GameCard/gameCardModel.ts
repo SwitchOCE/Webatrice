@@ -3,8 +3,6 @@ import type { ServerInfo_Game } from '@cockatrice/sockatrice/generated';
 
 import type { Availability } from '../ds';
 
-export type GameRestriction = 'password' | 'buddiesOnly' | 'registeredOnly' | 'openDecklists';
-export type SpectatorTrait = 'canChat' | 'seeHands' | 'password';
 export type JoinBlock = 'started' | 'full';
 
 export interface GameCardActions {
@@ -43,38 +41,6 @@ export function gameTypeNames(game: Game, gametypeMap?: GametypeMap): string[] {
     return names;
   }
   return game.gameType ? [game.gameType] : [];
-}
-
-export function gameRestrictions(info: ServerInfo_Game): GameRestriction[] {
-  const badgeSaysPassword = gameAvailability(info) === 'password';
-  const out: GameRestriction[] = [];
-  if (info.withPassword && !badgeSaysPassword) {
-    out.push('password');
-  }
-  if (info.onlyBuddies && gameAvailability(info) !== 'buddies') {
-    out.push('buddiesOnly');
-  }
-  if (info.onlyRegistered) {
-    out.push('registeredOnly');
-  }
-  if (info.shareDecklistsOnLoad) {
-    out.push('openDecklists');
-  }
-  return out;
-}
-
-export function spectatorTraits(info: ServerInfo_Game): SpectatorTrait[] {
-  const out: SpectatorTrait[] = [];
-  if (info.spectatorsCanChat) {
-    out.push('canChat');
-  }
-  if (info.spectatorsOmniscient) {
-    out.push('seeHands');
-  }
-  if (info.spectatorsNeedPassword) {
-    out.push('password');
-  }
-  return out;
 }
 
 export function gameCardActions(
