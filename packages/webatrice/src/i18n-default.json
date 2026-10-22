@@ -353,19 +353,8 @@
     "hostedBy": "Hosted by",
     "moreFormats": "+{count}",
     "players": "{taken} / {max} players",
-    "restriction": {
-      "none": "Anyone can join",
-      "password": "Password",
-      "buddiesOnly": "Buddies only",
-      "registeredOnly": "Registered users",
-      "openDecklists": "Open decklists"
-    },
     "spectators": {
-      "notAllowed": "Spectators not allowed",
-      "watching": "{count} watching",
-      "canChat": "can chat",
-      "seeHands": "see hands",
-      "password": "password"
+      "notAllowed": "Spectators not allowed"
     },
     "blocked": {
       "started": "This game has started",
@@ -1514,6 +1503,7 @@
     "label": "Main navigation",
     "home": "Webatrice home",
     "place": {
+      "lobby": "Lobby",
       "play": "Play",
       "decks": "Decks",
       "replays": "Replays",
@@ -4372,7 +4362,7 @@
     "allBuddies": "See all buddies"
   },
   "BuddyGames": {
-    "title": "Hosted by your buddies",
+    "title": "Buddies games",
     "whereOne": "in {room}, open seats first",
     "whereMany": "in the {count} rooms you joined, open seats first",
     "allGames": "All games in {room}",
@@ -4390,23 +4380,16 @@
     "online": "{count, plural, other {# online}}",
     "games": "{count, plural, one {# game} other {# games}}",
     "welcome": "Welcome back, {name}",
-    "usualRoomJoined": "{room}, your usual room, has {games, plural, one {# game} other {# games}}; {open, plural, =0 {none has an open seat right now} one {# has an open seat right now} other {# have open seats right now}}.",
-    "usualRoom": "{room}, your usual room, has {games, plural, one {# game} other {# games}}.",
-    "noRooms": "This server has no rooms yet.",
-    "play": "Play in {room}",
+    "play": "Go to <room>{room}</room>",
     "createGame": "Create game"
   },
   "OpenGames": {
-    "title": "Open seats in {room}",
-    "where": "closest to starting first",
-    "allGames": "All {count, plural, one {# game} other {# games}}",
+    "title": "Open games in <room>{room}</room>",
     "empty": "No open seats in {room} right now. Create a game and players can join you.",
     "createGame": "Create game"
   },
   "RecentDecks": {
-    "title": "Recent decks",
-    "where": "opened in this browser",
-    "allDecks": "All decks",
+    "title": "Decks",
     "newDeck": "New deck",
     "empty": "Coming from desktop Cockatrice? Bring your decks, replays and custom sets over in one go, or start a new deck.",
     "cards": "{count, plural, one {# card} other {# cards}}",

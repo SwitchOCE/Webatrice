@@ -55,7 +55,7 @@ test('connection holds for 60 s in the foreground', async ({ page }) => {
   await status.expectConnected();
 });
 
-test('the navigation rail shows the measured server round trip', async ({ page }) => {
+test('the top bar shows the measured server round trip', async ({ page }) => {
   await registerAndReachRooms(page);
   const status = new ConnectionStatus(page);
 

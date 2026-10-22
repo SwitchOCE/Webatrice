@@ -1,4 +1,4 @@
-import { Fragment, useEffect, useId, useRef, type CSSProperties, type WheelEvent } from 'react';
+import { useEffect, useId, useRef, type CSSProperties, type WheelEvent } from 'react';
 import { Link } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import {
@@ -100,16 +100,21 @@ export default function TabList({ groups, activeKey, onClose, unreadOf = () => 0
         ref={scrollerRef}
         onWheel={onWheel}
         style={fadeMask(fades)}
-        className="flex min-w-0 flex-1 scroll-px-6 items-center gap-1 overflow-x-auto overflow-y-hidden [scrollbar-width:none]"
+        className="flex min-w-0 flex-1 scroll-px-6 gap-3 overflow-x-auto overflow-y-hidden [scrollbar-width:none]"
       >
         {groups.map((group, index) => {
           const labelId = `${id}-${group.key}`;
           return (
-            <Fragment key={group.key}>
-              {index > 0 && <span aria-hidden className="h-5 w-px shrink-0 bg-border-subtle" />}
+            <div
+              key={group.key}
+              className={['flex items-center gap-1 pl-3', index > 0 ? 'border-l border-border-subtle' : ''].join(' ')}
+            >
               <span
                 id={labelId}
-                className="shrink-0 pl-1 pr-0.5 text-[10px] font-semibold uppercase tracking-[0.08em] text-text-muted"
+                className={[
+                  'flex h-5 shrink-0 items-center border-r border-border-subtle pl-1 pr-[7px]',
+                  'text-[10px] font-semibold uppercase tracking-[0.08em] text-text-muted',
+                ].join(' ')}
               >
                 {t(STRIP_GROUP_KEYS[group.key])}
               </span>
@@ -175,7 +180,7 @@ export default function TabList({ groups, activeKey, onClose, unreadOf = () => 0
                   );
                 })}
               </ul>
-            </Fragment>
+            </div>
           );
         })}
       </div>

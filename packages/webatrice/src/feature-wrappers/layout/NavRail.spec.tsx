@@ -8,6 +8,7 @@ import { PlayBadgeMode, PREFERENCE_DEFAULTS, RouteEnum } from '@app/types';
 
 import { settingsStore } from '../../hooks/useSettings';
 import NavRail from './NavRail';
+import TopBar from './TopBar';
 
 interface Counts {
   rooms: Record<number, number>;
@@ -45,7 +46,7 @@ function stateFor(userLevel: number, version: string) {
 }
 
 function renderRail(route: string = RouteEnum.SERVER, preloadedState: object = connectedState) {
-  return renderWithProviders(<><NavRail /><LocationProbe /></>, { preloadedState, route });
+  return renderWithProviders(<><TopBar /><NavRail /><LocationProbe /></>, { preloadedState, route });
 }
 
 const REGISTERED = Level.IsUser | Level.IsRegistered;
@@ -68,7 +69,7 @@ describe('NavRail', () => {
     renderRail();
 
     expect(within(places()).getAllByRole('link').map((link) => link.getAttribute('href'))).toEqual([
-      RouteEnum.SERVER, RouteEnum.DECKS, RouteEnum.REPLAYS, RouteEnum.PEOPLE, RouteEnum.SETTINGS,
+      RouteEnum.SERVER, RouteEnum.SERVER, RouteEnum.DECKS, RouteEnum.REPLAYS, RouteEnum.PEOPLE, RouteEnum.SETTINGS,
     ]);
   });
 
@@ -89,7 +90,8 @@ describe('NavRail', () => {
     renderRail(RouteEnum.SERVER, stateFor(MODERATOR, '3.1.0 ()'));
 
     expect(within(places()).getAllByRole('link').map((link) => link.getAttribute('href'))).toEqual([
-      RouteEnum.SERVER, RouteEnum.DECKS, RouteEnum.REPLAYS, RouteEnum.PEOPLE, RouteEnum.REPORT_QUEUE, RouteEnum.SETTINGS,
+      RouteEnum.SERVER, RouteEnum.SERVER, RouteEnum.DECKS, RouteEnum.REPLAYS, RouteEnum.PEOPLE, RouteEnum.REPORT_QUEUE,
+      RouteEnum.SETTINGS,
     ]);
   });
 
@@ -165,25 +167,6 @@ describe('NavRail', () => {
     expect(screen.getByRole('link', { name: 'NavRail.place.play' })).not.toHaveTextContent(/\d/);
   });
 
-  it('hides itself to a strip with a show button, keeping focus on the toggle, and comes back', () => {
-    renderRail();
-    const toggle = screen.getByRole('button', { name: 'NavRail.toggle.hide' });
-    toggle.focus();
-
-    fireEvent.click(toggle);
-
-    expect(screen.queryByRole('navigation', { name: 'NavRail.label' })).not.toBeInTheDocument();
-    expect(screen.queryByRole('button', { name: 'testUser' })).not.toBeInTheDocument();
-    const show = screen.getByRole('button', { name: 'NavRail.toggle.show' });
-    expect(show).toHaveFocus();
-    expect(window.localStorage.getItem('webatrice.navRailHidden')).toBe('true');
-
-    fireEvent.click(show);
-
-    expect(places()).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: 'NavRail.toggle.hide' })).toHaveFocus();
-  });
-
   it('shows no badge with nothing unread', () => {
     renderRail();
 
@@ -199,13 +182,14 @@ describe('NavRail', () => {
     expect(screen.getByTestId('location')).toHaveTextContent(RouteEnum.SHORTCUTS);
   });
 
-  it('goes home from the logo, which Play does not light', () => {
+  it('goes to the Lobby from the logo, lighting Lobby rather than Play', () => {
     renderRail(RouteEnum.DECKS, connectedWithRoomsState);
 
     fireEvent.click(screen.getByRole('link', { name: 'NavRail.home' }));
 
     expect(screen.getByTestId('location')).toHaveTextContent(RouteEnum.SERVER);
     expect(screen.getByRole('link', { name: 'NavRail.home' })).toHaveAttribute('aria-current', 'page');
+    expect(screen.getByRole('link', { name: 'NavRail.place.lobby' })).toHaveAttribute('aria-current', 'page');
     expect(screen.getByRole('link', { name: 'NavRail.place.play' })).not.toHaveAttribute('aria-current');
   });
 
