@@ -150,6 +150,31 @@ describe('useDeckEditor draft', () => {
     }
   });
 
+  it('stores nothing for a derived cache until the first user edit, which carries it', async () => {
+    vi.useFakeTimers({ shouldAdvanceTime: true });
+    try {
+      const { webClient } = setupDraft(stageDeckDocument(GAME_DECK));
+      await waitFor(() => expect(editor.current!.loading).toBe(false));
+
+      act(() => editor.current!.setPriceCache(3.5, 2));
+      act(() => {
+        vi.advanceTimersByTime(600);
+      });
+      expect(webClient.request.session.deckUpload).not.toHaveBeenCalled();
+
+      act(() => editor.current!.setName('Burn v2'));
+      act(() => {
+        vi.advanceTimersByTime(600);
+      });
+      expect(webClient.request.session.deckUpload).toHaveBeenCalledTimes(1);
+      const xml = vi.mocked(webClient.request.session.deckUpload).mock.calls[0][2];
+      expect(xml).toContain('<deckname>Burn v2</deckname>');
+      expect(xml).toContain('"priceMissingCount":2');
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
   const uploaded = (id: number, name: string, requestId?: string, path = '') => server.Actions.deckUpload({
     path,
     requestId,
