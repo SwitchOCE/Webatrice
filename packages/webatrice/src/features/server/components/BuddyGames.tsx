@@ -63,7 +63,7 @@ export default function BuddyGames({ home, renderCard }: { home: HomeData; rende
   }
 
   return (
-    <section className="flex shrink-0 flex-col gap-2.5" aria-labelledby="home-buddy-games">
+    <section className="flex shrink-0 flex-col gap-2.5 pt-3" aria-labelledby="home-buddy-games">
       <SectionHead
         id="home-buddy-games"
         title={t('BuddyGames.title')}

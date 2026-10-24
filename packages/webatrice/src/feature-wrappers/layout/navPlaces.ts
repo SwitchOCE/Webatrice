@@ -1,5 +1,5 @@
 import { generatePath, matchPath } from 'react-router-dom';
-import { Film, Library, Settings, ShieldCheck, Swords, Users, type LucideIcon } from 'lucide-react';
+import { Film, House, Library, Settings, ShieldCheck, Swords, Users, type LucideIcon } from 'lucide-react';
 
 import type { Room } from '@cockatrice/datatrice';
 import type { MentionCounts } from '@app/services';
@@ -8,9 +8,10 @@ import { PlayBadgeMode, RouteEnum } from '@app/types';
 import { STAFF_ROUTES } from '../staff/staffTools';
 import type { TabUnreadCounts } from './topBarTabs';
 
-export type PlaceKey = 'play' | 'decks' | 'replays' | 'people' | 'staff' | 'settings';
+export type PlaceKey = 'lobby' | 'play' | 'decks' | 'replays' | 'people' | 'staff' | 'settings';
 
 export const PLACE_LABEL_KEYS: Record<PlaceKey, string> = {
+  lobby: 'NavRail.place.lobby',
   play: 'NavRail.place.play',
   decks: 'NavRail.place.decks',
   replays: 'NavRail.place.replays',
@@ -26,6 +27,7 @@ export interface NavPlace {
 }
 
 export const NAV_PLACES: readonly NavPlace[] = [
+  { key: 'lobby', icon: House, to: RouteEnum.SERVER },
   { key: 'play', icon: Swords, to: RouteEnum.SERVER },
   { key: 'decks', icon: Library, to: RouteEnum.DECKS },
   { key: 'replays', icon: Film, to: RouteEnum.REPLAYS },
@@ -48,6 +50,7 @@ export function railPlaces(staffHome: RouteEnum | null, play: string = RouteEnum
 }
 
 const PLACE_ROUTES: readonly [PlaceKey, readonly RouteEnum[]][] = [
+  ['lobby', [RouteEnum.SERVER]],
   ['play', [RouteEnum.ROOM, RouteEnum.GAME]],
   ['decks', [RouteEnum.DECKS, RouteEnum.DECK, RouteEnum.DECK_DRAFT, RouteEnum.SHARED_DECK, RouteEnum.PUBLIC_DECKS]],
   ['replays', [RouteEnum.REPLAYS, RouteEnum.REPLAY]],

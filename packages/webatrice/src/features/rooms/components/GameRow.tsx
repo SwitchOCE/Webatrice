@@ -259,6 +259,7 @@ function GameRow({
           size="sm"
           label={t('GameRow.more', { game: name })}
           aria-haspopup="menu"
+          className="-mr-2 ml-2"
           onClick={(event) => {
             event.stopPropagation();
             onMore(info.gameId, event.currentTarget);

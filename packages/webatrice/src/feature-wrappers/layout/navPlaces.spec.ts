@@ -6,8 +6,9 @@ import { NAV_PLACES, placeBadges, placeForPath, playPath, railPlaces } from './n
 const joined = (...roomIds: number[]) => roomIds.map((roomId) => ({ info: { roomId } }) as Room);
 
 describe('NAV_PLACES', () => {
-  it('lists the fixed places, Play, Decks, Replays, People and Settings, in rail order', () => {
+  it('lists the fixed places, Lobby, Play, Decks, Replays, People and Settings, in rail order', () => {
     expect(NAV_PLACES.map(({ key, to }) => [key, to])).toEqual([
+      ['lobby', RouteEnum.SERVER],
       ['play', RouteEnum.SERVER],
       ['decks', RouteEnum.DECKS],
       ['replays', RouteEnum.REPLAYS],
@@ -19,6 +20,7 @@ describe('NAV_PLACES', () => {
 
 describe('placeForPath', () => {
   it.each([
+    ['/server', 'lobby'],
     ['/room/3', 'play'],
     ['/game/12', 'play'],
     ['/decks', 'decks'],
@@ -40,8 +42,7 @@ describe('placeForPath', () => {
     });
   });
 
-  it('lights nothing for Home or account pages', () => {
-    expect(placeForPath('/server')).toBeNull();
+  it('lights nothing for account pages', () => {
     expect(placeForPath('/account')).toBeNull();
     expect(placeForPath('/shortcuts')).toBeNull();
   });
@@ -49,12 +50,12 @@ describe('placeForPath', () => {
 
 describe('railPlaces', () => {
   it('is the fixed places without a staff home', () => {
-    expect(railPlaces(null).map(({ key }) => key)).toEqual(['play', 'decks', 'replays', 'people', 'settings']);
+    expect(railPlaces(null).map(({ key }) => key)).toEqual(['lobby', 'play', 'decks', 'replays', 'people', 'settings']);
   });
 
   it('puts Staff before Settings, opening the staff home', () => {
     const places = railPlaces(RouteEnum.MODERATION);
-    expect(places.map(({ key }) => key)).toEqual(['play', 'decks', 'replays', 'people', 'staff', 'settings']);
+    expect(places.map(({ key }) => key)).toEqual(['lobby', 'play', 'decks', 'replays', 'people', 'staff', 'settings']);
     expect(places.find(({ key }) => key === 'staff')?.to).toBe(RouteEnum.MODERATION);
   });
 

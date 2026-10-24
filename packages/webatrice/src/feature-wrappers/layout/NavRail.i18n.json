@@ -3,6 +3,7 @@
     "label": "Main navigation",
     "home": "Webatrice home",
     "place": {
+      "lobby": "Lobby",
       "play": "Play",
       "decks": "Decks",
       "replays": "Replays",

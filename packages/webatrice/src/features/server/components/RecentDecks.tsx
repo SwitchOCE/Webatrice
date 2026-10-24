@@ -14,7 +14,7 @@ import { deckFormatLabel, liveRecentDecks, serverDeckCount } from '../homeModel'
 import HomeEmpty from './HomeEmpty';
 import SectionHead from './SectionHead';
 
-export const RECENT_DECKS_SHOWN = 4;
+export const RECENT_DECKS_SHOWN = 5;
 
 function DeckTile({ deck, onOpen, onPrefetch }: {
   deck: RecentDeck;
@@ -46,7 +46,7 @@ function DeckTile({ deck, onOpen, onPrefetch }: {
         </span>
         <span className="flex w-full min-w-0 flex-col gap-1 px-3 py-2.5">
           <span className="truncate text-[13.5px] font-semibold text-text-primary">{deck.name}</span>
-          <span className="flex items-center gap-2 text-[11.5px] text-text-muted">
+          <span className="flex items-center gap-2 overflow-hidden whitespace-nowrap text-[11.5px] text-text-muted">
             {deck.colors && <ColorPips colors={[...deck.colors]} />}
             <span>{t('RecentDecks.cards', { count: deck.cardCount })}</span>
             {deck.bracketLevel != null && <span>{t('RecentDecks.bracket', { level: deck.bracketLevel })}</span>}
@@ -110,16 +110,10 @@ export default function RecentDecks() {
   const openDeck = (deckId: number) => navigate(generatePath(RouteEnum.DECK, { deckId: String(deckId) }));
 
   return (
-    <section className="flex shrink-0 flex-col gap-2.5" aria-labelledby="home-recent-decks">
+    <section className="flex shrink-0 flex-col gap-2.5 pt-3" aria-labelledby="home-recent-decks">
       <SectionHead
         id="home-recent-decks"
         title={t('RecentDecks.title')}
-        count={decks.length > 0 ? t('RecentDecks.where') : undefined}
-        action={decks.length > 0 && (
-          <Button size="sm" variant="ghost" icon={<Library size={14} aria-hidden />} onClick={() => navigate(RouteEnum.DECKS)}>
-            {t('RecentDecks.allDecks')}
-          </Button>
-        )}
       />
       {decks.length === 0 ? (
         <RecentDecksEmpty savedDecks={serverDeckCount(tree?.root)} />
@@ -128,20 +122,6 @@ export default function RecentDecks() {
           {decks.map((deck) => (
             <DeckTile key={deck.deckId} deck={deck} onOpen={openDeck} onPrefetch={prefetchDeckEditor} />
           ))}
-          <li className="flex min-h-[150px] min-w-0">
-            <button
-              type="button"
-              onClick={() => navigate(RouteEnum.DECKS, { state: { open: 'create' } })}
-              className={[
-                'flex w-full flex-col items-center justify-center gap-2 rounded-ui-lg border border-dashed border-border-strong px-3',
-                'text-[13px] font-medium text-text-secondary hover:border-accent/60 hover:text-accent',
-                'focus-visible:outline focus-visible:outline-2 focus-visible:outline-accent',
-              ].join(' ')}
-            >
-              <Plus size={20} aria-hidden />
-              {t('RecentDecks.newDeck')}
-            </button>
-          </li>
         </ul>
       )}
     </section>

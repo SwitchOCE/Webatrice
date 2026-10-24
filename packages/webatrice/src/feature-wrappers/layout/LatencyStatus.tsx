@@ -49,7 +49,7 @@ export default function LatencyStatus() {
         type="button"
         onClick={(event) => setAnchor(anchor ? null : event.currentTarget)}
         className={[
-          'flex w-16 flex-col items-center gap-0.5 rounded-ui py-1.5 text-[10.5px] tabular-nums text-text-muted',
+          'flex h-8 items-center gap-1.5 rounded-ui px-1.5 text-[10.5px] tabular-nums text-text-muted',
           'hover:bg-bg-elevated hover:text-text-secondary',
           'focus-visible:outline focus-visible:outline-2 focus-visible:outline-accent',
         ].join(' ')}
@@ -70,7 +70,7 @@ export default function LatencyStatus() {
         anchorEl={anchor}
         onClose={() => setAnchor(null)}
         anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}
-        transformOrigin={{ vertical: 'bottom', horizontal: 'left' }}
+        transformOrigin={{ vertical: 'top', horizontal: 'right' }}
       >
         <div className="flex flex-col gap-2 p-2" role="group" aria-label={t('LatencyStatus.detailsName')}>
           <div className="whitespace-pre-line text-sm select-text">{details}</div>
