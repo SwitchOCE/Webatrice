@@ -5,7 +5,7 @@ import type { Page } from '@playwright/test';
 import { expect, test } from '../fixtures/test';
 import { E2E_ADMIN, E2E_MODERATOR, reachRoomsAs, registerAndReachRooms, openAdministrationUnlocked } from '../fixtures/flows';
 import { randomSuffix } from '../fixtures/users';
-import { navRailLink } from '../pages';
+import { homeLink, navRailLink } from '../pages';
 
 // Staff pages against the real Servatrice: the Administration tab's "Update
 // server message" (desktop TabAdmin) and the Moderation tab's alts lookup
@@ -41,7 +41,7 @@ test('an admin publishes a new server message from Administration', async ({ pag
   await page.getByRole('button', { name: /^Update server message/ }).click();
   await expect(page.getByText('Server message updated')).toBeVisible({ timeout: 15_000 });
 
-  await navRailLink(page, /^play$/i).click();
+  await homeLink(page).click();
   await expect(page.getByText(message)).toBeVisible({ timeout: 15_000 });
 });
 

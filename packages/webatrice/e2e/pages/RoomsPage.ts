@@ -1,8 +1,8 @@
 import { expect, type Locator, type Page } from '@playwright/test';
 
-import { navRailLink } from './TopBar';
+import { homeLink } from './TopBar';
 
-// Page object for the Home view (`/server`, reached from the rail's Play
+// Page object for the Home view (`/server`, reached from the rail's logo
 // link) with its Rooms panel, and an opened Room (`/room/:roomId`). The
 // same instance is used either side of the room transition.
 //
@@ -37,11 +37,12 @@ export class RoomsPage {
 
   // Servatrice auto-joins the "General room" for freshly-registered
   // accounts; that opens the room without switching to it, so login lands
-  // on Home. The rail's Play link also brings Home back from a room or game.
+  // on Home. The rail's logo also brings Home back from a room or game.
   async waitForRoomList(): Promise<void> {
-    const play = navRailLink(this.page, /^play$/i);
-    await expect(play).toBeVisible({ timeout: 30_000 });
-    await play.click();
+    const home = homeLink(this.page);
+    await expect(home).toBeVisible({ timeout: 30_000 });
+    await home.click();
+    await expect(home).toHaveAttribute('aria-current', 'page');
     await expect(this.roomsPanel.getByRole('listitem').first()).toBeVisible({ timeout: 30_000 });
   }
 

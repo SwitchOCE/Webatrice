@@ -19,7 +19,7 @@ export function usePlayPath(): string {
 
   useEffect(() => {
     const roomId = Number(matchPath(RouteEnum.ROOM, pathname)?.params.roomId);
-    if (owner && Number.isInteger(roomId) && roomId > 0) {
+    if (owner && Number.isInteger(roomId) && roomId >= 0) {
       persistLastRoomId(owner, roomId);
       setVisited({ owner, roomId });
     }
