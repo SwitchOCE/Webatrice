@@ -256,7 +256,7 @@ function Decks() {
             onViewModeChange={setViewMode}
             onRefresh={list.refresh}
           />
-          <div className="min-h-0 flex-1 overflow-y-auto px-6 pb-12 pt-4">
+          <div className="min-h-0 flex-1 overflow-y-auto px-4 pb-12 pt-4">
             <div ref={listRef} className="focus:outline-none">
               {list.loading && !list.listError && <DeckListLoading />}
               {list.loading && list.listError && <DeckListError message={list.listError} onRetry={list.refresh} />}

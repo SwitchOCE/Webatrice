@@ -3,6 +3,7 @@ import { fireEvent, render, screen, within } from '@testing-library/react';
 import { deckTileView } from '../../deckGrid';
 import type { FlatDeck } from '../../deckTree';
 import type { DeckActions } from './DeckActionsMenu';
+import { formatBandClass } from './DeckBadges';
 import { DeckListRow, DeckTile } from './DeckTile';
 
 const deck: FlatDeck = {
@@ -82,4 +83,16 @@ it('shows a loading price and no identity before anything is known', () => {
 it('shows no identity pips for a colourless deck', () => {
   render(<DeckTile view={deckTileView({ ...deck, colorIdentity: '' }, undefined)} actions={actions()} />);
   expect(screen.queryByRole('img', { name: 'Decks.badge.identity' })).toBeNull();
+});
+
+it('colours the format band by format family, grey with a dash when there is no format', () => {
+  expect(formatBandClass('commander')).toBe('bg-format-commander');
+  expect(formatBandClass('PauperCommander')).toBe('bg-format-commander');
+  expect(formatBandClass('pioneer')).toBe('bg-format-modern');
+  expect(formatBandClass('standard')).toBe('bg-format-standard');
+  expect(formatBandClass('vintage')).toBe('bg-format-eternal');
+  expect(formatBandClass('pauper')).toBe('bg-format-pauper');
+  expect(formatBandClass('penny')).toBe('bg-format-other');
+  render(<DeckTile view={deckTileView(deck, { cardCount: 60 })} actions={actions()} />);
+  expect(screen.getByTitle('Decks.badge.noFormat')).toHaveTextContent('—');
 });

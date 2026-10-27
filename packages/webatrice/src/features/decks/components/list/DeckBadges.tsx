@@ -2,25 +2,51 @@ import { useTranslation } from 'react-i18next';
 import { Globe } from 'lucide-react';
 
 import { ColorPips } from '@app/components';
+import { normalizeFormat } from '@app/types';
 import { bracketToneClass, cx, toBcp47 } from '@app/utils';
 
 import { IDENTITY_COLOURS } from '../../deckGrid';
 import type { DeckVisibility } from '../../deckTree';
 
-export function BracketBadge({ level, className }: { level: number; className?: string }) {
+const FORMAT_BAND: Record<string, string> = {
+  commander: 'bg-format-commander',
+  paupercommander: 'bg-format-commander',
+  duel: 'bg-format-commander',
+  oathbreaker: 'bg-format-commander',
+  predh: 'bg-format-commander',
+  standardbrawl: 'bg-format-commander',
+  modern: 'bg-format-modern',
+  pioneer: 'bg-format-modern',
+  standard: 'bg-format-standard',
+  historic: 'bg-format-modern',
+  timeless: 'bg-format-modern',
+  future: 'bg-format-modern',
+  legacy: 'bg-format-eternal',
+  vintage: 'bg-format-eternal',
+  premodern: 'bg-format-eternal',
+  oldschool: 'bg-format-eternal',
+  pauper: 'bg-format-pauper',
+};
+
+export function formatBandClass(format: string | null | undefined): string {
+  return FORMAT_BAND[normalizeFormat(format)] ?? 'bg-format-other';
+}
+
+export function BracketBadge({ level, solid = false, className }: { level: number; solid?: boolean; className?: string }) {
   const { t } = useTranslation();
-  return (
+  const badge = (
     <span
       className={cx(
         'inline-flex h-[22px] shrink-0 items-center rounded-ui-sm border px-1.5 text-[11px] font-bold tabular-nums leading-none',
-        bracketToneClass(level),
-        className,
+        bracketToneClass(level, solid),
+        !solid && className,
       )}
       title={t('Decks.badge.bracket', { level })}
     >
       {t('Decks.badge.bracketShort', { level })}
     </span>
   );
+  return solid ? <span className={cx('inline-flex shrink-0 rounded-ui-sm bg-over-art-backdrop', className)}>{badge}</span> : badge;
 }
 
 export function DeckPriceBadge({

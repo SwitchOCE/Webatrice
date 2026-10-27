@@ -8,7 +8,7 @@ import type { DeckTileView } from '../../deckGrid';
 import { formatDisplayLabel } from '../../deckSummary';
 import { formatDeckAge } from '../../deckTree';
 import { DeckActionsMenu, type DeckActions } from './DeckActionsMenu';
-import { BracketBadge, DeckPriceBadge, DeckVisibilityBadge, IdentityPips, TagChip } from './DeckBadges';
+import { BracketBadge, DeckPriceBadge, DeckVisibilityBadge, IdentityPips, TagChip, formatBandClass } from './DeckBadges';
 
 export interface DeckTileProps {
   view: DeckTileView;
@@ -56,8 +56,9 @@ export function DeckTile({ view, actions, onPrefetch }: DeckTileProps) {
   const { t } = useTranslation();
   const { deck, summary } = view;
   const [menuOpen, setMenuOpen] = useState(false);
-  const formatLine = useFormatLine(view);
   const created = useDeckAge(deck.creationTime);
+  const format = summary?.format ? formatDisplayLabel(summary.format, t) : null;
+  const cards = summary?.cardCount != null ? t('DeckTile.cards', { count: summary.cardCount }) : null;
   return (
     <article
       aria-label={deck.name}
@@ -77,34 +78,38 @@ export function DeckTile({ view, actions, onPrefetch }: DeckTileProps) {
           'focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent',
         )}
       >
-        <span className="relative block h-[128px] overflow-hidden rounded-t-ui-lg">
-          <DeckArt url={view.artUrl} className="h-full w-full" />
-          <span className="absolute inset-0 bg-gradient-to-t from-bg-surface via-transparent to-transparent" aria-hidden />
-          {formatLine && (
-            <span
-              className={cx(
-                'absolute left-2.5 top-2.5 rounded-full bg-bg-base/85 px-2 py-0.5',
-                'text-[11px] font-medium tabular-nums text-text-primary',
-              )}
-            >
-              {formatLine}
+        <span className="relative flex h-[124px] items-end overflow-hidden rounded-t-ui-lg px-2 pb-1 pt-2">
+          <DeckArt url={view.artUrl} className="absolute inset-0 h-full w-full" />
+          <span
+            className="absolute inset-0 bg-gradient-to-b from-transparent from-60% to-over-art-backdrop/90"
+            aria-hidden
+          />
+          <span className="relative flex min-w-0 flex-wrap items-center gap-x-2 gap-y-0.5">
+            <span className="max-w-full truncate text-[15px] font-semibold text-over-art-text group-hover:text-accent">
+              {deck.name}
             </span>
-          )}
-          <DeckVisibilityBadge visibility={deck.visibility} kind="deck" className="absolute right-2.5 top-2.5" />
-        </span>
-        <span className="flex flex-col gap-1.5 px-3 pb-2 pt-1">
-          <span className="flex min-w-0 items-center gap-2">
-            <span className="truncate text-[15px] font-semibold text-text-primary group-hover:text-accent">{deck.name}</span>
-            {view.bracket != null && <BracketBadge level={view.bracket} className="ml-auto" />}
-          </span>
-          <span className="flex min-h-[18px] items-center gap-2 text-[12px] text-text-muted">
             {view.colours !== undefined && <IdentityPips colours={view.colours} />}
-            <span className="ml-auto min-w-0 truncate">{created}</span>
+          </span>
+        </span>
+        <span className={cx('flex h-7 items-center gap-2 px-2', formatBandClass(summary?.format))}>
+          <span
+            className="min-w-0 flex-1 truncate text-[11px] font-bold text-over-art-text"
+            title={summary && !format ? t('Decks.badge.noFormat') : undefined}
+          >
+            {format ?? (summary ? '—' : '')}
+          </span>
+          <DeckVisibilityBadge visibility={deck.visibility} kind="deck" />
+          {view.bracket != null && <BracketBadge level={view.bracket} solid />}
+        </span>
+        <span className="flex min-w-0 items-center px-2 py-2 text-[12px] text-text-muted">
+          <span className="truncate">
+            {created}
+            {cards && <span className="text-[11px] font-medium text-text-primary"> · {cards}</span>}
           </span>
         </span>
       </button>
-      <div className="flex items-center gap-1.5 border-t border-border-subtle/70 px-3 py-2">
-        <ul className="mr-1 flex h-5 min-w-0 flex-1 flex-wrap gap-1 overflow-hidden" aria-label={t('DeckTile.tags')}>
+      <div className="flex items-center gap-1.5 border-t border-border-subtle/70 px-2 py-0.5">
+        <ul className="mr-1 flex h-5 min-w-0 flex-1 flex-wrap gap-1.5 overflow-hidden" aria-label={t('DeckTile.tags')}>
           {view.tags.map((tag) => (
             <li key={tag} className="min-w-0 max-w-full"><TagChip>{tag}</TagChip></li>
           ))}
