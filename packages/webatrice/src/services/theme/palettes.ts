@@ -40,6 +40,7 @@ export type PaletteToken =
   | 'format-modern'
   | 'format-eternal'
   | 'format-pauper'
+  | 'format-standard'
   | 'format-other'
   | 'bg-sunken'
   | 'accent-soft'
@@ -96,6 +97,7 @@ export const PALETTES: Readonly<Record<ThemeName, Readonly<Record<ColorScheme, P
       'format-modern': '#2F6FD1',
       'format-eternal': '#8250D6',
       'format-pauper': '#C76A1E',
+      'format-standard': '#13899C',
       'format-other': '#5B5F66',
     },
     light: {
@@ -142,6 +144,7 @@ export const PALETTES: Readonly<Record<ThemeName, Readonly<Record<ColorScheme, P
       'format-modern': '#2F6FD1',
       'format-eternal': '#8250D6',
       'format-pauper': '#C76A1E',
+      'format-standard': '#13899C',
       'format-other': '#5B5F66',
     },
   },
@@ -190,6 +193,7 @@ export const PALETTES: Readonly<Record<ThemeName, Readonly<Record<ColorScheme, P
       'format-modern': '#2F6FD1',
       'format-eternal': '#8250D6',
       'format-pauper': '#C76A1E',
+      'format-standard': '#13899C',
       'format-other': '#5B5F66',
     },
     light: {
@@ -236,6 +240,7 @@ export const PALETTES: Readonly<Record<ThemeName, Readonly<Record<ColorScheme, P
       'format-modern': '#2F6FD1',
       'format-eternal': '#8250D6',
       'format-pauper': '#C76A1E',
+      'format-standard': '#13899C',
       'format-other': '#5B5F66',
     },
   },
@@ -284,6 +289,7 @@ export const PALETTES: Readonly<Record<ThemeName, Readonly<Record<ColorScheme, P
       'format-modern': '#2F6FD1',
       'format-eternal': '#8250D6',
       'format-pauper': '#C76A1E',
+      'format-standard': '#13899C',
       'format-other': '#5B5F66',
     },
     light: {
@@ -330,6 +336,7 @@ export const PALETTES: Readonly<Record<ThemeName, Readonly<Record<ColorScheme, P
       'format-modern': '#2F6FD1',
       'format-eternal': '#8250D6',
       'format-pauper': '#C76A1E',
+      'format-standard': '#13899C',
       'format-other': '#5B5F66',
     },
   },

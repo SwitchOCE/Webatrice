@@ -94,6 +94,7 @@ export default {
           modern: 'rgb(var(--format-modern) / <alpha-value>)',
           eternal: 'rgb(var(--format-eternal) / <alpha-value>)',
           pauper: 'rgb(var(--format-pauper) / <alpha-value>)',
+          standard: 'rgb(var(--format-standard) / <alpha-value>)',
           other: 'rgb(var(--format-other) / <alpha-value>)',
         },
       },

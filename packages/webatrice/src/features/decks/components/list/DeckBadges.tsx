@@ -17,7 +17,7 @@ const FORMAT_BAND: Record<string, string> = {
   standardbrawl: 'bg-format-commander',
   modern: 'bg-format-modern',
   pioneer: 'bg-format-modern',
-  standard: 'bg-format-modern',
+  standard: 'bg-format-standard',
   historic: 'bg-format-modern',
   timeless: 'bg-format-modern',
   future: 'bg-format-modern',

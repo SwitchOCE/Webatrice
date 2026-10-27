@@ -53,6 +53,7 @@
   --format-modern: 47 111 209;        /* #2F6FD1 */
   --format-eternal: 130 80 214;       /* #8250D6 */
   --format-pauper: 199 106 30;        /* #C76A1E */
+  --format-standard: 19 137 156;      /* #13899C */
   --format-other: 91 95 102;          /* #5B5F66 */
 }
 
@@ -101,6 +102,7 @@
   --format-modern: 47 111 209;        /* #2F6FD1 */
   --format-eternal: 130 80 214;       /* #8250D6 */
   --format-pauper: 199 106 30;        /* #C76A1E */
+  --format-standard: 19 137 156;      /* #13899C */
   --format-other: 91 95 102;          /* #5B5F66 */
 }
 
@@ -151,6 +153,7 @@
   --format-modern: 47 111 209;        /* #2F6FD1 */
   --format-eternal: 130 80 214;       /* #8250D6 */
   --format-pauper: 199 106 30;        /* #C76A1E */
+  --format-standard: 19 137 156;      /* #13899C */
   --format-other: 91 95 102;          /* #5B5F66 */
 }
 
@@ -200,6 +203,7 @@
   --format-modern: 47 111 209;        /* #2F6FD1 */
   --format-eternal: 130 80 214;       /* #8250D6 */
   --format-pauper: 199 106 30;        /* #C76A1E */
+  --format-standard: 19 137 156;      /* #13899C */
   --format-other: 91 95 102;          /* #5B5F66 */
 }
 
@@ -248,6 +252,7 @@
   --format-modern: 47 111 209;        /* #2F6FD1 */
   --format-eternal: 130 80 214;       /* #8250D6 */
   --format-pauper: 199 106 30;        /* #C76A1E */
+  --format-standard: 19 137 156;      /* #13899C */
   --format-other: 91 95 102;          /* #5B5F66 */
 }
 
@@ -296,5 +301,6 @@
   --format-modern: 47 111 209;        /* #2F6FD1 */
   --format-eternal: 130 80 214;       /* #8250D6 */
   --format-pauper: 199 106 30;        /* #C76A1E */
+  --format-standard: 19 137 156;      /* #13899C */
   --format-other: 91 95 102;          /* #5B5F66 */
 }
