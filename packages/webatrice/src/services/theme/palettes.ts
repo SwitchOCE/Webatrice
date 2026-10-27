@@ -36,6 +36,11 @@ export type PaletteToken =
   | 'mana-g'
   | 'mana-c'
   | 'mana-o'
+  | 'format-commander'
+  | 'format-modern'
+  | 'format-eternal'
+  | 'format-pauper'
+  | 'format-other'
   | 'bg-sunken'
   | 'accent-soft'
   | 'status-info'
@@ -87,6 +92,11 @@ export const PALETTES: Readonly<Record<ThemeName, Readonly<Record<ColorScheme, P
       'mana-g': '#10B981',
       'mana-c': '#9CA3AF',
       'mana-o': '#F97316',
+      'format-commander': '#24A661',
+      'format-modern': '#2F6FD1',
+      'format-eternal': '#8250D6',
+      'format-pauper': '#C76A1E',
+      'format-other': '#5B5F66',
     },
     light: {
       'bg-base': '#EFF0F4',
@@ -128,6 +138,11 @@ export const PALETTES: Readonly<Record<ThemeName, Readonly<Record<ColorScheme, P
       'mana-g': '#10B981',
       'mana-c': '#9CA3AF',
       'mana-o': '#F97316',
+      'format-commander': '#24A661',
+      'format-modern': '#2F6FD1',
+      'format-eternal': '#8250D6',
+      'format-pauper': '#C76A1E',
+      'format-other': '#5B5F66',
     },
   },
   [ThemeName.Graphite]: {
@@ -171,6 +186,11 @@ export const PALETTES: Readonly<Record<ThemeName, Readonly<Record<ColorScheme, P
       'mana-g': '#10B981',
       'mana-c': '#9CA3AF',
       'mana-o': '#F97316',
+      'format-commander': '#24A661',
+      'format-modern': '#2F6FD1',
+      'format-eternal': '#8250D6',
+      'format-pauper': '#C76A1E',
+      'format-other': '#5B5F66',
     },
     light: {
       'bg-base': '#EFF0F4',
@@ -212,6 +232,11 @@ export const PALETTES: Readonly<Record<ThemeName, Readonly<Record<ColorScheme, P
       'mana-g': '#10B981',
       'mana-c': '#9CA3AF',
       'mana-o': '#F97316',
+      'format-commander': '#24A661',
+      'format-modern': '#2F6FD1',
+      'format-eternal': '#8250D6',
+      'format-pauper': '#C76A1E',
+      'format-other': '#5B5F66',
     },
   },
   [ThemeName.Carbon]: {
@@ -255,6 +280,11 @@ export const PALETTES: Readonly<Record<ThemeName, Readonly<Record<ColorScheme, P
       'mana-g': '#10B981',
       'mana-c': '#9CA3AF',
       'mana-o': '#F97316',
+      'format-commander': '#24A661',
+      'format-modern': '#2F6FD1',
+      'format-eternal': '#8250D6',
+      'format-pauper': '#C76A1E',
+      'format-other': '#5B5F66',
     },
     light: {
       'bg-base': '#EFF0F4',
@@ -296,6 +326,11 @@ export const PALETTES: Readonly<Record<ThemeName, Readonly<Record<ColorScheme, P
       'mana-g': '#10B981',
       'mana-c': '#9CA3AF',
       'mana-o': '#F97316',
+      'format-commander': '#24A661',
+      'format-modern': '#2F6FD1',
+      'format-eternal': '#8250D6',
+      'format-pauper': '#C76A1E',
+      'format-other': '#5B5F66',
     },
   },
 };

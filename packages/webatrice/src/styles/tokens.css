@@ -49,6 +49,11 @@
   --mana-g: 16 185 129;               /* #10B981 */
   --mana-c: 156 163 175;              /* #9CA3AF */
   --mana-o: 249 115 22;               /* #F97316 */
+  --format-commander: 36 166 97;      /* #24A661 */
+  --format-modern: 47 111 209;        /* #2F6FD1 */
+  --format-eternal: 130 80 214;       /* #8250D6 */
+  --format-pauper: 199 106 30;        /* #C76A1E */
+  --format-other: 91 95 102;          /* #5B5F66 */
 }
 
 :root[data-scheme='midnight'][data-theme='light'] {
@@ -92,6 +97,11 @@
   --mana-g: 16 185 129;               /* #10B981 */
   --mana-c: 156 163 175;              /* #9CA3AF */
   --mana-o: 249 115 22;               /* #F97316 */
+  --format-commander: 36 166 97;      /* #24A661 */
+  --format-modern: 47 111 209;        /* #2F6FD1 */
+  --format-eternal: 130 80 214;       /* #8250D6 */
+  --format-pauper: 199 106 30;        /* #C76A1E */
+  --format-other: 91 95 102;          /* #5B5F66 */
 }
 
 :root,
@@ -137,6 +147,11 @@
   --mana-g: 16 185 129;               /* #10B981 */
   --mana-c: 156 163 175;              /* #9CA3AF */
   --mana-o: 249 115 22;               /* #F97316 */
+  --format-commander: 36 166 97;      /* #24A661 */
+  --format-modern: 47 111 209;        /* #2F6FD1 */
+  --format-eternal: 130 80 214;       /* #8250D6 */
+  --format-pauper: 199 106 30;        /* #C76A1E */
+  --format-other: 91 95 102;          /* #5B5F66 */
 }
 
 :root[data-theme='light'],
@@ -181,6 +196,11 @@
   --mana-g: 16 185 129;               /* #10B981 */
   --mana-c: 156 163 175;              /* #9CA3AF */
   --mana-o: 249 115 22;               /* #F97316 */
+  --format-commander: 36 166 97;      /* #24A661 */
+  --format-modern: 47 111 209;        /* #2F6FD1 */
+  --format-eternal: 130 80 214;       /* #8250D6 */
+  --format-pauper: 199 106 30;        /* #C76A1E */
+  --format-other: 91 95 102;          /* #5B5F66 */
 }
 
 :root[data-scheme='carbon'][data-theme='dark'] {
@@ -224,6 +244,11 @@
   --mana-g: 16 185 129;               /* #10B981 */
   --mana-c: 156 163 175;              /* #9CA3AF */
   --mana-o: 249 115 22;               /* #F97316 */
+  --format-commander: 36 166 97;      /* #24A661 */
+  --format-modern: 47 111 209;        /* #2F6FD1 */
+  --format-eternal: 130 80 214;       /* #8250D6 */
+  --format-pauper: 199 106 30;        /* #C76A1E */
+  --format-other: 91 95 102;          /* #5B5F66 */
 }
 
 :root[data-scheme='carbon'][data-theme='light'] {
@@ -267,4 +292,9 @@
   --mana-g: 16 185 129;               /* #10B981 */
   --mana-c: 156 163 175;              /* #9CA3AF */
   --mana-o: 249 115 22;               /* #F97316 */
+  --format-commander: 36 166 97;      /* #24A661 */
+  --format-modern: 47 111 209;        /* #2F6FD1 */
+  --format-eternal: 130 80 214;       /* #8250D6 */
+  --format-pauper: 199 106 30;        /* #C76A1E */
+  --format-other: 91 95 102;          /* #5B5F66 */
 }
