@@ -24,7 +24,7 @@ import buddiesText from './features/server/components/BuddiesOnline.i18n.json';
 import gameText from './components/GameCard/GameCard.i18n.json';
 import { observeHomeSession } from './BootSession';
 import { useAccount } from './features/account/useAccount';
-import { useNavRailController } from './feature-wrappers/layout/hooks/useNavRailController';
+import { useAccountMenuAndDialogs } from './feature-wrappers/layout/hooks/useAccountMenuAndDialogs';
 
 const cached: HomeSnapshot = {
   version: 1, host: 'test.example:4747', userName: 'joe', serverName: 'Test server',
@@ -100,11 +100,11 @@ it('selects the snapshot before login, paints while disconnected, and replaces i
     store.dispatch(rooms.Actions.updateRooms({ rooms: [liveRoom] }));
     store.dispatch(server.Actions.updateUsers({ users: [makeUser({ name: 'joe' })] }));
   });
-  expect(screen.getAllByText('Cached room')[0]).toBeVisible();
+  expect(within(screen.getByRole('heading', { name: 'Rooms' }).closest('section')!).getByText('Cached room')).toBeVisible();
   act(() => {
     store.dispatch(server.Actions.sessionCommandFailed({ command: 'reportDetails', responseCode: 13, target: '4' }));
   });
-  expect(screen.getAllByText('Cached room')[0]).toBeVisible();
+  expect(within(screen.getByRole('heading', { name: 'Rooms' }).closest('section')!).getByText('Cached room')).toBeVisible();
   act(() => {
     store.dispatch(rooms.Actions.joinRoom({ roomInfo: liveRoom, userInitiated: false }));
   });
@@ -190,7 +190,7 @@ it.each(['boot', 'page'] as const)('allows only the %s winner to log in and pers
   );
   await waitFor(() => expect(client.request.authentication.login).toHaveBeenCalledTimes(1));
   expect(autoLoginGate.source).toBe(winner);
-  expect(screen.getAllByText('Cached room')[0]).toBeVisible();
+  expect(within(screen.getByRole('heading', { name: 'Rooms' }).closest('section')!).getByText('Cached room')).toBeVisible();
   if (winner === 'page') {
     await act(async () => {
       release([settings, hosts]);
@@ -213,7 +213,9 @@ it.each(['disconnect', 'failure', 'disable', 'switch'])(
     const { store } = renderWithProviders(<BootSession preparation={preparation}><AppShellRoutes /></BootSession>, {
       preloadedState: disconnectedState, route: '/server', webClient: client,
     });
-    await waitFor(() => expect(screen.getAllByText('Cached room')[0]).toBeVisible());
+    await waitFor(() => {
+      expect(within(screen.getByRole('heading', { name: 'Rooms' }).closest('section')!).getByText('Cached room')).toBeVisible();
+    });
     act(() => {
       if (event === 'disable') {
         settingsStore.setValue({ ...settings, autoConnect: false } as typeof settings);
@@ -304,10 +306,10 @@ it('never persists data under a selected account or host that differs from the l
 
 function SignOutActions() {
   const account = useAccount();
-  const rail = useNavRailController();
+  const { account: menu } = useAccountMenuAndDialogs();
   return <>
     <button onClick={account.handleDisconnect}>account sign out</button>
-    <button onClick={rail.account.onSignOut}>rail sign out</button>
+    <button onClick={menu.onSignOut}>rail sign out</button>
   </>;
 }
 

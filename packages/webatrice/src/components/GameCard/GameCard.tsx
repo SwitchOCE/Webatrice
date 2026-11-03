@@ -91,10 +91,12 @@ function GameCard({
             </span>
           )}
         </div>
-        <div className="flex shrink-0 flex-col items-end gap-1.5">
-          <div className="flex items-center gap-1.5">
+        <div className="flex min-w-0 max-w-[50%] flex-col items-end gap-1.5">
+          <div className="flex min-w-0 max-w-full items-center gap-1.5">
             {shownTypes.map((type) => (
-              <Chip key={type} outline>{type}</Chip>
+              <Chip key={type} outline className="min-w-0" title={type}>
+                <span className="truncate">{type}</span>
+              </Chip>
             ))}
             {types.length > shownTypes.length && (
               <Chip outline title={types.slice(maxFormats).join(', ')}>

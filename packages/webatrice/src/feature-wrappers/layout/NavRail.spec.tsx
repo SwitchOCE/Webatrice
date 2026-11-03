@@ -228,6 +228,23 @@ describe('NavRail', () => {
       expect(screen.getByTestId('location')).toHaveTextContent('/room/2');
     });
 
+    it('persists the visited room once per route change with TopBar and NavRail mounted', () => {
+      const setItem = vi.spyOn(Storage.prototype, 'setItem');
+      const roomWrites = () => setItem.mock.calls.filter(([key]) => key === 'webatrice.lastRoom');
+      renderRail('/room/2', twoRooms);
+
+      expect(roomWrites()).toEqual([
+        ['webatrice.lastRoom', JSON.stringify({ owner: 'Test Server::testUser', roomId: 2 })],
+      ]);
+
+      fireEvent.click(screen.getByRole('link', { name: 'NavRail.home' }));
+      expect(roomWrites()).toHaveLength(1);
+
+      fireEvent.click(play());
+      expect(screen.getByTestId('location')).toHaveTextContent('/room/2');
+      expect(roomWrites()).toHaveLength(2);
+    });
+
     it('ignores a room visited by another account', () => {
       const asBob = { ...twoRooms, server: { ...(twoRooms.server as any), user: makeUser({ name: 'bob' }) } };
       renderRail('/room/2', asBob).unmount();

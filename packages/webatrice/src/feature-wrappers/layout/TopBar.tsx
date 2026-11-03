@@ -13,7 +13,7 @@ import LatencyStatus from './LatencyStatus';
 import TabList from './TabList';
 import UserMenu from './UserMenu';
 import { useConnectionState } from './hooks/useConnectionState';
-import { useNavRailController } from './hooks/useNavRailController';
+import { useAccountMenuAndDialogs } from './hooks/useAccountMenuAndDialogs';
 import { useNavRailHidden } from './hooks/useNavRailHidden';
 import { useSessionTabs } from './hooks/useSessionTabs';
 import { focusRailToggle, RAIL_TOGGLE_ID } from './railToggle';
@@ -24,7 +24,7 @@ export default function TopBar() {
   const connectionState = useConnectionState();
   const { groups, activeKey, close, unreadOf } = useSessionTabs();
   const [railHidden, setRailHidden] = useNavRailHidden();
-  const { account, openDialog, closeDialog } = useNavRailController();
+  const { account, openDialog, closeDialog } = useAccountMenuAndDialogs();
 
   return (
     <header className="relative z-40 flex h-11 shrink-0 items-stretch border-b border-border-subtle bg-bg-surface pr-3">
