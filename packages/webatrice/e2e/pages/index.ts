@@ -3,4 +3,4 @@ export { RoomsPage, type CreateGameOptions } from './RoomsPage';
 export { GamePage } from './GamePage';
 export { DeckSelectPage } from './DeckSelectPage';
 export { ConnectionStatus } from './ConnectionStatus';
-export { navRailLink, topBarTab } from './TopBar';
+export { homeLink, navRailLink, topBarTab } from './TopBar';

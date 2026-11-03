@@ -9,7 +9,7 @@ interface LastRoom {
 
 function isLastRoom(value: unknown): value is LastRoom {
   const { owner, roomId } = (value ?? {}) as Partial<LastRoom>;
-  return typeof owner === 'string' && Number.isInteger(roomId) && (roomId as number) > 0;
+  return typeof owner === 'string' && Number.isInteger(roomId) && (roomId as number) >= 0;
 }
 
 export function persistLastRoomId(owner: string, roomId: number): void {
