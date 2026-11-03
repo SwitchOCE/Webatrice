@@ -10,7 +10,6 @@ import { RouteEnum, type RoomRouteState } from '@app/types';
 
 import {
   buddyHostedGames,
-  countOpenSeatGames,
   joinableOpenGames,
   onlineBuddies,
   pickUsualRoom,
@@ -33,7 +32,6 @@ export interface HomeData {
   joinedRooms: Room[];
   usualRoom: Room | undefined;
   usualRoomJoined: boolean;
-  usualRoomOpenSeats: number;
   buddyGames: BuddyGame[];
   openGames: Game[];
   buddiesOnline: OnlineBuddy[];
@@ -125,7 +123,6 @@ export function useHome(): HomeData {
     joinedRooms,
     usualRoom,
     usualRoomJoined,
-    usualRoomOpenSeats: usualRoom && usualRoomJoined ? countOpenSeatGames(usualRoom) : 0,
     buddyGames,
     openGames,
     buddiesOnline,

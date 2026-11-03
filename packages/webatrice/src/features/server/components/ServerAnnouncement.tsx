@@ -28,7 +28,7 @@ export default function ServerAnnouncement({ message }: { message: string | null
       <Panel
         eyebrow
         className="flex-1"
-        bodyClassName="flex flex-col"
+        bodyClassName="flex flex-col pt-2"
         title={(
           <span className="inline-flex items-center gap-2">
             <Megaphone size={14} className="text-text-muted" aria-hidden /> {t('ServerAnnouncement.title')}
@@ -39,7 +39,7 @@ export default function ServerAnnouncement({ message }: { message: string | null
           <>
             <div
               ref={clip.viewportRef}
-              className={cx('relative min-h-0 flex-1 overflow-hidden', !clip.expanded && 'max-h-[560px]')}
+              className={cx('relative min-h-0 flex-1 overflow-hidden', !clip.expanded && 'max-h-[150px]')}
             >
               <div id={id} ref={clip.contentRef} className={MESSAGE_CLASS} dangerouslySetInnerHTML={{ __html: message }} />
               {faded && (

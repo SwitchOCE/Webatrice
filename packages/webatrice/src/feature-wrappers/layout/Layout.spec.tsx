@@ -21,16 +21,21 @@ describe('Layout', () => {
     expect(screen.getByRole('main')).toHaveTextContent('Page');
   });
 
-  it('hides the rail from its own toggle and brings it back', () => {
+  it('hides the rail from the toggle in the top bar and brings it back', () => {
     renderWithProviders(<Layout><p>Page</p></Layout>, { preloadedState: connectedState, route: RouteEnum.SERVER });
 
-    expect(within(screen.getByRole('banner')).queryByRole('button', { name: /NavRail\.toggle/ })).not.toBeInTheDocument();
-    fireEvent.click(screen.getByRole('button', { name: 'NavRail.toggle.hide' }));
+    const toggle = within(screen.getByRole('banner')).getByRole('button', { name: 'NavRail.toggle.hide' });
+    toggle.focus();
+    fireEvent.click(toggle);
     expect(screen.queryByRole('navigation', { name: 'NavRail.label' })).not.toBeInTheDocument();
     expect(screen.getByRole('main')).toHaveTextContent('Page');
+    const show = within(screen.getByRole('banner')).getByRole('button', { name: 'NavRail.toggle.show' });
+    expect(show).toHaveFocus();
+    expect(window.localStorage.getItem('webatrice.navRailHidden')).toBe('true');
 
-    fireEvent.click(screen.getByRole('button', { name: 'NavRail.toggle.show' }));
+    fireEvent.click(show);
     expect(screen.getByRole('navigation', { name: 'NavRail.label' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'NavRail.toggle.hide' })).toHaveFocus();
   });
 
   it('shows neither rail nor strip without the nav', () => {

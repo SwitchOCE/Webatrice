@@ -1,5 +1,5 @@
 import { Plus, Swords } from 'lucide-react';
-import { useTranslation } from 'react-i18next';
+import { Trans, useTranslation } from 'react-i18next';
 
 import { Button } from '@app/components';
 
@@ -17,16 +17,10 @@ export default function OpenGames({ home, renderCard }: { home: HomeData; render
   const name = room.info.name;
 
   return (
-    <section className="flex shrink-0 flex-col gap-2.5" aria-labelledby="home-open-games">
+    <section className="flex shrink-0 flex-col gap-2.5 pt-3" aria-labelledby="home-open-games">
       <SectionHead
         id="home-open-games"
-        title={t('OpenGames.title', { room: name })}
-        count={home.openGames.length > 0 ? t('OpenGames.where') : undefined}
-        action={(
-          <Button size="sm" variant="ghost" onClick={home.play}>
-            {t('OpenGames.allGames', { count: room.info.gameCount })}
-          </Button>
-        )}
+        title={<Trans i18nKey="OpenGames.title" values={{ room: name }} components={{ room: <span className="text-accent" /> }} />}
       />
       {home.openGames.length === 0 ? (
         <HomeEmpty

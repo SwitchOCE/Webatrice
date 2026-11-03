@@ -117,7 +117,6 @@ describe('Server (Home)', () => {
   it('renders without rooms', () => {
     renderHome(connectedState);
     expect(screen.getByText('RoomsList.empty')).toBeInTheDocument();
-    expect(screen.getByText('HomeHero.noRooms')).toBeInTheDocument();
     expect(screen.queryByRole('button', { name: 'HomeHero.play' })).not.toBeInTheDocument();
   });
 

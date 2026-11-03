@@ -35,6 +35,25 @@ describe('GameCard', () => {
     expect(screen.getByRole('heading', { name: 'GameCard.untitled' })).toBeInTheDocument();
   });
 
+  it('bounds long formats so the title and host keep space to truncate', () => {
+    const format = 'A very long server-defined format '.repeat(12).trim();
+    render(<GameCard game={game({ gameTypes: [1] })} gametypeMap={{ 1: format }} onJoin={vi.fn()} onSpectate={vi.fn()} />);
+
+    const heading = screen.getByRole('heading', { name: 'Commander night' });
+    expect(heading).toBeVisible();
+    expect(heading).toHaveClass('min-w-0');
+    expect(heading.parentElement).toHaveClass('min-w-0', 'flex-1');
+    expect(screen.getByText('Commander night')).toHaveClass('truncate');
+    expect(screen.getByText('Alice')).toHaveClass('truncate');
+
+    const chip = screen.getByTitle(format);
+    expect(chip).toHaveClass('min-w-0');
+    expect(screen.getByText(format)).toHaveClass('truncate');
+    expect(chip.parentElement).toHaveClass('min-w-0', 'max-w-full');
+    expect(chip.parentElement?.parentElement).toHaveClass('min-w-0', 'max-w-[50%]');
+    expect(chip.parentElement?.parentElement).not.toHaveClass('shrink-0');
+  });
+
   it('hands the game to Join and Spectate', () => {
     const onJoin = vi.fn();
     const onSpectate = vi.fn();

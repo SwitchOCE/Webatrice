@@ -1,6 +1,6 @@
 import { makeGame } from '@cockatrice/datatrice/testing';
 
-import { gameAvailability, gameCardActions, gameRestrictions, gameTypeNames, hasOpenSeat, spectatorTraits } from './gameCardModel';
+import { gameAvailability, gameCardActions, gameTypeNames, hasOpenSeat } from './gameCardModel';
 
 const info = (overrides: Parameters<typeof makeGame>[0] = {}) =>
   makeGame({ playerCount: 1, maxPlayers: 4, spectatorsAllowed: true, ...overrides }).info;
@@ -34,25 +34,6 @@ describe('gameTypeNames', () => {
   it('falls back to the stored first type, or nothing', () => {
     expect(gameTypeNames(makeGame({ gameTypes: [9], gameType: 'Modern' }), {})).toEqual(['Modern']);
     expect(gameTypeNames(makeGame(), {})).toEqual([]);
-  });
-});
-
-describe('gameRestrictions', () => {
-  it('leaves out what the availability badge already says', () => {
-    expect(gameRestrictions(info({ withPassword: true, onlyRegistered: true }))).toEqual(['registeredOnly']);
-    expect(gameRestrictions(info({ onlyBuddies: true, shareDecklistsOnLoad: true }))).toEqual(['openDecklists']);
-  });
-
-  it('keeps the password when the badge shows the game is full', () => {
-    expect(gameRestrictions(info({ playerCount: 4, withPassword: true, onlyBuddies: true })))
-      .toEqual(['password', 'buddiesOnly']);
-  });
-});
-
-describe('spectatorTraits', () => {
-  it('lists chat, hands and password in order', () => {
-    expect(spectatorTraits(info({ spectatorsCanChat: true, spectatorsOmniscient: true, spectatorsNeedPassword: true })))
-      .toEqual(['canChat', 'seeHands', 'password']);
   });
 });
 

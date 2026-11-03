@@ -1,4 +1,4 @@
-import { useTranslation } from 'react-i18next';
+import { Trans, useTranslation } from 'react-i18next';
 import { Button, Panel } from '@app/components';
 import { Layout } from '@app/feature-wrappers/layout';
 import type { HomeSnapshot } from '../../services/storage/homeSnapshot';
@@ -20,11 +20,19 @@ export default function ReconnectingHome({ snapshot }: { snapshot: HomeSnapshot 
           <h1 className="font-display text-[30px] font-semibold text-text-primary">
             {t('HomeHero.welcome', { name: snapshot.userName })}
           </h1>
-          {room && <Button disabled>{t('HomeHero.play', { room: room.name })}</Button>}
+          {room && (
+            <Button disabled>
+              <span><Trans i18nKey="HomeHero.play" values={{ room: room.name }} components={{ room: <strong /> }} /></span>
+            </Button>
+          )}
         </section>
         <div className="grid gap-gap lg:grid-cols-[minmax(0,1fr)_320px]">
           {room && (
-            <Panel title={t('OpenGames.title', { room: room.name })}>
+            <Panel
+              title={(
+                <Trans i18nKey="OpenGames.title" values={{ room: room.name }} components={{ room: <span className="text-accent" /> }} />
+              )}
+            >
               {snapshot.openGames.length === 0 && <p>{t('OpenGames.empty', { room: room.name })}</p>}
               <ul className="flex flex-col gap-3">
                 {snapshot.openGames.map(game => (

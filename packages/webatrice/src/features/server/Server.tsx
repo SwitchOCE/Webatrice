@@ -29,8 +29,8 @@ const Server = () => {
           <RecentDecks />
         </div>
         <div className="flex min-w-0 shrink-0 flex-col gap-gap lg:min-h-0 lg:shrink lg:overflow-y-auto">
-          <ServerAnnouncement message={home.message} />
           <RoomsList rooms={home.roomList} joinedRoomIds={home.joinedRoomIds} onOpen={home.openRoom} />
+          <ServerAnnouncement message={home.message} />
           {home.buddyCount > 0 && <BuddiesOnline buddies={home.buddiesOnline} buddyCount={home.buddyCount} />}
         </div>
       </div>

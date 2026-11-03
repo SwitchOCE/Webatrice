@@ -65,7 +65,7 @@ export default function UserMenu({
     const rect = triggerRef.current?.getBoundingClientRect();
     setAnchor((open) => (open || !rect
       ? null
-      : { rect: { left: rect.left, top: rect.top, right: rect.right + 6, bottom: rect.bottom }, placement: 'right' }));
+      : { rect: { left: rect.left, top: rect.top, right: rect.right, bottom: rect.bottom + 6 }, placement: 'below', align: 'end' }));
   };
 
   const displayName = userName ?? t('TopBar.user.signedIn');
@@ -121,14 +121,11 @@ export default function UserMenu({
         }}
         aria-haspopup="menu"
         aria-expanded={anchor != null}
-        className={[
-          'flex w-16 flex-col items-center gap-1 rounded-ui py-1.5 text-[10.5px] font-medium hover:bg-bg-elevated',
-          focusRing,
-          anchor ? 'bg-bg-elevated text-text-primary' : 'text-text-secondary',
-        ].join(' ')}
+        aria-label={displayName}
+        title={displayName}
+        className={`flex rounded-full ${focusRing}`}
       >
         <Avatar name={displayName} size={30} ring={anchor != null} src={avatarUrl ?? undefined} />
-        <span className="max-w-[60px] truncate">{displayName}</span>
       </button>
 
       {anchor && (

@@ -34,10 +34,6 @@ export function pickUsualRoom(
     ?? rooms[0];
 }
 
-export function countOpenSeatGames(room: Room): number {
-  return Object.values(room.games).filter((game) => hasOpenSeat(game.info)).length;
-}
-
 function gameRank(game: Game): number {
   if (hasOpenSeat(game.info)) {
     return 0;

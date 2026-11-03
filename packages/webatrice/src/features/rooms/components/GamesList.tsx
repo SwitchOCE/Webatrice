@@ -118,7 +118,7 @@ export default function GamesList({ room, header }: GamesListProps) {
             role="row"
             aria-rowindex={1}
             className={[
-              'grid items-center gap-gap border-b border-border-subtle bg-bg-elevated/40 px-pad py-1.5',
+              'grid items-center gap-gap overflow-hidden border-b border-border-subtle bg-bg-elevated/40 px-pad py-1.5',
               'text-[11px] font-semibold uppercase tracking-[0.06em] text-text-muted [scrollbar-gutter:stable]',
             ].join(' ')}
             style={{ gridTemplateColumns: columns }}

@@ -10,7 +10,6 @@ import type { RecentDeck } from '@app/services';
 import {
   buddyGamesEmptyKind,
   buddyHostedGames,
-  countOpenSeatGames,
   joinableOpenGames,
   liveRecentDecks,
   onlineBuddies,
@@ -46,17 +45,9 @@ describe('pickUsualRoom', () => {
   });
 });
 
-describe('countOpenSeatGames and totalGames', () => {
-  it('counts games with a free seat that have not started', () => {
-    const room = makeRoom({
-      gameCount: 3,
-      games: {
-        1: makeGame({ gameId: 1, playerCount: 1, maxPlayers: 2 }),
-        2: makeGame({ gameId: 2, playerCount: 2, maxPlayers: 2 }),
-        3: makeGame({ gameId: 3, playerCount: 1, maxPlayers: 4, started: true }),
-      },
-    });
-    expect(countOpenSeatGames(room)).toBe(1);
+describe('totalGames', () => {
+  it('sums the game counts across rooms', () => {
+    const room = makeRoom({ gameCount: 3 });
     expect(totalGames([room, makeRoom({ gameCount: 4 })])).toBe(7);
   });
 });

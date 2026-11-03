@@ -4,19 +4,8 @@
     "hostedBy": "Hosted by",
     "moreFormats": "+{count}",
     "players": "{taken} / {max} players",
-    "restriction": {
-      "none": "Anyone can join",
-      "password": "Password",
-      "buddiesOnly": "Buddies only",
-      "registeredOnly": "Registered users",
-      "openDecklists": "Open decklists"
-    },
     "spectators": {
-      "notAllowed": "Spectators not allowed",
-      "watching": "{count} watching",
-      "canChat": "can chat",
-      "seeHands": "see hands",
-      "password": "password"
+      "notAllowed": "Spectators not allowed"
     },
     "blocked": {
       "started": "This game has started",
