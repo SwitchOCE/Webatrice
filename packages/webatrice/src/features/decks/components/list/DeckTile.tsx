@@ -1,14 +1,15 @@
-import { useState } from 'react';
+import { useId, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { FileText } from 'lucide-react';
 
+import type { DeckFormatFamily } from '@app/types';
 import { cx, toBcp47 } from '@app/utils';
 
 import type { DeckTileView } from '../../deckGrid';
 import { formatDisplayLabel } from '../../deckSummary';
 import { formatDeckAge } from '../../deckTree';
 import { DeckActionsMenu, type DeckActions } from './DeckActionsMenu';
-import { BracketBadge, DeckPriceBadge, DeckVisibilityBadge, IdentityPips, TagChip, formatBandClass } from './DeckBadges';
+import { BracketBadge, DeckPriceBadge, DeckVisibilityBadge, IdentityPips, TagChip } from './DeckBadges';
 
 export interface DeckTileProps {
   view: DeckTileView;
@@ -17,6 +18,15 @@ export interface DeckTileProps {
 }
 
 const AGE_KEYS = { unknown: 'Decks.list.age.unknown', justNow: 'Decks.list.age.justNow' } as const;
+
+const FORMAT_BAND: Record<DeckFormatFamily, string> = {
+  commander: 'bg-format-commander',
+  modern: 'bg-format-modern',
+  standard: 'bg-format-standard',
+  eternal: 'bg-format-eternal',
+  pauper: 'bg-format-pauper',
+  other: 'bg-format-other',
+};
 
 function useDeckAge(creationTime: number): string {
   const { t, i18n } = useTranslation();
@@ -54,6 +64,7 @@ function DeckArt({ url, className }: { url: string | null; className?: string })
 
 export function DeckTile({ view, actions, onPrefetch }: DeckTileProps) {
   const { t } = useTranslation();
+  const formatDescriptionId = useId();
   const { deck, summary } = view;
   const [menuOpen, setMenuOpen] = useState(false);
   const created = useDeckAge(deck.creationTime);
@@ -73,6 +84,7 @@ export function DeckTile({ view, actions, onPrefetch }: DeckTileProps) {
         type="button"
         onClick={actions.onOpen}
         aria-label={t('DeckTile.open', { name: deck.name })}
+        aria-describedby={summary && !format ? formatDescriptionId : undefined}
         className={cx(
           'group flex flex-col rounded-t-ui-lg text-left',
           'focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent',
@@ -85,19 +97,20 @@ export function DeckTile({ view, actions, onPrefetch }: DeckTileProps) {
             aria-hidden
           />
           <span className="relative flex min-w-0 flex-wrap items-center gap-x-2 gap-y-0.5">
-            <span className="max-w-full truncate text-[15px] font-semibold text-over-art-text group-hover:text-accent">
+            <span className="max-w-full truncate text-[15px] font-semibold text-over-art-text">
               {deck.name}
             </span>
             {view.colours !== undefined && <IdentityPips colours={view.colours} />}
           </span>
         </span>
-        <span className={cx('flex h-7 items-center gap-2 px-2', formatBandClass(summary?.format))}>
+        <span className={cx('flex h-7 items-center gap-2 px-2', FORMAT_BAND[view.formatFamily])}>
           <span
             className="min-w-0 flex-1 truncate text-[11px] font-bold text-over-art-text"
             title={summary && !format ? t('Decks.badge.noFormat') : undefined}
           >
             {format ?? (summary ? '—' : '')}
           </span>
+          {summary && !format && <span id={formatDescriptionId} className="sr-only">{t('Decks.badge.noFormat')}</span>}
           <DeckVisibilityBadge visibility={deck.visibility} kind="deck" />
           {view.bracket != null && <BracketBadge level={view.bracket} solid />}
         </span>

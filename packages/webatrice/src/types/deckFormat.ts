@@ -8,6 +8,8 @@ import type { TFunction } from 'i18next';
  */
 export type DeckFormat = string;
 
+export type DeckFormatFamily = 'commander' | 'modern' | 'standard' | 'eternal' | 'pauper' | 'other';
+
 /**
  * MTG formats we know about, with the display label the UI renders.
  * Ordered to put commander-family formats first (most common in
@@ -18,26 +20,30 @@ export type DeckFormat = string;
  * `value` is the canonical lowercase slug stored in the .cod
  * `<format>` element — matches Cockatrice desktop's convention.
  */
-export const MTG_FORMAT_LABELS: ReadonlyArray<{ value: string; label: (t: TFunction) => string }> = [
-  { value: 'commander', label: (t) => t('DeckFormat.commander') },
-  { value: 'paupercommander', label: (t) => t('DeckFormat.paupercommander') },
-  { value: 'duel', label: (t) => t('DeckFormat.duel') },
-  { value: 'oathbreaker', label: (t) => t('DeckFormat.oathbreaker') },
-  { value: 'standard', label: (t) => t('DeckFormat.standard') },
-  { value: 'pioneer', label: (t) => t('DeckFormat.pioneer') },
-  { value: 'modern', label: (t) => t('DeckFormat.modern') },
-  { value: 'legacy', label: (t) => t('DeckFormat.legacy') },
-  { value: 'vintage', label: (t) => t('DeckFormat.vintage') },
-  { value: 'pauper', label: (t) => t('DeckFormat.pauper') },
-  { value: 'premodern', label: (t) => t('DeckFormat.premodern') },
-  { value: 'oldschool', label: (t) => t('DeckFormat.oldschool') },
-  { value: 'predh', label: (t) => t('DeckFormat.predh') },
-  { value: 'penny', label: (t) => t('DeckFormat.penny') },
-  { value: 'standardbrawl', label: (t) => t('DeckFormat.standardbrawl') },
-  { value: 'historic', label: (t) => t('DeckFormat.historic') },
-  { value: 'timeless', label: (t) => t('DeckFormat.timeless') },
-  { value: 'gladiator', label: (t) => t('DeckFormat.gladiator') },
-  { value: 'future', label: (t) => t('DeckFormat.future') },
+export const MTG_FORMAT_LABELS: ReadonlyArray<{
+  value: string;
+  label: (t: TFunction) => string;
+  family: DeckFormatFamily;
+}> = [
+  { value: 'commander', label: (t) => t('DeckFormat.commander'), family: 'commander' },
+  { value: 'paupercommander', label: (t) => t('DeckFormat.paupercommander'), family: 'commander' },
+  { value: 'duel', label: (t) => t('DeckFormat.duel'), family: 'commander' },
+  { value: 'oathbreaker', label: (t) => t('DeckFormat.oathbreaker'), family: 'commander' },
+  { value: 'standard', label: (t) => t('DeckFormat.standard'), family: 'standard' },
+  { value: 'pioneer', label: (t) => t('DeckFormat.pioneer'), family: 'modern' },
+  { value: 'modern', label: (t) => t('DeckFormat.modern'), family: 'modern' },
+  { value: 'legacy', label: (t) => t('DeckFormat.legacy'), family: 'eternal' },
+  { value: 'vintage', label: (t) => t('DeckFormat.vintage'), family: 'eternal' },
+  { value: 'pauper', label: (t) => t('DeckFormat.pauper'), family: 'pauper' },
+  { value: 'premodern', label: (t) => t('DeckFormat.premodern'), family: 'eternal' },
+  { value: 'oldschool', label: (t) => t('DeckFormat.oldschool'), family: 'eternal' },
+  { value: 'predh', label: (t) => t('DeckFormat.predh'), family: 'commander' },
+  { value: 'penny', label: (t) => t('DeckFormat.penny'), family: 'other' },
+  { value: 'standardbrawl', label: (t) => t('DeckFormat.standardbrawl'), family: 'commander' },
+  { value: 'historic', label: (t) => t('DeckFormat.historic'), family: 'modern' },
+  { value: 'timeless', label: (t) => t('DeckFormat.timeless'), family: 'modern' },
+  { value: 'gladiator', label: (t) => t('DeckFormat.gladiator'), family: 'other' },
+  { value: 'future', label: (t) => t('DeckFormat.future'), family: 'modern' },
 ];
 
 /** Value-only list, derived from `MTG_FORMAT_LABELS`. Used for the

@@ -3,7 +3,6 @@ import { fireEvent, render, screen, within } from '@testing-library/react';
 import { deckTileView } from '../../deckGrid';
 import type { FlatDeck } from '../../deckTree';
 import type { DeckActions } from './DeckActionsMenu';
-import { formatBandClass } from './DeckBadges';
 import { DeckListRow, DeckTile } from './DeckTile';
 
 const deck: FlatDeck = {
@@ -86,13 +85,48 @@ it('shows no identity pips for a colourless deck', () => {
 });
 
 it('colours the format band by format family, grey with a dash when there is no format', () => {
-  expect(formatBandClass('commander')).toBe('bg-format-commander');
-  expect(formatBandClass('PauperCommander')).toBe('bg-format-commander');
-  expect(formatBandClass('pioneer')).toBe('bg-format-modern');
-  expect(formatBandClass('standard')).toBe('bg-format-standard');
-  expect(formatBandClass('vintage')).toBe('bg-format-eternal');
-  expect(formatBandClass('pauper')).toBe('bg-format-pauper');
-  expect(formatBandClass('penny')).toBe('bg-format-other');
   render(<DeckTile view={deckTileView(deck, { cardCount: 60 })} actions={actions()} />);
   expect(screen.getByTitle('Decks.badge.noFormat')).toHaveTextContent('—');
+  expect(screen.getByTitle('Decks.badge.noFormat').parentElement).toHaveClass('bg-format-other');
+});
+
+it.each([
+  ['commander', 'bg-format-commander'],
+  ['PauperCommander', 'bg-format-commander'],
+  ['pioneer', 'bg-format-modern'],
+  ['standard', 'bg-format-standard'],
+  ['vintage', 'bg-format-eternal'],
+  ['pauper', 'bg-format-pauper'],
+  ['penny', 'bg-format-other'],
+])('renders the family colour for %s', (format, className) => {
+  render(<DeckTile view={deckTileView(deck, { format })} actions={actions()} />);
+  expect(screen.getByText(new RegExp(`DeckFormat.${format}`, 'i')).parentElement).toHaveClass(className);
+});
+
+it('keeps the over-art title white on hover while retaining the row hover colour', () => {
+  const { unmount } = render(<DeckTile view={view} actions={actions()} />);
+  expect(screen.getByText(deck.name)).toHaveClass('text-over-art-text');
+  expect(screen.getByText(deck.name)).not.toHaveClass('group-hover:text-accent');
+  unmount();
+  render(<DeckListRow view={view} actions={actions()} />);
+  expect(screen.getByText(deck.name)).toHaveClass('group-hover:text-accent');
+});
+
+it('describes a loaded deck with no format on its open button', () => {
+  render(<DeckTile view={deckTileView(deck, { cardCount: 60 })} actions={actions()} />);
+  expect(screen.getByRole('button', { name: 'DeckTile.open' })).toHaveAccessibleDescription('Decks.badge.noFormat');
+  expect(screen.getByTitle('Decks.badge.noFormat')).toHaveTextContent('—');
+});
+
+it('does not describe a loading deck or a declared format as having no format', () => {
+  const { rerender } = render(<DeckTile view={deckTileView(deck, undefined)} actions={actions()} />);
+  expect(screen.getByRole('button', { name: 'DeckTile.open' })).not.toHaveAccessibleDescription();
+  rerender(<DeckTile view={view} actions={actions()} />);
+  expect(screen.getByRole('button', { name: 'DeckTile.open' })).not.toHaveAccessibleDescription();
+});
+
+it.each(['constructor', '__proto__', 'toString', 'custom', ''])('uses the grey band for the unknown format %j', (format) => {
+  render(<DeckTile view={deckTileView(deck, { format })} actions={actions()} />);
+  const label = format ? screen.getByText(new RegExp(format, 'i')) : screen.getByTitle('Decks.badge.noFormat');
+  expect(label.parentElement).toHaveClass('bg-format-other');
 });

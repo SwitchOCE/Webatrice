@@ -10,7 +10,7 @@ test('deck folders, undo/redo and autosave round-trip through Servatrice', async
   await navRailLink(page, 'Decks').click();
   await expect(page.getByRole('heading', { level: 1, name: 'My Decks' })).toBeVisible();
 
-  const folders = page.getByRole('navigation', { name: 'Folders' });
+  const folders = page.getByRole('navigation', { name: 'Local decks' });
   const tournament = folders.getByRole('button', { name: /^Tournament/ });
   await folders.getByRole('button', { name: 'New folder' }).click();
   await page.getByRole('textbox', { name: 'Name of new folder:' }).fill('Tournament');

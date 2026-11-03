@@ -1,4 +1,4 @@
-import { normalizeFormat } from '@app/types';
+import { MTG_FORMAT_LABELS, normalizeFormat, type DeckFormatFamily } from '@app/types';
 
 import { deckArtUrl, type DeckSummary } from './deckSummary';
 import type { FlatDeck } from './deckTree';
@@ -13,6 +13,7 @@ export interface DeckTileView {
   artUrl: string | null;
   tags: string[];
   format: string | undefined;
+  formatFamily: DeckFormatFamily;
   bracket: number | undefined;
 }
 
@@ -20,13 +21,15 @@ export function deckTileView(deck: FlatDeck, summary: DeckSummary | undefined): 
   const banner = deck.bannerCardName
     ? { bannerCard: deck.bannerCardName, bannerCardProviderId: deck.bannerCardProvider }
     : {};
+  const format = summary?.format ? normalizeFormat(summary.format) || summary.format : undefined;
   return {
     deck,
     summary,
     colours: deck.colorIdentity?.toUpperCase(),
     artUrl: deckArtUrl(summary || deck.bannerCardName ? { ...summary, ...banner } : undefined),
     tags: deck.tags ?? summary?.tags ?? [],
-    format: summary?.format ? normalizeFormat(summary.format) || summary.format : undefined,
+    format,
+    formatFamily: MTG_FORMAT_LABELS.find((entry) => entry.value === format)?.family ?? 'other',
     bracket: summary?.bracketLevel,
   };
 }

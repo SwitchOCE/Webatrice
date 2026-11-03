@@ -94,14 +94,14 @@ test.describe('on a 3.1 server', () => {
     await expect(viewerPage.getByRole('region', { name: deckName })).toBeVisible({ timeout: 15_000 });
     await expectImported(viewerPage, deckName);
 
-    await ownerPage.getByRole('navigation', { name: 'Sharing' }).getByRole('button', { name: 'Share links' }).click();
+    await ownerPage.getByRole('navigation', { name: 'Shared decks' }).getByRole('button', { name: 'Share links' }).click();
     const links = ownerPage.getByRole('dialog', { name: 'My share links' });
     await links.getByRole('button', { name: 'Revoke For a friend' }).click({ timeout: 15_000 });
     await links.getByRole('button', { name: 'Revoke', exact: true }).click();
     await expect(links.getByText('You have no active share links.')).toBeVisible({ timeout: 15_000 });
 
     await navRailLink(viewerPage, 'Decks').click();
-    await viewerPage.getByRole('navigation', { name: 'Sharing' }).getByRole('button', { name: 'Open shared deck' }).click();
+    await viewerPage.getByRole('navigation', { name: 'Shared decks' }).getByRole('button', { name: 'Open shared deck' }).click();
     await viewerPage.getByRole('textbox', { name: 'Share link:' }).fill(link);
     await viewerPage.getByRole('button', { name: 'Open', exact: true }).click();
     await expect(viewerPage.getByText('The shared deck could not be found or has expired')).toBeVisible({ timeout: 15_000 });
@@ -116,7 +116,7 @@ test.describe('on a 3.0 server', () => {
     await registerAndReachRooms(page);
     const deckName = `Plain ${randomSuffix()}`;
     await createDeck(page, deckName);
-    await expect(page.getByRole('navigation', { name: 'Sharing' })).toHaveCount(0);
+    await expect(page.getByRole('navigation', { name: 'Shared decks' })).toHaveCount(0);
     await expect(page.getByRole('button', { name: /^Share / })).toHaveCount(0);
     await expect(page.getByRole('button', { name: 'Share links' })).toHaveCount(0);
 

@@ -2,35 +2,10 @@ import { useTranslation } from 'react-i18next';
 import { Globe } from 'lucide-react';
 
 import { ColorPips } from '@app/components';
-import { normalizeFormat } from '@app/types';
 import { bracketToneClass, cx, toBcp47 } from '@app/utils';
 
 import { IDENTITY_COLOURS } from '../../deckGrid';
 import type { DeckVisibility } from '../../deckTree';
-
-const FORMAT_BAND: Record<string, string> = {
-  commander: 'bg-format-commander',
-  paupercommander: 'bg-format-commander',
-  duel: 'bg-format-commander',
-  oathbreaker: 'bg-format-commander',
-  predh: 'bg-format-commander',
-  standardbrawl: 'bg-format-commander',
-  modern: 'bg-format-modern',
-  pioneer: 'bg-format-modern',
-  standard: 'bg-format-standard',
-  historic: 'bg-format-modern',
-  timeless: 'bg-format-modern',
-  future: 'bg-format-modern',
-  legacy: 'bg-format-eternal',
-  vintage: 'bg-format-eternal',
-  premodern: 'bg-format-eternal',
-  oldschool: 'bg-format-eternal',
-  pauper: 'bg-format-pauper',
-};
-
-export function formatBandClass(format: string | null | undefined): string {
-  return FORMAT_BAND[normalizeFormat(format)] ?? 'bg-format-other';
-}
 
 export function BracketBadge({ level, solid = false, className }: { level: number; solid?: boolean; className?: string }) {
   const { t } = useTranslation();
