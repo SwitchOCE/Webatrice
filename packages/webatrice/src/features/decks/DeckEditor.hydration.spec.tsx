@@ -47,8 +47,7 @@ it('shows names, quantities and sections with disabled editing and no card-data 
   expect(screen.getByText('DeckEditor.hydrating')).toBeVisible();
   const inspector = within(screen.getByRole('complementary', { name: 'DeckEditor.inspector.label' }));
   expect(inspector.getByRole('status')).toHaveTextContent('DeckEditor.shell.loadingDeck');
-  expect(inspector.queryByText('DeckBreakdown.stat.avgCmc')).not.toBeInTheDocument();
-  expect(inspector.queryByText('SampleHand.title')).not.toBeInTheDocument();
+  expect(screen.queryByRole('region', { name: 'DeckEditor.tools.label' })).not.toBeInTheDocument();
   expect(screen.getByText('DeckLegality.checking')).toBeVisible();
   expect(screen.getByRole('textbox', { name: 'DeckHeader.name' })).toBeDisabled();
   expect(screen.getByRole('button', { name: 'DeckHeader.more' })).toBeDisabled();
@@ -73,8 +72,10 @@ it('shows names, quantities and sections with disabled editing and no card-data 
   expect(screen.getByRole('textbox', { name: 'DeckHeader.name' }).closest('header')).toBe(header);
   expect(screen.getByRole('button', { name: 'Lightning Bolt' }).closest('[role=grid]')!
     .parentElement!.parentElement!.parentElement).toBe(mainPane);
-  expect(inspector.getByText('DeckBreakdown.stat.avgCmc')).toBeVisible();
-  expect(inspector.getByText('SampleHand.title')).toBeVisible();
+  const tools = within(screen.getByRole('region', { name: 'DeckEditor.tools.label' }));
+  expect(tools.getByText('DeckBreakdown.stat.avgCmc')).toBeVisible();
+  expect(tools.getByRole('tab', { name: 'SampleHand.title' })).toBeVisible();
+  expect(inspector.getByText('DeckInspector.empty')).toBeVisible();
   expect(screen.queryByText('DeckEditor.hydrating')).not.toBeInTheDocument();
   expect(fetchPricesForCards).toHaveBeenCalled();
   expect(lookupCardsCached).toHaveBeenCalled();

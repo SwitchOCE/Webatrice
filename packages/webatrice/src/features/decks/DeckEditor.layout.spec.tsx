@@ -91,26 +91,21 @@ describe('DeckEditor layout', () => {
     expect(screen.getByRole('button', { name: 'Ponder' })).toBeInTheDocument();
     expect(stored().collapsedGroups).toEqual(['Instant']);
 
-    fireEvent.click(screen.getByRole('button', { name: 'DeckEditor.layout.collapseAll' }));
-    expect(screen.queryByRole('row')).toBeNull();
-    fireEvent.click(screen.getByRole('button', { name: 'DeckEditor.layout.expandAll' }));
-    expect(screen.getAllByRole('row')).toHaveLength(3);
+    fireEvent.click(instants);
+    expect(screen.getByRole('button', { name: 'Opt' })).toBeInTheDocument();
+    expect(stored().collapsedGroups).toEqual([]);
   });
 
-  it('switches to compact rows and resets the whole layout from the More menu', async () => {
+  it('resets the whole layout from the More menu', async () => {
     mockWidth(1364);
     await renderEditor();
-    const compact = screen.getByRole('button', { name: 'DeckEditor.layout.compactRows' });
-    fireEvent.click(compact);
-    expect(compact).toHaveAttribute('aria-pressed', 'true');
     fireEvent.click(screen.getByRole('button', { name: /^DeckEditor\.section\.land/ }));
     fireEvent.click(screen.getByRole('button', { name: 'DeckEditor.layout.hideDock' }));
-    expect(stored()).toMatchObject({ density: 'compact', dockCollapsed: true, collapsedGroups: ['Land'] });
+    expect(stored()).toMatchObject({ dockCollapsed: true, collapsedGroups: ['Land'] });
 
     fireEvent.click(screen.getByRole('button', { name: 'DeckHeader.more' }));
     fireEvent.click(screen.getByRole('menuitem', { name: 'DeckHeader.resetLayout' }));
 
-    expect(screen.getByRole('button', { name: 'DeckEditor.layout.compactRows' })).toHaveAttribute('aria-pressed', 'false');
     expect(screen.getByRole('button', { name: 'DeckEditor.layout.hideDock' })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Forest' })).toBeInTheDocument();
     expect(stored()).toMatchObject({ density: 'comfortable', dockCollapsed: false, collapsedGroups: [] });

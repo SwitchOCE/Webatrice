@@ -89,7 +89,7 @@ export const DeckMainPane = memo(function DeckMainPane({
   });
 
   return (
-    <div className="relative min-h-0 flex-1 overflow-y-auto px-5 pb-10 pt-4">
+    <div className="relative min-h-0 flex-1 overflow-y-auto p-2.5">
       <div ref={measureRef} aria-hidden className="h-0" />
       {placeholderRows ? (
         <ul aria-label={t('DeckEditor.shell.loadingDeck')} aria-busy="true" className="max-w-md">
@@ -106,7 +106,7 @@ export const DeckMainPane = memo(function DeckMainPane({
         readOnly ? <p role="status" className="text-sm text-text-muted">{t('DeckEditor.shell.loadingDeck')}</p>
           : <EmptyCardsHint isMtg={isMtg} />
       ) : isMtg || readOnly ? (
-        <div style={{ columnCount: columns.count, columnGap: DECK_COLUMN_GAP, maxWidth: columns.maxWidth }}>
+        <div style={{ columnCount: columns.count, columnGap: DECK_COLUMN_GAP }}>
           {groups.map(({ label, indices }, position) => (
             <DeckCardGroup
               key={label}

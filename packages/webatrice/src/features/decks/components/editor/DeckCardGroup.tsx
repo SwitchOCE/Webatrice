@@ -102,7 +102,7 @@ export function DeckCardGroup({
     >
       <h3
         id={headingId}
-        className="flex items-center border-b border-border-subtle pb-1.5 font-display text-[13px] font-semibold text-text-primary"
+        className="flex items-center border-b border-border-subtle pb-1.5 font-display text-[15px] font-semibold text-text-primary"
       >
         {onToggleCollapsed ? (
           <button

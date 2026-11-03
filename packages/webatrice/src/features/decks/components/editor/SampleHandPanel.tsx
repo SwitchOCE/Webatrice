@@ -1,6 +1,5 @@
-import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { ChevronDown, ChevronRight, Hand, Shuffle } from 'lucide-react';
+import { Shuffle } from 'lucide-react';
 
 import { imageCandidatesOf } from '@app/services';
 
@@ -15,32 +14,12 @@ export interface SampleHandPanelProps {
   random?: () => number;
 }
 
-export function SampleHandPanel({ cards, showImages, random }: SampleHandPanelProps) {
-  const { t } = useTranslation();
-  const [open, setOpen] = useState(false);
-  return (
-    <section className="rounded-lg border border-border-subtle bg-bg-surface/50">
-      <button
-        type="button"
-        onClick={() => setOpen((o) => !o)}
-        aria-expanded={open}
-        className="w-full flex items-center gap-2 px-3 py-2 text-sm font-semibold uppercase tracking-wider text-text-secondary"
-      >
-        {open ? <ChevronDown size={14} /> : <ChevronRight size={14} />}
-        <Hand size={14} />
-        {t('SampleHand.title')}
-      </button>
-      {open && <SampleHand cards={cards} showImages={showImages} random={random} />}
-    </section>
-  );
-}
-
-function SampleHand({ cards, showImages, random }: SampleHandPanelProps) {
+export function SampleHand({ cards, showImages, random }: SampleHandPanelProps) {
   const { t } = useTranslation();
   const { hand, size, librarySize, setSize, redraw } = useSampleHand(cards, random);
 
   return (
-    <div className="px-3 pb-3">
+    <div>
       <div className="flex items-center gap-2">
         <button
           type="button"

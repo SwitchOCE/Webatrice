@@ -1,13 +1,7 @@
-import { act, render, screen } from '@testing-library/react';
+import { render, screen } from '@testing-library/react';
 
-import { getSettings, settingsStore } from '@app/hooks';
-import { CommanderSpellbookIntegration } from '@app/types';
-
-import { writeBracketLookupsMode } from '../../bracketConsent';
 import type { DeckCard } from '../../types';
 import { DeckBreakdown } from './DeckBreakdown';
-
-vi.mock('./BracketSection', () => ({ BracketSection: () => <div>bracket section</div> }));
 
 const cards: DeckCard[] = [
   { name: 'Forest', quantity: 10, category: 'main', lookupSource: 'scryfall', typeLine: 'Basic Land — Forest' },
@@ -16,13 +10,14 @@ const cards: DeckCard[] = [
 ];
 
 describe('DeckBreakdown', () => {
-  it('renders nothing for an empty deck', () => {
-    const { container } = render(<DeckBreakdown cards={[]} format="commander" />);
-    expect(container).toBeEmptyDOMElement();
+  it('says so for an empty deck', () => {
+    render(<DeckBreakdown cards={[]} />);
+    expect(screen.getByText('DeckBreakdown.noCards')).toBeInTheDocument();
+    expect(screen.queryByText('DeckBreakdown.stat.total')).toBeNull();
   });
 
   it('shows totals, curve, colours and types', () => {
-    render(<DeckBreakdown cards={cards} format="modern" />);
+    render(<DeckBreakdown cards={cards} />);
 
     expect(screen.getByText('15').nextSibling).toHaveTextContent('DeckBreakdown.stat.total');
     expect(screen.getByText('DeckBreakdown.stat.nonland').previousSibling).toHaveTextContent('5');
@@ -36,25 +31,5 @@ describe('DeckBreakdown', () => {
     expect(screen.getByRole('img', { name: 'DeckBreakdown.colorBar' })).toBeInTheDocument();
     expect(screen.getByText('80%')).toBeInTheDocument();
     expect(screen.getByText('CardSearch.cardType.Planeswalker')).toBeInTheDocument();
-  });
-
-  it('adds the bracket estimate for commander-family formats only', () => {
-    const { rerender } = render(<DeckBreakdown cards={cards} format="modern" />);
-    expect(screen.queryByText('bracket section')).toBeNull();
-    rerender(<DeckBreakdown cards={cards} format="paupercommander" />);
-    expect(screen.getByText('DeckBreakdown.bracketEstimate')).toBeInTheDocument();
-    expect(screen.getByText('bracket section')).toBeInTheDocument();
-  });
-
-  it('leaves the bracket estimate out when Commander Spellbook is disabled', async () => {
-    settingsStore.reset();
-    await getSettings();
-    await act(() => writeBracketLookupsMode(CommanderSpellbookIntegration.Disabled));
-
-    render(<DeckBreakdown cards={cards} format="commander" />);
-
-    expect(screen.queryByText('Bracket estimate')).toBeNull();
-    expect(screen.queryByText('bracket section')).toBeNull();
-    settingsStore.reset();
   });
 });

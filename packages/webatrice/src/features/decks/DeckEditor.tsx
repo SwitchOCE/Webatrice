@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
-import { ChevronsDownUp, ChevronsUpDown, PanelLeftClose, PanelRight, PanelRightClose, Rows4, Search, X } from 'lucide-react';
+import { PanelLeftClose, PanelRight, PanelRightClose, Search, X } from 'lucide-react';
 
 import { server } from '@cockatrice/datatrice';
 
@@ -14,7 +14,6 @@ import { Layout } from '@app/feature-wrappers/layout';
 import { useAppSelector } from '@app/store';
 import { isCommanderFormat, isMtgFormat, RouteEnum } from '@app/types';
 
-import { DeckBreakdown } from './components/breakdown/DeckBreakdown';
 import CardSearchDock, { type CardSearchDockApi } from './components/CardSearchDock/CardSearchDock';
 import { DeckEditorHeader } from './components/editor/DeckEditorHeader';
 import { DeckNotFound } from './components/editor/DeckEditorShells';
@@ -32,8 +31,8 @@ import {
   searchCardInspection,
   type InspectedCard,
 } from './components/editor/editorSelection';
+import { DeckToolsSheet } from './components/editor/DeckToolsSheet';
 import { PlainAddCard } from './components/editor/PlainCardList';
-import { SampleHandPanel } from './components/editor/SampleHandPanel';
 import { groupDeckCards } from './deckGrouping';
 import { deckColorIdentity, serializeDeckForSave } from './deckPersistence';
 import { isBlankDeck } from './deckSharing';
@@ -208,8 +207,19 @@ const DeckEditor = () => {
   const dockCollapsed = prefs.dockCollapsed;
   const inspectorCollapsed = docked && prefs.inspectorCollapsed;
   const showInspector = docked ? !inspectorCollapsed : inspectorOpen;
-  const groupLabels = groups.map(({ label }) => label);
-  const allGroupsCollapsed = groupLabels.length > 0 && groupLabels.every((label) => paneLayout.collapsedGroups.has(label));
+  const inspectorAdd = (name: string, zone: 'main' | 'side', scryfallId?: string) => (preview.index >= 0
+    ? void editorAddCard(name, { zone, scryfallId })
+    : addCard(name, zone, scryfallId));
+  const choosePreviewPrinting = (scryfallId: string | undefined) => {
+    const name = preview.card?.name;
+    if (!name) {
+      return;
+    }
+    dockApi.current?.choosePrinting(name, scryfallId);
+    setSelected((current) => (current?.preview
+      ? { ...current, scryfallId, preview: { ...current.preview, scryfallId } }
+      : current));
+  };
   const collapsePane = (pane: 'dock' | 'inspector', collapsed: boolean) => {
     const overlay = pane === 'inspector' && !collapsed && !paneLayout.inspectorDocksWhenExpanded;
     paneFocus.updateThenFocus(() => {
@@ -262,32 +272,20 @@ const DeckEditor = () => {
           {frame.waitingMessage ?? t('DeckEditor.shell.loadingDeck')}
         </div>
       ) : isMtg && (
-        <>
-          <DeckInspector
-            selected={preview.card}
-            index={preview.index}
-            deckCards={deck.cards}
-            prices={pricing.prices}
-            isCommanderDeck={isCommander}
-            onInc={editor.incQuantity}
-            onDelete={editor.deleteCard}
-            onSetCategory={moveCard}
-            onChangePrinting={changePrinting}
-            onShowDetails={setDetailSnapshot}
-            onAdd={addCard}
-          />
-          <section className="flex flex-col gap-3 border-t border-border-subtle pt-4" aria-label={t('DeckEditor.inspector.stats')}>
-            <SectionLabel>{t('DeckEditor.inspector.stats')}</SectionLabel>
-            <DeckBreakdown
-              cards={deck.cards}
-              format={deck.format}
-              cachedAssessment={deck.bracketAssessment}
-              onAssessmentComputed={editor.setBracketAssessment}
-            />
-          </section>
-        </>
+        <DeckInspector
+          selected={preview.card}
+          index={preview.index}
+          deckCards={deck.cards}
+          prices={pricing.prices}
+          isCommanderDeck={isCommander}
+          onInc={editor.incQuantity}
+          onDelete={editor.deleteCard}
+          onSetCommander={editor.setCommander}
+          onSetPrinting={editor.setPrinting}
+          onChoosePreviewPrinting={choosePreviewPrinting}
+          onAdd={inspectorAdd}
+        />
       )}
-      {!frame.readOnly && <SampleHandPanel cards={deck.cards} showImages={isMtg} />}
     </aside>
   );
 
@@ -421,25 +419,6 @@ const DeckEditor = () => {
               isMtg={isMtg}
               bracketLevel={bracketLevel}
               onResetLayout={resetLayout}
-              viewControls={isMtg && groupLabels.length > 0 && (
-                <>
-                  <IconButton
-                    size="sm"
-                    label={t(allGroupsCollapsed ? 'DeckEditor.layout.expandAll' : 'DeckEditor.layout.collapseAll')}
-                    onClick={() => paneLayout.setGroupsCollapsed(groupLabels, !allGroupsCollapsed)}
-                  >
-                    {allGroupsCollapsed ? <ChevronsUpDown size={14} /> : <ChevronsDownUp size={14} />}
-                  </IconButton>
-                  <IconButton
-                    size="sm"
-                    label={t('DeckEditor.layout.compactRows')}
-                    active={prefs.density === 'compact'}
-                    onClick={() => paneLayout.setDensity(prefs.density === 'compact' ? 'comfortable' : 'compact')}
-                  >
-                    <Rows4 size={14} />
-                  </IconButton>
-                </>
-              )}
               trailing={!docked && (
                 <IconButton
                   label={t('DeckEditor.inspector.toggle')}
@@ -476,6 +455,15 @@ const DeckEditor = () => {
             collapsedGroups={paneLayout.collapsedGroups}
             onToggleGroup={toggleGroup}
           />
+          {!frame.readOnly && (
+            <DeckToolsSheet
+              cards={deck.cards}
+              format={deck.format}
+              isMtg={isMtg}
+              cachedAssessment={deck.bracketAssessment}
+              onAssessmentComputed={editor.setBracketAssessment}
+            />
+          )}
           {showInspector && !docked && inspector}
         </main>
 

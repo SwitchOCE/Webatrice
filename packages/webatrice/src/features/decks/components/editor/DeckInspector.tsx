@@ -1,13 +1,20 @@
+import { useId, useMemo, useState, type ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Archive, ImageOff, Info, Layers, Minus, PackageOpen, Plus, Trash2 } from 'lucide-react';
+import { ChevronDown, ChevronUp, Crown, ImageOff, Layers, Minus, Plus, Trash2 } from 'lucide-react';
 
-import { Button, ManaSymbols, SectionLabel } from '@app/components';
-import { imageCandidatesOf } from '@app/services';
-import type { DeckCategory } from '@app/types';
+import { ManaSymbols, SymbolText } from '@app/components';
+import { usePreference } from '@app/hooks';
+import { imageCandidatesOf, selectCardFace, type PrintingSummary } from '@app/services';
+import { cx } from '@app/utils';
 
+import { describeCardDetail } from '../../cardDetail';
+import { useCardDetail } from '../../hooks/useCardDetail';
+import { useCardPrintings } from '../../hooks/useCardPrintings';
 import { priceForCard, type PriceLookup } from '../../pricing';
+import { bumpPrintingsInDeck } from '../../printingOrder';
 import { upgradeScryfallImageSize } from '../../scryfallImage';
 import type { DeckCard } from '../../types';
+import { PrintingStrip } from '../CardSearchDock/PrintingStrip';
 import type { InspectedCard } from './editorSelection';
 import { DeckCardImage } from './DeckCardImage';
 
@@ -19,11 +26,13 @@ export interface DeckInspectorProps {
   isCommanderDeck: boolean;
   onInc: (index: number, delta: number) => void;
   onDelete: (index: number) => void;
-  onSetCategory: (index: number, category: DeckCategory) => void;
-  onChangePrinting: (index: number, card: DeckCard) => void;
-  onShowDetails: (card: DeckCard) => void;
+  onSetCommander: (index: number, isCommander: boolean) => void;
+  onSetPrinting: (index: number, printing: PrintingSummary) => void;
+  onChoosePreviewPrinting: (scryfallId: string | undefined) => void;
   onAdd: (name: string, zone: 'main' | 'side', scryfallId?: string) => void;
 }
+
+const FOCUS = 'focus-visible:outline focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-accent';
 
 export function DeckInspector({
   selected,
@@ -33,95 +42,37 @@ export function DeckInspector({
   isCommanderDeck,
   onInc,
   onDelete,
-  onSetCategory,
-  onChangePrinting,
-  onShowDetails,
+  onSetCommander,
+  onSetPrinting,
+  onChoosePreviewPrinting,
   onAdd,
 }: DeckInspectorProps) {
   const { t } = useTranslation();
-  const card = index >= 0 ? deckCards[index] ?? null : null;
+  const [detailsOpen, setDetailsOpen] = useState(true);
+  const [printingsOpen, setPrintingsOpen] = useState(false);
 
-  return (
-    <section className="flex flex-col gap-3" aria-label={t('DeckInspector.title')}>
-      <SectionLabel>{t('DeckInspector.title')}</SectionLabel>
-      {!selected ? (
-        <p className="text-[12px] italic text-text-muted">{t('DeckInspector.empty')}</p>
-      ) : (
-        <>
-          <CardSummary
-            card={card ?? selected.preview ?? {
-              name: selected.name, quantity: 0, category: selected.category, scryfallId: selected.scryfallId, lookupSource: 'unknown',
-            }}
-            prices={prices}
-          >
-            {card ? (
-              <Stepper
-                quantity={card.quantity}
-                name={card.name}
-                onDec={() => onInc(index, -1)}
-                onInc={() => onInc(index, 1)}
-              />
-            ) : (
-              <Button
-                size="sm"
-                variant="primary"
-                icon={<Plus size={13} />}
-                onClick={() => onAdd(selected.name, 'main', selected.scryfallId)}
-              >
-                {t('DeckInspector.add')}
-              </Button>
-            )}
-          </CardSummary>
-          {card ? (
-            <div className="grid grid-cols-2 gap-1.5">
-              <Button size="sm" icon={<Layers size={13} />} onClick={() => onChangePrinting(index, card)}>
-                {t('DeckInspector.changePrinting')}
-              </Button>
-              {card.category === 'sideboard' ? (
-                <Button size="sm" icon={<PackageOpen size={13} />} onClick={() => onSetCategory(index, 'main')}>
-                  {t('DeckInspector.toMain')}
-                </Button>
-              ) : (
-                <Button
-                  size="sm"
-                  icon={<Archive size={13} />}
-                  disabled={!!card.isCommander}
-                  title={card.isCommander ? t('DeckEditor.rowActions.commanderStaysMain') : undefined}
-                  onClick={() => onSetCategory(index, 'sideboard')}
-                >
-                  {t('DeckInspector.toSideboard')}
-                </Button>
-              )}
-              <Button size="sm" icon={<Info size={13} />} onClick={() => onShowDetails(card)}>
-                {t('DeckInspector.details')}
-              </Button>
-              <Button size="sm" variant="danger" icon={<Trash2 size={13} />} onClick={() => onDelete(index)}>
-                {t(isCommanderDeck && card.isCommander ? 'DeckInspector.removeCommander' : 'DeckInspector.remove')}
-              </Button>
-            </div>
-          ) : (
-            <div className="grid grid-cols-2 gap-1.5">
-              <Button size="sm" icon={<Archive size={13} />} onClick={() => onAdd(selected.name, 'side', selected.scryfallId)}>
-                {t('DeckInspector.addToSideboard')}
-              </Button>
-            </div>
-          )}
-        </>
-      )}
-    </section>
-  );
-}
+  if (!selected) {
+    return <p className="text-[12px] italic text-text-muted">{t('DeckInspector.empty')}</p>;
+  }
 
-function CardSummary({ card, prices, children }: { card: DeckCard; prices: PriceLookup; children: React.ReactNode }) {
-  const { t } = useTranslation();
+  const row = index >= 0 ? deckCards[index] ?? null : null;
+  const card: DeckCard = row ?? selected.preview ?? {
+    name: selected.name, quantity: 0, category: selected.category, scryfallId: selected.scryfallId, lookupSource: 'unknown',
+  };
+  const sameName = (other: DeckCard) => other.name.toLowerCase() === card.name.toLowerCase();
+  const mainIndex = deckCards.findIndex((other) => sameName(other) && other.category !== 'sideboard');
+  const sideIndex = deckCards.findIndex((other) => sameName(other) && other.category === 'sideboard');
+  const mainCard = mainIndex >= 0 ? deckCards[mainIndex] : null;
+  const price = priceForCard(prices, card);
   const imageUris = imageCandidatesOf(card)
     .map(upgradeScryfallImageSize)
     .filter((url): url is string => Boolean(url));
-  const price = priceForCard(prices, card)?.usd;
-  const stats = card.power != null && card.toughness != null ? `${card.power}/${card.toughness}` : undefined;
+  const step = (zoneIndex: number, zone: 'main' | 'side', delta: number) => (zoneIndex >= 0
+    ? onInc(zoneIndex, delta)
+    : onAdd(card.name, zone, card.scryfallId));
 
   return (
-    <div className="flex flex-col gap-3">
+    <section className="flex flex-col gap-3" aria-label={t('DeckInspector.title')}>
       <div
         className="aspect-[5/7] w-full overflow-hidden border border-border-subtle bg-bg-elevated"
         style={{ borderRadius: '4.75% / 3.4%' }}
@@ -133,52 +84,302 @@ function CardSummary({ card, prices, children }: { card: DeckCard; prices: Price
           </div>
         </DeckCardImage>
       </div>
-      <div className="flex min-w-0 flex-col gap-1">
-        <div className="flex items-start justify-between gap-2">
-          <span className="min-w-0 text-[15px] font-semibold leading-snug text-text-primary">{card.name}</span>
-          {card.manaCost && <ManaSymbols cost={card.manaCost} size={14} className="mt-0.5 shrink-0" />}
-        </div>
-        {card.typeLine && <span className="text-[12px] leading-snug text-text-secondary">{card.typeLine}</span>}
-        {(card.set || stats || price != null) && (
-          <div className="flex items-baseline gap-2 text-[12px] text-text-muted">
-            {(card.set || stats) && (
-              <span>
-                {card.set && <span className="uppercase">{card.set}</span>}
-                {card.set && stats && ' · '}
-                {stats}
-              </span>
+
+      <Disclosure
+        title={t('DeckInspector.cardDetails')}
+        open={detailsOpen}
+        onToggle={() => setDetailsOpen((open) => !open)}
+        className="bg-bg-surface"
+      >
+        <CardDetails card={card} usd={price?.usd} />
+      </Disclosure>
+
+      <div className="flex flex-col gap-2">
+        <ZoneStepper
+          label={t('DeckInspector.mainDeck')}
+          quantity={mainCard?.quantity ?? 0}
+          decLabel={t('DeckInspector.decreaseMain', { card: card.name })}
+          incLabel={t('DeckInspector.increaseMain', { card: card.name })}
+          onDec={() => step(mainIndex, 'main', -1)}
+          onInc={() => step(mainIndex, 'main', 1)}
+        />
+        <ZoneStepper
+          label={t('DeckInspector.sideboard')}
+          quantity={sideIndex >= 0 ? deckCards[sideIndex].quantity : 0}
+          decLabel={t('DeckInspector.decreaseSide', { card: card.name })}
+          incLabel={t('DeckInspector.increaseSide', { card: card.name })}
+          disabled={!!mainCard?.isCommander && sideIndex < 0}
+          onDec={() => step(sideIndex, 'side', -1)}
+          onInc={() => step(sideIndex, 'side', 1)}
+        />
+      </div>
+
+      {isCommanderDeck && mainCard && (
+        <button
+          type="button"
+          role="switch"
+          aria-checked={!!mainCard.isCommander}
+          onClick={() => onSetCommander(mainIndex, !mainCard.isCommander)}
+          className={cx(
+            'flex h-[39px] items-center justify-between gap-2 rounded-ui-sm border border-border-subtle bg-bg-elevated px-3',
+            'text-[12px] text-text-primary',
+            FOCUS,
+          )}
+        >
+          <span className="flex items-center gap-2">
+            <Crown size={14} aria-hidden className={mainCard.isCommander ? 'text-warning' : 'text-text-secondary'} />
+            {t('DeckEditor.rowActions.markCommander')}
+          </span>
+          <span
+            aria-hidden
+            className={cx(
+              'relative inline-flex h-5 w-9 shrink-0 rounded-full transition-colors',
+              mainCard.isCommander ? 'bg-accent' : 'bg-bg-elevated ring-1 ring-inset ring-border-control',
             )}
-            {price != null && (
-              <span className="ml-auto text-[13px] font-semibold tabular-nums text-success">
-                {t('DeckInspector.price', { price: price.toFixed(2) })}
+          >
+            <span
+              className={cx(
+                'absolute top-0.5 h-4 w-4 rounded-full shadow transition-all',
+                mainCard.isCommander ? 'left-[18px] bg-on-accent' : 'left-0.5 bg-text-muted',
+              )}
+            />
+          </span>
+        </button>
+      )}
+
+      {price?.usd != null && price.tcgplayer && (
+        <a
+          href={price.tcgplayer}
+          target="_blank"
+          rel="noopener noreferrer"
+          className={cx(
+            'flex h-[35px] items-center justify-between gap-2 rounded-ui-sm border px-3',
+            'border-accent/40 bg-accent-secondary/50 text-white shadow-glow hover:border-accent hover:bg-accent-secondary',
+            FOCUS,
+          )}
+        >
+          <span className="text-[14px] font-medium">{t('CardDetailDialog.buy')}</span>
+          <span className="text-[14px] font-semibold tabular-nums">{t('DeckInspector.price', { price: price.usd.toFixed(2) })}</span>
+        </a>
+      )}
+
+      <div className="flex flex-col gap-1.5">
+        <PrintingsDisclosure
+          card={card}
+          deckCards={deckCards}
+          open={printingsOpen}
+          onToggle={() => setPrintingsOpen((open) => !open)}
+          onChoose={(printing) => {
+            if (!row) {
+              onChoosePreviewPrinting(printing?.scryfallId);
+            } else if (printing) {
+              onSetPrinting(index, printing);
+            }
+          }}
+        />
+        {row && (
+          <button
+            type="button"
+            onClick={() => onDelete(index)}
+            className={cx(
+              'flex h-7 items-center justify-center gap-2 rounded-ui border border-danger/50 px-3',
+              'text-[12px] font-medium text-danger hover:bg-danger/10',
+              FOCUS,
+            )}
+          >
+            <Trash2 size={13} aria-hidden />
+            {t(isCommanderDeck && row.isCommander ? 'DeckInspector.removeCommander' : 'DeckInspector.remove')}
+          </button>
+        )}
+      </div>
+    </section>
+  );
+}
+
+function Disclosure({
+  title,
+  aside,
+  open,
+  onToggle,
+  className,
+  children,
+}: {
+  title: ReactNode;
+  aside?: ReactNode;
+  open: boolean;
+  onToggle: () => void;
+  className?: string;
+  children: ReactNode;
+}) {
+  const bodyId = useId();
+  return (
+    <div className={cx('overflow-hidden rounded-ui border border-border-subtle', className)}>
+      <button
+        type="button"
+        aria-expanded={open}
+        aria-controls={open ? bodyId : undefined}
+        onClick={onToggle}
+        className={cx(
+          'flex w-full items-center justify-between gap-2 px-3 py-2 text-left text-[12px] font-medium text-text-secondary',
+          FOCUS,
+        )}
+      >
+        <span className="min-w-0 flex-1 text-text-primary">{title}</span>
+        {aside}
+        {open ? <ChevronUp size={14} aria-hidden /> : <ChevronDown size={14} aria-hidden />}
+      </button>
+      {open && (
+        <div id={bodyId} className="border-t border-border-subtle">
+          {children}
+        </div>
+      )}
+    </div>
+  );
+}
+
+function CardDetails({ card, usd }: { card: DeckCard; usd?: number }) {
+  const { t } = useTranslation();
+  const { detail } = useCardDetail(card);
+  const view = describeCardDetail({
+    detail,
+    face: selectCardFace(detail, card.name),
+    activeName: card.name,
+    liveCard: card,
+    fallback: card,
+  });
+  const stats = card.power != null && card.toughness != null ? `${card.power}/${card.toughness}` : undefined;
+  const set = (view.setCode ?? card.set)?.toUpperCase();
+
+  return (
+    <div className="flex flex-col gap-2.5 px-3 pb-3 pt-3">
+      <div className="flex flex-col gap-1">
+        <div className="flex items-center justify-between gap-2">
+          <span className="min-w-0 text-[15px] font-semibold leading-snug text-text-primary">{view.name}</span>
+          <span className="flex shrink-0 items-center gap-1.5 text-[11px] tabular-nums text-text-muted">
+            {view.manaCost && <ManaSymbols cost={view.manaCost} size={14} />}
+            {typeof view.cmc === 'number' && t('CardDetailDialog.cmc', { cmc: view.cmc })}
+          </span>
+        </div>
+        {view.typeLine && <span className="text-[12px] leading-snug text-text-secondary">{view.typeLine}</span>}
+        {(set || stats || usd != null) && (
+          <div className="flex items-baseline justify-between gap-2 text-[12px] text-text-muted">
+            <span>
+              {set}
+              {set && stats && ' · '}
+              {stats}
+            </span>
+            {usd != null && (
+              <span className="text-[13px] font-semibold tabular-nums text-success">
+                {t('DeckInspector.price', { price: usd.toFixed(2) })}
               </span>
             )}
           </div>
         )}
       </div>
-      <div className="flex items-center gap-2">{children}</div>
+      {view.oracle && (
+        <div className="whitespace-pre-line text-[12px] leading-relaxed text-text-primary">
+          <SymbolText text={view.oracle} size={12} />
+        </div>
+      )}
+      {view.flavor && (
+        <div className="whitespace-pre-line border-t border-border-subtle pt-2.5 text-[12px] italic leading-relaxed text-text-secondary">
+          <SymbolText text={view.flavor} size={12} />
+        </div>
+      )}
+      {(view.setCode || view.collectorNumber) && (
+        <div className="border-t border-border-subtle pt-2.5 text-[11px] uppercase tracking-wider text-text-muted">
+          {view.setCode?.toUpperCase() ?? '?'} · #{view.collectorNumber ?? '?'}
+        </div>
+      )}
     </div>
   );
 }
 
-function Stepper({ quantity, name, onDec, onInc }: { quantity: number; name: string; onDec: () => void; onInc: () => void }) {
+function PrintingsDisclosure({
+  card,
+  deckCards,
+  open,
+  onToggle,
+  onChoose,
+}: {
+  card: DeckCard;
+  deckCards: readonly DeckCard[];
+  open: boolean;
+  onToggle: () => void;
+  onChoose: (printing: PrintingSummary | undefined) => void;
+}) {
   const { t } = useTranslation();
-  const button = [
+  const { printings: allPrintings, loading, prices } = useCardPrintings(card.name);
+  const bumpSetsInDeck = usePreference('bumpSetsWithCardsInDeckToTop');
+  const printings = useMemo(
+    () => (bumpSetsInDeck ? bumpPrintingsInDeck(allPrintings, card.name, deckCards) : allPrintings),
+    [allPrintings, bumpSetsInDeck, card.name, deckCards],
+  );
+  return (
+    <Disclosure
+      title={(
+        <span className="flex items-center gap-2">
+          <Layers size={13} aria-hidden className="text-text-secondary" />
+          {t('DeckInspector.changePrinting')}
+        </span>
+      )}
+      aside={!loading && printings.length > 0 && (
+        <span className="shrink-0 text-[11.5px] font-normal tabular-nums text-text-muted">
+          {t('CardSearchDock.printings.count', { count: printings.length })}
+        </span>
+      )}
+      open={open}
+      onToggle={onToggle}
+    >
+      <PrintingStrip
+        cardName={card.name}
+        printings={printings}
+        loading={loading}
+        prices={prices}
+        chosen={card.scryfallId}
+        onChoose={(scryfallId) => onChoose(printings.find((p) => p.scryfallId === scryfallId))}
+      />
+    </Disclosure>
+  );
+}
+
+function ZoneStepper({
+  label,
+  quantity,
+  decLabel,
+  incLabel,
+  disabled,
+  onDec,
+  onInc,
+}: {
+  label: string;
+  quantity: number;
+  decLabel: string;
+  incLabel: string;
+  disabled?: boolean;
+  onDec: () => void;
+  onInc: () => void;
+}) {
+  const button = cx(
     'inline-flex h-full w-8 items-center justify-center text-text-secondary hover:bg-bg-elevated hover:text-text-primary',
-    'focus-visible:outline focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-accent',
-  ].join(' ');
+    'disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:bg-transparent',
+    FOCUS,
+  );
   return (
     <span
-      className="inline-flex h-8 items-center rounded-ui border border-border-strong"
+      className="inline-flex h-8 w-[178px] items-center overflow-hidden rounded-ui border border-border-strong"
       role="group"
-      aria-label={t('DeckInspector.quantity')}
+      aria-label={label}
     >
-      <button type="button" aria-label={t('DeckInspector.decrease', { card: name })} className={button} onClick={onDec}>
-        <Minus size={14} />
+      <span className="flex h-full flex-1 items-center border-r border-border-strong px-2 text-[12px] font-medium text-text-secondary">
+        {label}
+      </span>
+      <button type="button" aria-label={decLabel} className={button} disabled={disabled || quantity === 0} onClick={onDec}>
+        <Minus size={14} aria-hidden />
       </button>
       <span className="w-7 text-center text-[13px] font-semibold tabular-nums text-text-primary" aria-live="polite">{quantity}</span>
-      <button type="button" aria-label={t('DeckInspector.increase', { card: name })} className={button} onClick={onInc}>
-        <Plus size={14} />
+      <button type="button" aria-label={incLabel} className={button} disabled={disabled} onClick={onInc}>
+        <Plus size={14} aria-hidden />
       </button>
     </span>
   );
