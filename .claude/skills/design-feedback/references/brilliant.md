@@ -58,7 +58,26 @@ How to use it:
 - Fixed numbers in the push (e.g. a card's width) came from a 1440px window. If the designer resized a card, ask whether it should grow with the window or stay that size.
 - If the diff is very long (they rebuilt the area), don't translate it line by line: export what they made (`push` PNGs are in `.design-feedback/<round>/brilliant/`), describe the change in a few sentences, and confirm.
 
-Then read the spec back as usual (SKILL.md Step 2) and continue with the real-app mock (Step 3). Mention in the PR body that the change was specified in Brilliant, with the diff lines.
+Then read the spec back as usual (SKILL.md Step 2) and continue with the real-app mock (Step 3). Keep the diff lines and the frame id with the item; they go in the PR body.
+
+## 3. Hand off the final frames
+
+At "submit", before showing the designer the PR list ([handoff.md](handoff.md#2-on-submit)):
+
+```bash
+node .claude/skills/design-feedback/scripts/brilliant/final.mjs --round <round>
+```
+
+It exports every pushed frame the designer edited and every new frame (copies, variants) on the round's canvas as a PNG on the app's background, into `.design-feedback/<round>/brilliant/final/`, writes `final.json` there (project, backing, canvas and frame ids), and prints one line per frame plus:
+
+```
+PROJECT "Webatrice" local; canvases: Design feedback/2026-10-28-decks
+SHARE: the project lives only in C:\Users\…\Brilliant\Webatrice on this machine. Ask the designer to …
+```
+
+- `UNCHANGED` frames aren't exported (`--all` exports them too). `MISSING` means a pushed frame was deleted or moved; ask the designer where it went.
+- Look at each PNG before it goes in a PR; the PR embeds them next to Before and Built ([handoff.md](handoff.md#pr-body)).
+- Backing `local` means nobody else can open the frames. Tell the designer in one sentence: "Alex can't open your Brilliant project from here. Could you make it a synced or cloud project and share it with him, or send me the project folder?" Record the answer in `tracker.md`; the PR text says the project is local either way.
 
 ## Notes
 

@@ -74,9 +74,9 @@ export async function designSession() {
   return design;
 }
 
-export async function blueprint(id) {
-  const d = await callJson('lookup', { scope: [id], format: 'blueprint' });
-  const r = d.results?.[0];
+export async function blueprint(id, canvasId) {
+  const d = await callJson('lookup', { scope: canvasId ? [canvasId, id] : [id], format: 'blueprint' });
+  const r = d.results?.find((x) => x.blueprint?.startsWith(id)) ?? d.results?.[0];
   if (!r?.blueprint) throw new Error(`No element ${id} in Brilliant`);
   return { canvasId: r.canvasId, blueprint: r.blueprint };
 }

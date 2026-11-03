@@ -9,7 +9,7 @@ const a = args(process.argv.slice(2), {});
 const slug = a.name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
 const snap = JSON.parse(readFileSync(join(roundDir(a.round), `${slug}.json`), 'utf8'));
 const before = parseBlueprint(snap.blueprint);
-const after = parseBlueprint((await blueprint(a.frame ?? snap.rootId)).blueprint);
+const after = parseBlueprint((await blueprint(a.frame ?? snap.rootId, snap.canvasId)).blueprint);
 
 const AUTO = /^(Frame|Text|Rectangle|Path|SVG|Group|Ellipse|Line|Vector) ?\d*$/;
 const label = (n) => (n.text !== null ? `"${n.text}"` : n.name && !AUTO.test(n.name) ? n.name : null);
