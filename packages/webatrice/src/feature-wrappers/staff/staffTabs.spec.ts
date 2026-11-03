@@ -1,4 +1,6 @@
-import { staffTabIds, tabKeyTarget } from './staffTabs';
+import { tabKeyTarget } from '@app/utils';
+
+import { staffTabIds } from './staffTabs';
 
 describe('tabKeyTarget', () => {
   it('moves with the arrows, wrapping at both ends, and jumps with Home and End', () => {

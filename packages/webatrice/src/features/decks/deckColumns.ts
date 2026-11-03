@@ -1,8 +1,7 @@
 import type { DeckRowDensity } from './deckEditorLayout';
 
 export const DECK_COLUMN_GAP = 24;
-export const DECK_COLUMN_MIN_WIDTH: Record<DeckRowDensity, number> = { comfortable: 250, compact: 220 };
-export const DECK_COLUMN_MAX_WIDTH = 460;
+export const DECK_COLUMN_MIN_WIDTH: Record<DeckRowDensity, number> = { comfortable: 300, compact: 260 };
 const HEADER_WEIGHT = 2;
 
 export function deckColumnCount(width: number, density: DeckRowDensity, groupCount: number): number {
@@ -60,7 +59,6 @@ export interface DeckColumnGroup {
 export interface DeckColumnLayout {
   count: number;
   breaks: ReadonlySet<number>;
-  maxWidth: number;
 }
 
 export function deckColumnLayout(width: number, density: DeckRowDensity, groups: readonly DeckColumnGroup[]): DeckColumnLayout {
@@ -69,6 +67,5 @@ export function deckColumnLayout(width: number, density: DeckRowDensity, groups:
   return {
     count: Math.max(1, columns.length),
     breaks: new Set(columns.slice(1).map((column) => column[0])),
-    maxWidth: count * DECK_COLUMN_MAX_WIDTH + (count - 1) * DECK_COLUMN_GAP,
   };
 }

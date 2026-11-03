@@ -7,9 +7,10 @@ import { tagSuggestions, validateNewTag, type TagValidation } from '../../deckTa
 export interface DeckTagsEditorProps {
   tags: readonly string[];
   onChange: (tags: string[]) => void;
+  autoFocus?: boolean;
 }
 
-export function DeckTagsEditor({ tags, onChange }: DeckTagsEditorProps) {
+export function DeckTagsEditor({ tags, onChange, autoFocus = false }: DeckTagsEditorProps) {
   const { t } = useTranslation();
   const listId = useId();
   const [draft, setDraft] = useState('');
@@ -63,6 +64,7 @@ export function DeckTagsEditor({ tags, onChange }: DeckTagsEditorProps) {
       >
         <input
           type="text"
+          data-autofocus={autoFocus || undefined}
           value={draft}
           list={listId}
           onChange={(e) => {

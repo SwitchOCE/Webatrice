@@ -1,23 +1,21 @@
 import { useCallback, useState } from 'react';
 import { act, fireEvent, screen, within } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import { I18nextProvider } from 'react-i18next';
 import i18n, { type i18n as I18n } from 'i18next';
 import ICU from 'i18next-icu';
 
 import { renderWithProviders } from '../../../../__test-utils__';
-import { emptyPriceLookup } from '../../pricing';
 import type { ScryfallSearchCard } from '../../search';
 import searchText from './CardSearch.i18n.json';
 import CardSearchDock, { type CardSearchDockApi, type CardSearchDockProps } from './CardSearchDock';
 import dockText from './CardSearchDock.i18n.json';
 import { useCardDatabase, type CardDatabase } from './useCardDatabase';
 import { useGameChangerList } from './useGameChangerList';
-import { useCardPrintings } from '../../hooks/useCardPrintings';
 import * as search from '../../search';
 
 vi.mock('./useCardDatabase', () => ({ useCardDatabase: vi.fn() }));
 vi.mock('./useGameChangerList', () => ({ useGameChangerList: vi.fn(() => null) }));
-vi.mock('../../hooks/useCardPrintings', () => ({ useCardPrintings: vi.fn() }));
 
 const bowmasters: ScryfallSearchCard = {
   id: 'bow-1',
@@ -53,15 +51,6 @@ beforeAll(async () => {
 beforeEach(() => {
   vi.mocked(useCardDatabase).mockReturnValue(database());
   vi.mocked(useGameChangerList).mockReturnValue(null);
-  vi.mocked(useCardPrintings).mockReturnValue({
-    printings: [
-      { set: 'ltr', collectorNumber: '103', scryfallId: 'p-103' },
-      { set: 'ltr', collectorNumber: '452', scryfallId: 'p-452' },
-    ],
-    loading: false,
-    error: null,
-    prices: { ...emptyPriceLookup(), byId: new Map([['p-452', { usd: 49.8, tcgplayer: null }]]) },
-  });
 });
 
 function renderDock(props: Partial<CardSearchDockProps> = {}) {
@@ -104,7 +93,7 @@ describe('CardSearchDock', () => {
     expect(onAdd).toHaveBeenLastCalledWith(esper.name, 'main', undefined);
   });
 
-  it.each(['list', 'art'] as const)('renders only changed %s results on highlight and none on hover or printing loads', (view) => {
+  it.each(['list', 'art'] as const)('renders only changed %s results on highlight and none on hover', (view) => {
     const third: ScryfallSearchCard = { id: 'third', name: 'Third' };
     vi.mocked(useCardDatabase).mockReturnValue(database({ results: [bowmasters, esper, third], total: 3 }));
     const renderCard = vi.spyOn(search, view === 'list' ? 'searchCardArt' : 'searchCardImage');
@@ -119,7 +108,6 @@ describe('CardSearchDock', () => {
       if (view === 'art') {
         fireEvent.click(screen.getByRole('radio', { name: 'Art' }));
       }
-      vi.useFakeTimers();
       renderCard.mockClear();
       const input = screen.getByRole('textbox', { name: 'Search cards' });
       fireEvent.keyDown(input, { key: 'ArrowDown', code: 'ArrowDown' });
@@ -131,14 +119,10 @@ describe('CardSearchDock', () => {
       expect(screen.getByText(esper.id)).toBeInTheDocument();
       fireEvent.pointerLeave(row);
       expect(renderCard).not.toHaveBeenCalled();
-      act(() => vi.advanceTimersByTime(250));
-      expect(useCardPrintings).toHaveBeenLastCalledWith(esper.name);
-      expect(renderCard).not.toHaveBeenCalled();
       fireEvent.keyDown(input, { key: 'Enter', code: 'Enter' });
       expect(onAdd).toHaveBeenLastCalledWith(esper.name, 'main', undefined);
     } finally {
       renderCard.mockRestore();
-      vi.useRealTimers();
     }
   });
 
@@ -155,8 +139,46 @@ describe('CardSearchDock', () => {
     renderDock({ colorIdentity: ['G'], format: 'commander' });
     expect(useCardDatabase).toHaveBeenLastCalledWith('');
     expect(screen.getByText(dockText.CardSearchDock.empty)).toBeInTheDocument();
-    fireEvent.click(screen.getByRole('button', { name: 'Creature' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Add type' }));
+    fireEvent.click(screen.getByRole('menuitem', { name: 'Creature' }));
     expect(useCardDatabase).toHaveBeenLastCalledWith('id<=g t:creature f:commander');
+    expect(screen.getByRole('list', { name: 'Card types' })).toHaveTextContent('Creature');
+
+    fireEvent.click(screen.getByRole('button', { name: 'Remove type Creature' }));
+    expect(useCardDatabase).toHaveBeenLastCalledWith('');
+  });
+
+  it('keeps the rarer filters behind More filters', () => {
+    renderDock();
+    expect(screen.queryByRole('textbox', { name: 'Lowest mana value' })).toBeNull();
+    fireEvent.click(screen.getByRole('button', { name: 'More filters' }));
+    expect(screen.getByRole('textbox', { name: 'Lowest mana value' })).toBeInTheDocument();
+    expect(screen.getByRole('group', { name: 'Rarity' })).toBeInTheDocument();
+    expect(screen.getByRole('textbox', { name: 'Subtype' })).toBeInTheDocument();
+  });
+
+  it('returns focus to search after clearing filters', async () => {
+    const user = userEvent.setup();
+    const { input } = renderDock();
+    await user.click(screen.getByRole('button', { name: 'Red' }));
+    await user.click(screen.getByRole('button', { name: 'Clear filters' }));
+    expect(input).toHaveFocus();
+    expect(screen.queryByRole('button', { name: 'Clear filters' })).toBeNull();
+    expect(screen.getByRole('button', { name: 'Red' })).toHaveAttribute('aria-pressed', 'false');
+  });
+
+  it.each([
+    ['Subtype', 'Elemental'],
+    ['Oracle text contains', 'draw a card'],
+  ])('names the %s input with its visible label and focuses it when clicked', async (label, value) => {
+    const user = userEvent.setup();
+    renderDock();
+    await user.click(screen.getByRole('button', { name: 'More filters' }));
+    const input = screen.getByRole('textbox', { name: label });
+    await user.click(screen.getByText(label));
+    expect(input).toHaveFocus();
+    await user.type(input, value);
+    expect(input).toHaveValue(value);
   });
 
   it('lists results with cost, type, price and both add buttons', () => {
@@ -202,21 +224,21 @@ describe('CardSearchDock', () => {
     expect(onAdd).toHaveBeenLastCalledWith('Orcish Bowmasters', 'side', undefined);
   });
 
-  it('shows the key hints from the shortcut bindings', () => {
+  it('shows the shortcut bindings in the add buttons’ tooltips', () => {
     renderDock();
-    const footer = screen.getByText('Ctrl+Enter').closest('footer')!;
-    expect(footer).toHaveTextContent(/^Enter adds.*Ctrl\+Enter to sideboard$/);
+    const row = within(screen.getByRole('region', { name: 'Search results' })).getByText('Orcish Bowmasters').closest('li')!;
+    expect(row).toHaveTextContent(/Add to deckEnter/);
+    expect(row).toHaveTextContent(/Add to sideboardCtrl\+Enter/);
   });
 
-  it('adds the printing picked in the strip', async () => {
-    const { input, onAdd } = renderDock();
-    const strip = await screen.findByRole('region', { name: 'Printings of Orcish Bowmasters' });
-    expect(within(strip).getByText('2 printings')).toBeInTheDocument();
-    expect(within(strip).getByText('$49.80')).toBeInTheDocument();
-
-    const pick = within(strip).getByRole('button', { name: /LTR #452/ });
-    fireEvent.click(pick);
-    expect(pick).toHaveAttribute('aria-pressed', 'true');
+  it('adds the printing the editor chose', () => {
+    let api: CardSearchDockApi | undefined;
+    const onPreview = vi.fn();
+    const { input, onAdd } = renderDock({ onPreview, onReady: (a) => {
+      api = a;
+    } });
+    act(() => api!.choosePrinting('Orcish Bowmasters', 'p-452'));
+    expect(onPreview).toHaveBeenLastCalledWith(bowmasters, 'p-452');
     fireEvent.keyDown(input, { key: 'Enter', code: 'Enter' });
     expect(onAdd).toHaveBeenLastCalledWith('Orcish Bowmasters', 'main', 'p-452');
   });

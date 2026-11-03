@@ -2,19 +2,21 @@ import { useRef, useState, type ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useNavigate } from 'react-router-dom';
 import {
-  Check, CircleAlert, FolderOpen, Image as ImageIcon, LayoutTemplate, Loader2, MoreHorizontal, Share2, Tag, Upload, Wallpaper,
+  Check, CircleAlert, FolderOpen, Image as ImageIcon, LayoutTemplate, Loader2, MoreHorizontal, Pencil, Plus, Share2, Tag, Upload,
+  Wallpaper,
 } from 'lucide-react';
 
-import { Chip, Divider, IconButton, Menu, MenuItem, MenuSeparator, type MenuAnchor } from '@app/components';
+import { Chip, IconButton, Menu, MenuItem, MenuSeparator, type MenuAnchor } from '@app/components';
 import { DialogShell } from '@app/dialogs';
 import { RouteEnum } from '@app/types';
 
-import type { BannerCandidate } from '../../deckTags';
+import { tagSuggestions, type BannerCandidate } from '../../deckTags';
 import type { SaveState } from '../../hooks/useDeckAutosave';
 import type { PriceLookup } from '../../pricing';
 import type { HydratedDeck } from '../../types';
 import { FormatPicker } from '../FormatPicker';
 import { BRACKET_CHIP_TONE } from '../breakdown/BracketSection';
+import { ChipPicker } from './ChipPicker';
 import { DeckBannerPicker } from './DeckBannerPicker';
 import { DeckBuyButton } from './DeckBuyButton';
 import { DeckOnlineServiceItems } from './DeckOnlineServices';
@@ -45,7 +47,6 @@ export interface DeckEditorHeaderProps {
   isMtg: boolean;
   bracketLevel?: number;
   trailing?: ReactNode;
-  viewControls?: ReactNode;
   onResetLayout?: () => void;
 }
 
@@ -72,22 +73,62 @@ export function DeckEditorHeader({
   isMtg,
   bracketLevel,
   trailing,
-  viewControls,
   onResetLayout,
 }: DeckEditorHeaderProps) {
   const { t } = useTranslation();
   const navigate = useNavigate();
+  const nameRef = useRef<HTMLInputElement>(null);
   const moreRef = useRef<HTMLButtonElement>(null);
   const [moreAnchor, setMoreAnchor] = useState<MenuAnchor | null>(null);
   const [tagsOpen, setTagsOpen] = useState(false);
   const [bannerOpen, setBannerOpen] = useState(false);
   const openDeckFlow = useOpenDeck(openDeck);
 
+  const tagOption = (tag: string) => ({ value: tag, label: tag });
+
   return (
-    <header className="flex shrink-0 flex-col gap-2.5 border-b border-border-subtle px-5 py-3.5">
-      <div className="flex flex-wrap items-center gap-x-3 gap-y-2">
-        <div className="flex min-w-[14rem] flex-[1_1_16rem] flex-col">
-          <span className="flex min-w-0 items-center gap-1.5 whitespace-nowrap text-[12px] text-text-muted">
+    <header className="flex shrink-0 border-b border-border-subtle">
+      <div className="flex min-w-0 flex-1 flex-col px-5 py-3">
+        <div className="flex min-w-0 flex-wrap items-center gap-x-3 gap-y-2 border-b border-border-subtle pb-3">
+          <div className="flex min-w-0 items-center gap-1">
+            <span className="inline-grid min-w-0 max-w-full">
+              <span
+                aria-hidden
+                className={[
+                  'invisible col-start-1 row-start-1 overflow-hidden whitespace-pre',
+                  'font-display text-[22px] font-semibold leading-tight',
+                ].join(' ')}
+              >
+                {deck.name || t('DeckHeader.namePlaceholder')}
+              </span>
+              <input
+                ref={nameRef}
+                type="text"
+                size={1}
+                value={deck.name}
+                onChange={(e) => onNameChange(e.target.value)}
+                placeholder={t('DeckHeader.namePlaceholder')}
+                aria-label={t('DeckHeader.name')}
+                className={[
+                  'col-start-1 row-start-1 w-full min-w-[4rem] truncate rounded-ui-sm bg-transparent',
+                  'font-display text-[22px] font-semibold leading-tight',
+                  'text-text-primary placeholder:text-text-muted focus:bg-bg-elevated focus:outline-none',
+                  'focus-visible:outline focus-visible:outline-2 focus-visible:outline-accent',
+                ].join(' ')}
+              />
+            </span>
+            <IconButton
+              size="sm"
+              label={t('DeckHeader.rename')}
+              onClick={() => {
+                nameRef.current?.focus();
+                nameRef.current?.select();
+              }}
+            >
+              <Pencil size={14} />
+            </IconButton>
+          </div>
+          <span className="flex min-w-0 items-center gap-1.5 whitespace-nowrap text-[12px] text-text-secondary">
             <button
               type="button"
               onClick={() => navigate(RouteEnum.DECKS)}
@@ -103,28 +144,52 @@ export function DeckEditorHeader({
               {t('DeckHeader.cardCount', { count: totalMainboardCount })}
               {totalSideboardCount > 0 && <> · {t('DeckHeader.sideboardCount', { count: totalSideboardCount })}</>}
             </span>
+            <SaveIndicator state={saveState} onRetry={onRetrySave} />
           </span>
-          <div className="flex min-w-0 flex-wrap items-center gap-x-2.5">
-            <input
-              type="text"
-              value={deck.name}
-              onChange={(e) => onNameChange(e.target.value)}
-              placeholder={t('DeckHeader.namePlaceholder')}
-              aria-label={t('DeckHeader.name')}
-              className={[
-                'min-w-[10rem] flex-1 truncate rounded-ui-sm bg-transparent font-display text-[22px] font-semibold leading-tight',
-                'text-text-primary placeholder:text-text-muted focus:bg-bg-elevated focus:outline-none',
-                'focus-visible:outline focus-visible:outline-2 focus-visible:outline-accent',
-              ].join(' ')}
+          <div className="flex shrink-0 items-center border-l border-border-subtle pl-3">{history}</div>
+        </div>
+
+        <div className="flex min-w-0 flex-wrap items-center gap-2 pt-3">
+          <div className="w-44 shrink-0">
+            <FormatPicker value={deck.format} onChange={onFormatChange} variant="sidebar" />
+          </div>
+          {legality}
+          {colors != null && <IdentityPips colours={colors} />}
+          {bracketLevel != null && (
+            <Chip tone={BRACKET_CHIP_TONE[bracketLevel] ?? 'neutral'} title={t('DeckHeader.bracketHint')}>
+              {t('DeckBracket.bracket')} {bracketLevel} · {t(`DeckBracket.level.${bracketLevel}`)}
+            </Chip>
+          )}
+          <div className="flex min-w-0 items-center gap-2 border-l border-border-subtle pl-3">
+            <Tag size={14} aria-hidden className="shrink-0 text-text-muted" />
+            <ChipPicker
+              label={t('DeckTags.label')}
+              chosen={tags.map(tagOption)}
+              options={tagSuggestions([]).map(tagOption)}
+              onAdd={(tag) => onTagsChange([...tags, tag])}
+              onRemove={(tag) => onTagsChange(tags.filter((other) => other !== tag))}
+              placeholder={t('DeckTags.select')}
+              addLabel={t('DeckTags.addTag')}
+              removeLabel={(tag) => t('DeckTags.remove', { tag })}
+              chosenReason={t('DeckTags.onDeck')}
+              extraItems={(close) => (
+                <MenuItem
+                  icon={<Plus size={13} />}
+                  onSelect={() => {
+                    close();
+                    setTagsOpen(true);
+                  }}
+                >
+                  {t('DeckTags.newTag')}
+                </MenuItem>
+              )}
             />
-            <span className="shrink-0 text-[12px]">
-              <SaveIndicator state={saveState} onRetry={onRetrySave} />
-            </span>
           </div>
         </div>
-        <div className="ml-auto flex shrink-0 flex-wrap items-center justify-end gap-2">
-          {history}
-          <Divider vertical />
+      </div>
+
+      <div className="flex shrink-0 flex-col gap-2 border-l border-border-subtle px-5 pb-[15px] pt-3.5">
+        <div className="flex items-center justify-between gap-2">
           <IconButton label={t('DeckHeader.export')} className="border border-border-subtle" onClick={onExport}>
             <Upload size={15} />
           </IconButton>
@@ -146,36 +211,9 @@ export function DeckEditorHeader({
           >
             <MoreHorizontal size={15} />
           </IconButton>
-          {isMtg && <DeckBuyButton cards={deck.cards} prices={prices} loading={pricesLoading} />}
           {trailing}
         </div>
-      </div>
-
-      <div className="flex min-w-0 flex-wrap items-center gap-2">
-        <div className="w-44 shrink-0">
-          <FormatPicker value={deck.format} onChange={onFormatChange} variant="sidebar" />
-        </div>
-        {legality}
-        {colors != null && <IdentityPips colours={colors} />}
-        {bracketLevel != null && (
-          <Chip tone={BRACKET_CHIP_TONE[bracketLevel] ?? 'neutral'} title={t('DeckHeader.bracketHint')}>
-            {t('DeckBracket.bracket')} {bracketLevel} · {t(`DeckBracket.level.${bracketLevel}`)}
-          </Chip>
-        )}
-        <Divider vertical />
-        <IconButton size="sm" label={t('DeckHeader.editTags')} onClick={() => setTagsOpen(true)}>
-          <Tag size={13} />
-        </IconButton>
-        {tags.length > 0 && (
-          <ul className="flex min-w-0 shrink items-center gap-1.5 overflow-hidden" aria-label={t('DeckTags.label')}>
-            {tags.map((tag) => (
-              <li key={tag} className="shrink-0">
-                <Chip outline>{tag}</Chip>
-              </li>
-            ))}
-          </ul>
-        )}
-        {viewControls && <div className="ml-auto flex shrink-0 items-center gap-1">{viewControls}</div>}
+        {isMtg && <DeckBuyButton cards={deck.cards} prices={prices} loading={pricesLoading} />}
       </div>
 
       {moreAnchor && (
@@ -213,7 +251,7 @@ export function DeckEditorHeader({
       {openDeckFlow.dialogs}
 
       <DialogShell isOpen={tagsOpen} handleClose={() => setTagsOpen(false)} title={t('DeckHeader.editTags')}>
-        <DeckTagsEditor tags={tags} onChange={onTagsChange} />
+        <DeckTagsEditor tags={tags} onChange={onTagsChange} autoFocus />
       </DialogShell>
 
       <DialogShell isOpen={bannerOpen} handleClose={() => setBannerOpen(false)} title={t('DeckHeader.bannerCard')}>

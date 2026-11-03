@@ -2,7 +2,7 @@ import { fireEvent, render, screen, within } from '@testing-library/react';
 
 import { SAMPLE_HAND_SIZE_STORAGE_KEY } from '../../hooks/useSampleHand';
 import type { DeckCard } from '../../types';
-import { SampleHandPanel } from './SampleHandPanel';
+import { SampleHand } from './SampleHandPanel';
 
 const card = (name: string, quantity: number, overrides: Partial<DeckCard> = {}): DeckCard => ({
   name, quantity, cmc: 1, category: 'main', lookupSource: 'scryfall', ...overrides,
@@ -15,8 +15,7 @@ const deck = [
 ];
 
 function open(cards: DeckCard[] = deck, random?: () => number) {
-  render(<SampleHandPanel cards={cards} showImages random={random} />);
-  fireEvent.click(screen.getByRole('button', { name: 'SampleHand.title' }));
+  render(<SampleHand cards={cards} showImages random={random} />);
 }
 
 function handNames(): string[] {
@@ -28,7 +27,7 @@ beforeEach(() => {
   window.localStorage.removeItem(SAMPLE_HAND_SIZE_STORAGE_KEY);
 });
 
-describe('SampleHandPanel', () => {
+describe('SampleHand', () => {
   it('reserves the final card size before loading and after failure', () => {
     open([card('Bolt', 1, { imageUri: 'https://img/bolt.jpg' })]);
     const image = screen.getByAltText('Bolt');
@@ -43,10 +42,8 @@ describe('SampleHandPanel', () => {
     expect(screen.queryByAltText('Bolt')).toBeNull();
   });
 
-  it('is collapsed until opened, then shows a 7-card hand from the main deck', () => {
-    render(<SampleHandPanel cards={deck} showImages />);
-    expect(screen.queryByRole('list')).toBeNull();
-    fireEvent.click(screen.getByRole('button', { name: 'SampleHand.title' }));
+  it('shows a 7-card hand from the main deck', () => {
+    open();
 
     const names = handNames();
     expect(names).toHaveLength(7);

@@ -2,6 +2,7 @@
   "DeckHeader": {
     "myDecks": "My decks",
     "name": "Deck name",
+    "rename": "Rename deck",
     "namePlaceholder": "Untitled deck",
     "cardCount": "{count, plural, one {# card} other {# cards}}",
     "sideboardCount": "{count} sideboard",

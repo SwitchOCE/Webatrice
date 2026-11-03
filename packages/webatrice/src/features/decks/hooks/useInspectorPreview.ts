@@ -1,12 +1,13 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 
-import { resolvePreviewTarget, type InspectedCard, type PreviewTarget } from '../components/editor/editorSelection';
+import { resolvePreviewTarget, sameInspectedCard, type InspectedCard, type PreviewTarget } from '../components/editor/editorSelection';
 import type { DeckCard } from '../types';
 
 export const PREVIEW_LEAVE_DELAY_MS = 80;
 
 export interface InspectorPreview extends PreviewTarget {
   hovered: InspectedCard | null;
+  previewOnly: boolean;
   enter: (card: InspectedCard) => void;
   leave: () => void;
   clear: () => void;
@@ -44,5 +45,5 @@ export function useInspectorPreview(
   useEffect(() => cancel, [cancel]);
 
   const target = useMemo(() => resolvePreviewTarget(cards, hovered, selected), [cards, hovered, selected]);
-  return { ...target, hovered, enter, leave, clear };
+  return { ...target, hovered, previewOnly: !sameInspectedCard(target.card, selected), enter, leave, clear };
 }

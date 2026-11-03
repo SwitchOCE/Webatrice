@@ -21,9 +21,9 @@
       "list": "List",
       "art": "Art"
     },
-    "keys": {
-      "adds": "adds",
-      "side": "to sideboard"
+    "tip": {
+      "main": "Add to deck",
+      "side": "Add to sideboard"
     },
     "filter": {
       "colours": "Colours",
@@ -35,7 +35,11 @@
         "atMost": "At most"
       },
       "types": "Card types",
-      "manaValueShort": "MV",
+      "cardType": "Card type",
+      "selectType": "Select type",
+      "addType": "Add type",
+      "removeType": "Remove type {type}",
+      "manaValue": "Mana value",
       "manaValueMin": "Lowest mana value",
       "manaValueMax": "Highest mana value",
       "any": "any",
@@ -44,7 +48,6 @@
     },
     "printings": {
       "label": "Printings of {name}",
-      "title": "Printing",
       "count": "{count, plural, one {# printing} other {# printings}}",
       "loading": "Loading printings…",
       "empty": "No printings found.",

@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
-import { ChevronsDownUp, ChevronsUpDown, PanelLeftClose, PanelRight, PanelRightClose, Rows4, Search, X } from 'lucide-react';
+import { PanelLeftClose, PanelRight, PanelRightClose, Search, X } from 'lucide-react';
 
 import { server } from '@cockatrice/datatrice';
 
@@ -14,14 +14,13 @@ import { Layout } from '@app/feature-wrappers/layout';
 import { useAppSelector } from '@app/store';
 import { isCommanderFormat, isMtgFormat, RouteEnum } from '@app/types';
 
-import { DeckBreakdown } from './components/breakdown/DeckBreakdown';
 import CardSearchDock, { type CardSearchDockApi } from './components/CardSearchDock/CardSearchDock';
 import { DeckEditorHeader } from './components/editor/DeckEditorHeader';
 import { DeckNotFound } from './components/editor/DeckEditorShells';
 import { DeckHistoryControls } from './components/editor/DeckHistoryControls';
 import { DeckInspector } from './components/editor/DeckInspector';
 import { DeckLegalitySummary } from './components/editor/DeckLegalitySummary';
-import { DeckMainPane } from './components/editor/DeckMainPane';
+import { DeckMainPane, type DeckMainPaneApi } from './components/editor/DeckMainPane';
 import { CollapsedPaneRail } from './components/editor/CollapsedPaneRail';
 import { deckEditorGridStyle } from './components/editor/editorLayout';
 import { PaneResizer } from './components/editor/PaneResizer';
@@ -29,13 +28,16 @@ import {
   dockColorIdentity,
   inspectedRow,
   resolveInspectedRow,
+  reconcileInspectedSelection,
   searchCardInspection,
+  selectionAfterPrinting,
   type InspectedCard,
 } from './components/editor/editorSelection';
+import { DeckToolsSheet } from './components/editor/DeckToolsSheet';
 import { PlainAddCard } from './components/editor/PlainCardList';
-import { SampleHandPanel } from './components/editor/SampleHandPanel';
 import { groupDeckCards } from './deckGrouping';
 import { deckColorIdentity, serializeDeckForSave } from './deckPersistence';
+import type { CardPrinting } from './deckEdits';
 import { isBlankDeck } from './deckSharing';
 import type { DecksLocationState } from './deckShortcuts';
 import type { ScryfallSearchCard } from './search';
@@ -79,6 +81,7 @@ const DeckEditor = () => {
   const paneLayout = useDeckEditorLayout();
   const paneFocus = usePaneFocusHandoff();
   const addFieldRef = useRef<HTMLInputElement>(null);
+  const mainPaneApi = useRef<DeckMainPaneApi>(null);
   const dockApi = useRef<CardSearchDockApi | null>(null);
   const onDockReady = useCallback((api: CardSearchDockApi) => {
     dockApi.current = api;
@@ -126,9 +129,9 @@ const DeckEditor = () => {
   const preview = useInspectorPreview(cards, selected);
   useEffect(() => {
     if (selected && !selected.preview && selectedIndex < 0) {
-      setSelected(null);
+      setSelected(reconcileInspectedSelection(cards, selected));
     }
-  }, [selected, selectedIndex]);
+  }, [cards, selected, selectedIndex]);
 
   useDeckImageWarmer(
     deckId ?? (draftToken != null ? `draft:${draftToken}` : null),
@@ -190,10 +193,24 @@ const DeckEditor = () => {
     [enterPreview, leavePreview],
   );
   const changePrinting = useCallback((index: number, card: DeckCard) => setPrintingRequest({ index, card }), []);
+  const setPrinting = (index: number, printing: CardPrinting) => {
+    editor.setPrinting(index, printing);
+    setSelected((current) => selectionAfterPrinting(cards, current, index, printing));
+  };
+  const deleteFromInspector = (index: number) => {
+    mainPaneApi.current?.removeRow(index);
+  };
   const focusAddField = useCallback(
     () => (isMtg ? dockApi.current?.focusSearch() : addFieldRef.current?.focus()),
     [isMtg],
   );
+  const incFromInspector = (index: number, delta: number) => {
+    editor.incQuantity(index, delta);
+    if (cards[index].quantity + delta <= 0
+      && !reconcileInspectedSelection(cards.filter((_, at) => at !== index), selected)) {
+      focusAddField();
+    }
+  };
   const toggleGroup = useCallback(
     (label: string) => setGroupsCollapsed([label], !collapsedGroups.has(label)),
     [collapsedGroups, setGroupsCollapsed],
@@ -208,8 +225,19 @@ const DeckEditor = () => {
   const dockCollapsed = prefs.dockCollapsed;
   const inspectorCollapsed = docked && prefs.inspectorCollapsed;
   const showInspector = docked ? !inspectorCollapsed : inspectorOpen;
-  const groupLabels = groups.map(({ label }) => label);
-  const allGroupsCollapsed = groupLabels.length > 0 && groupLabels.every((label) => paneLayout.collapsedGroups.has(label));
+  const inspectorAdd = (name: string, zone: 'main' | 'side', scryfallId?: string) => (preview.index >= 0
+    ? void editorAddCard(name, { zone, scryfallId })
+    : addCard(name, zone, scryfallId));
+  const choosePreviewPrinting = (scryfallId: string | undefined) => {
+    const name = preview.card?.name;
+    if (!name) {
+      return;
+    }
+    dockApi.current?.choosePrinting(name, scryfallId);
+    setSelected((current) => (current?.preview
+      ? { ...current, scryfallId, preview: { ...current.preview, scryfallId } }
+      : current));
+  };
   const collapsePane = (pane: 'dock' | 'inspector', collapsed: boolean) => {
     const overlay = pane === 'inspector' && !collapsed && !paneLayout.inspectorDocksWhenExpanded;
     paneFocus.updateThenFocus(() => {
@@ -262,32 +290,21 @@ const DeckEditor = () => {
           {frame.waitingMessage ?? t('DeckEditor.shell.loadingDeck')}
         </div>
       ) : isMtg && (
-        <>
-          <DeckInspector
-            selected={preview.card}
-            index={preview.index}
-            deckCards={deck.cards}
-            prices={pricing.prices}
-            isCommanderDeck={isCommander}
-            onInc={editor.incQuantity}
-            onDelete={editor.deleteCard}
-            onSetCategory={moveCard}
-            onChangePrinting={changePrinting}
-            onShowDetails={setDetailSnapshot}
-            onAdd={addCard}
-          />
-          <section className="flex flex-col gap-3 border-t border-border-subtle pt-4" aria-label={t('DeckEditor.inspector.stats')}>
-            <SectionLabel>{t('DeckEditor.inspector.stats')}</SectionLabel>
-            <DeckBreakdown
-              cards={deck.cards}
-              format={deck.format}
-              cachedAssessment={deck.bracketAssessment}
-              onAssessmentComputed={editor.setBracketAssessment}
-            />
-          </section>
-        </>
+        <DeckInspector
+          selected={preview.card}
+          index={preview.index}
+          deckCards={deck.cards}
+          prices={pricing.prices}
+          isCommanderDeck={isCommander}
+          previewOnly={preview.previewOnly}
+          onInc={incFromInspector}
+          onDelete={deleteFromInspector}
+          onSetCommander={editor.setCommander}
+          onSetPrinting={setPrinting}
+          onChoosePreviewPrinting={choosePreviewPrinting}
+          onAdd={inspectorAdd}
+        />
       )}
-      {!frame.readOnly && <SampleHandPanel cards={deck.cards} showImages={isMtg} />}
     </aside>
   );
 
@@ -421,25 +438,6 @@ const DeckEditor = () => {
               isMtg={isMtg}
               bracketLevel={bracketLevel}
               onResetLayout={resetLayout}
-              viewControls={isMtg && groupLabels.length > 0 && (
-                <>
-                  <IconButton
-                    size="sm"
-                    label={t(allGroupsCollapsed ? 'DeckEditor.layout.expandAll' : 'DeckEditor.layout.collapseAll')}
-                    onClick={() => paneLayout.setGroupsCollapsed(groupLabels, !allGroupsCollapsed)}
-                  >
-                    {allGroupsCollapsed ? <ChevronsUpDown size={14} /> : <ChevronsDownUp size={14} />}
-                  </IconButton>
-                  <IconButton
-                    size="sm"
-                    label={t('DeckEditor.layout.compactRows')}
-                    active={prefs.density === 'compact'}
-                    onClick={() => paneLayout.setDensity(prefs.density === 'compact' ? 'comfortable' : 'compact')}
-                  >
-                    <Rows4 size={14} />
-                  </IconButton>
-                </>
-              )}
               trailing={!docked && (
                 <IconButton
                   label={t('DeckEditor.inspector.toggle')}
@@ -454,6 +452,7 @@ const DeckEditor = () => {
             />
           </fieldset>
           <DeckMainPane
+            ref={mainPaneApi}
             deck={deck}
             groups={groups}
             selectedIndex={selectedIndex}
@@ -476,6 +475,15 @@ const DeckEditor = () => {
             collapsedGroups={paneLayout.collapsedGroups}
             onToggleGroup={toggleGroup}
           />
+          {!frame.readOnly && (
+            <DeckToolsSheet
+              cards={deck.cards}
+              format={deck.format}
+              isMtg={isMtg}
+              cachedAssessment={deck.bracketAssessment}
+              onAssessmentComputed={editor.setBracketAssessment}
+            />
+          )}
           {showInspector && !docked && inspector}
         </main>
 
@@ -514,7 +522,7 @@ const DeckEditor = () => {
           if (!printingRequest) {
             return;
           }
-          editor.setPrinting(printingRequest.index, printing);
+          setPrinting(printingRequest.index, printing);
           setPrintingRequest(null);
         }}
       />

@@ -4,6 +4,19 @@ import { emptyPriceLookup } from '../../pricing';
 import type { DeckCard } from '../../types';
 import { DeckInspector, type DeckInspectorProps } from './DeckInspector';
 
+const printings = [
+  { name: 'Lightning Bolt', set: 'lea', collectorNumber: '161', scryfallId: 'lea-161' },
+  { name: 'Lightning Bolt', set: 'm10', collectorNumber: '146', scryfallId: 'm10-146' },
+];
+
+vi.mock('../../hooks/useCardDetail', () => ({
+  useCardDetail: () => ({ detail: null, detailLoading: false, browsed: null, pending: null, browse: vi.fn(), back: vi.fn() }),
+}));
+vi.mock('../../hooks/useCardPrintings', async () => {
+  const { emptyPriceLookup: empty } = await import('../../pricing');
+  return { useCardPrintings: () => ({ printings, loading: false, error: null, prices: empty() }) };
+});
+
 const bolt: DeckCard = {
   name: 'Lightning Bolt',
   quantity: 2,
@@ -25,9 +38,9 @@ function renderInspector(overrides: Partial<DeckInspectorProps> = {}) {
     isCommanderDeck: false,
     onInc: vi.fn(),
     onDelete: vi.fn(),
-    onSetCategory: vi.fn(),
-    onChangePrinting: vi.fn(),
-    onShowDetails: vi.fn(),
+    onSetCommander: vi.fn(),
+    onSetPrinting: vi.fn(),
+    onChoosePreviewPrinting: vi.fn(),
     onAdd: vi.fn(),
     ...overrides,
   };
@@ -72,42 +85,74 @@ describe('DeckInspector', () => {
 
   it('shows the selected row at preview size with its details and price', () => {
     const prices = emptyPriceLookup();
-    prices.byName.set('lightning bolt', { usd: 2, tcgplayer: null });
+    prices.byName.set('lightning bolt', { usd: 2, tcgplayer: 'https://tcgplayer.example/bolt' });
     renderInspector({ prices });
     expect(screen.getByRole('img', { name: 'Lightning Bolt' }))
       .toHaveAttribute('src', 'https://cards.scryfall.io/normal/front/b.jpg');
+    expect(screen.getByRole('button', { name: 'DeckInspector.cardDetails' })).toHaveAttribute('aria-expanded', 'true');
     expect(screen.getByText('Instant')).toBeInTheDocument();
-    expect(screen.getByText('lea')).toBeInTheDocument();
-    expect(screen.getByText('DeckInspector.price')).toBeInTheDocument();
-    expect(screen.getByRole('group', { name: 'DeckInspector.quantity' })).toHaveTextContent('2');
+    expect(screen.getByText('LEA')).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: /CardDetailDialog\.buy/ })).toHaveAttribute('href', 'https://tcgplayer.example/bolt');
+    expect(screen.getByRole('group', { name: 'DeckInspector.mainDeck' })).toHaveTextContent('2');
+    expect(screen.getByRole('group', { name: 'DeckInspector.sideboard' })).toHaveTextContent('1');
+
+    fireEvent.click(screen.getByRole('button', { name: 'DeckInspector.cardDetails' }));
+    expect(screen.queryByText('Instant')).toBeNull();
   });
 
-  it('routes the quantity, printing, zone, details and remove actions to the live row', () => {
+  it('changes the main deck and sideboard counts on their own rows', () => {
     const props = renderInspector();
-    fireEvent.click(screen.getByRole('button', { name: 'DeckInspector.increase' }));
-    fireEvent.click(screen.getByRole('button', { name: 'DeckInspector.decrease' }));
-    fireEvent.click(screen.getByRole('button', { name: 'DeckInspector.changePrinting' }));
-    fireEvent.click(screen.getByRole('button', { name: 'DeckInspector.toSideboard' }));
-    fireEvent.click(screen.getByRole('button', { name: 'DeckInspector.details' }));
+    fireEvent.click(screen.getByRole('button', { name: 'DeckInspector.increaseMain' }));
+    fireEvent.click(screen.getByRole('button', { name: 'DeckInspector.decreaseMain' }));
+    fireEvent.click(screen.getByRole('button', { name: 'DeckInspector.increaseSide' }));
     fireEvent.click(screen.getByRole('button', { name: 'DeckInspector.remove' }));
     expect(props.onInc).toHaveBeenNthCalledWith(1, 0, 1);
     expect(props.onInc).toHaveBeenNthCalledWith(2, 0, -1);
-    expect(props.onChangePrinting).toHaveBeenCalledWith(0, bolt);
-    expect(props.onSetCategory).toHaveBeenCalledWith(0, 'sideboard');
-    expect(props.onShowDetails).toHaveBeenCalledWith(bolt);
+    expect(props.onInc).toHaveBeenNthCalledWith(3, 1, 1);
     expect(props.onDelete).toHaveBeenCalledWith(0);
   });
 
-  it('offers the way back to the main deck for a sideboard row', () => {
-    const props = renderInspector({ selected: { name: 'Lightning Bolt', category: 'sideboard' }, index: 1 });
-    expect(screen.getByRole('group', { name: 'DeckInspector.quantity' })).toHaveTextContent('1');
-    fireEvent.click(screen.getByRole('button', { name: 'DeckInspector.toMain' }));
-    expect(props.onSetCategory).toHaveBeenCalledWith(1, 'main');
+  it('adds the first sideboard copy as a new row', () => {
+    const props = renderInspector({ deckCards: [bolt] });
+    expect(screen.getByRole('button', { name: 'DeckInspector.decreaseSide' })).toBeDisabled();
+    fireEvent.click(screen.getByRole('button', { name: 'DeckInspector.increaseSide' }));
+    expect(props.onAdd).toHaveBeenCalledWith('Lightning Bolt', 'side', undefined);
   });
 
-  it('keeps the commander in the main deck', () => {
-    renderInspector({ deckCards: [{ ...bolt, isCommander: true }], isCommanderDeck: true });
-    expect(screen.getByRole('button', { name: 'DeckInspector.toSideboard' })).toBeDisabled();
+  it('targets the selected printing for both counters and the commander switch', () => {
+    const props = renderInspector({
+      selected: { name: bolt.name, category: 'main', scryfallId: 'm10-146' },
+      index: 1,
+      deckCards: [
+        { ...bolt, scryfallId: 'lea-161' }, { ...bolt, scryfallId: 'm10-146', quantity: 3 },
+        { ...sideBolt, scryfallId: 'lea-161' }, { ...sideBolt, scryfallId: 'm10-146', quantity: 4 },
+      ],
+      isCommanderDeck: true,
+    });
+    expect(screen.getByRole('group', { name: 'DeckInspector.mainDeck' })).toHaveTextContent('3');
+    expect(screen.getByRole('group', { name: 'DeckInspector.sideboard' })).toHaveTextContent('4');
+    fireEvent.click(screen.getByRole('button', { name: 'DeckInspector.increaseMain' }));
+    fireEvent.click(screen.getByRole('button', { name: 'DeckInspector.decreaseSide' }));
+    fireEvent.click(screen.getByRole('switch'));
+    expect(props.onInc).toHaveBeenNthCalledWith(1, 1, 1);
+    expect(props.onInc).toHaveBeenNthCalledWith(2, 3, -1);
+    expect(props.onSetCommander).toHaveBeenCalledWith(1, true);
+  });
+
+  it('changes the printing of the live row from the printings list', () => {
+    const props = renderInspector();
+    fireEvent.click(screen.getByRole('button', { name: /DeckInspector\.changePrinting/ }));
+    fireEvent.click(screen.getByRole('button', { name: /M10/ }));
+    expect(props.onSetPrinting).toHaveBeenCalledWith(0, printings[1]);
+  });
+
+  it('marks the commander and keeps it out of the sideboard', () => {
+    const props = renderInspector({ deckCards: [{ ...bolt, isCommander: true }], isCommanderDeck: true });
+    const toggle = screen.getByRole('switch', { name: 'DeckEditor.rowActions.markCommander' });
+    expect(toggle).toHaveAttribute('aria-checked', 'true');
+    fireEvent.click(toggle);
+    expect(props.onSetCommander).toHaveBeenCalledWith(0, false);
+    expect(screen.getByRole('button', { name: 'DeckInspector.increaseSide' })).toBeDisabled();
     expect(screen.getByRole('button', { name: 'DeckInspector.removeCommander' })).toBeInTheDocument();
   });
 
@@ -124,9 +169,14 @@ describe('DeckInspector', () => {
     });
     expect(screen.getByText('DeckInspector.noImage')).toBeInTheDocument();
     expect(screen.getByText('Sorcery')).toBeInTheDocument();
-    fireEvent.click(screen.getByRole('button', { name: 'DeckInspector.add' }));
-    fireEvent.click(screen.getByRole('button', { name: 'DeckInspector.addToSideboard' }));
+    expect(screen.queryByRole('button', { name: 'DeckInspector.remove' })).toBeNull();
+    fireEvent.click(screen.getByRole('button', { name: 'DeckInspector.increaseMain' }));
+    fireEvent.click(screen.getByRole('button', { name: 'DeckInspector.increaseSide' }));
     expect(props.onAdd).toHaveBeenNthCalledWith(1, 'Ponder', 'main', 'p1');
     expect(props.onAdd).toHaveBeenNthCalledWith(2, 'Ponder', 'side', 'p1');
+
+    fireEvent.click(screen.getByRole('button', { name: /DeckInspector\.changePrinting/ }));
+    fireEvent.click(screen.getByRole('button', { name: /M10/ }));
+    expect(props.onChoosePreviewPrinting).toHaveBeenCalledWith('m10-146');
   });
 });

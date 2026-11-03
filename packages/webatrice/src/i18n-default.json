@@ -1816,20 +1816,22 @@
       "label": "Find cards"
     },
     "inspector": {
-      "label": "Card and stats",
-      "toggle": "Show the selected card and deck stats",
-      "close": "Hide the selected card and deck stats",
-      "stats": "Deck stats"
+      "label": "Selected card",
+      "toggle": "Show the selected card",
+      "close": "Hide the selected card"
+    },
+    "tools": {
+      "label": "Deck tools",
+      "stats": "Deck stats",
+      "collapse": "Hide deck tools",
+      "expand": "Show deck tools"
     },
     "layout": {
       "hideDock": "Hide Find cards",
       "showDock": "Show Find cards",
       "resizeDock": "Resize Find cards",
-      "resizeInspector": "Resize the card and stats pane",
-      "resizeHint": "Drag or use the arrow keys. Double-click resets the width; Enter hides the pane.",
-      "collapseAll": "Collapse all card groups",
-      "expandAll": "Expand all card groups",
-      "compactRows": "Compact rows"
+      "resizeInspector": "Resize the selected card pane",
+      "resizeHint": "Drag or use the arrow keys. Double-click resets the width; Enter hides the pane."
     },
     "section": {
       "commander": "{count, plural, one {Commander} other {Commanders}}",
@@ -2096,9 +2098,9 @@
       "list": "List",
       "art": "Art"
     },
-    "keys": {
-      "adds": "adds",
-      "side": "to sideboard"
+    "tip": {
+      "main": "Add to deck",
+      "side": "Add to sideboard"
     },
     "filter": {
       "colours": "Colours",
@@ -2110,7 +2112,11 @@
         "atMost": "At most"
       },
       "types": "Card types",
-      "manaValueShort": "MV",
+      "cardType": "Card type",
+      "selectType": "Select type",
+      "addType": "Add type",
+      "removeType": "Remove type {type}",
+      "manaValue": "Mana value",
       "manaValueMin": "Lowest mana value",
       "manaValueMax": "Highest mana value",
       "any": "any",
@@ -2119,7 +2125,6 @@
     },
     "printings": {
       "label": "Printings of {name}",
-      "title": "Printing",
       "count": "{count, plural, one {# printing} other {# printings}}",
       "loading": "Loading printings…",
       "empty": "No printings found.",
@@ -2254,6 +2259,7 @@
   "DeckHeader": {
     "myDecks": "My decks",
     "name": "Deck name",
+    "rename": "Rename deck",
     "namePlaceholder": "Untitled deck",
     "cardCount": "{count, plural, one {# card} other {# cards}}",
     "sideboardCount": "{count} sideboard",
@@ -2305,15 +2311,14 @@
     "empty": "Pick a card in the deck or in the search to see it here.",
     "noImage": "No image available",
     "price": "${price}",
-    "quantity": "Quantity",
-    "decrease": "Remove one {card}",
-    "increase": "Add one {card}",
-    "add": "Add to deck",
-    "addToSideboard": "Add to sideboard",
+    "cardDetails": "Card details",
+    "mainDeck": "Main deck",
+    "sideboard": "Sideboard",
+    "decreaseMain": "Remove one {card} from the main deck",
+    "increaseMain": "Add one {card} to the main deck",
+    "decreaseSide": "Remove one {card} from the sideboard",
+    "increaseSide": "Add one {card} to the sideboard",
     "changePrinting": "Change printing",
-    "toSideboard": "To sideboard",
-    "toMain": "To main deck",
-    "details": "Details",
     "remove": "Remove",
     "removeCommander": "Remove commander"
   },
@@ -2345,6 +2350,10 @@
   "DeckTags": {
     "label": "Tags",
     "add": "Add Tag",
+    "addTag": "Add tag",
+    "select": "Select tag",
+    "onDeck": "Already on this deck",
+    "newTag": "New tag…",
     "placeholder": "Add a new tag (e.g., Aggro)",
     "remove": "Remove tag {tag}",
     "empty": "Tag name cannot be empty!",

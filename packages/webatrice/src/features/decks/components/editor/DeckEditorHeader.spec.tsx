@@ -1,4 +1,5 @@
-import { fireEvent, screen } from '@testing-library/react';
+import { fireEvent, screen, within } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import { Route, Routes } from 'react-router-dom';
 
 import { RouteEnum } from '@app/types';
@@ -140,12 +141,46 @@ describe('DeckEditorHeader', () => {
     expect(screen.queryByRole('menuitem', { name: 'OpenDeckButton.label' })).toBeNull();
   });
 
-  it('lists the tags and edits them in a dialog', () => {
+  it('lists the tags inline and removes one from its chip', () => {
     const props = renderHeader({ tags: ['Aggro', 'Burn'] });
     expect(screen.getByRole('list', { name: 'DeckTags.label' })).toHaveTextContent('AggroBurn');
-    fireEvent.click(screen.getByRole('button', { name: 'DeckHeader.editTags' }));
     fireEvent.click(screen.getAllByRole('button', { name: 'DeckTags.remove' })[0]);
     expect(props.onTagsChange).toHaveBeenCalledWith(['Burn']);
+  });
+
+  it('adds a suggested tag from the tag menu', () => {
+    const props = renderHeader({ tags: ['🏃️ Aggro'] });
+    fireEvent.click(screen.getByRole('button', { name: 'DeckTags.addTag' }));
+    expect(screen.getByRole('button', { name: 'DeckTags.select' })).toHaveAttribute('aria-expanded', 'true');
+    expect(screen.getByRole('menuitemcheckbox', { name: /Aggro/ })).toHaveAttribute('aria-disabled', 'true');
+    fireEvent.click(screen.getByRole('menuitem', { name: /Control/ }));
+    expect(props.onTagsChange).toHaveBeenCalledWith(['🏃️ Aggro', '🧙‍️ Control']);
+    expect(screen.queryByRole('button', { name: 'DeckTags.select' })).toBeNull();
+  });
+
+  it('opens the tag dialog for a new tag', async () => {
+    renderHeader();
+    fireEvent.click(screen.getByRole('button', { name: 'DeckTags.addTag' }));
+    fireEvent.click(screen.getByRole('menuitem', { name: 'DeckTags.newTag' }));
+    expect(await screen.findByPlaceholderText('DeckTags.placeholder')).toBeInTheDocument();
+  });
+
+  it('focuses the new-tag field and adds the typed tag with Enter without removing existing tags', async () => {
+    const user = userEvent.setup();
+    const props = renderHeader({ tags: ['Pillowfort'] });
+    await user.click(screen.getByRole('button', { name: 'DeckTags.addTag' }));
+    await user.click(screen.getByRole('menuitem', { name: 'DeckTags.newTag' }));
+    const input = within(screen.getByRole('dialog')).getByRole('combobox', { name: 'DeckTags.add' });
+    expect(input).toHaveFocus();
+    await user.keyboard('Budget{Enter}');
+    expect(props.onTagsChange).toHaveBeenCalledExactlyOnceWith(['Pillowfort', 'Budget']);
+    expect(input).toHaveFocus();
+  });
+
+  it('focuses the deck name from the rename button', () => {
+    renderHeader();
+    fireEvent.click(screen.getByRole('button', { name: 'DeckHeader.rename' }));
+    expect(screen.getByRole('textbox', { name: 'DeckHeader.name' })).toHaveFocus();
   });
 
   it('shows the bracket the editor validated', () => {

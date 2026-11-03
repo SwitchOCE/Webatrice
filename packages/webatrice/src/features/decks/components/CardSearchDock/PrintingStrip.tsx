@@ -1,7 +1,6 @@
 import { useTranslation } from 'react-i18next';
 import { Loader2 } from 'lucide-react';
 
-import { SectionLabel } from '@app/components';
 import { useImageCandidates } from '@app/hooks';
 import { imageCandidatesOf, type PrintingSummary } from '@app/services';
 import { cx } from '@app/utils';
@@ -38,19 +37,7 @@ export function PrintingStrip({
 }) {
   const { t } = useTranslation();
   return (
-    <section
-      className="shrink-0 border-t border-border-subtle bg-bg-surface px-pad pb-3 pt-2.5"
-      aria-label={t('CardSearchDock.printings.label', { name: cardName })}
-    >
-      <div className="mb-2 flex items-baseline gap-2">
-        <SectionLabel>{t('CardSearchDock.printings.title')}</SectionLabel>
-        <span className="min-w-0 truncate text-[12px] text-text-secondary">{cardName}</span>
-        {!loading && printings.length > 0 && (
-          <span className="ml-auto shrink-0 text-[11.5px] tabular-nums text-text-muted">
-            {t('CardSearchDock.printings.count', { count: printings.length })}
-          </span>
-        )}
-      </div>
+    <section className="p-2" aria-label={t('CardSearchDock.printings.label', { name: cardName })}>
       {loading ? (
         <p className="flex h-[88px] items-center gap-2 text-[12px] text-text-muted">
           <Loader2 size={13} className="animate-spin" aria-hidden /> {t('CardSearchDock.printings.loading')}

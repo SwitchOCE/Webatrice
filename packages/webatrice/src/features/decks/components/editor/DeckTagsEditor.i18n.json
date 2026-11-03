@@ -2,6 +2,10 @@
   "DeckTags": {
     "label": "Tags",
     "add": "Add Tag",
+    "addTag": "Add tag",
+    "select": "Select tag",
+    "onDeck": "Already on this deck",
+    "newTag": "New tag…",
     "placeholder": "Add a new tag (e.g., Aggro)",
     "remove": "Remove tag {tag}",
     "empty": "Tag name cannot be empty!",

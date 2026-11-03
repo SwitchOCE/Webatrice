@@ -1,9 +1,9 @@
 import { useRef, type KeyboardEvent, type ReactNode } from 'react';
 
-import { cx } from '@app/utils';
+import { cx, tabKeyTarget } from '@app/utils';
 
 import { focusRing } from './staffStyles';
-import { staffTabIds, tabKeyTarget } from './staffTabs';
+import { staffTabIds } from './staffTabs';
 
 interface StaffHeaderProps {
   title: string;

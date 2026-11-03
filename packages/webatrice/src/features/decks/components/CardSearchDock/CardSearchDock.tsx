@@ -1,4 +1,4 @@
-import { memo, useCallback, useEffect, useId, useRef, type ReactNode } from 'react';
+import { memo, useCallback, useEffect, useId, useMemo, useRef, type ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Info, LayoutGrid, List, Loader2, Plus, Search, X } from 'lucide-react';
 
@@ -17,7 +17,6 @@ import {
 import type { DeckCard } from '../../types';
 import { DockFilters } from './DockFilters';
 import type { DockView, DockZone, GameChangerNote } from './dockModel';
-import { PrintingStrip } from './PrintingStrip';
 import { useCardSearchDock } from './useCardSearchDock';
 
 export type CardSearchDockZone = DockZone;
@@ -37,9 +36,34 @@ export interface CardSearchDockProps {
 
 export interface CardSearchDockApi {
   focusSearch: () => void;
+  choosePrinting: (cardName: string, scryfallId: string | undefined) => void;
 }
 
 const FOCUS = 'focus-visible:outline focus-visible:outline-2 focus-visible:outline-accent';
+
+export interface DockShortcuts {
+  main?: string;
+  side?: string;
+}
+
+function ShortcutTip({ label, shortcut, children }: { label: string; shortcut?: string; children: ReactNode }) {
+  return (
+    <span className="group/tip relative inline-flex">
+      {children}
+      <span
+        aria-hidden
+        className={cx(
+          'pointer-events-none absolute bottom-full right-0 z-30 mb-1 hidden items-center gap-2 whitespace-nowrap rounded-ui-sm',
+          'border border-border-subtle bg-bg-sunken py-1 pl-2 pr-1.5 text-[11.5px] text-text-primary shadow-pop',
+          'group-hover/tip:flex group-focus-within/tip:flex',
+        )}
+      >
+        {label}
+        {shortcut && <Kbd>{shortcut}</Kbd>}
+      </span>
+    </span>
+  );
+}
 
 function AddButtons({
   card,
@@ -47,12 +71,14 @@ function AddButtons({
   onFocus,
   onArt,
   disabled,
+  shortcuts,
 }: {
   card: ScryfallSearchCard;
   onAdd: (zone: DockZone) => void;
   onFocus: () => void;
   onArt?: boolean;
   disabled: boolean;
+  shortcuts: DockShortcuts;
 }) {
   const { t } = useTranslation();
   const tone = onArt
@@ -60,32 +86,34 @@ function AddButtons({
     : 'border-border-strong text-text-secondary hover:bg-bg-elevated hover:text-text-primary';
   return (
     <span className="flex shrink-0 gap-1">
-      <button
-        type="button"
-        onClick={() => onAdd('main')}
-        onFocus={onFocus}
-        disabled={disabled}
-        aria-label={t('CardSearchDock.addMain', { name: card.name })}
-        title={t('CardSearchDock.addMain', { name: card.name })}
-        className={cx('inline-flex h-7 w-7 items-center justify-center rounded-ui-sm border disabled:opacity-45', tone, FOCUS)}
-      >
-        <Plus size={14} aria-hidden />
-      </button>
-      <button
-        type="button"
-        onClick={() => onAdd('side')}
-        onFocus={onFocus}
-        disabled={disabled}
-        aria-label={t('CardSearchDock.addSide', { name: card.name })}
-        title={t('CardSearchDock.addSide', { name: card.name })}
-        className={cx(
-          'inline-flex h-7 min-w-7 items-center justify-center rounded-ui-sm border px-1 text-[10.5px] font-semibold disabled:opacity-45',
-          tone,
-          FOCUS,
-        )}
-      >
-        {t('CardSearchDock.sideShort')}
-      </button>
+      <ShortcutTip label={t('CardSearchDock.tip.main')} shortcut={shortcuts.main}>
+        <button
+          type="button"
+          onClick={() => onAdd('main')}
+          onFocus={onFocus}
+          disabled={disabled}
+          aria-label={t('CardSearchDock.addMain', { name: card.name })}
+          className={cx('inline-flex h-7 w-7 items-center justify-center rounded-ui-sm border disabled:opacity-45', tone, FOCUS)}
+        >
+          <Plus size={14} aria-hidden />
+        </button>
+      </ShortcutTip>
+      <ShortcutTip label={t('CardSearchDock.tip.side')} shortcut={shortcuts.side}>
+        <button
+          type="button"
+          onClick={() => onAdd('side')}
+          onFocus={onFocus}
+          disabled={disabled}
+          aria-label={t('CardSearchDock.addSide', { name: card.name })}
+          className={cx(
+            'inline-flex h-7 min-w-7 items-center justify-center rounded-ui-sm border px-1 text-[10.5px] font-semibold disabled:opacity-45',
+            tone,
+            FOCUS,
+          )}
+        >
+          {t('CardSearchDock.sideShort')}
+        </button>
+      </ShortcutTip>
     </span>
   );
 }
@@ -111,9 +139,10 @@ interface ResultProps {
   onHover?: (card: ScryfallSearchCard | null) => void;
   onAdd: (i: number, zone: DockZone) => void;
   stale: boolean;
+  shortcuts: DockShortcuts;
 }
 
-interface ResultCardProps extends Pick<ResultProps, 'onHighlight' | 'onHover' | 'onAdd' | 'stale'> {
+interface ResultCardProps extends Pick<ResultProps, 'onHighlight' | 'onHover' | 'onAdd' | 'stale' | 'shortcuts'> {
   card: ScryfallSearchCard;
   index: number;
   id: string;
@@ -122,7 +151,7 @@ interface ResultCardProps extends Pick<ResultProps, 'onHighlight' | 'onHover' | 
 }
 
 const ResultRow = memo(function ResultRow({
-  card, index, id, highlighted, inDeck, onHighlight, onHover, onAdd, stale,
+  card, index, id, highlighted, inDeck, onHighlight, onHover, onAdd, stale, shortcuts,
 }: ResultCardProps) {
   const art = searchCardArt(card);
   return (
@@ -151,16 +180,22 @@ const ResultRow = memo(function ResultRow({
         </span>
         <ResultMeta card={card} inDeck={inDeck} />
       </button>
-      <AddButtons card={card} onAdd={(zone) => onAdd(index, zone)} onFocus={() => onHighlight(index)} disabled={stale} />
+      <AddButtons
+        card={card}
+        onAdd={(zone) => onAdd(index, zone)}
+        onFocus={() => onHighlight(index)}
+        disabled={stale}
+        shortcuts={shortcuts}
+      />
     </li>
   );
 });
 
 const ResultList = memo(function ResultList({
-  results, highlight, quantities, idFor, onHighlight, onHover, onAdd, stale,
+  results, highlight, quantities, idFor, onHighlight, onHover, onAdd, stale, shortcuts,
 }: ResultProps) {
   return (
-    <ul className="flex flex-col gap-0.5 px-1.5 py-1.5">
+    <ul className="flex flex-col gap-0.5 p-1.5">
       {results.map((card, index) => (
         <ResultRow
           key={card.id}
@@ -173,6 +208,7 @@ const ResultList = memo(function ResultList({
           onHover={onHover}
           onAdd={onAdd}
           stale={stale}
+          shortcuts={shortcuts}
         />
       ))}
     </ul>
@@ -180,7 +216,7 @@ const ResultList = memo(function ResultList({
 });
 
 const ResultTile = memo(function ResultTile({
-  card, index, id, highlighted, inDeck, onHighlight, onHover, onAdd, stale,
+  card, index, id, highlighted, inDeck, onHighlight, onHover, onAdd, stale, shortcuts,
 }: ResultCardProps) {
   const { t } = useTranslation();
   const img = searchCardImage(card);
@@ -211,14 +247,21 @@ const ResultTile = memo(function ResultTile({
         </span>
       )}
       <span className="absolute bottom-1.5 right-1.5">
-        <AddButtons card={card} onAdd={(zone) => onAdd(index, zone)} onFocus={() => onHighlight(index)} onArt disabled={stale} />
+        <AddButtons
+          card={card}
+          onAdd={(zone) => onAdd(index, zone)}
+          onFocus={() => onHighlight(index)}
+          onArt
+          disabled={stale}
+          shortcuts={shortcuts}
+        />
       </span>
     </li>
   );
 });
 
 const ResultGrid = memo(function ResultGrid({
-  results, highlight, quantities, idFor, onHighlight, onHover, onAdd, stale,
+  results, highlight, quantities, idFor, onHighlight, onHover, onAdd, stale, shortcuts,
 }: ResultProps) {
   return (
     <ul className="grid grid-cols-2 gap-2 p-2">
@@ -234,6 +277,7 @@ const ResultGrid = memo(function ResultGrid({
           onHover={onHover}
           onAdd={onAdd}
           stale={stale}
+          shortcuts={shortcuts}
         />
       ))}
     </ul>
@@ -288,11 +332,14 @@ export default function CardSearchDock({
   const sideKey = menuShortcut('deck.addSearchResultToSideboard');
   const selectedName = dock.selected?.name;
 
+  const shortcuts = useMemo(() => ({ main: mainKey.shortcut, side: sideKey.shortcut }), [mainKey.shortcut, sideKey.shortcut]);
+
   const onReadyRef = useRef(onReady);
   onReadyRef.current = onReady;
+  const { setPrintingChoice } = dock;
   useEffect(() => {
-    onReadyRef.current?.({ focusSearch: () => inputRef.current?.focus() });
-  }, []);
+    onReadyRef.current?.({ focusSearch: () => inputRef.current?.focus(), choosePrinting: setPrintingChoice });
+  }, [setPrintingChoice]);
 
   useEffect(() => {
     if (dock.highlight >= 0) {
@@ -329,6 +376,7 @@ export default function CardSearchDock({
     onHover: onHoverPreview ? hoverResult : undefined,
     onAdd: dock.add,
     stale: dock.stale,
+    shortcuts,
   };
 
   return (
@@ -336,26 +384,16 @@ export default function CardSearchDock({
       aria-label={t('CardSearchDock.label')}
       className={cx('relative flex h-full min-h-0 flex-col border-r border-border-subtle bg-bg-surface', className)}
     >
-      <header className="flex flex-col gap-2.5 border-b border-border-subtle p-pad">
-        <div className="flex items-center gap-2">
-          <h2 className="shrink-0 whitespace-nowrap font-display text-[15px] font-semibold text-text-primary">
+      <header className="flex shrink-0 flex-col border-b border-border-subtle">
+        <div className="flex h-11 items-center gap-2 px-4 pt-2">
+          <h2 className="min-w-0 flex-1 truncate font-display text-[15px] font-semibold text-text-primary">
             {t('CardSearchDock.title')}
           </h2>
-          <span role="status" className={cx('min-w-0 truncate text-[12px] tabular-nums', dock.error ? 'text-danger' : 'text-text-muted')}>
-            {status}
-          </span>
-          <Segmented
-            items={views}
-            value={dock.view}
-            onChange={dock.setView}
-            label={t('CardSearchDock.view.label')}
-            className="ml-auto shrink-0"
-          />
           {headerAction}
         </div>
         <label
           className={cx(
-            'flex h-9 items-center gap-2 rounded-ui border border-border-control bg-bg-sunken px-2.5 text-text-muted',
+            'mx-4 mt-2 flex h-9 items-center gap-2 rounded-ui border border-border-control bg-bg-sunken px-2.5 text-text-muted',
             'focus-within:border-accent focus-within:ring-2 focus-within:ring-accent/25',
           )}
         >
@@ -391,8 +429,32 @@ export default function CardSearchDock({
             </button>
           )}
         </label>
-        <DockFilters value={dock.filters} onChange={dock.setFilters} colorIdentity={colorIdentity} format={format} />
+        <DockFilters
+          value={dock.filters}
+          onChange={dock.setFilters}
+          onClear={() => inputRef.current?.focus()}
+          colorIdentity={colorIdentity}
+          format={format}
+        />
       </header>
+
+      <div className="shrink-0 px-3">
+        <div className="flex min-h-10 items-center gap-2 border-b border-border-subtle py-1.5">
+          <span
+            role="status"
+            className={cx('min-w-0 flex-1 truncate text-[11.5px] tabular-nums', dock.error ? 'text-danger' : 'text-text-muted')}
+          >
+            {status}
+          </span>
+          <Segmented
+            items={views}
+            value={dock.view}
+            onChange={dock.setView}
+            label={t('CardSearchDock.view.label')}
+            className="shrink-0"
+          />
+        </div>
+      </div>
 
       <div
         id={listId}
@@ -433,19 +495,9 @@ export default function CardSearchDock({
         )}
       </div>
 
-      {selectedName && (
+      {selectedName && dock.gameChanger.kind !== 'none' && (
         <div className="shrink-0 border-t border-border-subtle pt-2">
           <GameChangerLine note={dock.gameChanger} />
-          {dock.printingName && (
-            <PrintingStrip
-              cardName={dock.printingName}
-              printings={dock.printings}
-              loading={dock.printingsLoading || dock.printingName !== selectedName}
-              prices={dock.printingPrices}
-              chosen={dock.chosenPrinting}
-              onChoose={dock.choosePrinting}
-            />
-          )}
         </div>
       )}
 
@@ -457,27 +509,6 @@ export default function CardSearchDock({
           ? t(dock.lastAdded.zone === 'side' ? 'CardSearchDock.addedSide' : 'CardSearchDock.addedMain', { name: dock.lastAdded.name })
           : ''}
       </p>
-
-      {(mainKey.shortcut || sideKey.shortcut) && (
-        <footer
-          className={cx(
-            'flex h-[41px] shrink-0 items-center gap-1.5 whitespace-nowrap border-t border-border-subtle',
-            'px-pad text-[11.5px] text-text-muted',
-          )}
-        >
-          {mainKey.shortcut && (
-            <>
-              <Kbd>{mainKey.shortcut}</Kbd> {t('CardSearchDock.keys.adds')}
-            </>
-          )}
-          {mainKey.shortcut && sideKey.shortcut && <span className="mx-0.5" aria-hidden>·</span>}
-          {sideKey.shortcut && (
-            <>
-              <Kbd>{sideKey.shortcut}</Kbd> {t('CardSearchDock.keys.side')}
-            </>
-          )}
-        </footer>
-      )}
     </section>
   );
 }

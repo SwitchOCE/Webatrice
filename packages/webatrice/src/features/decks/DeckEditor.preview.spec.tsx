@@ -38,7 +38,7 @@ async function renderEditor() {
     { route: '/deck/5', preloadedState: connected31State, webClient: createMockWebClient() },
   );
   fireEvent.click(await screen.findByRole('button', { name: 'DeckEditor.inspector.toggle' }));
-  return within(screen.getByRole('region', { name: 'DeckInspector.title' }));
+  return within(screen.getByRole('complementary', { name: 'DeckEditor.inspector.label' }));
 }
 
 const rowOf = (name: string) => screen.getAllByRole('row').find((row) => within(row).queryByRole('button', { name }))!;

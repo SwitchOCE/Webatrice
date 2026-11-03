@@ -184,7 +184,8 @@ describe('DeckEditor (integration)', () => {
     expect(groupHeadings()).toEqual(
       sections(['commander', 1], ['instant', 1], ['artifact', 1], ['land', 10], ['sideboard', 1]),
     );
-    expect(await screen.findByTitle('DeckBracket.title', {}, { timeout: 3000 })).toBeInTheDocument();
+    expect(screen.getByRole('tab', { name: 'DeckEditor.tools.stats' })).toHaveAttribute('aria-selected', 'true');
+    expect(await screen.findByTitle('DeckHeader.bracketHint', {}, { timeout: 3000 })).toBeInTheDocument();
 
     const spellbook = fetchCalls(fetchMock, 'https://backend.commanderspellbook.com/find-my-combos/');
     expect(spellbook).toHaveLength(1);
@@ -199,12 +200,24 @@ describe('DeckEditor (integration)', () => {
     const saved = await autosaved((d) => d.bracketAssessment?.level === 1 && d.meta.priceUsd === 24.75);
     expect(saved.meta.bracketLevel).toBe(1);
     expect(saved.bracketAssessment?.fingerprint).toMatch(/^[0-9a-z]{8}$/);
+
+    fireEvent.click(rowActions('Sol Ring'));
+    fireEvent.click(within(screen.getByRole('menu')).getByRole('menuitem', { name: 'DeckEditor.rowActions.addOne' }));
+    await waitFor(() => {
+      const requests = fetchCalls(fetchMock, 'https://backend.commanderspellbook.com/find-my-combos/');
+      expect(requests).toHaveLength(2);
+      expect(JSON.parse(String(requests[1][1]?.body)).main).toContainEqual({ card: 'Sol Ring', quantity: 2 });
+    }, { timeout: 3000 });
+    const edited = await autosaved((d) => card(d, 'Sol Ring')?.quantity === 2 && d.bracketAssessment?.level === 1);
+    expect(edited.bracketAssessment?.fingerprint).not.toBe(saved.bracketAssessment?.fingerprint);
+    expect(screen.getByRole('tab', { name: 'DeckEditor.tools.stats' })).toHaveAttribute('aria-selected', 'true');
   });
 
   it('makes no third-party bracket request until the user allows it', async () => {
     await writeBracketLookupsMode(CommanderSpellbookIntegration.Unprompted);
     await openDeck(COMMANDER_DECK);
 
+    fireEvent.click(screen.getByRole('tab', { name: 'DeckBreakdown.bracketEstimate' }));
     expect(await screen.findByText('DeckBracket.consent.prompt')).toBeInTheDocument();
     const saved = await autosaved((d) => d.meta.priceUsd === 24.75);
     expect(saved.bracketAssessment).toBeUndefined();
@@ -241,6 +254,7 @@ describe('DeckEditor (integration)', () => {
           : undefined);
       await openDeck(COMMANDER_DECK);
 
+      fireEvent.click(screen.getByRole('tab', { name: 'DeckBreakdown.bracketEstimate' }));
       expect(await screen.findByTitle('DeckBracket.partialTitle', {}, { timeout: 3000 })).toBeInTheDocument();
       expect(screen.getByText('DeckBracket.sourceUnavailable')).toBeInTheDocument();
       await autosaved((d) => d.meta.priceUsd === 24.75);
@@ -268,6 +282,7 @@ describe('DeckEditor (integration)', () => {
           : undefined);
       await openDeck(COMMANDER_DECK);
 
+      fireEvent.click(screen.getByRole('tab', { name: 'DeckBreakdown.bracketEstimate' }));
       expect(await screen.findByTitle('DeckBracket.partialTitle', {}, { timeout: 3000 })).toBeInTheDocument();
       await autosaved((d) => d.meta.priceUsd === 24.75);
       expect(bracketUploads()).toEqual([]);
@@ -285,6 +300,7 @@ describe('DeckEditor (integration)', () => {
         main: [{ name: 'Sol Ring' }],
       }));
 
+      fireEvent.click(screen.getByRole('tab', { name: 'DeckBreakdown.bracketEstimate' }));
       expect(await screen.findByTitle('DeckBracket.partialTitle', {}, { timeout: 3000 })).toBeInTheDocument();
       const saved = await autosaved((d) => d.meta.priceUsd === 1.5);
       expect(saved.bracketAssessment).toBeUndefined();
@@ -418,7 +434,8 @@ describe('DeckEditor (integration)', () => {
 
     fireEvent.change(screen.getByRole('textbox', { name: 'CardSearch.label' }), { target: { value: 'bolt' } });
     fireEvent.click(screen.getByRole('button', { name: 'CardSearch.color.R' }));
-    fireEvent.click(screen.getByRole('button', { name: 'CardSearch.cardType.Instant' }));
+    fireEvent.click(screen.getByRole('button', { name: 'CardSearchDock.filter.addType' }));
+    fireEvent.click(screen.getByRole('menuitem', { name: 'CardSearch.cardType.Instant' }));
     await waitFor(() => {
       const queries = fetchCalls(fetchMock, 'https://api.scryfall.com/cards/search?')
         .map(([url]) => new URL(String(url)).searchParams.get('q'));
@@ -437,17 +454,19 @@ describe('DeckEditor (integration)', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Lightning Bolt' }));
     const inspector = screen.getByRole('region', { name: 'DeckInspector.title' });
     expect(inspector).toHaveTextContent('Lightning Bolt');
-    fireEvent.click(within(inspector).getByRole('button', { name: 'DeckInspector.details' }));
-    expect(await screen.findByText('Lightning Bolt deals 3 damage to any target.')).toBeInTheDocument();
-    expect(screen.getByText('M11 · #149')).toBeInTheDocument();
+    fireEvent.click(rowActions('Lightning Bolt'));
+    fireEvent.click(within(screen.getByRole('menu')).getByRole('menuitem', { name: 'DeckEditor.rowActions.details' }));
+    const dialog = screen.getByRole('dialog');
+    expect(await within(dialog).findByText('Lightning Bolt deals 3 damage to any target.')).toBeInTheDocument();
+    expect(within(dialog).getByText('M11 · #149')).toBeInTheDocument();
 
     fireEvent.click(screen.getByRole('button', { name: 'CardDetailDialog.increase' }));
     await autosaved((d) => card(d, 'Lightning Bolt')?.quantity === 2);
-    expect(screen.getByText('Lightning Bolt deals 3 damage to any target.')).toBeInTheDocument();
+    expect(within(dialog).getByText('Lightning Bolt deals 3 damage to any target.')).toBeInTheDocument();
 
     fireEvent.click(screen.getByRole('button', { name: 'DeckEditor.rowActions.moveToSideboard' }));
     await autosaved((d) => card(d, 'Lightning Bolt')?.category === 'sideboard');
-    expect(screen.queryByText('Lightning Bolt deals 3 damage to any target.')).toBeNull();
+    expect(screen.queryByRole('dialog')).toBeNull();
   });
 
   it('exports the deck as plain text and as a Cockatrice .cod', async () => {
@@ -508,14 +527,15 @@ describe('DeckEditor (integration)', () => {
     fireEvent.change(banner, { target: { value: bolt.value } });
     closeDialog();
 
-    fireEvent.click(screen.getByRole('button', { name: 'DeckHeader.editTags' }));
+    fireEvent.click(screen.getByRole('button', { name: 'DeckTags.addTag' }));
+    fireEvent.click(screen.getByRole('menuitem', { name: 'DeckTags.newTag' }));
     fireEvent.change(screen.getByRole('combobox', { name: 'DeckTags.add' }), { target: { value: 'Burn' } });
     fireEvent.click(screen.getByRole('button', { name: 'DeckTags.add' }));
 
     const saved = await autosaved((d) => d.bannerCard === 'Lightning Bolt' && (d.tagsXml ?? '').includes('Burn'));
     expect(saved.tagsXml).toBe('<tags><color>red</color><tag>Aggro</tag><tag>Burn</tag></tags>');
 
-    fireEvent.click(screen.getAllByRole('button', { name: 'DeckTags.remove' })[0]);
+    fireEvent.click(within(screen.getByRole('dialog')).getAllByRole('button', { name: 'DeckTags.remove' })[0]);
     closeDialog();
     fireEvent.click(within(openMoreMenu()).getByRole('menuitem', { name: 'DeckHeader.bannerCard' }));
     fireEvent.change(screen.getByRole('combobox', { name: 'DeckBanner.label' }), { target: { value: '' } });
@@ -548,7 +568,7 @@ describe('DeckEditor (integration)', () => {
     await autosaved((d) => d.meta.priceUsd !== undefined);
     const before = uploads().length;
 
-    fireEvent.click(screen.getByRole('button', { name: 'SampleHand.title' }));
+    fireEvent.click(screen.getByRole('tab', { name: 'SampleHand.title' }));
     const hand = screen.getByRole('list', { name: 'SampleHand.title' });
     expect(within(hand).getAllByRole('listitem')).toHaveLength(7);
     expect(within(hand).queryByRole('img', { name: 'Llanowar Elves' })).toBeNull();
