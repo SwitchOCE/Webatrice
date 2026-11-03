@@ -1,4 +1,4 @@
-import { memo, useMemo } from 'react';
+import { memo, useImperativeHandle, useMemo, type Ref } from 'react';
 import { useTranslation } from 'react-i18next';
 
 import type { DeckCategory } from '@app/types';
@@ -7,14 +7,17 @@ import { DECK_COLUMN_GAP, deckColumnLayout } from '../../deckColumns';
 import type { DeckRowDensity } from '../../deckEditorLayout';
 import { sortIndicesByName, type DeckCardGroup as DeckCardGroupData } from '../../deckGrouping';
 import type { CardLegality } from '../../deckLegality';
-import { useDeckCardGrid } from '../../hooks/useDeckCardGrid';
+import { useDeckCardGrid, type DeckCardGrid } from '../../hooks/useDeckCardGrid';
 import { useElementWidth } from '../../hooks/useElementWidth';
 import type { DeckCard, HydratedDeck } from '../../types';
 import { DeckCardGroup } from './DeckCardGroup';
 import { EmptyCardsHint } from './DeckEditorShells';
 import { PlainCardList } from './PlainCardList';
 
+export type DeckMainPaneApi = Pick<DeckCardGrid, 'removeRow'>;
+
 export interface DeckMainPaneProps {
+  ref?: Ref<DeckMainPaneApi>;
   deck: HydratedDeck;
   groups: DeckCardGroupData[];
   selectedIndex: number;
@@ -41,6 +44,7 @@ export interface DeckMainPaneProps {
 const NO_GROUPS: ReadonlySet<string> = new Set();
 
 export const DeckMainPane = memo(function DeckMainPane({
+  ref,
   deck,
   groups,
   selectedIndex,
@@ -87,6 +91,7 @@ export const DeckMainPane = memo(function DeckMainPane({
     onSetCategory,
     onLastRowRemoved,
   });
+  useImperativeHandle(ref, () => ({ removeRow: grid.removeRow }), [grid.removeRow]);
 
   return (
     <div className="relative min-h-0 flex-1 overflow-y-auto p-2.5">

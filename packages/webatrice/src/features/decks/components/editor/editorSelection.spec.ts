@@ -9,10 +9,31 @@ import {
   searchCardInspection,
   selectionAfterPrinting,
   reconcileInspectedSelection,
+  sameInspectedCard,
 } from './editorSelection';
 
 const card = (name: string, category: DeckCard['category'] = 'main', extra: Partial<DeckCard> = {}): DeckCard =>
   ({ name, quantity: 1, category, lookupSource: 'scryfall', ...extra });
+
+describe('sameInspectedCard', () => {
+  const row = card('Sol Ring', 'main', { scryfallId: 'a' });
+  const selected = inspectedRow(row);
+
+  it('matches identities rather than object references and keeps zones, printings and selection origins distinct', () => {
+    expect(sameInspectedCard(selected, { ...selected, name: 'sol ring' })).toBe(true);
+    expect(sameInspectedCard(selected, { ...selected, category: 'sideboard' })).toBe(false);
+    expect(sameInspectedCard(selected, { ...selected, scryfallId: 'b' })).toBe(false);
+    expect(sameInspectedCard(selected, { ...selected, preview: row })).toBe(false);
+    expect(sameInspectedCard(null, null)).toBe(true);
+    expect(sameInspectedCard(null, selected)).toBe(false);
+  });
+
+  it('uses the preview printing when a search result has no explicit printing choice', () => {
+    const preview = { name: row.name, category: row.category, preview: row };
+    expect(sameInspectedCard(preview, { ...preview, preview: { ...row } })).toBe(true);
+    expect(sameInspectedCard(preview, { ...preview, preview: { ...row, scryfallId: 'b' } })).toBe(false);
+  });
+});
 
 describe('resolveInspectedRow', () => {
   const cards = [

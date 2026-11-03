@@ -63,12 +63,12 @@ export function useDeckCardGrid({ cards, order, onInc, onDelete, onSetCategory, 
   });
 
   const remove = (key: string) => {
-    const index = indexByKey.get(key);
-    if (readOnly || index == null) {
+    const index = indexByKey.get(key) ?? cards.findIndex((card) => deckRowKey(card) === key);
+    if (readOnly || index < 0) {
       return;
     }
     const position = keys.indexOf(key);
-    const neighbour = keys[position + 1] ?? keys[position - 1];
+    const neighbour = position < 0 ? keys[0] : keys[position + 1] ?? keys[position - 1];
     onDelete(index);
     if (neighbour != null) {
       focusRow(neighbour);

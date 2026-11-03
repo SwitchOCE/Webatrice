@@ -52,7 +52,6 @@ export function DeckInspector({
   const { t } = useTranslation();
   const [detailsOpen, setDetailsOpen] = useState(true);
   const [printingsOpen, setPrintingsOpen] = useState(false);
-  const panelRef = useRef<HTMLElement>(null);
 
   if (!selected) {
     return <p className="text-[12px] italic text-text-muted">{t('DeckInspector.empty')}</p>;
@@ -67,9 +66,6 @@ export function DeckInspector({
     .filter((url): url is string => Boolean(url));
   const step = (zoneIndex: number, zone: 'main' | 'side', delta: number) => {
     if (zoneIndex >= 0) {
-      if (delta < 0 && deckCards[zoneIndex].quantity === 1) {
-        panelRef.current?.querySelector<HTMLButtonElement>('button')?.focus();
-      }
       onInc(zoneIndex, delta);
     } else {
       onAdd(card.name, zone, card.scryfallId);
@@ -77,7 +73,7 @@ export function DeckInspector({
   };
 
   return (
-    <section ref={panelRef} className="flex flex-col gap-3" aria-label={t('DeckInspector.title')}>
+    <section className="flex flex-col gap-3" aria-label={t('DeckInspector.title')}>
       <div
         className="aspect-[5/7] w-full overflow-hidden border border-border-subtle bg-bg-elevated"
         style={{ borderRadius: '4.75% / 3.4%' }}
@@ -371,6 +367,7 @@ function ZoneStepper({
   onDec: () => void;
   onInc: () => void;
 }) {
+  const incrementRef = useRef<HTMLButtonElement>(null);
   const button = cx(
     'inline-flex h-full w-8 items-center justify-center text-text-secondary hover:bg-bg-elevated hover:text-text-primary',
     'disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:bg-transparent',
@@ -385,11 +382,22 @@ function ZoneStepper({
       <span className="flex h-full flex-1 items-center border-r border-border-strong px-2 text-[12px] font-medium text-text-secondary">
         {label}
       </span>
-      <button type="button" aria-label={decLabel} className={button} disabled={disabled || quantity === 0} onClick={onDec}>
+      <button
+        type="button"
+        aria-label={decLabel}
+        className={button}
+        disabled={disabled || quantity === 0}
+        onClick={() => {
+          if (quantity === 1) {
+            incrementRef.current?.focus();
+          }
+          onDec();
+        }}
+      >
         <Minus size={14} aria-hidden />
       </button>
       <span className="w-7 text-center text-[13px] font-semibold tabular-nums text-text-primary" aria-live="polite">{quantity}</span>
-      <button type="button" aria-label={incLabel} className={button} disabled={disabled} onClick={onInc}>
+      <button ref={incrementRef} type="button" aria-label={incLabel} className={button} disabled={disabled} onClick={onInc}>
         <Plus size={14} aria-hidden />
       </button>
     </span>

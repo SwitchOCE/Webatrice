@@ -61,4 +61,21 @@ describe('useInspectorPreview', () => {
     rerender({ selection: inspectedRow(cards[1]) });
     expect(result.current.card?.name).toBe('Ponder');
   });
+
+  it('loads details for a clicked hover identity while the pointer remains on it', () => {
+    const { result, rerender } = renderPreview();
+    const hovered = inspectedRow(cards[1]);
+    act(() => result.current.enter(hovered));
+    expect(result.current.previewOnly).toBe(true);
+    rerender({ selection: { ...hovered } });
+    expect(result.current.hovered).toBe(hovered);
+    expect(result.current.previewOnly).toBe(false);
+  });
+
+  it('loads the selected card details when a stale hover falls back to the selection', () => {
+    const { result } = renderPreview();
+    act(() => result.current.enter(inspectedRow(card('Missing'))));
+    expect(result.current.card).toEqual(inspectedRow(cards[0]));
+    expect(result.current.previewOnly).toBe(false);
+  });
 });

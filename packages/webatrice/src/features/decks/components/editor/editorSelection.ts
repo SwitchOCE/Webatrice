@@ -19,6 +19,16 @@ export function inspectedRow(card: DeckCard): InspectedCard {
   return { name: card.name, category: card.category, scryfallId: card.scryfallId };
 }
 
+export function sameInspectedCard(first: InspectedCard | null, second: InspectedCard | null): boolean {
+  if (!first || !second) {
+    return first === second;
+  }
+  return first.name.toLowerCase() === second.name.toLowerCase()
+    && first.category === second.category
+    && Boolean(first.preview) === Boolean(second.preview)
+    && (first.scryfallId ?? first.preview?.scryfallId ?? '') === (second.scryfallId ?? second.preview?.scryfallId ?? '');
+}
+
 export function resolveInspectedRow(cards: readonly DeckCard[], selected: InspectedCard | null): number {
   if (!selected) {
     return -1;

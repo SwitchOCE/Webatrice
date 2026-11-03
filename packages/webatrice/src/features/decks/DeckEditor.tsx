@@ -20,7 +20,7 @@ import { DeckNotFound } from './components/editor/DeckEditorShells';
 import { DeckHistoryControls } from './components/editor/DeckHistoryControls';
 import { DeckInspector } from './components/editor/DeckInspector';
 import { DeckLegalitySummary } from './components/editor/DeckLegalitySummary';
-import { DeckMainPane } from './components/editor/DeckMainPane';
+import { DeckMainPane, type DeckMainPaneApi } from './components/editor/DeckMainPane';
 import { CollapsedPaneRail } from './components/editor/CollapsedPaneRail';
 import { deckEditorGridStyle } from './components/editor/editorLayout';
 import { PaneResizer } from './components/editor/PaneResizer';
@@ -57,7 +57,6 @@ import { useBracketCache } from './hooks/useBracketCache';
 import { useInspectorPreview } from './hooks/useInspectorPreview';
 import { useDeckEditorLayout } from './hooks/useDeckEditorLayout';
 import { usePaneFocusHandoff } from './hooks/usePaneFocusHandoff';
-import { DECK_ROW_ATTRIBUTE, deckRowKey } from './hooks/useDeckCardGrid';
 import type { DeckCard } from './types';
 
 const NO_CARDS: DeckCard[] = [];
@@ -82,7 +81,7 @@ const DeckEditor = () => {
   const paneLayout = useDeckEditorLayout();
   const paneFocus = usePaneFocusHandoff();
   const addFieldRef = useRef<HTMLInputElement>(null);
-  const mainRef = useRef<HTMLElement>(null);
+  const mainPaneApi = useRef<DeckMainPaneApi>(null);
   const dockApi = useRef<CardSearchDockApi | null>(null);
   const onDockReady = useCallback((api: CardSearchDockApi) => {
     dockApi.current = api;
@@ -199,16 +198,19 @@ const DeckEditor = () => {
     setSelected((current) => selectionAfterPrinting(cards, current, index, printing));
   };
   const deleteFromInspector = (index: number) => {
-    const rows = Array.from(mainRef.current?.querySelectorAll<HTMLElement>(`[${DECK_ROW_ATTRIBUTE}]`) ?? []);
-    const position = rows.findIndex((row) => row.getAttribute(DECK_ROW_ATTRIBUTE) === deckRowKey(cards[index]));
-    const next = position >= 0 ? rows[position + 1] ?? rows[position - 1] : undefined;
-    (next ?? mainRef.current)?.focus();
-    editor.deleteCard(index);
+    mainPaneApi.current?.removeRow(index);
   };
   const focusAddField = useCallback(
     () => (isMtg ? dockApi.current?.focusSearch() : addFieldRef.current?.focus()),
     [isMtg],
   );
+  const incFromInspector = (index: number, delta: number) => {
+    editor.incQuantity(index, delta);
+    if (cards[index].quantity + delta <= 0
+      && !reconcileInspectedSelection(cards.filter((_, at) => at !== index), selected)) {
+      focusAddField();
+    }
+  };
   const toggleGroup = useCallback(
     (label: string) => setGroupsCollapsed([label], !collapsedGroups.has(label)),
     [collapsedGroups, setGroupsCollapsed],
@@ -294,8 +296,8 @@ const DeckEditor = () => {
           deckCards={deck.cards}
           prices={pricing.prices}
           isCommanderDeck={isCommander}
-          previewOnly={preview.hovered !== null}
-          onInc={editor.incQuantity}
+          previewOnly={preview.previewOnly}
+          onInc={incFromInspector}
           onDelete={deleteFromInspector}
           onSetCommander={editor.setCommander}
           onSetPrinting={setPrinting}
@@ -384,7 +386,7 @@ const DeckEditor = () => {
           />
         )}
 
-        <main ref={mainRef} tabIndex={-1} className="relative flex min-h-0 min-w-0 flex-col">
+        <main className="relative flex min-h-0 min-w-0 flex-col">
           {frame.readOnlyReason && (
             <p role="status" className="px-5 pt-3 text-sm text-text-secondary">{frame.readOnlyReason}</p>
           )}
@@ -450,6 +452,7 @@ const DeckEditor = () => {
             />
           </fieldset>
           <DeckMainPane
+            ref={mainPaneApi}
             deck={deck}
             groups={groups}
             selectedIndex={selectedIndex}
