@@ -115,7 +115,8 @@ describe('Decks (integration)', () => {
   it('requests the deck tree and lists the decks at the root, newest first', async () => {
     await loadTree();
 
-    expect(await screen.findByText('DeckStorageSidebar.subtitle')).toBeInTheDocument();
+    expect(await screen.findByRole('navigation', { name: 'DeckStorageSidebar.folders' })).toBeInTheDocument();
+    expect(screen.queryByText('DeckStorageSidebar.subtitle')).not.toBeInTheDocument();
     const names = screen.getAllByText(/^(Older|Newer) Deck$/).map((el) => el.textContent);
     expect(names).toEqual(['Newer Deck', 'Older Deck']);
     expect(screen.getAllByText('Decks.list.created')).toHaveLength(2);
@@ -125,7 +126,7 @@ describe('Decks (integration)', () => {
     it('keeps the hierarchy: the folder tree opens a folder with the decks under it, All decks goes back up', async () => {
       await loadTree(NESTED_TREE);
 
-      expect(await screen.findByText('DeckStorageSidebar.subtitle')).toBeInTheDocument();
+      expect(await screen.findByRole('navigation', { name: 'DeckStorageSidebar.folders' })).toBeInTheDocument();
       expect(tile('Older Deck')).toBeInTheDocument();
       expect(tile('Oldest Deck')).toBeInTheDocument();
       expect(within(folderTree()).getByRole('button', { name: /^Old\s?\d/ })).toBeInTheDocument();
@@ -244,7 +245,7 @@ describe('Decks (integration)', () => {
       openFolder('Tournament');
       expect(tile('Older Deck')).toBeInTheDocument();
       expect(screen.queryByTestId('location')).toBeNull();
-      expect(screen.getByText('DeckStorageSidebar.subtitle')).toBeInTheDocument();
+      expect(folderTree()).toBeInTheDocument();
     });
   });
 
@@ -355,7 +356,7 @@ describe('Decks (integration)', () => {
       deliverMessage(buildResponseMessage(buildResponse({ cmdId })));
     });
     await waitFor(() => expect(screen.queryByRole('article', { name: 'Older Deck' })).toBeNull());
-    expect(screen.getByText('DeckStorageSidebar.subtitle')).toBeInTheDocument();
+    expect(folderTree()).toBeInTheDocument();
     expect(tile('Newer Deck')).toBeInTheDocument();
   });
 

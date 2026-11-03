@@ -112,20 +112,15 @@ export function DeckStorageSidebar({
   const { t } = useTranslation();
   const sharing = onPublicDecks || onShareLinks || onOpenShareLink;
   return (
-    <aside className="flex min-h-0 w-[248px] shrink-0 flex-col gap-4 overflow-y-auto border-r border-border-subtle bg-bg-surface p-pad">
-      <div className="flex flex-col gap-0.5">
-        <h1 className="font-display text-[20px] font-semibold text-text-primary">{t('Decks.list.title')}</h1>
-        <span className="text-[12px] text-text-muted">
-          {loading ? t('Common.status.loading') : t('DeckStorageSidebar.subtitle', { count: deckTotal })}
-        </span>
-      </div>
-      <div className="flex gap-2">
+    <aside className="flex min-h-0 w-[248px] shrink-0 flex-col overflow-y-auto border-r border-border-subtle bg-bg-surface p-pad">
+      <h1 className="sr-only">{t('Decks.list.title')}</h1>
+      <div className="flex gap-2 border-b border-border-subtle pb-4">
         <Button variant="primary" className="flex-1 !px-3" icon={<Plus size={15} />} onClick={onCreate} disabled={!isConnected}>
           {t('Decks.list.newDeck')}
         </Button>
         <ImportMenuButton className="flex-1 !px-3" onMigrate={onMigrate} onImport={onImport} isConnected={isConnected} />
       </div>
-      <nav aria-label={t('DeckStorageSidebar.folders')} className="flex flex-col gap-1">
+      <nav aria-label={t('DeckStorageSidebar.folders')} className="flex flex-col gap-1 py-4">
         <div className="flex items-center pb-1 pl-2">
           <SectionLabel>{t('DeckStorageSidebar.folders')}</SectionLabel>
           <IconButton
@@ -154,7 +149,7 @@ export function DeckStorageSidebar({
         </ul>
       </nav>
       {sharing && (
-        <nav aria-label={t('DeckStorageSidebar.sharing')} className="flex flex-col gap-1 border-t border-border-subtle pt-3">
+        <nav aria-label={t('DeckStorageSidebar.sharing')} className="flex flex-col gap-1 border-t border-border-subtle pt-[15px]">
           <SectionLabel className="pb-1 pl-2">{t('DeckStorageSidebar.sharing')}</SectionLabel>
           <ul className="flex flex-col gap-0.5">
             {onPublicDecks && (

@@ -89,6 +89,14 @@ export default {
           life: 'rgb(var(--over-art-life) / <alpha-value>)',
         },
         'pt-modified': 'rgb(var(--pt-modified) / <alpha-value>)',
+        format: {
+          commander: 'rgb(var(--format-commander) / <alpha-value>)',
+          modern: 'rgb(var(--format-modern) / <alpha-value>)',
+          eternal: 'rgb(var(--format-eternal) / <alpha-value>)',
+          pauper: 'rgb(var(--format-pauper) / <alpha-value>)',
+          standard: 'rgb(var(--format-standard) / <alpha-value>)',
+          other: 'rgb(var(--format-other) / <alpha-value>)',
+        },
       },
       boxShadow: {
         glow: '0 0 24px -4px rgb(var(--accent-primary) / 0.35)',

@@ -220,35 +220,13 @@ export function DeckGridToolbar({
   const { filters, setFilters, options } = grid;
   const ANY = '';
   return (
-    <div className="flex shrink-0 flex-col gap-3 border-b border-border-subtle px-6 pb-3 pt-4">
+    <div className="flex shrink-0 flex-col gap-3 border-b border-border-subtle px-4 pb-3 pt-4">
       <div className="flex min-w-0 items-center gap-3">
         <h2 className="truncate font-display text-[20px] font-semibold text-text-primary">{title}</h2>
         <span className="shrink-0 text-[13px] text-text-muted">
           {t('DeckGridToolbar.summary', { decks: deckCount, folders: folderCount })}
         </span>
         {folder && folderActions && <FolderActionsMenu folder={folder} actions={folderActions} />}
-        <div className="ml-auto flex shrink-0 items-center gap-2">
-          <FilterSelect<DeckGridSort>
-            label={t('DeckGridToolbar.sort')}
-            value={grid.sort}
-            onChange={grid.setSort}
-            icon={<ArrowDownUp size={14} />}
-            className="w-40"
-            options={DECK_GRID_SORTS.map((s) => ({ value: s, label: t(SORT_KEYS[s]) }))}
-          />
-          <Segmented<DeckListViewMode>
-            label={t('Decks.list.viewMode')}
-            value={viewMode}
-            onChange={onViewModeChange}
-            items={[
-              { value: 'card', label: <ViewModeLabel icon={<LayoutGrid size={14} aria-hidden />} label={t('Decks.list.view.card')} /> },
-              { value: 'compact', label: <ViewModeLabel icon={<Rows3 size={14} aria-hidden />} label={t('Decks.list.view.compact')} /> },
-            ]}
-          />
-          <IconButton label={t('Decks.list.refreshLabel')} onClick={onRefresh} disabled={!isConnected}>
-            <RefreshCw size={15} />
-          </IconButton>
-        </div>
       </div>
       <div className="flex flex-wrap items-center gap-2">
         <TextInput
@@ -295,6 +273,28 @@ export function DeckGridToolbar({
             {t('DeckGridToolbar.pending', { count: grid.pending })}
           </span>
         )}
+        <div className="ml-auto flex shrink-0 items-center gap-2">
+          <FilterSelect<DeckGridSort>
+            label={t('DeckGridToolbar.sort')}
+            value={grid.sort}
+            onChange={grid.setSort}
+            icon={<ArrowDownUp size={14} />}
+            className="w-40"
+            options={DECK_GRID_SORTS.map((s) => ({ value: s, label: t(SORT_KEYS[s]) }))}
+          />
+          <Segmented<DeckListViewMode>
+            label={t('Decks.list.viewMode')}
+            value={viewMode}
+            onChange={onViewModeChange}
+            items={[
+              { value: 'card', label: <ViewModeLabel icon={<LayoutGrid size={14} aria-hidden />} label={t('Decks.list.view.card')} /> },
+              { value: 'compact', label: <ViewModeLabel icon={<Rows3 size={14} aria-hidden />} label={t('Decks.list.view.compact')} /> },
+            ]}
+          />
+          <IconButton label={t('Decks.list.refreshLabel')} onClick={onRefresh} disabled={!isConnected}>
+            <RefreshCw size={15} />
+          </IconButton>
+        </div>
       </div>
       {options.tags.length > 0 && (
         <div className="flex items-center gap-1.5 overflow-x-auto" role="group" aria-label={t('DeckGridToolbar.tags')}>

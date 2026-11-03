@@ -34,7 +34,8 @@
       "priceNone": "No cached price — open the deck to compute it",
       "priceTotal": "TCGplayer USD total",
       "priceTotalMissing": "TCGplayer USD total. {count, plural, one {# card} other {# cards}} had no price on file — actual total is higher.",
-      "identity": "Colour identity: {colours}"
+      "identity": "Colour identity: {colours}",
+      "noFormat": "No format"
     },
     "grid": {
       "decks": "Decks",

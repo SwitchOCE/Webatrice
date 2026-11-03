@@ -18,6 +18,18 @@ const deck = (id: number, name: string, extra: Partial<FlatDeck> = {}): FlatDeck
 const filters = (patch: Partial<DeckGridFilters>): DeckGridFilters => ({ ...NO_DECK_FILTERS, ...patch });
 
 describe('deckTileView', () => {
+  it.each([
+    ['commander', 'commander'], ['paupercommander', 'commander'], ['duel', 'commander'],
+    ['oathbreaker', 'commander'], ['predh', 'commander'], ['standardbrawl', 'commander'],
+    ['modern', 'modern'], ['pioneer', 'modern'], ['historic', 'modern'], ['timeless', 'modern'], ['future', 'modern'],
+    ['standard', 'standard'], ['legacy', 'eternal'], ['vintage', 'eternal'], ['premodern', 'eternal'],
+    ['oldschool', 'eternal'], ['pauper', 'pauper'], ['penny', 'other'], ['gladiator', 'other'],
+    [' Commander ', 'commander'], ['constructor', 'other'], ['__proto__', 'other'], ['toString', 'other'],
+    ['custom', 'other'], ['', 'other'], [undefined, 'other'],
+  ])('exposes the format family for %j as %s', (format, family) => {
+    expect(deckTileView(deck(1, 'A'), { format }).formatFamily).toBe(family);
+  });
+
   it('prefers the stored preview over the downloaded file for banner and tags', () => {
     const view = deckTileView(
       deck(1, 'Elves', { bannerCardName: 'Llanowar Elves', tags: ['Tribal'], colorIdentity: 'g' }),

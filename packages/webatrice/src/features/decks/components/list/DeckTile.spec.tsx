@@ -83,3 +83,50 @@ it('shows no identity pips for a colourless deck', () => {
   render(<DeckTile view={deckTileView({ ...deck, colorIdentity: '' }, undefined)} actions={actions()} />);
   expect(screen.queryByRole('img', { name: 'Decks.badge.identity' })).toBeNull();
 });
+
+it('colours the format band by format family, grey with a dash when there is no format', () => {
+  render(<DeckTile view={deckTileView(deck, { cardCount: 60 })} actions={actions()} />);
+  expect(screen.getByTitle('Decks.badge.noFormat')).toHaveTextContent('—');
+  expect(screen.getByTitle('Decks.badge.noFormat').parentElement).toHaveClass('bg-format-other');
+});
+
+it.each([
+  ['commander', 'bg-format-commander'],
+  ['PauperCommander', 'bg-format-commander'],
+  ['pioneer', 'bg-format-modern'],
+  ['standard', 'bg-format-standard'],
+  ['vintage', 'bg-format-eternal'],
+  ['pauper', 'bg-format-pauper'],
+  ['penny', 'bg-format-other'],
+])('renders the family colour for %s', (format, className) => {
+  render(<DeckTile view={deckTileView(deck, { format })} actions={actions()} />);
+  expect(screen.getByText(new RegExp(`DeckFormat.${format}`, 'i')).parentElement).toHaveClass(className);
+});
+
+it('keeps the over-art title white on hover while retaining the row hover colour', () => {
+  const { unmount } = render(<DeckTile view={view} actions={actions()} />);
+  expect(screen.getByText(deck.name)).toHaveClass('text-over-art-text');
+  expect(screen.getByText(deck.name)).not.toHaveClass('group-hover:text-accent');
+  unmount();
+  render(<DeckListRow view={view} actions={actions()} />);
+  expect(screen.getByText(deck.name)).toHaveClass('group-hover:text-accent');
+});
+
+it('describes a loaded deck with no format on its open button', () => {
+  render(<DeckTile view={deckTileView(deck, { cardCount: 60 })} actions={actions()} />);
+  expect(screen.getByRole('button', { name: 'DeckTile.open' })).toHaveAccessibleDescription('Decks.badge.noFormat');
+  expect(screen.getByTitle('Decks.badge.noFormat')).toHaveTextContent('—');
+});
+
+it('does not describe a loading deck or a declared format as having no format', () => {
+  const { rerender } = render(<DeckTile view={deckTileView(deck, undefined)} actions={actions()} />);
+  expect(screen.getByRole('button', { name: 'DeckTile.open' })).not.toHaveAccessibleDescription();
+  rerender(<DeckTile view={view} actions={actions()} />);
+  expect(screen.getByRole('button', { name: 'DeckTile.open' })).not.toHaveAccessibleDescription();
+});
+
+it.each(['constructor', '__proto__', 'toString', 'custom', ''])('uses the grey band for the unknown format %j', (format) => {
+  render(<DeckTile view={deckTileView(deck, { format })} actions={actions()} />);
+  const label = format ? screen.getByText(new RegExp(format, 'i')) : screen.getByTitle('Decks.badge.noFormat');
+  expect(label.parentElement).toHaveClass('bg-format-other');
+});
