@@ -1,4 +1,5 @@
 import { act, fireEvent, render, screen } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 
 import { getSettings, settingsStore } from '@app/hooks';
 import { CommanderSpellbookIntegration } from '@app/types';
@@ -36,6 +37,37 @@ describe('DeckToolsSheet', () => {
 
     fireEvent.click(screen.getByRole('button', { name: 'DeckEditor.tools.expand' }));
     expect(screen.getByRole('tabpanel')).toBeInTheDocument();
+  });
+
+  it('navigates every tab with arrows, Home and End, keeping panel relationships and roving focus', async () => {
+    render(<DeckToolsSheet cards={cards} format="commander" isMtg />);
+    const stats = tab('DeckEditor.tools.stats');
+    const bracket = tab('DeckBreakdown.bracketEstimate');
+    const hand = tab('SampleHand.title');
+    stats.focus();
+    const user = userEvent.setup();
+    for (const [key, target] of [
+      ['{ArrowRight}', bracket], ['{ArrowRight}', hand], ['{ArrowRight}', stats],
+      ['{ArrowLeft}', hand], ['{Home}', stats], ['{End}', hand],
+    ] as const) {
+      await user.keyboard(key);
+      expect(target).toHaveFocus();
+      expect(target).toHaveAttribute('aria-selected', 'true');
+      expect(target).toHaveAttribute('tabindex', '0');
+      const panel = screen.getByRole('tabpanel');
+      expect(target).toHaveAttribute('aria-controls', panel.id);
+      expect(panel).toHaveAttribute('aria-labelledby', target.id);
+      expect(screen.getAllByRole('tab').filter((node) => node.tabIndex === 0)).toEqual([target]);
+    }
+  });
+
+  it('uses only the available tabs and opens the sheet on keyboard selection', async () => {
+    render(<DeckToolsSheet cards={cards} format="modern" isMtg />);
+    fireEvent.click(screen.getByRole('button', { name: 'DeckEditor.tools.collapse' }));
+    tab('DeckEditor.tools.stats').focus();
+    await userEvent.keyboard('{ArrowRight}');
+    expect(tab('SampleHand.title')).toHaveFocus();
+    expect(screen.getByRole('tabpanel')).toBeVisible();
   });
 
   it('offers the bracket estimate for commander-family formats only', () => {

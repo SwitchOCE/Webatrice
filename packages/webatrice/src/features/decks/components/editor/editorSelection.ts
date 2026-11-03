@@ -3,6 +3,7 @@ import { ScryfallImageSize } from '@cockatrice/datatrice';
 import { getScryfallUrlById } from '@app/services';
 
 import { searchCardAsPreview, type ScryfallSearchCard } from '../../search';
+import type { CardPrinting } from '../../deckEdits';
 import type { DeckCard } from '../../types';
 
 const WUBRG = ['W', 'U', 'B', 'R', 'G'] as const;
@@ -42,6 +43,44 @@ export function resolveInspectedRow(cards: readonly DeckCard[], selected: Inspec
     }
   }
   return -1;
+}
+
+export function inspectedCardTargets(cards: readonly DeckCard[], selected: InspectedCard) {
+  const index = resolveInspectedRow(cards, selected);
+  const row = cards[index];
+  const card = selected.preview ?? row ?? {
+    name: selected.name, quantity: 0, category: selected.category, scryfallId: selected.scryfallId, lookupSource: 'unknown' as const,
+  };
+  const printingId = selected.preview ? selected.scryfallId : card.scryfallId;
+  const zoneIndex = (sideboard: boolean) => {
+    if (!selected.preview && row && (row.category === 'sideboard') === sideboard) {
+      return index;
+    }
+    return cards.findIndex((other) => (other.category === 'sideboard') === sideboard
+      && other.name.toLowerCase() === card.name.toLowerCase()
+      && (selected.preview && !printingId ? true : (other.scryfallId ?? '') === (printingId ?? '')));
+  };
+  return { card, mainIndex: zoneIndex(false), sideIndex: zoneIndex(true), printingIndex: selected.preview ? -1 : index };
+}
+
+export function selectionAfterPrinting(
+  cards: readonly DeckCard[],
+  selected: InspectedCard | null,
+  index: number,
+  printing: CardPrinting,
+): InspectedCard | null {
+  return selected && !selected.preview && resolveInspectedRow(cards, selected) === index
+    ? inspectedRow({ ...cards[index], scryfallId: printing.scryfallId })
+    : selected;
+}
+
+export function reconcileInspectedSelection(cards: readonly DeckCard[], selected: InspectedCard | null): InspectedCard | null {
+  if (!selected || selected.preview || resolveInspectedRow(cards, selected) >= 0) {
+    return selected;
+  }
+  const copies = cards.filter((card) => card.name.toLowerCase() === selected.name.toLowerCase());
+  const remaining = copies.find((card) => (card.scryfallId ?? '') === (selected.scryfallId ?? '')) ?? copies[0];
+  return remaining ? inspectedRow(remaining) : null;
 }
 
 export function searchCardInspection(card: ScryfallSearchCard, providerId?: string): InspectedCard {

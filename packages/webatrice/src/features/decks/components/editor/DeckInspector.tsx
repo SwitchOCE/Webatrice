@@ -1,4 +1,4 @@
-import { useId, useMemo, useState, type ReactNode } from 'react';
+import { useId, useMemo, useRef, useState, type ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
 import { ChevronDown, ChevronUp, Crown, ImageOff, Layers, Minus, Plus, Trash2 } from 'lucide-react';
 
@@ -15,7 +15,7 @@ import { bumpPrintingsInDeck } from '../../printingOrder';
 import { upgradeScryfallImageSize } from '../../scryfallImage';
 import type { DeckCard } from '../../types';
 import { PrintingStrip } from '../CardSearchDock/PrintingStrip';
-import type { InspectedCard } from './editorSelection';
+import { inspectedCardTargets, type InspectedCard } from './editorSelection';
 import { DeckCardImage } from './DeckCardImage';
 
 export interface DeckInspectorProps {
@@ -24,6 +24,7 @@ export interface DeckInspectorProps {
   deckCards: DeckCard[];
   prices: PriceLookup;
   isCommanderDeck: boolean;
+  previewOnly?: boolean;
   onInc: (index: number, delta: number) => void;
   onDelete: (index: number) => void;
   onSetCommander: (index: number, isCommander: boolean) => void;
@@ -40,6 +41,7 @@ export function DeckInspector({
   deckCards,
   prices,
   isCommanderDeck,
+  previewOnly = false,
   onInc,
   onDelete,
   onSetCommander,
@@ -50,29 +52,32 @@ export function DeckInspector({
   const { t } = useTranslation();
   const [detailsOpen, setDetailsOpen] = useState(true);
   const [printingsOpen, setPrintingsOpen] = useState(false);
+  const panelRef = useRef<HTMLElement>(null);
 
   if (!selected) {
     return <p className="text-[12px] italic text-text-muted">{t('DeckInspector.empty')}</p>;
   }
 
   const row = index >= 0 ? deckCards[index] ?? null : null;
-  const card: DeckCard = row ?? selected.preview ?? {
-    name: selected.name, quantity: 0, category: selected.category, scryfallId: selected.scryfallId, lookupSource: 'unknown',
-  };
-  const sameName = (other: DeckCard) => other.name.toLowerCase() === card.name.toLowerCase();
-  const mainIndex = deckCards.findIndex((other) => sameName(other) && other.category !== 'sideboard');
-  const sideIndex = deckCards.findIndex((other) => sameName(other) && other.category === 'sideboard');
+  const { card, mainIndex, sideIndex, printingIndex } = inspectedCardTargets(deckCards, selected);
   const mainCard = mainIndex >= 0 ? deckCards[mainIndex] : null;
   const price = priceForCard(prices, card);
   const imageUris = imageCandidatesOf(card)
     .map(upgradeScryfallImageSize)
     .filter((url): url is string => Boolean(url));
-  const step = (zoneIndex: number, zone: 'main' | 'side', delta: number) => (zoneIndex >= 0
-    ? onInc(zoneIndex, delta)
-    : onAdd(card.name, zone, card.scryfallId));
+  const step = (zoneIndex: number, zone: 'main' | 'side', delta: number) => {
+    if (zoneIndex >= 0) {
+      if (delta < 0 && deckCards[zoneIndex].quantity === 1) {
+        panelRef.current?.querySelector<HTMLButtonElement>('button')?.focus();
+      }
+      onInc(zoneIndex, delta);
+    } else {
+      onAdd(card.name, zone, card.scryfallId);
+    }
+  };
 
   return (
-    <section className="flex flex-col gap-3" aria-label={t('DeckInspector.title')}>
+    <section ref={panelRef} className="flex flex-col gap-3" aria-label={t('DeckInspector.title')}>
       <div
         className="aspect-[5/7] w-full overflow-hidden border border-border-subtle bg-bg-elevated"
         style={{ borderRadius: '4.75% / 3.4%' }}
@@ -91,7 +96,7 @@ export function DeckInspector({
         onToggle={() => setDetailsOpen((open) => !open)}
         className="bg-bg-surface"
       >
-        <CardDetails card={card} usd={price?.usd} />
+        <CardDetails card={card} usd={price?.usd} previewOnly={previewOnly} />
       </Disclosure>
 
       <div className="flex flex-col gap-2">
@@ -168,12 +173,13 @@ export function DeckInspector({
           card={card}
           deckCards={deckCards}
           open={printingsOpen}
+          previewOnly={previewOnly}
           onToggle={() => setPrintingsOpen((open) => !open)}
           onChoose={(printing) => {
-            if (!row) {
+            if (printingIndex < 0) {
               onChoosePreviewPrinting(printing?.scryfallId);
             } else if (printing) {
-              onSetPrinting(index, printing);
+              onSetPrinting(printingIndex, printing);
             }
           }}
         />
@@ -237,17 +243,20 @@ function Disclosure({
   );
 }
 
-function CardDetails({ card, usd }: { card: DeckCard; usd?: number }) {
+function CardDetails({ card, usd, previewOnly }: { card: DeckCard; usd?: number; previewOnly: boolean }) {
   const { t } = useTranslation();
-  const { detail } = useCardDetail(card);
+  const { detail } = useCardDetail(previewOnly ? null : card);
+  const face = selectCardFace(detail, card.name);
   const view = describeCardDetail({
     detail,
-    face: selectCardFace(detail, card.name),
+    face,
     activeName: card.name,
     liveCard: card,
     fallback: card,
   });
-  const stats = card.power != null && card.toughness != null ? `${card.power}/${card.toughness}` : undefined;
+  const power = face?.power ?? detail?.power ?? card.power;
+  const toughness = face?.toughness ?? detail?.toughness ?? card.toughness;
+  const stats = power != null && toughness != null ? `${power}/${toughness}` : undefined;
   const set = (view.setCode ?? card.set)?.toUpperCase();
 
   return (
@@ -299,17 +308,19 @@ function PrintingsDisclosure({
   card,
   deckCards,
   open,
+  previewOnly,
   onToggle,
   onChoose,
 }: {
   card: DeckCard;
   deckCards: readonly DeckCard[];
   open: boolean;
+  previewOnly: boolean;
   onToggle: () => void;
   onChoose: (printing: PrintingSummary | undefined) => void;
 }) {
   const { t } = useTranslation();
-  const { printings: allPrintings, loading, prices } = useCardPrintings(card.name);
+  const { printings: allPrintings, loading, prices } = useCardPrintings(open && !previewOnly ? card.name : undefined);
   const bumpSetsInDeck = usePreference('bumpSetsWithCardsInDeckToTop');
   const printings = useMemo(
     () => (bumpSetsInDeck ? bumpPrintingsInDeck(allPrintings, card.name, deckCards) : allPrintings),

@@ -429,7 +429,13 @@ export default function CardSearchDock({
             </button>
           )}
         </label>
-        <DockFilters value={dock.filters} onChange={dock.setFilters} colorIdentity={colorIdentity} format={format} />
+        <DockFilters
+          value={dock.filters}
+          onChange={dock.setFilters}
+          onClear={() => inputRef.current?.focus()}
+          colorIdentity={colorIdentity}
+          format={format}
+        />
       </header>
 
       <div className="shrink-0 px-3">

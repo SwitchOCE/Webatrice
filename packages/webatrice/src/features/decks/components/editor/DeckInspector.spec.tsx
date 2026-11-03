@@ -119,6 +119,26 @@ describe('DeckInspector', () => {
     expect(props.onAdd).toHaveBeenCalledWith('Lightning Bolt', 'side', undefined);
   });
 
+  it('targets the selected printing for both counters and the commander switch', () => {
+    const props = renderInspector({
+      selected: { name: bolt.name, category: 'main', scryfallId: 'm10-146' },
+      index: 1,
+      deckCards: [
+        { ...bolt, scryfallId: 'lea-161' }, { ...bolt, scryfallId: 'm10-146', quantity: 3 },
+        { ...sideBolt, scryfallId: 'lea-161' }, { ...sideBolt, scryfallId: 'm10-146', quantity: 4 },
+      ],
+      isCommanderDeck: true,
+    });
+    expect(screen.getByRole('group', { name: 'DeckInspector.mainDeck' })).toHaveTextContent('3');
+    expect(screen.getByRole('group', { name: 'DeckInspector.sideboard' })).toHaveTextContent('4');
+    fireEvent.click(screen.getByRole('button', { name: 'DeckInspector.increaseMain' }));
+    fireEvent.click(screen.getByRole('button', { name: 'DeckInspector.decreaseSide' }));
+    fireEvent.click(screen.getByRole('switch'));
+    expect(props.onInc).toHaveBeenNthCalledWith(1, 1, 1);
+    expect(props.onInc).toHaveBeenNthCalledWith(2, 3, -1);
+    expect(props.onSetCommander).toHaveBeenCalledWith(1, true);
+  });
+
   it('changes the printing of the live row from the printings list', () => {
     const props = renderInspector();
     fireEvent.click(screen.getByRole('button', { name: /DeckInspector\.changePrinting/ }));

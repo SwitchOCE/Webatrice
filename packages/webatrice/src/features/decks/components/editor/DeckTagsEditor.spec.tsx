@@ -1,4 +1,5 @@
 import { fireEvent, render, screen } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 
 import { DEFAULT_DECK_TAGS } from '../../deckTags';
 import { DeckTagsEditor } from './DeckTagsEditor';
@@ -15,6 +16,15 @@ describe('DeckTagsEditor', () => {
     expect(screen.getByRole('list', { name: 'DeckTags.label' })).toHaveTextContent('AggroBurn');
     fireEvent.click(screen.getAllByRole('button', { name: 'DeckTags.remove' })[0]);
     expect(onChange).toHaveBeenCalledWith(['Burn']);
+  });
+
+  it('adds a typed tag with Enter in the field and keeps the existing tags', async () => {
+    const user = userEvent.setup();
+    const { onChange, input } = renderEditor(['Pillowfort']);
+    await user.type(input, 'Budget{Enter}');
+    expect(onChange).toHaveBeenCalledExactlyOnceWith(['Pillowfort', 'Budget']);
+    expect(input).toHaveValue('');
+    expect(input).toHaveFocus();
   });
 
   it('adds a trimmed tag on submit and clears the field', () => {

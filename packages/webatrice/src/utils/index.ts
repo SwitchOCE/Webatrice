@@ -9,6 +9,7 @@ export type { ChatFilterVerdicts, PrivateConversation, PrivateMessageFilter, Roo
 export { ALL_MENTION, findChatAlert, highlightStyle, parseHighlightWords, parseMention, segmentText, tokenizeChat } from './chatHighlight';
 export type { ChatAlertContext, ChatAlertKind, ChatHighlight, Mention, TextSegment, TextSegmentKind } from './chatHighlight';
 export { cx } from './cx';
+export { tabKeyTarget } from './tabKeyTarget';
 export type { CxArg } from './cx';
 export { DefaultHosts, getHostKey, getHostPort } from './HostService';
 export { getBrowserSupport } from './browserSupport';

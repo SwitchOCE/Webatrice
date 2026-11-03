@@ -28,13 +28,16 @@ import {
   dockColorIdentity,
   inspectedRow,
   resolveInspectedRow,
+  reconcileInspectedSelection,
   searchCardInspection,
+  selectionAfterPrinting,
   type InspectedCard,
 } from './components/editor/editorSelection';
 import { DeckToolsSheet } from './components/editor/DeckToolsSheet';
 import { PlainAddCard } from './components/editor/PlainCardList';
 import { groupDeckCards } from './deckGrouping';
 import { deckColorIdentity, serializeDeckForSave } from './deckPersistence';
+import type { CardPrinting } from './deckEdits';
 import { isBlankDeck } from './deckSharing';
 import type { DecksLocationState } from './deckShortcuts';
 import type { ScryfallSearchCard } from './search';
@@ -54,6 +57,7 @@ import { useBracketCache } from './hooks/useBracketCache';
 import { useInspectorPreview } from './hooks/useInspectorPreview';
 import { useDeckEditorLayout } from './hooks/useDeckEditorLayout';
 import { usePaneFocusHandoff } from './hooks/usePaneFocusHandoff';
+import { DECK_ROW_ATTRIBUTE, deckRowKey } from './hooks/useDeckCardGrid';
 import type { DeckCard } from './types';
 
 const NO_CARDS: DeckCard[] = [];
@@ -78,6 +82,7 @@ const DeckEditor = () => {
   const paneLayout = useDeckEditorLayout();
   const paneFocus = usePaneFocusHandoff();
   const addFieldRef = useRef<HTMLInputElement>(null);
+  const mainRef = useRef<HTMLElement>(null);
   const dockApi = useRef<CardSearchDockApi | null>(null);
   const onDockReady = useCallback((api: CardSearchDockApi) => {
     dockApi.current = api;
@@ -125,9 +130,9 @@ const DeckEditor = () => {
   const preview = useInspectorPreview(cards, selected);
   useEffect(() => {
     if (selected && !selected.preview && selectedIndex < 0) {
-      setSelected(null);
+      setSelected(reconcileInspectedSelection(cards, selected));
     }
-  }, [selected, selectedIndex]);
+  }, [cards, selected, selectedIndex]);
 
   useDeckImageWarmer(
     deckId ?? (draftToken != null ? `draft:${draftToken}` : null),
@@ -189,6 +194,17 @@ const DeckEditor = () => {
     [enterPreview, leavePreview],
   );
   const changePrinting = useCallback((index: number, card: DeckCard) => setPrintingRequest({ index, card }), []);
+  const setPrinting = (index: number, printing: CardPrinting) => {
+    editor.setPrinting(index, printing);
+    setSelected((current) => selectionAfterPrinting(cards, current, index, printing));
+  };
+  const deleteFromInspector = (index: number) => {
+    const rows = Array.from(mainRef.current?.querySelectorAll<HTMLElement>(`[${DECK_ROW_ATTRIBUTE}]`) ?? []);
+    const position = rows.findIndex((row) => row.getAttribute(DECK_ROW_ATTRIBUTE) === deckRowKey(cards[index]));
+    const next = position >= 0 ? rows[position + 1] ?? rows[position - 1] : undefined;
+    (next ?? mainRef.current)?.focus();
+    editor.deleteCard(index);
+  };
   const focusAddField = useCallback(
     () => (isMtg ? dockApi.current?.focusSearch() : addFieldRef.current?.focus()),
     [isMtg],
@@ -278,10 +294,11 @@ const DeckEditor = () => {
           deckCards={deck.cards}
           prices={pricing.prices}
           isCommanderDeck={isCommander}
+          previewOnly={preview.hovered !== null}
           onInc={editor.incQuantity}
-          onDelete={editor.deleteCard}
+          onDelete={deleteFromInspector}
           onSetCommander={editor.setCommander}
-          onSetPrinting={editor.setPrinting}
+          onSetPrinting={setPrinting}
           onChoosePreviewPrinting={choosePreviewPrinting}
           onAdd={inspectorAdd}
         />
@@ -367,7 +384,7 @@ const DeckEditor = () => {
           />
         )}
 
-        <main className="relative flex min-h-0 min-w-0 flex-col">
+        <main ref={mainRef} tabIndex={-1} className="relative flex min-h-0 min-w-0 flex-col">
           {frame.readOnlyReason && (
             <p role="status" className="px-5 pt-3 text-sm text-text-secondary">{frame.readOnlyReason}</p>
           )}
@@ -502,7 +519,7 @@ const DeckEditor = () => {
           if (!printingRequest) {
             return;
           }
-          editor.setPrinting(printingRequest.index, printing);
+          setPrinting(printingRequest.index, printing);
           setPrintingRequest(null);
         }}
       />

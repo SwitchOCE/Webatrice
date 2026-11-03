@@ -41,6 +41,7 @@ export function ChipPicker({
 }: ChipPickerProps) {
   const selectRef = useRef<HTMLButtonElement>(null);
   const addRef = useRef<HTMLButtonElement>(null);
+  const removeRefs = useRef(new Map<string, HTMLButtonElement>());
   const [picking, setPicking] = useState(false);
   const [anchor, setAnchor] = useState<MenuAnchor | null>(null);
   const chosenValues = new Set(chosen.map(({ value }) => value));
@@ -55,12 +56,23 @@ export function ChipPicker({
 
   return (
     <ul className={cx('flex min-w-0 flex-wrap items-center gap-1.5', className)} aria-label={label}>
-      {chosen.map((option) => (
+      {chosen.map((option, index) => (
         <li key={option.value} className={cx(PILL, 'border-border-subtle bg-bg-elevated text-text-secondary')}>
           {option.label}
           <button
+            ref={(element) => {
+              if (element) {
+                removeRefs.current.set(option.value, element);
+              } else {
+                removeRefs.current.delete(option.value);
+              }
+            }}
             type="button"
-            onClick={() => onRemove(option.value)}
+            onClick={() => {
+              const neighbour = chosen[index + 1] ?? chosen[index - 1];
+              (neighbour ? removeRefs.current.get(neighbour.value) : addRef.current)?.focus();
+              onRemove(option.value);
+            }}
             aria-label={removeLabel(option.label)}
             className={cx('inline-flex h-4 w-4 items-center justify-center rounded-full hover:text-danger', FOCUS)}
           >

@@ -3,9 +3,12 @@ import type { ScryfallSearchCard } from '../../search';
 import {
   dockColorIdentity,
   inspectedRow,
+  inspectedCardTargets,
   resolveInspectedRow,
   resolvePreviewTarget,
   searchCardInspection,
+  selectionAfterPrinting,
+  reconcileInspectedSelection,
 } from './editorSelection';
 
 const card = (name: string, category: DeckCard['category'] = 'main', extra: Partial<DeckCard> = {}): DeckCard =>
@@ -38,6 +41,64 @@ describe('resolveInspectedRow', () => {
     expect(resolveInspectedRow(cards, { name: 'Sol Ring', category: 'main', scryfallId: 'sr-lea', preview })).toBe(1);
     expect(resolveInspectedRow(cards, { name: 'Sol Ring', category: 'sideboard', scryfallId: 'sr-lea', preview })).toBe(1);
     expect(resolveInspectedRow(cards, { name: 'Sol Ring', category: 'main', scryfallId: 'sr-foil', preview })).toBe(-1);
+  });
+});
+
+describe('inspectedCardTargets', () => {
+  const cards = [
+    card('Sol Ring', 'main', { scryfallId: 'a' }), card('Sol Ring', 'main', { scryfallId: 'b' }),
+    card('Sol Ring', 'sideboard', { scryfallId: 'a' }), card('Sol Ring', 'sideboard', { scryfallId: 'b' }),
+  ];
+
+  it('targets the selected row and the same printing in the other zone', () => {
+    expect(inspectedCardTargets(cards, inspectedRow(cards[1]))).toMatchObject({ mainIndex: 1, sideIndex: 3, printingIndex: 1 });
+    expect(inspectedCardTargets(cards, inspectedRow(cards[3]))).toMatchObject({ mainIndex: 1, sideIndex: 3, printingIndex: 3 });
+    expect(inspectedCardTargets(cards.slice(0, 3), inspectedRow(cards[1]))).toMatchObject({ mainIndex: 1, sideIndex: -1 });
+  });
+
+  it('matches unprinted deck rows only with other unprinted rows', () => {
+    const unprinted = [...cards, card('Sol Ring'), card('Sol Ring', 'sideboard')];
+    expect(inspectedCardTargets(unprinted, inspectedRow(unprinted[4]))).toMatchObject({ mainIndex: 4, sideIndex: 5 });
+  });
+
+  it('keeps search previews separate from printing edits, using name matching only without a chosen printing', () => {
+    const preview = card('Sol Ring', 'main', { scryfallId: 'search-default' });
+    expect(inspectedCardTargets(cards, { ...inspectedRow(cards[1]), preview })).toMatchObject({
+      card: preview, mainIndex: 1, sideIndex: 3, printingIndex: -1,
+    });
+    expect(inspectedCardTargets(cards, { name: 'Sol Ring', category: 'main', preview })).toMatchObject({
+      mainIndex: 0, sideIndex: 2, printingIndex: -1,
+    });
+  });
+});
+
+describe('selectionAfterPrinting', () => {
+  const cards = [card('Sol Ring', 'main', { scryfallId: 'a' }), card('Sol Ring', 'main', { scryfallId: 'b' })];
+
+  it('follows a changed printing even when the edited row merges into an earlier row', () => {
+    const selected = selectionAfterPrinting(cards, inspectedRow(cards[1]), 1, { scryfallId: 'a' });
+    expect(resolveInspectedRow([cards[0]], selected)).toBe(0);
+  });
+
+  it('leaves another selection and search-origin selections alone', () => {
+    const selected = inspectedRow(cards[0]);
+    expect(selectionAfterPrinting(cards, selected, 1, { scryfallId: 'c' })).toBe(selected);
+    const preview = { ...selected, preview: cards[0] };
+    expect(selectionAfterPrinting(cards, preview, 0, { scryfallId: 'c' })).toBe(preview);
+    expect(selectionAfterPrinting(cards, null, 0, { scryfallId: 'c' })).toBeNull();
+  });
+});
+
+describe('reconcileInspectedSelection', () => {
+  it('follows another copy, preferring the same printing, and clears only after the last copy is removed', () => {
+    const selected = { name: 'Sol Ring', category: 'main' as const, scryfallId: 'b' };
+    const copies = [card('Sol Ring', 'main', { scryfallId: 'a' }), card('Sol Ring', 'sideboard', { scryfallId: 'b' })];
+    expect(reconcileInspectedSelection(copies, selected)).toEqual(inspectedRow(copies[1]));
+    expect(reconcileInspectedSelection(copies.slice(0, 1), selected)).toEqual(inspectedRow(copies[0]));
+    expect(reconcileInspectedSelection([], selected)).toBeNull();
+    expect(reconcileInspectedSelection(copies, inspectedRow(copies[0]))).toEqual(inspectedRow(copies[0]));
+    const preview = { ...selected, preview: copies[0] };
+    expect(reconcileInspectedSelection([], preview)).toBe(preview);
   });
 });
 

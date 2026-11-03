@@ -1,10 +1,10 @@
-import { useId, useState, type ReactNode } from 'react';
+import { useId, useRef, useState, type ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
 import { ChartColumn, ChevronDown, ChevronUp, Gauge, Hand } from 'lucide-react';
 
 import { IconButton } from '@app/components';
 import type { BracketAssessment } from '@app/types';
-import { cx } from '@app/utils';
+import { cx, tabKeyTarget } from '@app/utils';
 
 import type { DeckCard } from '../../types';
 import { BracketSection } from '../breakdown/BracketSection';
@@ -24,6 +24,7 @@ export interface DeckToolsSheetProps {
 export function DeckToolsSheet({ cards, format, isMtg, cachedAssessment, onAssessmentComputed }: DeckToolsSheetProps) {
   const { t } = useTranslation();
   const baseId = useId();
+  const buttons = useRef<(HTMLButtonElement | null)[]>([]);
   const [expanded, setExpanded] = useState(true);
   const [chosen, setChosen] = useState<DeckTool>('stats');
   const showsBracket = useShowsBracket(cards, format);
@@ -33,7 +34,7 @@ export function DeckToolsSheet({ cards, format, isMtg, cachedAssessment, onAsses
     { id: 'hand', icon: <Hand size={14} aria-hidden />, label: t('SampleHand.title') },
   ];
   const tool = tools.find(({ id }) => id === chosen)?.id ?? tools[0].id;
-  const panelId = `${baseId}-panel`;
+  const panelId = (id: DeckTool) => `${baseId}-panel-${id}`;
   const tabId = (id: DeckTool) => `${baseId}-tab-${id}`;
 
   return (
@@ -43,20 +44,32 @@ export function DeckToolsSheet({ cards, format, isMtg, cachedAssessment, onAsses
     >
       <div className={cx('flex h-11 items-center pl-5 pr-3', expanded && 'border-b border-border-subtle')}>
         <div role="tablist" aria-label={t('DeckEditor.tools.label')} className="flex h-full min-w-0 flex-1 gap-6">
-          {tools.map(({ id, icon, label }) => {
+          {tools.map(({ id, icon, label }, index) => {
             const selected = expanded && id === tool;
             return (
               <button
                 key={id}
+                ref={(element) => {
+                  buttons.current[index] = element;
+                }}
                 id={tabId(id)}
                 type="button"
                 role="tab"
                 aria-selected={selected}
-                aria-controls={expanded ? panelId : undefined}
+                aria-controls={panelId(id)}
                 tabIndex={id === tool ? 0 : -1}
                 onClick={() => {
                   setChosen(id);
                   setExpanded(true);
+                }}
+                onKeyDown={(event) => {
+                  const target = tabKeyTarget(event.key, index, tools.length);
+                  if (target !== null) {
+                    event.preventDefault();
+                    setChosen(tools[target].id);
+                    setExpanded(true);
+                    buttons.current[target]?.focus();
+                  }
                 }}
                 className={cx(
                   'flex h-full shrink-0 items-center gap-1.5 border-b-2 text-[13px] font-medium',
@@ -79,20 +92,22 @@ export function DeckToolsSheet({ cards, format, isMtg, cachedAssessment, onAsses
           {expanded ? <ChevronDown size={15} /> : <ChevronUp size={15} />}
         </IconButton>
       </div>
-      {expanded && (
+      {tools.map(({ id }) => (
         <div
-          id={panelId}
+          key={id}
+          id={panelId(id)}
           role="tabpanel"
-          aria-labelledby={tabId(tool)}
+          hidden={!expanded || tool !== id}
+          aria-labelledby={tabId(id)}
           className="max-h-80 overflow-y-auto px-5 pb-5 pt-4"
         >
-          {tool === 'stats' && <DeckBreakdown cards={cards} />}
-          {tool === 'bracket' && (
+          {expanded && tool === id && id === 'stats' && <DeckBreakdown cards={cards} />}
+          {id === 'bracket' && (
             <BracketSection cards={cards} cachedAssessment={cachedAssessment} onAssessmentComputed={onAssessmentComputed} />
           )}
-          {tool === 'hand' && <SampleHand cards={cards} showImages={isMtg} />}
+          {expanded && tool === id && id === 'hand' && <SampleHand cards={cards} showImages={isMtg} />}
         </div>
-      )}
+      ))}
     </section>
   );
 }

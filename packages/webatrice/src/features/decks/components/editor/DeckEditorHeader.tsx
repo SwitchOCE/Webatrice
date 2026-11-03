@@ -251,7 +251,7 @@ export function DeckEditorHeader({
       {openDeckFlow.dialogs}
 
       <DialogShell isOpen={tagsOpen} handleClose={() => setTagsOpen(false)} title={t('DeckHeader.editTags')}>
-        <DeckTagsEditor tags={tags} onChange={onTagsChange} />
+        <DeckTagsEditor tags={tags} onChange={onTagsChange} autoFocus />
       </DialogShell>
 
       <DialogShell isOpen={bannerOpen} handleClose={() => setBannerOpen(false)} title={t('DeckHeader.bannerCard')}>

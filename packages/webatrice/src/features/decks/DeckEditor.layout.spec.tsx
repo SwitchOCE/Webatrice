@@ -1,4 +1,4 @@
-import { fireEvent, screen } from '@testing-library/react';
+import { act, fireEvent, screen } from '@testing-library/react';
 import { Route, Routes } from 'react-router-dom';
 
 import { connected31State, createMockWebClient, renderWithProviders } from '../../__test-utils__';
@@ -39,6 +39,7 @@ afterEach(() => {
   clearDeckEditorCache();
   window.localStorage.clear();
   vi.restoreAllMocks();
+  vi.unstubAllGlobals();
 });
 
 describe('DeckEditor layout', () => {
@@ -126,11 +127,33 @@ describe('DeckEditor layout', () => {
 
   it('keeps focus and the other groups in place when collapsing a group moves the column breaks', async () => {
     mockWidth(527);
+    const resizeCallbacks = new Set<ResizeObserverCallback>();
+    vi.stubGlobal('ResizeObserver', class {
+      constructor(private callback: ResizeObserverCallback) {
+        resizeCallbacks.add(callback);
+      }
+      observe() {}
+      disconnect() {
+        resizeCallbacks.delete(this.callback);
+      }
+    });
     const many = (type: string) => Array.from({ length: 10 }, (_, i) => card(`${type} ${i}`, type));
     await renderEditor([...many('Creature'), ...many('Instant'), ...many('Sorcery')]);
     const instants = screen.getByRole('button', { name: /^DeckEditor\.section\.instant/ });
     const sorceries = screen.getByRole('button', { name: /^DeckEditor\.section\.sorcery/ });
     const instantRow = screen.getByRole('button', { name: 'Instant 3' });
+    const instantSection = instants.closest('section')!;
+    const sorcerySection = sorceries.closest('section')!;
+    const columns = instantSection.parentElement!;
+    expect(columns).toHaveStyle({ columnCount: '1' });
+    act(() => {
+      for (const callback of resizeCallbacks) {
+        callback([{ contentRect: { width: 648 } } as ResizeObserverEntry], {} as ResizeObserver);
+      }
+    });
+    expect(columns).toHaveStyle({ columnCount: '2' });
+    expect(sorcerySection).toHaveClass('break-before-column');
+    expect(instantSection).not.toHaveClass('break-before-column');
 
     sorceries.focus();
     fireEvent.click(sorceries);
@@ -139,6 +162,8 @@ describe('DeckEditor layout', () => {
     expect(sorceries).toHaveFocus();
     expect(instants.isConnected).toBe(true);
     expect(instantRow.isConnected).toBe(true);
+    expect(instantSection).toHaveClass('break-before-column');
+    expect(sorcerySection).not.toHaveClass('break-before-column');
   });
 
   it('keeps the Find cards search while the pane is collapsed', async () => {

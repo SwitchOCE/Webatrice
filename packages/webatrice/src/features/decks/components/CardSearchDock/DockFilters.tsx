@@ -95,11 +95,13 @@ function FilterChip({ label, title, on, onClick }: { label: string; title?: stri
 export function DockFilters({
   value,
   onChange,
+  onClear,
   colorIdentity,
   format,
 }: {
   value: SearchFiltersState;
   onChange: (next: SearchFiltersState) => void;
+  onClear: () => void;
   colorIdentity?: readonly string[];
   format?: string;
 }) {
@@ -171,7 +173,10 @@ export function DockFilters({
             <IconButton
               size="sm"
               label={t('CardSearch.filter.clear')}
-              onClick={() => onChange({ ...initialDockFilters(colorIdentity, format), showAdvanced: value.showAdvanced })}
+              onClick={() => {
+                onChange({ ...initialDockFilters(colorIdentity, format), showAdvanced: value.showAdvanced });
+                onClear();
+              }}
               className="ml-auto !h-6 !w-6"
             >
               <FilterX size={13} aria-hidden />

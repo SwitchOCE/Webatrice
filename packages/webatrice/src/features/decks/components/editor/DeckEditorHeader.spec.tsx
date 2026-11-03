@@ -1,4 +1,5 @@
-import { fireEvent, screen } from '@testing-library/react';
+import { fireEvent, screen, within } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import { Route, Routes } from 'react-router-dom';
 
 import { RouteEnum } from '@app/types';
@@ -162,6 +163,18 @@ describe('DeckEditorHeader', () => {
     fireEvent.click(screen.getByRole('button', { name: 'DeckTags.addTag' }));
     fireEvent.click(screen.getByRole('menuitem', { name: 'DeckTags.newTag' }));
     expect(await screen.findByPlaceholderText('DeckTags.placeholder')).toBeInTheDocument();
+  });
+
+  it('focuses the new-tag field and adds the typed tag with Enter without removing existing tags', async () => {
+    const user = userEvent.setup();
+    const props = renderHeader({ tags: ['Pillowfort'] });
+    await user.click(screen.getByRole('button', { name: 'DeckTags.addTag' }));
+    await user.click(screen.getByRole('menuitem', { name: 'DeckTags.newTag' }));
+    const input = within(screen.getByRole('dialog')).getByRole('combobox', { name: 'DeckTags.add' });
+    expect(input).toHaveFocus();
+    await user.keyboard('Budget{Enter}');
+    expect(props.onTagsChange).toHaveBeenCalledExactlyOnceWith(['Pillowfort', 'Budget']);
+    expect(input).toHaveFocus();
   });
 
   it('focuses the deck name from the rename button', () => {

@@ -1,5 +1,6 @@
 import { useCallback, useState } from 'react';
 import { act, fireEvent, screen, within } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import { I18nextProvider } from 'react-i18next';
 import i18n, { type i18n as I18n } from 'i18next';
 import ICU from 'i18next-icu';
@@ -154,6 +155,30 @@ describe('CardSearchDock', () => {
     expect(screen.getByRole('textbox', { name: 'Lowest mana value' })).toBeInTheDocument();
     expect(screen.getByRole('group', { name: 'Rarity' })).toBeInTheDocument();
     expect(screen.getByRole('textbox', { name: 'Subtype' })).toBeInTheDocument();
+  });
+
+  it('returns focus to search after clearing filters', async () => {
+    const user = userEvent.setup();
+    const { input } = renderDock();
+    await user.click(screen.getByRole('button', { name: 'Red' }));
+    await user.click(screen.getByRole('button', { name: 'Clear filters' }));
+    expect(input).toHaveFocus();
+    expect(screen.queryByRole('button', { name: 'Clear filters' })).toBeNull();
+    expect(screen.getByRole('button', { name: 'Red' })).toHaveAttribute('aria-pressed', 'false');
+  });
+
+  it.each([
+    ['Subtype', 'Elemental'],
+    ['Oracle text contains', 'draw a card'],
+  ])('names the %s input with its visible label and focuses it when clicked', async (label, value) => {
+    const user = userEvent.setup();
+    renderDock();
+    await user.click(screen.getByRole('button', { name: 'More filters' }));
+    const input = screen.getByRole('textbox', { name: label });
+    await user.click(screen.getByText(label));
+    expect(input).toHaveFocus();
+    await user.type(input, value);
+    expect(input).toHaveValue(value);
   });
 
   it('lists results with cost, type, price and both add buttons', () => {
