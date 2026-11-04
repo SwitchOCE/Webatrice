@@ -1,0 +1,61 @@
+CHANGED Main › Row 2 › Section: Welcome back, Alex: padding 12,20 → 13,20,12,20; border none → st[(#46494F,w(1,0,0,0),pos(i))]
+REMOVED Frame 1298 from Main › Row 2 › Section: Welcome back, Alex
+CHANGED Main › Row 2 › Section: Buddies games: padding none → 24,0,0,0
+CHANGED Row 2 › Section: Buddies games › Spacer: fr fr → none; size s(fill,1) → s(fill,hug); al none → al(v,x(e))
+MOVED (added here, removed elsewhere) Button: All games in Magic in Row 2 › Section: Buddies games › Spacer: al(h,x(c),y(c),g(8),pad(0,10)) s(136,28) f[] rd(8)
+REMOVED Button: All games in Magic from Main › Row 2 › Section: Buddies games
+CHANGED Row 1 › Card: Legacy, Saffi hosting › Header: padding none → 0,0,1,0; border none → st[(#46494F,w(0,0,1,0),pos(i))] [in 1 of 3 similar items (this one: Card: Legacy, Saffi hosting); ask whether it applies to all]
+REMOVED Rectangle 87 from Row 1 › Card: Legacy, Saffi hosting › Header [in 1 of 3 similar items (this one: Card: Legacy, Saffi hosting); ask whether it applies to all]
+CHANGED Row 1 › Card: Legacy, Saffi hosting › Footer: size s(84,hug) → s(fill,hug) [in 1 of 3 similar items (this one: Card: Legacy, Saffi hosting); ask whether it applies to all]
+REMOVED Spacer from Row 1 › Card: Legacy, Saffi hosting › Footer [in 1 of 3 similar items (this one: Card: Legacy, Saffi hosting); ask whether it applies to all]
+CHANGED Row 1 › Card: Commander night with Wren › Header: padding none → 0,0,1,0; border none → st[(#46494F,w(0,0,1,0),pos(i))] [in 1 of 3 similar items (this one: Card: Commander night with Wren); ask whether it applies to all]
+REMOVED Rectangle 88 from Row 1 › Card: Commander night with Wren › Header [in 1 of 3 similar items (this one: Card: Commander night with Wren); ask whether it applies to all]
+CHANGED Row 1 › Card: Commander night with Wren › Footer: size s(84,hug) → s(fill,hug) [in 1 of 3 similar items (this one: Card: Commander night with Wren); ask whether it applies to all]
+REMOVED Spacer from Row 1 › Card: Commander night with Wren › Footer [in 1 of 3 similar items (this one: Card: Commander night with Wren); ask whether it applies to all]
+CHANGED Row 2 › Card: Modern Bo3 grind › Header: padding none → 0,0,1,0; border none → st[(#46494F,w(0,0,1,0),pos(i))] [in 1 of 3 similar items (this one: Card: Modern Bo3 grind); ask whether it applies to all]
+REMOVED Rectangle 89 from Row 2 › Card: Modern Bo3 grind › Header [in 1 of 3 similar items (this one: Card: Modern Bo3 grind); ask whether it applies to all]
+CHANGED Row 2 › Card: Modern Bo3 grind › Footer: size s(84,hug) → s(fill,hug) [in 1 of 3 similar items (this one: Card: Modern Bo3 grind); ask whether it applies to all]
+REMOVED Spacer from Row 2 › Card: Modern Bo3 grind › Footer [in 1 of 3 similar items (this one: Card: Modern Bo3 grind); ask whether it applies to all]
+CHANGED Main › Row 2 › Section: Open games in\nMagic: padding none → 24,0,0,0
+CHANGED Row 1 › Card: Modern Bo3, no proxies › Header: padding none → 0,0,1,0; border none → st[(#46494F,w(0,0,1,0),pos(i))]
+REMOVED Rectangle 90 from Row 1 › Card: Modern Bo3, no proxies › Header
+CHANGED Row 1 › Card: Modern Bo3, no proxies › Footer: size s(84,hug) → s(fill,hug)
+REMOVED Spacer from Row 1 › Card: Modern Bo3, no proxies › Footer
+CHANGED Row 1 › Card: Legacy league practice › Header: padding none → 0,0,1,0; border none → st[(#46494F,w(0,0,1,0),pos(i))]
+REMOVED Rectangle 91 from Row 1 › Card: Legacy league practice › Header
+CHANGED Row 1 › Card: Legacy league practice › Footer: size s(84,hug) → s(fill,hug)
+REMOVED Spacer from Row 1 › Card: Legacy league practice › Footer
+CHANGED Main › Row 2 › Section: Decks: padding none → 24,0,0,0
+REMOVED Spacer from Lobby / Notion feedback 16.10.26 (nav collapsed) › Main › Row 2
+REMOVED Spacer from Lobby / Notion feedback 16.10.26 (nav collapsed) › Main › Row 2
+REMOVED Spacer from Lobby / Notion feedback 16.10.26 (nav collapsed) › Main › Row 2
+CHANGED Row 2 › Section: FROM THE SERVER › Header: padding none → 0,0,1,0; border none → st[(#46494F,w(0,0,1,0),pos(i))]
+REMOVED Rectangle 92 from Row 2 › Section: FROM THE SERVER › Header
+CHANGED Main › Row 2 › Section: FROM THE SERVER: padding 16 → 8:$spacing.sm,16,16,16
+CHANGED Main › Row 2 › Section: FROM THE SERVER: gap none → 4; padding none → 4,0
+REMOVED Spacer from Main › Row 2 › Section: FROM THE SERVER
+REMOVED Spacer from Main › Row 2 › Section: FROM THE SERVER
+REMOVED Spacer from Main › Row 2 › Section: FROM THE SERVER
+REMOVED Spacer from Main › Row 2 › Section: FROM THE SERVER
+REMOVED Spacer from Main › Row 2 › Section: FROM THE SERVER
+REMOVED Spacer from Main › Row 2 › Section: FROM THE SERVER
+REMOVED Spacer from Main › Row 2 › Section: FROM THE SERVER
+REMOVED Spacer from Main › Row 2 › Section: FROM THE SERVER
+REMOVED Spacer from Main › Row 2 › Section: FROM THE SERVER
+REMOVED Spacer from Main › Row 2 › Section: FROM THE SERVER
+REMOVED Spacer from Main › Row 2 › Section: FROM THE SERVER
+REMOVED Spacer from Main › Row 2 › Section: FROM THE SERVER
+REMOVED Spacer from Main › Row 2 › Section: FROM THE SERVER
+REMOVED Spacer from Main › Row 2 › Section: FROM THE SERVER
+CHANGED Row 2 › Section: FROM THE SERVER › Button: Show more: padding 0,10 → 8,10,0,10; size s(111,28) → s(111,36)
+REMOVED Spacer from Main › Row 2 › Section: FROM THE SERVER
+CHANGED Row 2 › Section: Buddies online › Header: padding none → 0,0,1,0; border none → st[(#46494F,w(0,0,1,0),pos(i))]
+REMOVED Rectangle 93 from Row 2 › Section: Buddies online › Header
+CHANGED Row 2 › Section: Buddies online › Button: Message dekkerdraft: v v(nodes[(0,11.66,8.17),(1,10.5,9.33),(2,2.81,9.33),(3,1.99,9.68),(4,0.7,10.96),(5,0.25,11.05),(6,0,10.67),(7,0,1.17),(8,1.16,0),(9,10.5,0),(10,11.66,1.17)],edges[(0,0,1,0,0.64,0.64,0),(1,1,2,0,0,0,0),(2,2,3,-0.31,0,0.22,-0.22),(3,3,4,0,0,0,0),(4,4,5,-0.12,0.12,0.15,0.06),(5,5,6,-0.15,-0.06,0,0.17),(6,6,7,0,0,0,0),(7,7,8,0,-0.64,-0.64,0),(8,8,9,0,0,0,0),(9,9,10,0.64,0,0,-0.64),(10,0,10,0,0,0,0)],regions[(0+1+2+3+4+5+6+7+8+9+10-)]) → v(nodes[(0,11.66,8.17,di),(1,10.5,9.33,di),(2,2.81,9.33,di),(3,1.99,9.68,di),(4,0.7,10.96,di),(5,0.25,11.05,mi),(6,0,10.67,di),(7,0,1.17,di),(8,1.16,0,di),(9,10.5,0,di),(10,11.66,1.17,di)],edges[(0,0,1,0,0.64,0.64,0),(1,1,2,0,0,0,0),(2,2,3,-0.31,0,0.22,-0.22),(3,3,4,0,0,0,0),(4,4,5,-0.12,0.12,0.15,0.06),(5,5,6,-0.15,-0.06,0,0.17),(6,6,7,0,0,0,0),(7,7,8,0,-0.64,-0.64,0),(8,8,9,0,0,0,0),(9,9,10,0.64,0,0,-0.64),(10,0,10,0,0,0,0)],regions[(0+1+2+3+4+5+6+7+8+9+10-)]) [in 1 of 3 similar items (this one: "D"); ask whether it applies to all]
+CHANGED Row 2 › Section: Buddies online › Button: Message Korvold_Kid: v v(nodes[(0,11.66,8.17),(1,10.5,9.33),(2,2.81,9.33),(3,1.99,9.68),(4,0.7,10.96),(5,0.25,11.05),(6,0,10.67),(7,0,1.17),(8,1.16,0),(9,10.5,0),(10,11.66,1.17)],edges[(0,0,1,0,0.64,0.64,0),(1,1,2,0,0,0,0),(2,2,3,-0.31,0,0.22,-0.22),(3,3,4,0,0,0,0),(4,4,5,-0.12,0.12,0.15,0.06),(5,5,6,-0.15,-0.06,0,0.17),(6,6,7,0,0,0,0),(7,7,8,0,-0.64,-0.64,0),(8,8,9,0,0,0,0),(9,9,10,0.64,0,0,-0.64),(10,0,10,0,0,0,0)],regions[(0+1+2+3+4+5+6+7+8+9+10-)]) → v(nodes[(0,11.66,8.17,di),(1,10.5,9.33,di),(2,2.81,9.33,di),(3,1.99,9.68,di),(4,0.7,10.96,di),(5,0.25,11.05,mi),(6,0,10.67,di),(7,0,1.17,di),(8,1.16,0,di),(9,10.5,0,di),(10,11.66,1.17,di)],edges[(0,0,1,0,0.64,0.64,0),(1,1,2,0,0,0,0),(2,2,3,-0.31,0,0.22,-0.22),(3,3,4,0,0,0,0),(4,4,5,-0.12,0.12,0.15,0.06),(5,5,6,-0.15,-0.06,0,0.17),(6,6,7,0,0,0,0),(7,7,8,0,-0.64,-0.64,0),(8,8,9,0,0,0,0),(9,9,10,0.64,0,0,-0.64),(10,0,10,0,0,0,0)],regions[(0+1+2+3+4+5+6+7+8+9+10-)])
+CHANGED Row 2 › Section: Buddies online › Button: Message Saffi: v v(nodes[(0,11.66,8.17),(1,10.5,9.33),(2,2.81,9.33),(3,1.99,9.68),(4,0.7,10.96),(5,0.25,11.05),(6,0,10.67),(7,0,1.17),(8,1.16,0),(9,10.5,0),(10,11.66,1.17)],edges[(0,0,1,0,0.64,0.64,0),(1,1,2,0,0,0,0),(2,2,3,-0.31,0,0.22,-0.22),(3,3,4,0,0,0,0),(4,4,5,-0.12,0.12,0.15,0.06),(5,5,6,-0.15,-0.06,0,0.17),(6,6,7,0,0,0,0),(7,7,8,0,-0.64,-0.64,0),(8,8,9,0,0,0,0),(9,9,10,0.64,0,0,-0.64),(10,0,10,0,0,0,0)],regions[(0+1+2+3+4+5+6+7+8+9+10-)]) → v(nodes[(0,11.66,8.17,di),(1,10.5,9.33,di),(2,2.81,9.33,di),(3,1.99,9.68,di),(4,0.7,10.96,di),(5,0.25,11.05,mi),(6,0,10.67,di),(7,0,1.17,di),(8,1.16,0,di),(9,10.5,0,di),(10,11.66,1.17,di)],edges[(0,0,1,0,0.64,0.64,0),(1,1,2,0,0,0,0),(2,2,3,-0.31,0,0.22,-0.22),(3,3,4,0,0,0,0),(4,4,5,-0.12,0.12,0.15,0.06),(5,5,6,-0.15,-0.06,0,0.17),(6,6,7,0,0,0,0),(7,7,8,0,-0.64,-0.64,0),(8,8,9,0,0,0,0),(9,9,10,0.64,0,0,-0.64),(10,0,10,0,0,0,0)],regions[(0+1+2+3+4+5+6+7+8+9+10-)]) [in 1 of 3 similar items (this one: "S"); ask whether it applies to all]
+CHANGED Row 2 › Section: Buddies online › Button: Message Wren_MTG: v v(nodes[(0,11.66,8.17),(1,10.5,9.33),(2,2.81,9.33),(3,1.99,9.68),(4,0.7,10.96),(5,0.25,11.05),(6,0,10.67),(7,0,1.17),(8,1.16,0),(9,10.5,0),(10,11.66,1.17)],edges[(0,0,1,0,0.64,0.64,0),(1,1,2,0,0,0,0),(2,2,3,-0.31,0,0.22,-0.22),(3,3,4,0,0,0,0),(4,4,5,-0.12,0.12,0.15,0.06),(5,5,6,-0.15,-0.06,0,0.17),(6,6,7,0,0,0,0),(7,7,8,0,-0.64,-0.64,0),(8,8,9,0,0,0,0),(9,9,10,0.64,0,0,-0.64),(10,0,10,0,0,0,0)],regions[(0+1+2+3+4+5+6+7+8+9+10-)]) → v(nodes[(0,11.66,8.17,di),(1,10.5,9.33,di),(2,2.81,9.33,di),(3,1.99,9.68,di),(4,0.7,10.96,di),(5,0.25,11.05,mi),(6,0,10.67,di),(7,0,1.17,di),(8,1.16,0,di),(9,10.5,0,di),(10,11.66,1.17,di)],edges[(0,0,1,0,0.64,0.64,0),(1,1,2,0,0,0,0),(2,2,3,-0.31,0,0.22,-0.22),(3,3,4,0,0,0,0),(4,4,5,-0.12,0.12,0.15,0.06),(5,5,6,-0.15,-0.06,0,0.17),(6,6,7,0,0,0,0),(7,7,8,0,-0.64,-0.64,0),(8,8,9,0,0,0,0),(9,9,10,0.64,0,0,-0.64),(10,0,10,0,0,0,0)],regions[(0+1+2+3+4+5+6+7+8+9+10-)]) [in 1 of 3 similar items (this one: "W"); ask whether it applies to all]
+MOVED (added here, removed elsewhere) Section: Rooms in Lobby / Notion feedback 16.10.26 (nav collapsed) › Main › Row 2: al(v) s(372,257.6) f[(#2B2D31)] st[(#46494F,w(1))] rd(12)
+REMOVED Section: Rooms from Lobby / Notion feedback 16.10.26 (nav collapsed) › Main
+REMOVED Header from Lobby / Notion feedback 16.10.26 (nav collapsed)
+MOVED (added here, removed elsewhere) Header in Lobby / Notion feedback 16.10.26 (nav collapsed): al(v,pad(0,0,1,0)) s(fill,hug) f[] st[(#46494F,w(0,0,1,0),pos(i))]

@@ -1,0 +1,108 @@
+CHANGED Lobby / Notion feedback 16.10.26 › Header: padding none → 0,0,1,0; border none → st[(#46494F,w(0,0,1,0),pos(i))]
+CHANGED Lobby / Notion feedback 16.10.26 › Header: gap 8 → none; size s(fill,hug) → s(fill,43)
+CHANGED Lobby / Notion feedback 16.10.26 › Header: gap 12 → 4:$spacing.xs; padding 0,8,0,24 → 0,8,0,4:$spacing.xs; horizontal alignment none → c; size s(102,hug) → s(77,fill); border none → st[(#46494F,w(9),w(0,1,0,0),pos(i))]
+REMOVED Image from Lobby / Notion feedback 16.10.26 › Header
+CHANGED Lobby / Notion feedback 16.10.26 › Header › Nav: Open tabs: gap 4 → 12; size s(fill,hug) → s(fill,fill)
+CHANGED Header › Nav: Open tabs › Spacer: fr fr → none; size s(4,1) → s(hug,fill); al none → al(h,y(c),g(4),pad(0,0,0,13)); border none → st[(#46494F,w(0,0,0,1),pos(i))]
+RENAMED layer Spacer → Tabs: ROOMS
+MOVED (added here, removed elsewhere) Frame 1052 in Header › Nav: Open tabs › Spacer: al(v,y(c),pad(0,7,0,4)) s(hug,20) f[] st[(#46494F,w(0,1,0,0),pos(i))]
+MOVED (added here, removed elsewhere) Frame 1054 in Header › Nav: Open tabs › Spacer: al(h,y(c),pad(0,4,0,0)) s(170,hug) f[] st[(solid(#000000,o(0)),w(1))] rd(6)
+CHANGED Lobby / Notion feedback 16.10.26 › Header › Nav: Open tabs: fr fr → none; size s(1,43) → s(hug,fill); fill f[(#46494F)] → f[]; al none → al(h,y(c),g(4),pad(0,0,0,13)); border none → st[(#46494F,w(0,0,0,1),pos(i))]
+RENAMED layer Frame 1051 → Tabs: GAMES
+MOVED (added here, removed elsewhere) Frame 1056 in Lobby / Notion feedback 16.10.26 › Header › Nav: Open tabs: al(v,y(c),pad(0,7,0,4)) s(hug,20) f[] st[(#46494F,w(0,1,0,0),pos(i))]
+MOVED (added here, removed elsewhere) Frame 1058 in Lobby / Notion feedback 16.10.26 › Header › Nav: Open tabs: al(h,y(c),pad(0,4,0,0)) s(170,hug) f[] st[(solid(#000000,o(0)),w(1))] rd(6)
+REMOVED Spacer from Lobby / Notion feedback 16.10.26 › Header › Nav: Open tabs
+REMOVED Frame 1052 from Lobby / Notion feedback 16.10.26 › Header › Nav: Open tabs
+REMOVED Frame 1053 from Lobby / Notion feedback 16.10.26 › Header › Nav: Open tabs
+REMOVED Frame 1054 from Lobby / Notion feedback 16.10.26 › Header › Nav: Open tabs
+REMOVED Spacer from Lobby / Notion feedback 16.10.26 › Header › Nav: Open tabs
+REMOVED Frame 1055 from Lobby / Notion feedback 16.10.26 › Header › Nav: Open tabs
+REMOVED Spacer from Lobby / Notion feedback 16.10.26 › Header › Nav: Open tabs
+REMOVED Frame 1056 from Lobby / Notion feedback 16.10.26 › Header › Nav: Open tabs
+REMOVED Frame 1057 from Lobby / Notion feedback 16.10.26 › Header › Nav: Open tabs
+REMOVED Frame 1058 from Lobby / Notion feedback 16.10.26 › Header › Nav: Open tabs
+ADDED Frame 1891 in Lobby / Notion feedback 16.10.26 › Header: al(v,x(c),y(c),g(10),pad(10)) s(hug,fill) f[]
+ADDED Account in Lobby / Notion feedback 16.10.26 › Header: al(h,y(c),g(8),pad(0,0,0,4)) s(hug,hug) f[]
+REMOVED Rectangle 69 from Lobby / Notion feedback 16.10.26 › Header
+CHANGED Lobby / Notion feedback 16.10.26: padding none → 0,1,0,0; border none → st[(#46494F,w(0,1,0,0),pos(i))]
+CHANGED Lobby / Notion feedback 16.10.26 › Row 2: padding none → 342,0,0,0
+CHANGED Lobby / Notion feedback 16.10.26 › Row 2 › Nav: Main navigation: size s(64,fill) → s(fill,fill)
+CHANGED Row 2 › Nav: Main navigation › Link: Lobby: size s(64,58) → s(76,58); fill f[(solid(#B1BAFF,o(0.15)))] → f[]; corner radius rd(8) → none
+CHANGED Nav: Main navigation › Link: Lobby › Content: fill f[] → f[(solid(#B1BAFF,o(0.15)))]; corner radius none → rd(8)
+CHANGED Lobby / Notion feedback 16.10.26 › Row 3: horizontal alignment none → c
+REMOVED Frame 1072 from Lobby / Notion feedback 16.10.26 › Row 3
+REMOVED Row 1 from Lobby / Notion feedback 16.10.26
+REMOVED Rectangle 70 from Lobby / Notion feedback 16.10.26
+CHANGED Lobby / Notion feedback 16.10.26 › Main: gap 12 → none; padding 12 → none; fill f[(#1E1F22)] → f[]; clip content clip → none
+CHANGED Lobby / Notion feedback 16.10.26 › Main › Row 1: direction row → column; padding none → 12; fill f[] → f[(#1E1F22)]; clip content none → clip
+CHANGED Main › Row 1 › Section: Rooms: direction column → row; gap none → 12; size s(1340,fill) → s(fill,hug); fill f[(#2B2D31)] → f[]; border st[(#46494F,w(1))] → none; corner radius rd(12) → none
+RENAMED layer Section: Rooms → Row 2
+CHANGED Main › Row 1 › Section: Rooms: direction row → column; gap none → 12; size s(fill,fill) → s(956,fill)
+CHANGED Main › Row 1 › Section: Rooms: al al(h) → none; size s(hug,hug) → s(956,141); fill f[] → f[(#2B2D31)]; fr none → fr; border none → st[(#46494F,w(1))]; corner radius none → rd(12); clip content none → clip
+RENAMED layer Frame 1082 → Section: Welcome back, Alex
+CHANGED Main › Row 1 › Section: Rooms: direction row → column; vertical alignment c → none; gap 12 → none; padding 8,16 → none; size s(335,fill) → s(954,139)
+CHANGED Main › Row 1 › Section: Rooms: direction column → row; vertical alignment none → e; gap none → 12; padding none → 16,20,14,20
+CHANGED Main › Row 1 › Section: Rooms: direction row → column; vertical alignment c → none; gap 6 → none; padding none → 0,0,6,0; size s(fill,hug) → s(hug,hug)
+REMOVED "Magic" from Main › Row 1 › Section: Rooms
+REMOVED Frame 1086 from Main › Row 1 › Section: Rooms
+MOVED (added here, removed elsewhere) text "Gathering Grounds · 105 online · 87 games" in Main › Row 1 › Section: Rooms: t("Gathering Grounds · 105 online · 87 games",Inter,13,m,align(l),lh(1.5)) s(fill,hug) f[(#B4B9C1)]
+REMOVED "58 games · 87 people" from Main › Row 1 › Section: Rooms
+MOVED (added here, removed elsewhere) text "Welcome back, Alex" in Main › Row 1 › Section: Rooms: t("Welcome back, Alex",Space Grotesk,32,sb,align(l),lh(1.3)) s(hug,hug) f[(#F2F3F5)]
+CHANGED Row 1 › Section: Rooms › Button: Open Magic: horizontal alignment c → none; gap 8 → 12; padding 0,10 → 13,20,12,20; size s(55,28) → s(fill,hug); border st[(#656871,w(1))] → st[(#46494F,w(1,0,0,0),pos(i))]; corner radius rd(8) → none
+REMOVED "Open" from Row 1 › Section: Rooms › Button: Open Magic
+MOVED (added here, removed elsewhere) Button: Go to Magic in Row 1 › Section: Rooms › Button: Open Magic: al(h,x(c),y(c),g(8),pad(0,20)) s(152,44) f[(#B1BAFF)] rd(8)
+MOVED (added here, removed elsewhere) Button: Create game in Row 1 › Section: Rooms › Button: Open Magic: al(h,x(c),y(c),g(8),pad(0,20)) s(159,44) f[] st[(#656871,w(1))] rd(8)
+CHANGED Main › Row 1 › Section: Rooms: size s(1,fill) → s(954,139); fill f[(#46494F)] → f[(img(Assets/pasted-image (4).png))]
+RENAMED layer Rectangle 72 → Backdrop
+REORDERED children of Main › Row 1 › Section: Rooms: Backdrop, Frame 1099
+CHANGED Main › Row 1 › Section: Rooms: direction row → column; gap none → 10; padding none → 24,0,0,0; size s(hug,hug) → s(fill,hug)
+RENAMED layer Frame 1087 → Section: Buddies games
+CHANGED Main › Row 1 › Section: Rooms: gap 12 → 8; padding 8,16 → none; size s(335,fill) → s(fill,hug)
+CHANGED Main › Row 1 › Section: Rooms: horizontal alignment none → e
+CHANGED Main › Row 1 › Section: Rooms: gap 6 → 8; horizontal alignment none → c; padding none → 0,10; size s(fill,hug) → s(136,28); corner radius none → rd(8)
+RENAMED layer Frame 1090 → Button: All games in Magic
+REMOVED "Commander" from Main › Row 1 › Section: Rooms
+MOVED (added here, removed elsewhere) text "All games in Magic" in Main › Row 1 › Section: Rooms: t("All games in Magic",Inter,13,r,align(l),lh(1.5)) s(hug,hug) f[(#B1BAFF)]
+REMOVED "23 games · 41 people" from Main › Row 1 › Section: Rooms
+REMOVED Button: Join Commander from Main › Row 1 › Section: Rooms
+MOVED (added here, removed elsewhere) text "Buddies games" in Main › Row 1 › Section: Rooms: t("Buddies games",Space Grotesk,17,sb,align(l),lh(1.4)) s(hug,hug) f[(#F2F3F5)]
+MOVED (added here, removed elsewhere) text "in Magic, open seats first" in Main › Row 1 › Section: Rooms: t("in Magic, open seats first",Inter,13,r,align(l),lh(1.5)) s(hug,hug) f[(#B4B9C1)]
+REMOVED Rectangle 73 from Main › Row 1 › Section: Rooms
+MOVED (added here, removed elsewhere) Frame 1106 in Main › Row 1 › Section: Rooms: al(v,g(12)) s(fill,hug) f[]
+CHANGED Main › Row 1 › Section: Rooms: direction row → column; gap none → 10; padding none → 24,0,0,0; size s(hug,hug) → s(fill,hug)
+RENAMED layer Frame 1091 → Section: Open games in\nMagic
+CHANGED Main › Row 1 › Section: Rooms: vertical alignment c → none; gap 12 → 8; padding 8,16 → none; size s(335,fill) → s(fill,hug)
+CHANGED Main › Row 1 › Section: Rooms: direction column → row; gap none → 5; size s(fill,hug) → s(177,hug)
+REMOVED Frame 1094 from Main › Row 1 › Section: Rooms
+REMOVED "4 games · 12 people" from Main › Row 1 › Section: Rooms
+MOVED (added here, removed elsewhere) text "Open games in" in Main › Row 1 › Section: Rooms: t("Open games in",Space Grotesk,17,sb,align(l),lh(1.4)) s(hug,hug) f[(#F2F3F5)]
+MOVED (added here, removed elsewhere) text "Magic" in Main › Row 1 › Section: Rooms: t("Magic",Space Grotesk,17,sb,align(l),lh(1.4)) s(hug,hug) f[(#B1BAFF)]
+REMOVED Button: Join Tournaments from Main › Row 1 › Section: Rooms
+REMOVED Rectangle 74 from Main › Row 1 › Section: Rooms
+MOVED (added here, removed elsewhere) Row 1 in Main › Row 1 › Section: Rooms: al(h,g(12)) s(fill,hug) f[]
+CHANGED Main › Row 1 › Section: Rooms: direction row → column; vertical alignment c → none; gap 12 → 10; padding 8,16 → 24,0,0,0; size s(335,fill) → s(fill,hug)
+RENAMED layer Frame 1095 → Section: Decks
+CHANGED Main › Row 1 › Section: Rooms: direction column → row; gap none → 8
+REMOVED Frame 1097 from Main › Row 1 › Section: Rooms
+REMOVED "2 games · 9 people" from Main › Row 1 › Section: Rooms
+MOVED (added here, removed elsewhere) text "Decks" in Main › Row 1 › Section: Rooms: t("Decks",Space Grotesk,17,sb,align(l),lh(1.4)) s(hug,hug) f[(#F2F3F5)]
+CHANGED Row 1 › Section: Rooms › Button: Join Español: horizontal alignment c → none; vertical alignment c → none; gap 8 → 12; padding 0,10 → none; size s(46,28) → s(fill,hug); corner radius rd(8) → none
+RENAMED layer Button: Join Español → Row 1
+REMOVED "Join" from Row 1 › Section: Rooms › Button: Join Español
+MOVED (added here, removed elsewhere) Button: Commander\nKenrith Group Hug\n99 cards\n· … in Row 1 › Section: Rooms › Button: Join Español: al(v,y(c)) s(182,193) f[(#2B2D31)] st[(#46494F,w(1))] rd(12) clip
+MOVED (added here, removed elsewhere) Button: Modern\nMono-Red Prowess\n60 cards in Row 1 › Section: Rooms › Button: Join Español: al(v,y(c)) s(182,193) f[(#2B2D31)] st[(#46494F,w(1))] rd(12) clip
+MOVED (added here, removed elsewhere) Button: Legacy\nDelver of Secrets\n60 cards in Row 1 › Section: Rooms › Button: Join Español: al(v,y(c)) s(182,193) f[(#2B2D31)] st[(#46494F,w(1))] rd(12) clip
+MOVED (added here, removed elsewhere) Button: Commander\nAtraxa Superfriends\n99 cards\n… in Row 1 › Section: Rooms › Button: Join Español: al(v,y(c)) s(182,193) f[(#2B2D31)] st[(#46494F,w(1))] rd(12) clip
+MOVED (added here, removed elsewhere) Button: Modern\nAmulet Titan\n60 cards in Row 1 › Section: Rooms › Button: Join Español: al(v,y(c)) s(182,193) f[(#2B2D31)] st[(#46494F,w(1))] rd(12) clip
+CHANGED Row 1 › Section: Rooms › Header: gap none → 12; size s(fill,hug) → s(372,fill)
+CHANGED Row 1 › Section: Rooms › Header: direction row → column; vertical alignment c → none; gap 12 → none; padding 8,16 → none; size s(fill,hug) → s(372,257.6); fill f[] → f[(#2B2D31)]; border none → st[(#46494F,w(1))]; corner radius none → rd(12)
+RENAMED layer Frame 1079 → Section: Rooms
+REMOVED "Rooms" from Row 1 › Section: Rooms › Header
+REMOVED "4 on this server" from Row 1 › Section: Rooms › Header
+MOVED (added here, removed elsewhere) Header in Row 1 › Section: Rooms › Header: al(v,pad(0,0,1,0)) s(fill,hug) f[] st[(#46494F,w(0,0,1,0),pos(i))]
+MOVED (added here, removed elsewhere) Frame 195 in Row 1 › Section: Rooms › Header: al(v) s(fill,fill) f[]
+REMOVED Rectangle 71 from Row 1 › Section: Rooms › Header
+MOVED (added here, removed elsewhere) Section: FROM THE SERVER in Row 1 › Section: Rooms › Header: al(v) s(fill,hug) f[(#2B2D31)] st[(#46494F,w(1))] rd(12)
+MOVED (added here, removed elsewhere) Section: Buddies online in Row 1 › Section: Rooms › Header: al(v) s(fill,fill) f[(#2B2D31)] st[(#46494F,w(1))] rd(12)
+REORDERED children of Main › Row 1 › Section: Rooms: Frame 1098, Frame 1222
+REMOVED Row 2 from Lobby / Notion feedback 16.10.26 › Main

@@ -1,0 +1,80 @@
+RENAMED layer Decks / All decks → Decks / All decks (feedback 26.10.26)
+CHANGED Decks / All decks: direction column → row
+CHANGED Decks / All decks: direction row → column; padding none → 10,1,8,0; size s(fill,fill) → s(76,fill); fill f[] → f[(#2B2D31)]; border none → st[(#46494F,w(0,1,0,0),pos(i))]
+CHANGED Decks / All decks: direction column → row; horizontal alignment c → none; vertical alignment c → none; padding 0,1,0,0 → none; size s(76,fill) → s(fill,366); fill f[(#2B2D31)] → f[]; border st[(#46494F,w(0,1,0,0),pos(i))] → none
+RENAMED layer Frame 3551 → Row 1
+CHANGED Decks / All decks › Nav: Main navigation: padding 12,0 → none; horizontal alignment none → c; gap none → 8; size s(hug,hug) → s(75,hug)
+CHANGED Decks / All decks › Nav: Main navigation: direction column → row; gap 4 → none; vertical alignment none → c; size s(fill,hug) → s(28,28); corner radius none → rd(8)
+RENAMED layer Frame 3552 → Button: Hide the navigation rail
+CHANGED Decks / All decks › Nav: Main navigation › Link: Lobby: al al(v,x(c),y(c),g(4)) → none; size s(64,58) → s(hug,hug); corner radius rd(8) → none; fr none → fr [in 1 of 5 similar items (this one: Link: Lobby); ask whether it applies to all]
+REMOVED SVG from Decks / All decks › Nav: Main navigation › Link: Lobby [in 1 of 5 similar items (this one: Link: Lobby); ask whether it applies to all]
+REMOVED "Lobby" from Decks / All decks › Nav: Main navigation › Link: Lobby [in 1 of 5 similar items (this one: Link: Lobby); ask whether it applies to all]
+MOVED (added here, removed elsewhere) Rectangle in Decks / All decks › Nav: Main navigation › Link: Lobby: r s(12,12) f[] st[(#D0D3D8,w(1.33),dashcap(r))] rd(2)
+MOVED (added here, removed elsewhere) Path in Decks / All decks › Nav: Main navigation › Link: Lobby: v() path:d(M0,0L0,12) s(4,12) f[] st[(#D0D3D8,w(1.33),dashcap(r))]
+MOVED (added here, removed elsewhere) Path in Decks / All decks › Nav: Main navigation › Link: Lobby: v() path:d(M2,4L0,2L2,0) s(2,4) f[] st[(#D0D3D8,w(1.33),dashcap(r))]
+REMOVED Link: Play from Decks / All decks › Nav: Main navigation [in 1 of 5 similar items (this one: Link: Play); ask whether it applies to all]
+REMOVED Link: Decks from Decks / All decks › Nav: Main navigation
+REMOVED Link: Replays from Decks / All decks › Nav: Main navigation [in 1 of 5 similar items (this one: Link: Replays); ask whether it applies to all]
+REMOVED Link: People from Decks / All decks › Nav: Main navigation [in 1 of 5 similar items (this one: Link: People); ask whether it applies to all]
+REMOVED Link: Settings from Decks / All decks › Nav: Main navigation [in 1 of 5 similar items (this one: Link: Settings); ask whether it applies to all]
+MOVED (added here, removed elsewhere) Link: Webatrice home in Decks / All decks › Nav: Main navigation: r s(34,34) f[(img(Assets/logo-BolU2BZp.png))] rd(6)
+CHANGED Decks / All decks › Main: direction row → column; padding none → 12,0; size s(fill,1036) → s(75,hug); fill f[(#1E1F22)] → f[]
+RENAMED layer Main → Nav: Main navigation
+CHANGED Decks / All decks › Main: horizontal alignment none → c; gap none → 4; size s(fill,fill) → s(fill,hug)
+CHANGED Decks / All decks › Main: gap 12 → 4; padding 16,24,13,24 → none; horizontal alignment none → c; vertical alignment none → c; size s(fill,hug) → s(64,58); border st[(#46494F,w(0,0,1,0),pos(i))] → none; corner radius none → rd(8)
+RENAMED layer Frame 3587 → Link: Play
+CHANGED Decks / All decks › Main: al al(h,y(c),g(12)) → none; size s(fill,hug) → s(hug,hug); fr none → fr
+REMOVED "All decks" from Decks / All decks › Main
+REMOVED "10 decks in 2 folders" from Decks / All decks › Main
+REMOVED Frame 3589 from Decks / All decks › Main
+MOVED (added here, removed elsewhere) Polyline in Decks / All decks › Main: v() path:d(M9.58,12.08L0,2.5L0,0L2.5,0L12.08,9.58) s(12.08,12.08) f[] st[(#D0D3D8,w(1.67),dashcap(r))]
+MOVED (added here, removed elsewhere) Line in Decks / All decks › Main: v() path:d(M0,5L5,0) s(7.82,7.82) f[] st[(#D0D3D8,w(1.67),dashcap(r))]
+MOVED (added here, removed elsewhere) Line in Decks / All decks › Main: v() path:d(M0,0L3.34,3.34) s(6.16,6.16) f[] st[(#D0D3D8,w(1.67),dashcap(r))]
+MOVED (added here, removed elsewhere) Line in Decks / All decks › Main: v() path:d(M0,1.67L1.67,0) s(4.49,4.49) f[] st[(#D0D3D8,w(1.67),dashcap(r))]
+MOVED (added here, removed elsewhere) Polyline in Decks / All decks › Main: v() path:d(M0,2.92L2.92,0L5.42,0L5.42,2.5L2.5,5.42) s(5.42,5.42) f[] st[(#D0D3D8,w(1.67),dashcap(r))]
+MOVED (added here, removed elsewhere) Line in Decks / All decks › Main: v() path:d(M0,0L3.33,3.33) s(6.15,6.15) f[] st[(#D0D3D8,w(1.67),dashcap(r))]
+MOVED (added here, removed elsewhere) Line in Decks / All decks › Main: v() path:d(M2.5,0L0,2.5) s(5.32,5.32) f[] st[(#D0D3D8,w(1.67),dashcap(r))]
+MOVED (added here, removed elsewhere) Line in Decks / All decks › Main: v() path:d(M0,0L1.67,1.67) s(4.49,4.49) f[] st[(#D0D3D8,w(1.67),dashcap(r))]
+REMOVED Frame 3595 from Decks / All decks › Main
+REMOVED Filter by tag from Decks / All decks › Main
+MOVED (added here, removed elsewhere) text "Play" in Decks / All decks › Main: t("Play",Inter,11.78,sb,align(l),lh(1.45)) s(hug,hug) f[(#D0D3D8)]
+CHANGED Decks / All decks › Main: al al(v,pad(16,24,48,24)) → none; size s(fill,fill) → s(64,58); fill f[] → f[(solid(#B1BAFF,o(0.15)))]; fr none → fr; corner radius none → rd(8)
+RENAMED layer Frame 3606 → Link: Decks
+CHANGED Decks / All decks › Main › Decks: gap 12 → 4; horizontal alignment none → c; vertical alignment none → c; size s(fill,hug) → s(64,58)
+RENAMED layer Decks → Content
+CHANGED Main › Decks › Row 1: al al(h,g(12)) → none; size s(fill,hug) → s(hug,hug); fr none → fr
+REMOVED Card: Commander · 99 cards from Main › Decks › Row 1 [in 1 of 2 similar items (this one: Card: Commander · 99 cards); ask whether it applies to all]
+REMOVED Card: Modern · 60 cards from Main › Decks › Row 1 [in 1 of 2 similar items (this one: Card: Modern · 60 cards); ask whether it applies to all]
+REMOVED Card: Legacy · 60 cards from Main › Decks › Row 1
+REMOVED Card: Commander · 99 cards from Main › Decks › Row 1
+REMOVED Card: Pauper · 60 cards from Main › Decks › Row 1
+REMOVED Card: Modern · 60 cards from Main › Decks › Row 1 [in 1 of 2 similar items (this one: Card: Modern · 60 cards); ask whether it applies to all]
+ADDED Path in Main › Decks › Row 1: v() path:d(M0,0L3.33,11.66) s(7.17,12.76) f[] st[(#B1BAFF,w(1.67),dashcap(r))]
+ADDED Path in Main › Decks › Row 1: v() path:d(M0,0L0,11.66) s(4,11.66) f[] st[(#B1BAFF,w(1.67),dashcap(r))]
+ADDED Path in Main › Decks › Row 1: v() path:d(M0,0L0,10) s(4,10) f[] st[(#B1BAFF,w(1.67),dashcap(r))]
+ADDED Path in Main › Decks › Row 1: v() path:d(M0,0L0,13.33) s(4,13.33) f[] st[(#B1BAFF,w(1.67),dashcap(r))]
+REMOVED Row 2 from Decks / All decks › Main › Decks
+MOVED (added here, removed elsewhere) text "Decks" in Decks / All decks › Main › Decks: t("Decks",Inter,11.78,sb,align(l),lh(1.45)) s(hug,hug) f[(#B1BAFF)]
+MOVED (added here, removed elsewhere) Frame 1720 in Decks / All decks › Main: fr s(3,32) f[(#B1BAFF)] rd(9999)
+MOVED (added here, removed elsewhere) Link: Replays in Decks / All decks › Main: al(v,x(c),y(c),g(4)) s(64,58) f[] rd(8)
+MOVED (added here, removed elsewhere) Link: People in Decks / All decks › Main: al(v,x(c),y(c),g(4)) s(64,58) f[] rd(8)
+MOVED (added here, removed elsewhere) Link: Settings in Decks / All decks › Main: al(v,x(c),y(c),g(4)) s(64,58) f[] rd(8)
+REMOVED Aside from Decks / All decks › Main
+MOVED (added here, removed elsewhere) Row 3 in Decks / All decks: al(h,y(e)) s(fill,366) f[]
+CHANGED Decks / All decks › Header: direction row → column; padding 0,12,1,0 → none; size s(fill,44) → s(fill,fill); fill f[(#2B2D31)] → f[]; border st[(#46494F,w(0,0,1,0),pos(i))] → none
+CHANGED Decks / All decks › Header: horizontal alignment c → none; padding 0,1,0,0 → 0,8,1,8; gap none → 8; size s(76,fill) → s(fill,44); fill f[] → f[(#2B2D31)]; border st[(#46494F,w(0,1,0,0),pos(i))] → st[(#46494F,w(0,0,1,0),pos(i))]
+RENAMED layer Frame 3536 → Header
+CHANGED Decks / All decks › Header › Button: Hide the navigation rail: horizontal alignment c → none; gap none → 4; size s(28,28) → s(fill,hug); corner radius rd(8) → none
+RENAMED layer Button: Hide the navigation rail → Nav: Open tabs
+MOVED (added here, removed elsewhere) Frame 1731 in Decks / All decks › Header › Button: Hide the navigation rail: al(h,y(c),pad(1,5,1,1)) s(170,32) f[] rd(6)
+MOVED (added here, removed elsewhere) Frame 1732 in Decks / All decks › Header › Button: Hide the navigation rail: al(v,pad(0,2,0,9)) s(hug,hug) f[] st[(#46494F,w(0,0,0,1),pos(i))]
+MOVED (added here, removed elsewhere) Frame 1733 in Decks / All decks › Header › Button: Hide the navigation rail: al(h,y(c),pad(1,5,1,1)) s(170,32) f[] rd(6)
+MOVED (added here, removed elsewhere) Button: Notifications in Decks / All decks › Header: al(h,x(c),y(c)) s(36,36) f[] rd(8)
+CHANGED Decks / All decks › Header: vertical alignment c → none; padding 0,11,0,10 → none; size s(51,fill) → s(fill,1036); fill f[] → f[(#1E1F22)]; border st[(#46494F,w(0,1,0,0),pos(i))] → none
+RENAMED layer Frame 3537 → Main
+REMOVED Link: Webatrice home from Decks / All decks › Header
+MOVED (added here, removed elsewhere) Aside in Decks / All decks › Header: al(v,pad(16,17,16,16)) s(248,fill) f[(#2B2D31)] st[(#46494F,w(0,1,0,0),pos(i))]
+MOVED (added here, removed elsewhere) Frame 1761 in Decks / All decks › Header: al(v) s(fill,fill) f[]
+REMOVED Nav: Open tabs from Decks / All decks › Header
+REMOVED Frame 3545 from Decks / All decks › Header
+REORDERED children of Decks / All decks: Frame 1715, Frame 1728

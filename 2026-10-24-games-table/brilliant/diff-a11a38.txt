@@ -1,0 +1,94 @@
+CHANGED Play / Magic room: size s(1440,hug) → s(1920,hug)
+RENAMED layer Play / Magic room → Play / Magic room (feedback 23.10.26, room chat collapsed)
+CHANGED Play / Magic room: vertical alignment none → c; size s(fill,1161) → s(fill,1080)
+CHANGED Play / Magic room › Row 1: size s(fill,407) → s(fill,fill)
+CHANGED Play / Magic room › Row 3: size s(fill,407) → s(fill,fill)
+CHANGED Play / Magic room › Header › Nav: Open tabs: shadow shadow(o(0.05),y(1),blur(2),id(677b5f1f14b9f744)) → shadow(o(0.05),y(1),blur(2),id(cde5395c45b1cbaf))
+CHANGED Play / Magic room › Main: size s(fill,1117) → s(fill,1036)
+CHANGED Play / Magic room › Main › Column 1: size s(1028,fill) → s(1508,fill)
+CHANGED Main › Column 1 › Section: Games in Magic: size s(1028,841) → s(1508,fill)
+CHANGED Column 1 › Section: Games in Magic › Header: padding 12,16,8,16 → 12,16,13,16; horizontal alignment none → sb; size s(fill,60) → s(fill,hug); border none → st[(#46494F,w(0,0,1,0),pos(i))]
+REMOVED "Play any format, any time" from Column 1 › Section: Games in Magic › Header
+CHANGED Main › Column 1 › Section: Games in Magic: padding 0,16,12,16 → 12,16
+CHANGED Column 1 › Section: Games in Magic › Button: Format\nAll: padding 1,11 → 1,6,1,11; size s(111,36) → s(hug,36) [in 1 of 2 similar items (this one: Button: Format\nAll); ask whether it applies to all]
+TEXT Column 1 › Section: Games in Magic › Button: Format\nAll: "All" → "Commander" [in 1 of 2 similar items (this one: Button: Format\nAll); ask whether it applies to all]
+ADDED Button: Clear format filter in Column 1 › Section: Games in Magic › Button: Format\nAll: al(h,x(c),y(c)) s(20,20) f[] rd(6)
+CHANGED Column 1 › Section: Games in Magic › Button: Hide full & started: shadow shadow(o(0),y(0),blur(0),id(35c2e3752e61e777)) → shadow(o(0),y(0),blur(0),id(f0c45544bd8a5f84)) [in 1 of 2 similar items (this one: Button: Hide full & started); ask whether it applies to all]
+CHANGED Column 1 › Section: Games in Magic › Button: Hide password: shadow shadow(o(0),y(0),blur(0),id(b2ca0919658d28ca)) → shadow(o(0),y(0),blur(0),id(780610fe63c3059d)) [in 1 of 2 similar items (this one: Button: Hide password); ask whether it applies to all]
+REMOVED Button: More filters from Main › Column 1 › Section: Games in Magic
+CHANGED Main › Column 1 › Section: Games in Magic: gap 765 → 8
+CHANGED Column 1 › Section: Games in Magic › "11 of 11 games": size s(hug,hug) → s(fill,hug)
+MOVED (added here, removed elsewhere) Button: More filters in Main › Column 1 › Section: Games in Magic: al(h,x(c),y(c),g(8),pad(1,15)) s(128,32) f[] st[(#656871,w(1,1,1,1),pos(i))] rd(8)
+CHANGED Column 1 › Section: Games in Magic › Games in Magic: padding 6,16,7,16 → 6,26,7,16
+CHANGED Section: Games in Magic › Games in Magic › Row 1: size s(534,hug) → s(fill,hug)
+TEXT Section: Games in Magic › Games in Magic › Row 1: "Game · Newest first" → "Game"
+REMOVED SVG from Section: Games in Magic › Games in Magic › Row 1
+CHANGED Games in Magic › Row 1 › "WATCHING": size s(92,hug) → s(132,hug)
+REMOVED Frame 1491 from Section: Games in Magic › Games in Magic › Row 1
+ADDED text "ACTIONS" in Section: Games in Magic › Games in Magic › Row 1: t("ACTIONS",Inter,11.78,sb,align(l),lh(1.45),ls(0.7px),case(upper)) s(216,hug) f[(#B4B9C1)]
+CHANGED Column 1 › Section: Games in Magic › Games in Magic: fr fr → none; size s(1016,60) → s(fill,hug); border st[(solid(#46494F,o(0.7)),w(0,0,1,0),pos(i))] → none; al none → al(v) [in 1 of 4 similar items (this one: Content); ask whether it applies to all]
+CHANGED Column 1 › Section: Games in Magic › Games in Magic: size s(3,47) → s(1496,60); fill f[(#4BD18A)] → f[]; corner radius rd(0,9999,9999,0) → none; border none → st[(solid(#46494F,o(0.7)),w(0,0,1,0),pos(i))] [in 1 of 4 similar items (this one: Content); ask whether it applies to all]
+ADDED Content in Column 1 › Section: Games in Magic › Games in Magic: al(v,g(12),pad(0,8,1,16)) s(1496,60) f[]
+ADDED Frame 1509 in Column 1 › Section: Games in Magic › Games in Magic: fr s(3,47) f[(#4BD18A)] rd(0,9999,9999,0)
+CHANGED Section: Games in Magic › Games in Magic › Content: al al(v,g(12),pad(0,16,1,16)) → none; size s(1016,60) → s(1496,60); fr none → fr; border none → st[(solid(#46494F,o(0.7)),w(0,0,1,0),pos(i))] [in 1 of 4 similar items (this one: Content); ask whether it applies to all]
+CHANGED Games in Magic › Content › Row 1: direction row → column; vertical alignment c → none; padding none → 0,8,1,16; size s(fill,59) → s(1496,60) [in 1 of 4 similar items (this one: Content); ask whether it applies to all]
+RENAMED layer Row 1 → Content
+CHANGED Games in Magic › Content › Row 1: direction column → row; gap 4 → 12; vertical alignment none → c; size s(524,hug) → s(fill,59) [in 1 of 4 similar items (this one: Content); ask whether it applies to all]
+RENAMED layer Frame 1496 → Row 1
+CHANGED Games in Magic › Content › Row 1: direction row → column; vertical alignment c → none; gap 8 → 4 [in 1 of 4 similar items (this one: Content); ask whether it applies to all]
+REMOVED "cEDH pod, fast tables" from Games in Magic › Content › Row 1 [in 1 of 4 similar items (this one: Content); ask whether it applies to all]
+ADDED Frame 1512 in Games in Magic › Content › Row 1: al(h,y(c),g(8)) s(fill,hug) f[]
+ADDED Frame 1513 in Games in Magic › Content › Row 1: al(h,y(c),g(8)) s(fill,hug) f[]
+CHANGED Games in Magic › Content › Row 1: size s(fill,hug) → s(116,hug) [in 1 of 4 similar items (this one: Content); ask whether it applies to all]
+CHANGED Games in Magic › Content › Row 1: padding 1,9 → none; size s(hug,22) → s(24,hug); border st[(#656871,w(1,1,1,1),pos(i))] → none; corner radius rd(9999) → none [in 1 of 4 similar items (this one: Content); ask whether it applies to all]
+RENAMED layer Frame 1499 → 1 of 2 seats taken
+REMOVED "Commander" from Games in Magic › Content › Row 1 [in 1 of 4 similar items (this one: Content); ask whether it applies to all]
+ADDED Frame 1517 in Games in Magic › Content › Row 1: fr s(10,10) f[(#B1BAFF)] rd(9999)
+ADDED Frame 1518 in Games in Magic › Content › Row 1: fr s(10,10) f[] st[(#B4B9C1,w(1,1,1,1),pos(i))] rd(9999)
+REMOVED Frame 1500 from Games in Magic › Content › Row 1 [in 1 of 4 similar items (this one: Content); ask whether it applies to all]
+REMOVED "·" from Games in Magic › Content › Row 1 [in 1 of 4 similar items (this one: Content); ask whether it applies to all]
+REMOVED "134 h" from Games in Magic › Content › Row 1 [in 1 of 4 similar items (this one: Content); ask whether it applies to all]
+ADDED text "1 / 2" in Games in Magic › Content › Row 1: t("1 / 2",Inter,12.85,r,align(l),lh(1.45)) s(hug,hug) f[(#D0D3D8)]
+ADDED Frame 1520 in Games in Magic › Content › Row 1: al(h,y(c),g(6)) s(132,hug) f[]
+ADDED Frame 1521 in Games in Magic › Content › Row 1: al(h,x(sb),y(c),g(4)) s(224,hug) f[]
+REMOVED Frame 1501 from Games in Magic › Content › Row 1 [in 1 of 4 similar items (this one: Content); ask whether it applies to all]
+REMOVED Frame 1507 from Games in Magic › Content › Row 1 [in 1 of 4 similar items (this one: Content); ask whether it applies to all]
+REMOVED Frame 1508 from Games in Magic › Content › Row 1 [in 1 of 4 similar items (this one: Content); ask whether it applies to all]
+ADDED Frame 1522 in Section: Games in Magic › Games in Magic › Content: fr s(3,47) f[(#4BD18A)] rd(0,9999,9999,0)
+MOVED (added here, removed elsewhere) Frame 1523 in Column 1 › Section: Games in Magic › Games in Magic: fr s(1496,60) f[] st[(solid(#46494F,o(0.7)),w(0,0,1,0),pos(i))]
+MOVED (added here, removed elsewhere) Frame 1537 in Column 1 › Section: Games in Magic › Games in Magic: fr s(1496,60) f[] st[(solid(#46494F,o(0.7)),w(0,0,1,0),pos(i))]
+MOVED (added here, removed elsewhere) Frame 1552 in Column 1 › Section: Games in Magic › Games in Magic: fr s(1496,60) f[] st[(solid(#46494F,o(0.7)),w(0,0,1,0),pos(i))]
+MOVED (added here, removed elsewhere) Frame 1568 in Column 1 › Section: Games in Magic › Games in Magic: fr s(1496,60) f[] st[(solid(#46494F,o(0.7)),w(0,0,1,0),pos(i))]
+MOVED (added here, removed elsewhere) Frame 1586 in Column 1 › Section: Games in Magic › Games in Magic: fr s(1496,60) f[] st[(solid(#46494F,o(0.7)),w(0,0,1,0),pos(i))]
+MOVED (added here, removed elsewhere) Frame 1601 in Column 1 › Section: Games in Magic › Games in Magic: fr s(1496,60) f[] st[(solid(#46494F,o(0.7)),w(0,0,1,0),pos(i))]
+MOVED (added here, removed elsewhere) Frame 1618 in Column 1 › Section: Games in Magic › Games in Magic: fr s(1496,60) f[] st[(solid(#46494F,o(0.7)),w(0,0,1,0),pos(i))]
+MOVED (added here, removed elsewhere) Frame 1633 in Column 1 › Section: Games in Magic › Games in Magic: fr s(1496,60) f[] st[(solid(#46494F,o(0.7)),w(0,0,1,0),pos(i))]
+MOVED (added here, removed elsewhere) Frame 1646 in Column 1 › Section: Games in Magic › Games in Magic: fr s(1496,60) f[] st[(solid(#46494F,o(0.7)),w(0,0,1,0),pos(i))]
+REORDERED children of Column 1 › Section: Games in Magic › Games in Magic: Frame 1495, Frame 1510
+REMOVED Frame 1510 from Column 1 › Section: Games in Magic › Games in Magic
+REMOVED Frame 1523 from Column 1 › Section: Games in Magic › Games in Magic
+REMOVED Frame 1537 from Column 1 › Section: Games in Magic › Games in Magic [in 1 of 4 similar items (this one: Content); ask whether it applies to all]
+REMOVED Frame 1552 from Column 1 › Section: Games in Magic › Games in Magic [in 1 of 2 similar items (this one: Content); ask whether it applies to all]
+REMOVED Frame 1568 from Column 1 › Section: Games in Magic › Games in Magic
+REMOVED Frame 1586 from Column 1 › Section: Games in Magic › Games in Magic
+REMOVED Frame 1601 from Column 1 › Section: Games in Magic › Games in Magic
+REMOVED Frame 1618 from Column 1 › Section: Games in Magic › Games in Magic [in 1 of 4 similar items (this one: Content); ask whether it applies to all]
+REMOVED Frame 1633 from Column 1 › Section: Games in Magic › Games in Magic [in 1 of 4 similar items (this one: Content); ask whether it applies to all]
+REMOVED Frame 1646 from Column 1 › Section: Games in Magic › Games in Magic [in 1 of 2 similar items (this one: Content); ask whether it applies to all]
+CHANGED Main › Column 1 › Section: Magic\n· Room chat: size s(1028,240) → s(1508,hug)
+RENAMED layer Section: Magic\n· Room chat → Section: Room chat
+CHANGED Column 1 › Section: Magic\n· Room chat › Header: padding 8,16,9,16 → 8,12,8,16; border st[(#46494F,w(0,0,1,0),pos(i))] → none
+CHANGED Column 1 › Section: Magic\n· Room chat › Header: direction column → row; vertical alignment none → c; gap none → 12; size s(128,hug) → s(fill,hug); clip content clip → none
+CHANGED Column 1 › Section: Magic\n· Room chat › Header: direction row → column; gap 8 → none; padding none → 2,0,0,0; size s(fill,hug) → s(hug,hug)
+RENAMED layer Frame 1664 → Room name
+CHANGED Section: Magic\n· Room chat › Header › "Magic": font Space Grotesk → Inter; font size 16.07 → 12.85; font weight sb → r; fill f[(#F2F3F5)] → f[(#B1BAFF)]
+REMOVED "· Room chat" from Column 1 › Section: Magic\n· Room chat › Header
+MOVED (added here, removed elsewhere) text "Room chat" in Column 1 › Section: Magic\n· Room chat › Header: t("Room chat",Space Grotesk,16.07,sb,align(l),lh(1.45)) s(hug,hug) f[(#F2F3F5)]
+MOVED (added here, removed elsewhere) Button: Expand room chat in Column 1 › Section: Magic\n· Room chat › Header: al(h,x(c),y(c)) s(26,26) f[] rd(8)
+CHANGED Main › Column 1 › Section: Magic\n· Room chat: hidden none → hidden
+CHANGED Column 1 › Section: Magic\n· Room chat › Message Magic: size s(944,34) → s(fill,34)
+CHANGED Play / Magic room › Main › Section: People: size s(300,1093) → s(300,1012)
+REMOVED "87 in Magic" from Main › Section: People › Header
+ADDED People count in Main › Section: People › Header: al(v,pad(2,0,0,0)) s(hug,hug) f[]
+CHANGED Main › Section: People › People in Magic: size s(fill,983) → s(fill,fill)
+REMOVED Card: A from Main › Section: People › People in Magic

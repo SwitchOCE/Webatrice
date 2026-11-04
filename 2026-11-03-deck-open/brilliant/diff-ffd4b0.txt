@@ -1,0 +1,253 @@
+RENAMED layer Decks / Deck open (Kenrith Group Hug) → Decks / Deck open (feedback 28.10.26, A: stats in bottom sheet, card details collapsed)
+CHANGED Decks / Deck open (Kenrith Group Hug) › Header › Nav: Open tabs: shadow shadow(o(0.05),y(1),blur(2),id(058f2ff4031a3ddd)) → shadow(o(0.05),y(1),blur(2),id(633ccd46960b4b4d)) [in 1 of 2 similar items (this one: "DECKS"); ask whether it applies to all]
+CHANGED Decks / Deck open (Kenrith Group Hug) › Main › Row 1: size s(fill,hug) → s(fill,fill)
+CHANGED Row 1 › Main › Header: direction column → row; gap 10 → none; padding 14,20,15,20 → none
+CHANGED Row 1 › Main › Header: direction row → column; horizontal alignment sb → none; vertical alignment c → none; gap 8 → none; padding none → 12,20,15,20
+CHANGED Row 1 › Main › Header: direction column → row; horizontal alignment none → sb; vertical alignment none → c; gap none → 8; padding none → 0,0,12,0; border none → st[(#46494F,w(9),w(0,0,1,0))]
+CHANGED Row 1 › Main › Header: gap 6 → 12
+REMOVED "My decks" from Row 1 › Main › Header
+REMOVED "·" from Row 1 › Main › Header
+REMOVED "99 cards" from Row 1 › Main › Header
+MOVED (added here, removed elsewhere) Frame 3161 in Row 1 › Main › Header: al(h,y(c),g(4)) s(hug,hug) f[]
+ADDED Frame 3160 in Row 1 › Main › Header: al(h,y(c),g(6)) s(hug,hug) f[]
+MOVED (added here, removed elsewhere) Frame 3163 in Row 1 › Main › Header: al(h,y(c),g(4),pad(0,0,0,13)) s(105,hug) f[] st[(#46494F,w(0,0,0,1),pos(i))]
+REMOVED Frame 3161 from Row 1 › Main › Header
+CHANGED Row 1 › Main › Header: horizontal alignment e → none; padding none → 12,0,0,0; size s(387,hug) → s(fill,hug)
+CHANGED Row 1 › Main › Header: al al(h,y(c),g(4),pad(0,13,0,0)) → none; size s(105,hug) → s(402,31); border st[(#46494F,w(0,1,0,0),pos(i))] → none; fr none → fr
+CHANGED Main › Header › Button: Undo: direction row → column; horizontal alignment c → none; vertical alignment c → none; padding none → 4,0,0,0; size s(28,28) → s(176,hug); corner radius rd(8) → none; opacity o(0.45) → none [in 1 of 3 similar items (this one: Button: Undo); ask whether it applies to all]
+CHANGED Main › Header › Button: Redo: horizontal alignment c → none; gap none → 4; padding none → 0,8; size s(28,28) → s(148,22); fill f[] → f[(solid(#4BD18A,o(0.15)))]; corner radius rd(8) → rd(9999); opacity o(0.45) → none [in 1 of 3 similar items (this one: Button: Redo); ask whether it applies to all]
+MOVED (added here, removed elsewhere) text "Legal in Commander" in Main › Header › Button: Redo: t("Legal in Commander",Inter,11.78,m,align(l),lh(1)) s(hug,hug) f[(#4BD18A)]
+CHANGED Main › Header › Button: Undo/Redo history: horizontal alignment c → none; gap none → 3; size s(28,28) → s(62,hug); corner radius rd(8) → none; opacity o(0.45) → none [in 1 of 3 similar items (this one: Button: Undo/Redo history); ask whether it applies to all]
+RENAMED layer Button: Undo/Redo history → Colour identity: WUBRG
+MOVED (added here, removed elsewhere) Frame 3170 in Main › Header › Button: Undo/Redo history: fr s(10,10) f[(#A9D8F5)] rd(9999) shadow(#FFFFFF,o(1),y(0),blur(0),id(7c2b4673daa26a0e)) shadow(o(0.2),y(0),blur(0),sp(1),id(1d24ea7c6e78ab8
+MOVED (added here, removed elsewhere) Frame 3171 in Main › Header › Button: Undo/Redo history: fr s(10,10) f[(#BEB6B2)] rd(9999) shadow(#FFFFFF,o(1),y(0),blur(0),id(3cbffedcba4a769a)) shadow(o(0.2),y(0),blur(0),sp(1),id(c33aac0315c4c81
+MOVED (added here, removed elsewhere) Frame 3172 in Main › Header › Button: Undo/Redo history: fr s(10,10) f[(#F2A08A)] rd(9999) shadow(#FFFFFF,o(1),y(0),blur(0),id(cc31943cf07cf0c0)) shadow(o(0.2),y(0),blur(0),sp(1),id(45937cf13012c15
+MOVED (added here, removed elsewhere) Frame 3173 in Main › Header › Button: Undo/Redo history: fr s(10,10) f[(#9ED3AF)] rd(9999) shadow(#FFFFFF,o(1),y(0),blur(0),id(820852453ba6e7c0)) shadow(o(0.2),y(0),blur(0),sp(1),id(b8e1163a6705554
+CHANGED Main › Header › Button: Export deck: al al(h,x(c),y(c),pad(1)) → none; size s(36,36) → s(371.27,28); border st[(#46494F,w(1,1,1,1),pos(i))] → none; corner radius rd(8) → none; fr none → fr [in 1 of 3 similar items (this one: Button: Export deck); ask whether it applies to all]
+MOVED (added here, removed elsewhere) Tag: Group hug in Main › Header › Button: Export deck: al(h,y(c),g(4),pad(1,6,1,10)) s(hug,24) f[(#383A40)] st[(#46494F,w(1),pos(i))] rd(9999)
+MOVED (added here, removed elsewhere) Tag: Casual in Main › Header › Button: Export deck: al(h,y(c),g(4),pad(1,6,1,10)) s(hug,24) f[(#383A40)] st[(#46494F,w(1),pos(i))] rd(9999)
+MOVED (added here, removed elsewhere) Tag: Select tag (open) in Main › Header › Button: Export deck: al(h,y(c),g(4),pad(1,6,1,10)) s(hug,24) f[(#1E1F22)] st[(#B1BAFF,w(1),pos(i))] rd(9999)
+ADDED Button: Add tag in Main › Header › Button: Export deck: al(h,x(c),y(c)) s(24,24) f[] st[(#46494F,w(1),pos(i))] rd(9999)
+REMOVED Button: Share deck... from Row 1 › Main › Header [in 1 of 3 similar items (this one: Button: Share deck...); ask whether it applies to all]
+REMOVED Button: More: open deck, print, send to an onli… from Row 1 › Main › Header [in 1 of 3 similar items (this one: Button: More: open deck, print, send to an onli…); ask whether it applies to all]
+REMOVED Link: Buy · $497.81 from Row 1 › Main › Header
+CHANGED Row 1 › Main › Header: vertical alignment c → none; padding none → 14,20,15,20; size s(fill,hug) → s(hug,hug); border none → st[(#46494F,w(0,0,0,1))]
+CHANGED Row 1 › Main › Header: padding 4,0,0,0 → none; gap none → 8; size s(176,hug) → s(hug,hug)
+CHANGED Main › Header › Format: vertical alignment c → none; padding 5,29,5,9 → none; horizontal alignment none → sb; gap none → 8; size s(176,27) → s(fill,fill); fill f[(#1E1F22)] → f[]; border st[(#46494F,w(1,1,1,1),pos(i))] → none; corner radius rd(6) → none
+REMOVED "Commander" from Main › Header › Format
+ADDED Button: Export deck in Main › Header › Format: al(h,x(c),y(c),pad(1)) s(36,36) f[] st[(#46494F,w(1,1,1,1),pos(i))] rd(8)
+MOVED (added here, removed elsewhere) Button: Share deck... in Main › Header › Format: al(h,x(c),y(c),pad(1)) s(36,36) f[] st[(#46494F,w(1,1,1,1),pos(i))] rd(8)
+MOVED (added here, removed elsewhere) Button: More: open deck, print, send to an onli… in Main › Header › Format: al(h,x(c),y(c),pad(1)) s(36,36) f[] st[(#46494F,w(1,1,1,1),pos(i))] rd(8)
+MOVED (added here, removed elsewhere) Link: Buy · $497.81 in Row 1 › Main › Header: al(h,x(c),y(c),g(8),pad(0,14)) s(138,36) f[(#B1BAFF)] rd(8)
+REMOVED Frame 3168 from Row 1 › Main › Header
+REMOVED Colour identity: WUBRG from Row 1 › Main › Header
+REMOVED Button: Edit tags from Row 1 › Main › Header
+REMOVED Frame 3174 from Row 1 › Main › Header
+CHANGED Main › Row 1 › Main: padding 16,20,40,20 → 10; gap none → 10; clip content none → clip
+CHANGED Row 1 › Main › Column 1: size s(253,hug) → s(fill,hug)
+CHANGED Section: Commander\n1 › Button: Commander\n1 › "Commander": font size 13.92 → 16.07
+CHANGED Section: Commander\n1 › Button: Commander\n1 › "1": font size 13.92 → 16.07
+REMOVED Button: Kenrith, the Returned King from Column 1 › Section: Commander\n1 › 1 × Kenrith, the Returned King
+MOVED (added here, removed elsewhere) text "Kenrith, the Returned King" in Column 1 › Section: Commander\n1 › 1 × Kenrith, the Returned King: t("Kenrith, the Returned King",Inter,13.92,r,align(l),lh(1.45)) s(hug,hug) f[(#F2F3F5)]
+CHANGED Section: Creatures\n19 › Button: Creatures\n19 › "Creatures": font size 13.92 → 16.07
+CHANGED Section: Creatures\n19 › Button: Creatures\n19 › "19": font size 13.92 → 16.07
+CHANGED Column 1 › Section: Creatures\n19 › 1 × Birds of Paradise: fill f[] → f[(solid(#B1BAFF,o(0.15)))] [in 1 of 14 similar items (this one: 1 × Birds of Paradise); ask whether it applies to all]
+CHANGED Section: Creatures\n19 › 1 × Birds of Paradise › "1": fill f[(#B4B9C1)] → f[(#B1BAFF)] [in 1 of 14 similar items (this one: 1 × Birds of Paradise); ask whether it applies to all]
+CHANGED 1 × Birds of Paradise › Button: Birds of Paradise › "Birds of Paradise": fill f[(#F2F3F5)] → f[(#B1BAFF)] [in 1 of 14 similar items (this one: 1 × Birds of Paradise); ask whether it applies to all]
+REMOVED Button: Edric, Spymaster of Trest from Column 1 › Section: Creatures\n19 › 1 × Edric, Spymaster of Trest [in 1 of 5 similar items (this one: 1 × Edric, Spymaster of Trest); ask whether it applies to all]
+ADDED text "Edric, Spymaster of Trest" in Column 1 › Section: Creatures\n19 › 1 × Edric, Spymaster of Trest: t("Edric, Spymaster of Trest",Inter,13.92,r,align(l),lh(1.45)) s(hug,hug) f[(#F2F3F5)]
+REMOVED Button: Kami of the Crescent Moon from Column 1 › Section: Creatures\n19 › 1 × Kami of the Crescent Moon [in 1 of 5 similar items (this one: 1 × Kami of the Crescent Moon); ask whether it applies to all]
+ADDED text "Kami of the Crescent Moon" in Column 1 › Section: Creatures\n19 › 1 × Kami of the Crescent Moon: t("Kami of the Crescent Moon",Inter,13.92,r,align(l),lh(1.45)) s(hug,hug) f[(#F2F3F5)]
+REMOVED Button: Kynaios and Tiro of Meletis from Column 1 › Section: Creatures\n19 › 1 × Kynaios and Tiro of Meletis [in 1 of 5 similar items (this one: 1 × Kynaios and Tiro of Meletis); ask whether it applies to all]
+ADDED text "Kynaios and Tiro of Meletis" in Column 1 › Section: Creatures\n19 › 1 × Kynaios and Tiro of Meletis: t("Kynaios and Tiro of Meletis",Inter,13.92,r,align(l),lh(1.45)) s(hug,hug) f[(#F2F3F5)]
+REMOVED Button: Selvala, Explorer Returned from Column 1 › Section: Creatures\n19 › 1 × Selvala, Explorer Returned [in 1 of 5 similar items (this one: 1 × Selvala, Explorer Returned); ask whether it applies to all]
+ADDED text "Selvala, Explorer Returned" in Column 1 › Section: Creatures\n19 › 1 × Selvala, Explorer Returned: t("Selvala, Explorer Returned",Inter,13.92,r,align(l),lh(1.45)) s(hug,hug) f[(#F2F3F5)]
+REMOVED Button: Zedruu the Greathearted from Column 1 › Section: Creatures\n19 › 1 × Zedruu the Greathearted [in 1 of 5 similar items (this one: 1 × Zedruu the Greathearted); ask whether it applies to all]
+ADDED text "Zedruu the Greathearted" in Column 1 › Section: Creatures\n19 › 1 × Zedruu the Greathearted: t("Zedruu the Greathearted",Inter,13.92,r,align(l),lh(1.45)) s(hug,hug) f[(#F2F3F5)]
+CHANGED Section: Planeswalkers\n2 › Button: Planeswalkers\n2 › "Planeswalkers": font size 13.92 → 16.07
+CHANGED Section: Planeswalkers\n2 › Button: Planeswalkers\n2 › "2": font size 13.92 → 16.07
+REMOVED Button: Kiora, the Crashing Wave from Column 1 › Section: Planeswalkers\n2 › 1 × Kiora, the Crashing Wave [in 1 of 2 similar items (this one: 1 × Kiora, the Crashing Wave); ask whether it applies to all]
+ADDED text "Kiora, the Crashing Wave" in Column 1 › Section: Planeswalkers\n2 › 1 × Kiora, the Crashing Wave: t("Kiora, the Crashing Wave",Inter,13.92,r,align(l),lh(1.45)) s(hug,hug) f[(#F2F3F5)]
+REMOVED Button: Nissa, Who Shakes the World from Column 1 › Section: Planeswalkers\n2 › 1 × Nissa, Who Shakes the World [in 1 of 2 similar items (this one: 1 × Nissa, Who Shakes the World); ask whether it applies to all]
+ADDED text "Nissa, Who Shakes the World" in Column 1 › Section: Planeswalkers\n2 › 1 × Nissa, Who Shakes the World: t("Nissa, Who Shakes the World",Inter,13.92,r,align(l),lh(1.45)) s(hug,hug) f[(#F2F3F5)]
+CHANGED Row 1 › Main › Column 2: size s(253,hug) → s(fill,hug)
+CHANGED Section: Instants\n10 › Button: Instants\n10 › "Instants": font size 13.92 → 16.07
+CHANGED Section: Instants\n10 › Button: Instants\n10 › "10": font size 13.92 → 16.07
+REMOVED Button: Anguished Unmaking from Column 2 › Section: Instants\n10 › 1 × Anguished Unmaking
+MOVED (added here, removed elsewhere) text "Anguished Unmaking" in Column 2 › Section: Instants\n10 › 1 × Anguished Unmaking: t("Anguished Unmaking",Inter,13.92,r,align(l),lh(1.45)) s(hug,hug) f[(#F2F3F5)]
+CHANGED Main › Column 2 › Section: Sorceries\n10: padding 0,0,16,0 → none
+CHANGED Section: Sorceries\n10 › Button: Sorceries\n10 › "Sorceries": font size 13.92 → 16.07
+CHANGED Section: Sorceries\n10 › Button: Sorceries\n10 › "10": font size 13.92 → 16.07
+MOVED (added here, removed elsewhere) Section: Enchantments\n10 in Row 1 › Main › Column 2: al(v,g(4),pad(0,0,16,0)) s(fill,hug) f[]
+CHANGED Row 1 › Main › Column 3: size s(253,hug) → s(fill,hug)
+CHANGED Main › Column 3 › Section: Artifacts\n11: padding 0,0,16,0 → none
+CHANGED Section: Artifacts\n11 › Button: Artifacts\n11 › "Artifacts": font size 13.92 → 16.07
+CHANGED Section: Artifacts\n11 › Button: Artifacts\n11 › "11": font size 13.92 → 16.07
+CHANGED Main › Column 3 › Section: Enchantments\n10: padding none → 0,0,16,0
+RENAMED layer Section: Enchantments\n10 → Section: Lands\n36
+RENAMED layer Button: Enchantments\n10 → Button: Lands\n36
+CHANGED Column 3 › Section: Enchantments\n10 › Button: Enchantments\n10: v v(nodes[(0,5.26,0.47,di),(1,5.83,0,mi),(2,6.4,0.47,di),(3,7.02,3.71,di),(4,7.95,4.64,di),(5,11.19,5.26,di),(6,11.66,5.83,mi),(7,11.19,6.4,di),(8,7.95,7.02,di),(9,7.02,7.95,di),(10,6.4,11.19,di),(11,5.83,11.66,mi),(12,5.26,11.19,di),(13,4.64,7.95,di),(14,3.71,7.02,di),(15,0.47,6.4,di),(16,0,5.83,mi),(17,0.47,5.26,di),(18,3.71,4.64,di),(19,4.64,3.71,di)],edges[(0,0,1,0.05,-0.28,-0.28,0),(1,1,2,0.28,0,-0.05,-0.28),(2,2,3,0,0,0,0),(3,3,4,0.09,0.47,-0.47,-0.09),(4,4,5,0,0,0,0),(5,5,6,0.28,0.05,0,-0.28),(6,6,7,0,0.28,0.28,-0.05),(7,7,8,0,0,0,0),(8,8,9,-0.47,0.09,0.09,-0.47),(9,9,10,0,0,0,0),(10,10,11,-0.05,0.28,0.28,0),(11,11,12,-0.28,0,0.05,0.28),(12,12,13,0,0,0,0),(13,13,14,-0.09,-0.47,0.47,0.09),(14,14,15,0,0,0,0),(15,15,16,-0.28,-0.05,0,0.28),(16,16,17,0,-0.28,-0.28,0.05),(17,17,18,0,0,0,0),(18,18,19,0.47,-0.09,-0.09,0.47),(19,0,19,0,0,0,0)],regions[(0+1+2+3+4+5+6+7+8+9+10+11+12+13+14+15+16+17+18+19-)]) → v(); size s(11.66,11.66) → s(11.66,10.5); path none → path:d(M3.5,0L5.83,4.67L8.75,1.75L11.66,10.5L0,10.5L3.5,0Z); fill none → f[]
+REMOVED "Enchantments" from Column 3 › Section: Enchantments\n10 › Button: Enchantments\n10
+REMOVED "10" from Column 3 › Section: Enchantments\n10 › Button: Enchantments\n10
+MOVED (added here, removed elsewhere) text "Lands" in Column 3 › Section: Enchantments\n10 › Button: Enchantments\n10: t("Lands",Space Grotesk,16.07,sb,align(l),lh(1.45)) s(hug,hug) f[(#F2F3F5)]
+MOVED (added here, removed elsewhere) text "36" in Column 3 › Section: Enchantments\n10 › Button: Enchantments\n10: t("36",Inter,16.07,sb,align(l),lh(1.45)) s(hug,hug) f[(#B4B9C1)]
+RENAMED layer 1 × Collective Restraint → 1 × Breeding Pool
+CHANGED Column 3 › Section: Enchantments\n10 › 1 × Collective Restraint: gap 2 → 6; padding none → 0,8,0,0; size s(26,hug) → s(fill,hug); opacity o(0.9) → none [in 1 of 10 similar items (this one: 1 × Collective Restraint); ask whether it applies to all]
+REMOVED {3} from Column 3 › Section: Enchantments\n10 › 1 × Collective Restraint [in 1 of 10 similar items (this one: 1 × Collective Restraint); ask whether it applies to all]
+REMOVED {U} from Column 3 › Section: Enchantments\n10 › 1 × Collective Restraint [in 1 of 10 similar items (this one: 1 × Collective Restraint); ask whether it applies to all]
+MOVED (added here, removed elsewhere) Button: Breeding Pool in Column 3 › Section: Enchantments\n10 › 1 × Collective Restraint: al(v) s(fill,hug) f[] clip
+CHANGED Section: Enchantments\n10 › 1 × Collective Restraint › Button: Collective Restraint: direction column → row; horizontal alignment none → c; vertical alignment none → c; size s(fill,hug) → s(24,24); clip content clip → none; corner radius none → rd(6) [in 1 of 10 similar items (this one: 1 × Collective Restraint); ask whether it applies to all]
+RENAMED layer Button: Collective Restraint → Button: Actions for Breeding Pool
+REMOVED "Collective Restraint" from Section: Enchantments\n10 › 1 × Collective Restraint › Button: Collective Restraint [in 1 of 10 similar items (this one: 1 × Collective Restraint); ask whether it applies to all]
+MOVED (added here, removed elsewhere) Path in Section: Enchantments\n10 › 1 × Collective Restraint › Button: Collective Restraint: v() path:d(M0,0L3.5,3.5L7,0) s(7,3.5) f[] st[(#B4B9C1,w(1.17),dashcap(r))]
+REMOVED Button: Actions for Collective Restraint from Column 3 › Section: Enchantments\n10 › 1 × Collective Restraint [in 1 of 10 similar items (this one: 1 × Collective Restraint); ask whether it applies to all]
+REORDERED children of Column 3 › Section: Enchantments\n10 › 1 × Collective Restraint: "1", Frame 3445, Button: Actions for Breeding Pool
+RENAMED layer 1 × Dictate of Kruphix → 1 × City of Brass
+CHANGED Column 3 › Section: Enchantments\n10 › 1 × Dictate of Kruphix: gap 2 → 6; padding none → 0,8,0,0; size s(40,hug) → s(fill,hug); opacity o(0.9) → none [in 1 of 10 similar items (this one: 1 × Dictate of Kruphix); ask whether it applies to all]
+REMOVED {1} from Column 3 › Section: Enchantments\n10 › 1 × Dictate of Kruphix [in 1 of 10 similar items (this one: 1 × Dictate of Kruphix); ask whether it applies to all]
+REMOVED {U} from Column 3 › Section: Enchantments\n10 › 1 × Dictate of Kruphix [in 1 of 10 similar items (this one: 1 × Dictate of Kruphix); ask whether it applies to all]
+REMOVED {U} from Column 3 › Section: Enchantments\n10 › 1 × Dictate of Kruphix [in 1 of 10 similar items (this one: 1 × Dictate of Kruphix); ask whether it applies to all]
+MOVED (added here, removed elsewhere) Button: City of Brass in Column 3 › Section: Enchantments\n10 › 1 × Dictate of Kruphix: al(v) s(fill,hug) f[] clip
+CHANGED Section: Enchantments\n10 › 1 × Dictate of Kruphix › Button: Dictate of Kruphix: direction column → row; horizontal alignment none → c; vertical alignment none → c; size s(fill,hug) → s(24,24); clip content clip → none; corner radius none → rd(6) [in 1 of 10 similar items (this one: 1 × Dictate of Kruphix); ask whether it applies to all]
+RENAMED layer Button: Dictate of Kruphix → Button: Actions for City of Brass
+REMOVED "Dictate of Kruphix" from Section: Enchantments\n10 › 1 × Dictate of Kruphix › Button: Dictate of Kruphix [in 1 of 10 similar items (this one: 1 × Dictate of Kruphix); ask whether it applies to all]
+MOVED (added here, removed elsewhere) Path in Section: Enchantments\n10 › 1 × Dictate of Kruphix › Button: Dictate of Kruphix: v() path:d(M0,0L3.5,3.5L7,0) s(7,3.5) f[] st[(#B4B9C1,w(1.17),dashcap(r))]
+REMOVED Button: Actions for Dictate of Kruphix from Column 3 › Section: Enchantments\n10 › 1 × Dictate of Kruphix [in 1 of 10 similar items (this one: 1 × Dictate of Kruphix); ask whether it applies to all]
+REORDERED children of Column 3 › Section: Enchantments\n10 › 1 × Dictate of Kruphix: "1", Frame 3447, Button: Actions for City of Brass
+RENAMED layer 1 × Ghostly Prison → 1 × Command Tower
+CHANGED Column 3 › Section: Enchantments\n10 › 1 × Ghostly Prison: gap 2 → 6; padding none → 0,8,0,0; size s(26,hug) → s(fill,hug); opacity o(0.9) → none [in 1 of 10 similar items (this one: 1 × Ghostly Prison); ask whether it applies to all]
+REMOVED {2} from Column 3 › Section: Enchantments\n10 › 1 × Ghostly Prison [in 1 of 10 similar items (this one: 1 × Ghostly Prison); ask whether it applies to all]
+REMOVED {W} from Column 3 › Section: Enchantments\n10 › 1 × Ghostly Prison [in 1 of 10 similar items (this one: 1 × Ghostly Prison); ask whether it applies to all]
+MOVED (added here, removed elsewhere) Button: Command Tower in Column 3 › Section: Enchantments\n10 › 1 × Ghostly Prison: al(v) s(fill,hug) f[] clip
+CHANGED Section: Enchantments\n10 › 1 × Ghostly Prison › Button: Ghostly Prison: direction column → row; horizontal alignment none → c; vertical alignment none → c; size s(fill,hug) → s(24,24); clip content clip → none; corner radius none → rd(6) [in 1 of 10 similar items (this one: 1 × Ghostly Prison); ask whether it applies to all]
+RENAMED layer Button: Ghostly Prison → Button: Actions for Command Tower
+REMOVED "Ghostly Prison" from Section: Enchantments\n10 › 1 × Ghostly Prison › Button: Ghostly Prison [in 1 of 10 similar items (this one: 1 × Ghostly Prison); ask whether it applies to all]
+MOVED (added here, removed elsewhere) Path in Section: Enchantments\n10 › 1 × Ghostly Prison › Button: Ghostly Prison: v() path:d(M0,0L3.5,3.5L7,0) s(7,3.5) f[] st[(#B4B9C1,w(1.17),dashcap(r))]
+REMOVED Button: Actions for Ghostly Prison from Column 3 › Section: Enchantments\n10 › 1 × Ghostly Prison [in 1 of 10 similar items (this one: 1 × Ghostly Prison); ask whether it applies to all]
+REORDERED children of Column 3 › Section: Enchantments\n10 › 1 × Ghostly Prison: "1", Frame 3449, Button: Actions for Command Tower
+RENAMED layer 1 × Mana Flare → 1 × Exotic Orchard
+CHANGED Column 3 › Section: Enchantments\n10 › 1 × Mana Flare: gap 2 → 6; padding none → 0,8,0,0; size s(26,hug) → s(fill,hug); opacity o(0.9) → none [in 1 of 10 similar items (this one: 1 × Mana Flare); ask whether it applies to all]
+REMOVED {2} from Column 3 › Section: Enchantments\n10 › 1 × Mana Flare [in 1 of 10 similar items (this one: 1 × Mana Flare); ask whether it applies to all]
+REMOVED {R} from Column 3 › Section: Enchantments\n10 › 1 × Mana Flare [in 1 of 10 similar items (this one: 1 × Mana Flare); ask whether it applies to all]
+MOVED (added here, removed elsewhere) Button: Exotic Orchard in Column 3 › Section: Enchantments\n10 › 1 × Mana Flare: al(v) s(fill,hug) f[] clip
+CHANGED Section: Enchantments\n10 › 1 × Mana Flare › Button: Mana Flare: direction column → row; horizontal alignment none → c; vertical alignment none → c; size s(fill,hug) → s(24,24); clip content clip → none; corner radius none → rd(6) [in 1 of 10 similar items (this one: 1 × Mana Flare); ask whether it applies to all]
+RENAMED layer Button: Mana Flare → Button: Actions for Exotic Orchard
+REMOVED "Mana Flare" from Section: Enchantments\n10 › 1 × Mana Flare › Button: Mana Flare [in 1 of 10 similar items (this one: 1 × Mana Flare); ask whether it applies to all]
+MOVED (added here, removed elsewhere) Path in Section: Enchantments\n10 › 1 × Mana Flare › Button: Mana Flare: v() path:d(M0,0L3.5,3.5L7,0) s(7,3.5) f[] st[(#B4B9C1,w(1.17),dashcap(r))]
+REMOVED Button: Actions for Mana Flare from Column 3 › Section: Enchantments\n10 › 1 × Mana Flare [in 1 of 10 similar items (this one: 1 × Mana Flare); ask whether it applies to all]
+REORDERED children of Column 3 › Section: Enchantments\n10 › 1 × Mana Flare: "1", Frame 3451, Button: Actions for Exotic Orchard
+RENAMED layer 1 × Mystic Remora → 9 × Forest
+CHANGED Column 3 › Section: Enchantments\n10 › 1 × Mystic Remora: gap 2 → 6; padding none → 0,8,0,0; size s(12,hug) → s(fill,hug); opacity o(0.9) → none [in 1 of 10 similar items (this one: 1 × Mystic Remora); ask whether it applies to all]
+REMOVED {U} from Column 3 › Section: Enchantments\n10 › 1 × Mystic Remora [in 1 of 10 similar items (this one: 1 × Mystic Remora); ask whether it applies to all]
+MOVED (added here, removed elsewhere) Button: Forest in Column 3 › Section: Enchantments\n10 › 1 × Mystic Remora: al(v) s(fill,hug) f[] clip
+TEXT Column 3 › Section: Enchantments\n10 › 1 × Mystic Remora: "1" → "9" [in 1 of 10 similar items (this one: 1 × Mystic Remora); ask whether it applies to all]
+CHANGED Section: Enchantments\n10 › 1 × Mystic Remora › Button: Mystic Remora: direction column → row; horizontal alignment none → c; vertical alignment none → c; size s(fill,hug) → s(24,24); clip content clip → none; corner radius none → rd(6) [in 1 of 10 similar items (this one: 1 × Mystic Remora); ask whether it applies to all]
+RENAMED layer Button: Mystic Remora → Button: Actions for Forest
+REMOVED "Mystic Remora" from Section: Enchantments\n10 › 1 × Mystic Remora › Button: Mystic Remora [in 1 of 10 similar items (this one: 1 × Mystic Remora); ask whether it applies to all]
+MOVED (added here, removed elsewhere) Path in Section: Enchantments\n10 › 1 × Mystic Remora › Button: Mystic Remora: v() path:d(M0,0L3.5,3.5L7,0) s(7,3.5) f[] st[(#B4B9C1,w(1.17),dashcap(r))]
+REMOVED Button: Actions for Mystic Remora from Column 3 › Section: Enchantments\n10 › 1 × Mystic Remora [in 1 of 10 similar items (this one: 1 × Mystic Remora); ask whether it applies to all]
+REORDERED children of Column 3 › Section: Enchantments\n10 › 1 × Mystic Remora: "9", Frame 3453, Button: Actions for Forest
+RENAMED layer 1 × Propaganda → 1 × Hallowed Fountain
+CHANGED Column 3 › Section: Enchantments\n10 › 1 × Propaganda: gap 2 → 6; padding none → 0,8,0,0; size s(26,hug) → s(fill,hug); opacity o(0.9) → none [in 1 of 10 similar items (this one: 1 × Propaganda); ask whether it applies to all]
+REMOVED {2} from Column 3 › Section: Enchantments\n10 › 1 × Propaganda [in 1 of 10 similar items (this one: 1 × Propaganda); ask whether it applies to all]
+REMOVED {U} from Column 3 › Section: Enchantments\n10 › 1 × Propaganda [in 1 of 10 similar items (this one: 1 × Propaganda); ask whether it applies to all]
+MOVED (added here, removed elsewhere) Button: Hallowed Fountain in Column 3 › Section: Enchantments\n10 › 1 × Propaganda: al(v) s(fill,hug) f[] clip
+CHANGED Section: Enchantments\n10 › 1 × Propaganda › Button: Propaganda: direction column → row; horizontal alignment none → c; vertical alignment none → c; size s(fill,hug) → s(24,24); clip content clip → none; corner radius none → rd(6) [in 1 of 10 similar items (this one: 1 × Propaganda); ask whether it applies to all]
+RENAMED layer Button: Propaganda → Button: Actions for Hallowed Fountain
+REMOVED "Propaganda" from Section: Enchantments\n10 › 1 × Propaganda › Button: Propaganda [in 1 of 10 similar items (this one: 1 × Propaganda); ask whether it applies to all]
+MOVED (added here, removed elsewhere) Path in Section: Enchantments\n10 › 1 × Propaganda › Button: Propaganda: v() path:d(M0,0L3.5,3.5L7,0) s(7,3.5) f[] st[(#B4B9C1,w(1.17),dashcap(r))]
+REMOVED Button: Actions for Propaganda from Column 3 › Section: Enchantments\n10 › 1 × Propaganda [in 1 of 10 similar items (this one: 1 × Propaganda); ask whether it applies to all]
+REORDERED children of Column 3 › Section: Enchantments\n10 › 1 × Propaganda: "1", Frame 3455, Button: Actions for Hallowed Fountain
+RENAMED layer 1 × Rhystic Study → 6 × Island
+CHANGED Column 3 › Section: Enchantments\n10 › 1 × Rhystic Study: gap 2 → 6; padding none → 0,8,0,0; size s(26,hug) → s(fill,hug); opacity o(0.9) → none [in 1 of 10 similar items (this one: 1 × Rhystic Study); ask whether it applies to all]
+REMOVED {2} from Column 3 › Section: Enchantments\n10 › 1 × Rhystic Study [in 1 of 10 similar items (this one: 1 × Rhystic Study); ask whether it applies to all]
+REMOVED {U} from Column 3 › Section: Enchantments\n10 › 1 × Rhystic Study [in 1 of 10 similar items (this one: 1 × Rhystic Study); ask whether it applies to all]
+MOVED (added here, removed elsewhere) Button: Island in Column 3 › Section: Enchantments\n10 › 1 × Rhystic Study: al(v) s(fill,hug) f[] clip
+TEXT Column 3 › Section: Enchantments\n10 › 1 × Rhystic Study: "1" → "6" [in 1 of 10 similar items (this one: 1 × Rhystic Study); ask whether it applies to all]
+CHANGED Section: Enchantments\n10 › 1 × Rhystic Study › Button: Rhystic Study: direction column → row; horizontal alignment none → c; vertical alignment none → c; size s(fill,hug) → s(24,24); clip content clip → none; corner radius none → rd(6) [in 1 of 10 similar items (this one: 1 × Rhystic Study); ask whether it applies to all]
+RENAMED layer Button: Rhystic Study → Button: Actions for Island
+REMOVED "Rhystic Study" from Section: Enchantments\n10 › 1 × Rhystic Study › Button: Rhystic Study [in 1 of 10 similar items (this one: 1 × Rhystic Study); ask whether it applies to all]
+MOVED (added here, removed elsewhere) Path in Section: Enchantments\n10 › 1 × Rhystic Study › Button: Rhystic Study: v() path:d(M0,0L3.5,3.5L7,0) s(7,3.5) f[] st[(#B4B9C1,w(1.17),dashcap(r))]
+REMOVED Button: Actions for Rhystic Study from Column 3 › Section: Enchantments\n10 › 1 × Rhystic Study [in 1 of 10 similar items (this one: 1 × Rhystic Study); ask whether it applies to all]
+REORDERED children of Column 3 › Section: Enchantments\n10 › 1 × Rhystic Study: "6", Frame 3457, Button: Actions for Island
+RENAMED layer 1 × Rites of Flourishing → 1 × Mana Confluence
+CHANGED Column 3 › Section: Enchantments\n10 › 1 × Rites of Flourishing: gap 2 → 6; padding none → 0,8,0,0; size s(26,hug) → s(fill,hug); opacity o(0.9) → none [in 1 of 10 similar items (this one: 1 × Rites of Flourishing); ask whether it applies to all]
+REMOVED {2} from Column 3 › Section: Enchantments\n10 › 1 × Rites of Flourishing [in 1 of 10 similar items (this one: 1 × Rites of Flourishing); ask whether it applies to all]
+REMOVED {G} from Column 3 › Section: Enchantments\n10 › 1 × Rites of Flourishing [in 1 of 10 similar items (this one: 1 × Rites of Flourishing); ask whether it applies to all]
+MOVED (added here, removed elsewhere) Button: Mana Confluence in Column 3 › Section: Enchantments\n10 › 1 × Rites of Flourishing: al(v) s(fill,hug) f[] clip
+CHANGED Section: Enchantments\n10 › 1 × Rites of Flourishing › Button: Rites of Flourishing: direction column → row; horizontal alignment none → c; vertical alignment none → c; size s(fill,hug) → s(24,24); clip content clip → none; corner radius none → rd(6) [in 1 of 10 similar items (this one: 1 × Rites of Flourishing); ask whether it applies to all]
+RENAMED layer Button: Rites of Flourishing → Button: Actions for Mana Confluence
+REMOVED "Rites of Flourishing" from Section: Enchantments\n10 › 1 × Rites of Flourishing › Button: Rites of Flourishing [in 1 of 10 similar items (this one: 1 × Rites of Flourishing); ask whether it applies to all]
+MOVED (added here, removed elsewhere) Path in Section: Enchantments\n10 › 1 × Rites of Flourishing › Button: Rites of Flourishing: v() path:d(M0,0L3.5,3.5L7,0) s(7,3.5) f[] st[(#B4B9C1,w(1.17),dashcap(r))]
+REMOVED Button: Actions for Rites of Flourishing from Column 3 › Section: Enchantments\n10 › 1 × Rites of Flourishing [in 1 of 10 similar items (this one: 1 × Rites of Flourishing); ask whether it applies to all]
+REORDERED children of Column 3 › Section: Enchantments\n10 › 1 × Rites of Flourishing: "1", Frame 3459, Button: Actions for Mana Confluence
+RENAMED layer 1 × Smothering Tithe → 3 × Mountain
+CHANGED Column 3 › Section: Enchantments\n10 › 1 × Smothering Tithe: gap 2 → 6; padding none → 0,8,0,0; size s(26,hug) → s(fill,hug); opacity o(0.9) → none [in 1 of 10 similar items (this one: 1 × Smothering Tithe); ask whether it applies to all]
+REMOVED {3} from Column 3 › Section: Enchantments\n10 › 1 × Smothering Tithe [in 1 of 10 similar items (this one: 1 × Smothering Tithe); ask whether it applies to all]
+REMOVED {W} from Column 3 › Section: Enchantments\n10 › 1 × Smothering Tithe [in 1 of 10 similar items (this one: 1 × Smothering Tithe); ask whether it applies to all]
+MOVED (added here, removed elsewhere) Button: Mountain in Column 3 › Section: Enchantments\n10 › 1 × Smothering Tithe: al(v) s(fill,hug) f[] clip
+TEXT Column 3 › Section: Enchantments\n10 › 1 × Smothering Tithe: "1" → "3" [in 1 of 10 similar items (this one: 1 × Smothering Tithe); ask whether it applies to all]
+CHANGED Section: Enchantments\n10 › 1 × Smothering Tithe › Button: Smothering Tithe: direction column → row; horizontal alignment none → c; vertical alignment none → c; size s(fill,hug) → s(24,24); clip content clip → none; corner radius none → rd(6) [in 1 of 10 similar items (this one: 1 × Smothering Tithe); ask whether it applies to all]
+RENAMED layer Button: Smothering Tithe → Button: Actions for Mountain
+REMOVED "Smothering Tithe" from Section: Enchantments\n10 › 1 × Smothering Tithe › Button: Smothering Tithe [in 1 of 10 similar items (this one: 1 × Smothering Tithe); ask whether it applies to all]
+MOVED (added here, removed elsewhere) Path in Section: Enchantments\n10 › 1 × Smothering Tithe › Button: Smothering Tithe: v() path:d(M0,0L3.5,3.5L7,0) s(7,3.5) f[] st[(#B4B9C1,w(1.17),dashcap(r))]
+REMOVED Button: Actions for Smothering Tithe from Column 3 › Section: Enchantments\n10 › 1 × Smothering Tithe [in 1 of 10 similar items (this one: 1 × Smothering Tithe); ask whether it applies to all]
+REORDERED children of Column 3 › Section: Enchantments\n10 › 1 × Smothering Tithe: "3", Frame 3461, Button: Actions for Mountain
+RENAMED layer 1 × Sylvan Library → 1 × Overgrown Tomb
+CHANGED Column 3 › Section: Enchantments\n10 › 1 × Sylvan Library: gap 2 → 6; padding none → 0,8,0,0; size s(26,hug) → s(fill,hug); opacity o(0.9) → none [in 1 of 10 similar items (this one: 1 × Sylvan Library); ask whether it applies to all]
+REMOVED {1} from Column 3 › Section: Enchantments\n10 › 1 × Sylvan Library [in 1 of 10 similar items (this one: 1 × Sylvan Library); ask whether it applies to all]
+REMOVED {G} from Column 3 › Section: Enchantments\n10 › 1 × Sylvan Library [in 1 of 10 similar items (this one: 1 × Sylvan Library); ask whether it applies to all]
+MOVED (added here, removed elsewhere) Button: Overgrown Tomb in Column 3 › Section: Enchantments\n10 › 1 × Sylvan Library: al(v) s(fill,hug) f[] clip
+CHANGED Section: Enchantments\n10 › 1 × Sylvan Library › Button: Sylvan Library: direction column → row; horizontal alignment none → c; vertical alignment none → c; size s(fill,hug) → s(24,24); clip content clip → none; corner radius none → rd(6) [in 1 of 10 similar items (this one: 1 × Sylvan Library); ask whether it applies to all]
+RENAMED layer Button: Sylvan Library → Button: Actions for Overgrown Tomb
+REMOVED "Sylvan Library" from Section: Enchantments\n10 › 1 × Sylvan Library › Button: Sylvan Library [in 1 of 10 similar items (this one: 1 × Sylvan Library); ask whether it applies to all]
+MOVED (added here, removed elsewhere) Path in Section: Enchantments\n10 › 1 × Sylvan Library › Button: Sylvan Library: v() path:d(M0,0L3.5,3.5L7,0) s(7,3.5) f[] st[(#B4B9C1,w(1.17),dashcap(r))]
+REMOVED Button: Actions for Sylvan Library from Column 3 › Section: Enchantments\n10 › 1 × Sylvan Library [in 1 of 10 similar items (this one: 1 × Sylvan Library); ask whether it applies to all]
+REORDERED children of Column 3 › Section: Enchantments\n10 › 1 × Sylvan Library: "1", Frame 3463, Button: Actions for Overgrown Tomb
+MOVED (added here, removed elsewhere) 1 × Path of Ancestry in Main › Column 3 › Section: Enchantments\n10: al(h,y(c),g(8),pad(0,4,0,8)) s(fill,28) f[] rd(6)
+MOVED (added here, removed elsewhere) 6 × Plains in Main › Column 3 › Section: Enchantments\n10: al(h,y(c),g(8),pad(0,4,0,8)) s(fill,28) f[] rd(6)
+MOVED (added here, removed elsewhere) 1 × Reflecting Pool in Main › Column 3 › Section: Enchantments\n10: al(h,y(c),g(8),pad(0,4,0,8)) s(fill,28) f[] rd(6)
+MOVED (added here, removed elsewhere) 2 × Swamp in Main › Column 3 › Section: Enchantments\n10: al(h,y(c),g(8),pad(0,4,0,8)) s(fill,28) f[] rd(6)
+MOVED (added here, removed elsewhere) 1 × Temple Garden in Main › Column 3 › Section: Enchantments\n10: al(h,y(c),g(8),pad(0,4,0,8)) s(fill,28) f[] rd(6)
+REORDERED children of Row 1 › Main › Column 3: Section: Artifacts\n11, Section: Lands\n36
+REMOVED Section: Lands\n36 from Main › Row 1 › Main
+ADDED Sheet: Deck tools (expanded) in Main › Row 1 › Main: al(v) s(fill,hug) f[(#2B2D31)] st[(#46494F,w(1,0,0,0),pos(i))] rd(12,12,0,0)
+REMOVED "CARD AND STATS" from Main › Row 1 › Aside: Card and stats
+MOVED (added here, removed elsewhere) text "SELECTED CARD" in Main › Row 1 › Aside: Card and stats: t("SELECTED CARD",Inter,11.78,sb,align(l),lh(1.45),ls(0.94px),case(upper)) s(hug,17.09) f[(#B4B9C1)]
+REMOVED "SELECTED CARD" from Row 1 › Aside: Card and stats › Section: Selected card
+REMOVED "Pick a card in the deck or in the search to see it here." from Row 1 › Aside: Card and stats › Section: Selected card
+ADDED Card summary in Row 1 › Aside: Card and stats › Section: Selected card: al(v,g(12)) s(fill,hug) f[]
+ADDED Toggle: Mark as commander in Row 1 › Aside: Card and stats › Section: Selected card: al(h,x(sb),y(c),g(8),pad(9,13)) s(fill,39) f[(#383A40)] st[(#46494F,w(1,1,1,1),pos(i))] rd(6)
+ADDED Link: Buy @ TCGplayer\n$8.28 in Row 1 › Aside: Card and stats › Section: Selected card: al(h,x(sb),y(c),g(8),pad(7,13)) s(fill,35) f[(solid(#4E5BD9,o(0.5)))] st[(solid(#B1BAFF,o(0.4)),w(1,1,1,1),pos(i))] rd(6) shadow(o(0),y(0),b
+ADDED Card actions in Row 1 › Aside: Card and stats › Section: Selected card: al(v,g(6)) s(fill,hug) f[]
+REMOVED Section: MANA CURVE from Main › Row 1 › Aside: Card and stats
+REMOVED Section: untitled from Main › Row 1 › Aside: Card and stats
+CHANGED Main › Row 1 › Aside: Find cards: size s(300,fill) → s(fill,1036)
+RENAMED layer Aside: Find cards → Section: Find cards
+CHANGED Row 1 › Aside: Find cards › Section: Find cards: padding 0,1,0,0 → none; size s(fill,1036) → s(fill,hug); fill f[(#2B2D31)] → f[]; border st[(#46494F,w(0,1,0,0),pos(i))] → st[(#46494F,w(0,0,1,0),pos(i))]
+RENAMED layer Section: Find cards → Header
+CHANGED Aside: Find cards › Section: Find cards › Header: gap 10 → none; padding 16,16,17,16 → 0,16,1,16; size s(fill,hug) → s(fill,226.51); border st[(#46494F,w(0,0,1,0),pos(i))] → none
+CHANGED Aside: Find cards › Section: Find cards › Header: padding none → 8,0,0,0
+REMOVED Results view from Aside: Find cards › Section: Find cards › Header
+CHANGED Aside: Find cards › Section: Find cards › Header: direction row → column; vertical alignment c → none; gap 8 → 6; padding 1,11 → 8,0,0:$spacing.none,0; size s(fill,36) → s(267,hug); fill f[(#151619)] → f[]; border st[(#8B8F98,w(1,1,1,1),pos(i))] → none; corner radius rd(8) → none
+RENAMED layer Frame 3145 → Search
+REMOVED Search cards from Aside: Find cards › Section: Find cards › Header
+CHANGED Aside: Find cards › Section: Find cards › Header: direction column → row; gap 10 → 8; vertical alignment none → c; padding none → 8,0; size s(fill,hug) → s(155,hug); corner radius none → rd(6)
+RENAMED layer Frame 3146 → Button: Legal in Commander
+CHANGED Aside: Find cards › Section: Find cards › Header: horizontal alignment sb → c; gap 8 → none; padding none → 1; size s(fill,hug) → s(16,16); fill f[] → f[(#B1BAFF)]; border none → st[(#B1BAFF,w(1,1,1,1),pos(i))]; corner radius none → rd(3)
+REMOVED Colours from Aside: Find cards › Section: Find cards › Header
+REMOVED Frame 3148 from Aside: Find cards › Section: Find cards › Header
+ADDED Path in Aside: Find cards › Section: Find cards › Header: v() path:d(M0,2.7L2.5,5L7,0) s(7,5) f[] st[(#121318,w(1.8),dashcap(r))]
+REMOVED Card types from Aside: Find cards › Section: Find cards › Header
+REMOVED Frame 3149 from Aside: Find cards › Section: Find cards › Header
+REMOVED Frame 3150 from Aside: Find cards › Section: Find cards › Header
+MOVED (added here, removed elsewhere) text "Legal in Commander" in Aside: Find cards › Section: Find cards › Header: t("Legal in Commander",Inter,13.39,r,align(l),lh(1.45)) s(hug,hug) f[(#D0D3D8)]
+MOVED (added here, removed elsewhere) Colours in Aside: Find cards › Section: Find cards › Header: al(h,x(sb),y(c),g(8),pad(0,0,10,0)) s(267,hug) f[] st[(#46494F,w(0,0,1,0),pos(i))]
+MOVED (added here, removed elsewhere) Filters in Aside: Find cards › Section: Find cards › Header: al(v,g(10),pad(12,0,16,0)) s(267,hug) f[]
+CHANGED Aside: Find cards › Section: Find cards › Search results: direction row → column; horizontal alignment c → none; vertical alignment c → none; padding 0,24 → 0,12,12,12; size s(fill,721) → s(fill,hug); clip content none → clip
+RENAMED layer Search results → Card details
+REMOVED "Type a card name or pick a filter. Scryfall syntax works too." from Aside: Find cards › Section: Find cards › Search results
+ADDED Button: Hide card details in Aside: Find cards › Section: Find cards › Search results: al(h,x(sb),y(c),g(8),pad(12,13,12,0)) s(fill,hug) f[] st[(#46494F,w(9),w(1,0,0,0),pos(i))]
+ADDED More filters in Aside: Find cards › Section: Find cards › Search results: al(v,g(16)) s(fill,hug) f[]
+REMOVED Footer from Row 1 › Aside: Find cards › Section: Find cards
+ADDED Search results in Main › Row 1 › Aside: Find cards: al(v,g(2)) s(fill,fill) f[]
