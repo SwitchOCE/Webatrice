@@ -1,6 +1,6 @@
 import { act, renderHook } from '@testing-library/react';
 import { combineReducers } from '@reduxjs/toolkit';
-import type { ReactNode } from 'react';
+import { useLayoutEffect, type ReactNode } from 'react';
 import { MemoryRouter } from 'react-router-dom';
 
 import { server } from '@cockatrice/datatrice';
@@ -44,7 +44,7 @@ function cachedDeck(name: string, card: string): HydratedDeck {
 const deckA = cachedDeck('Alpha', 'Island');
 const deckB = cachedDeck('Bravo', 'Mountain');
 
-function setup(deckId: number | null = 1, draftToken: string | null = null) {
+function setup(deckId: number | null = 1, draftToken: string | null = null, onCommit?: () => void) {
   const webClient = createMockWebClient();
   const { Wrapper, store } = makeReduxWebClientHookWrapper<RootState>({
     reducer: combineReducers(rootReducerMap), preloadedState: connectedState as RootState, webClient,
@@ -55,6 +55,7 @@ function setup(deckId: number | null = 1, draftToken: string | null = null) {
   const hook = renderHook(({ deckId, draftToken }) => {
     const editor = useDeckEditor(deckId, draftToken);
     const pricing = useDeckPricing(editor.deck, editor.setPriceCache);
+    useLayoutEffect(() => onCommit?.(), [deckId, draftToken]);
     return { editor, pricing };
   }, { wrapper, initialProps: { deckId, draftToken } });
   const open = (deckId: number | null, draftToken: string | null = null) => hook.rerender({ deckId, draftToken });
@@ -65,6 +66,7 @@ beforeEach(() => {
   vi.useFakeTimers();
   clearDeckEditorCache();
   vi.mocked(lookupCard).mockReset();
+  vi.mocked(fetchPricesForCards).mockClear();
   setCachedDeck(1, { deck: deckA, savedSignature: deckSaveSignature(deckA) });
   setCachedDeck(2, { deck: deckB, savedSignature: deckSaveSignature(deckB) });
 });
@@ -72,6 +74,24 @@ beforeEach(() => {
 afterEach(() => vi.useRealTimers());
 
 describe('useDeckEditor add-card lookups', () => {
+  it('aborts a stale lookup during the deck-switch commit before passive effects', async () => {
+    const lookup = deferredLookup();
+    vi.mocked(lookupCard).mockReturnValue(lookup.promise);
+    const abortedAtCommit: (boolean | undefined)[] = [];
+    const { result, open } = setup(1, null, () => {
+      abortedAtCommit.push(vi.mocked(lookupCard).mock.calls[0]?.[1]?.aborted);
+    });
+    let adding!: Promise<void>;
+    act(() => {
+      adding = result.current.editor.addCard('Mox');
+    });
+    open(2);
+    expect(abortedAtCommit).toEqual([undefined, true]);
+    await act(async () => {
+      lookup.resolve(); await adding;
+    });
+  });
+
   it.each([false, true])('drops a stale lookup after a cached switch (return to original: %s)', async (returnToOriginal) => {
     const lookup = deferredLookup();
     vi.mocked(lookupCard).mockReturnValue(lookup.promise);
@@ -85,7 +105,8 @@ describe('useDeckEditor add-card lookups', () => {
       open(1);
     }
     expect(result.current.pricing.loading).toBe(true);
-    expect(fetchPricesForCards).toHaveBeenCalled();
+    expect(fetchPricesForCards).toHaveBeenCalledTimes(returnToOriginal ? 3 : 2);
+    expect(fetchPricesForCards).toHaveBeenLastCalledWith(returnToOriginal ? deckA.cards : deckB.cards, expect.any(Function));
     await act(async () => {
       lookup.resolve(); await adding;
     });

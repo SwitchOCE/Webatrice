@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { useStore } from 'react-redux';
 import { useTranslation } from 'react-i18next';
 import { generatePath, useNavigate } from 'react-router-dom';
@@ -211,7 +211,7 @@ export function useDeckEditor(deckId: number | null, draftToken: string | null =
     setLoadError(null);
   }
 
-  useEffect(() => {
+  useLayoutEffect(() => {
     if (sessionIdentityRef.current !== identity) {
       if (deckId == null || storedHandoffRef.current !== deckId) {
         generationRef.current++;
@@ -588,7 +588,9 @@ export function useDeckEditor(deckId: number | null, draftToken: string | null =
   );
 
   const applyAddEditRef = useRef(applyEdit);
-  applyAddEditRef.current = applyEdit;
+  useLayoutEffect(() => {
+    applyAddEditRef.current = applyEdit;
+  }, [applyEdit]);
   const addCard = useCallback(
     async (name: string, options: AddCardOptions = {}) => {
       const trimmed = normalizeAddedCardName(name);
