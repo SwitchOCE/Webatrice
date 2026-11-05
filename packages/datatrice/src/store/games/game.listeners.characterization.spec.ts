@@ -1064,6 +1064,30 @@ describe('game listeners: branch recordings', () => {
       expect(games().games[1].players[BOB].zones.table.byId[10]).toBeUndefined();
     });
 
+    it('keeps both cards when an unconfirmed cross-player echo lands on a table with the same id', () => {
+      const state = scriptedState();
+      game(state).players[ALICE].zones.table = table([makeCard({ id: 5, name: 'Grizzly Bears', x: 0 })]);
+      game(state).players[BOB].zones.table = table([makeCard({ id: 5, name: 'Gray Ogre', x: 0 })]);
+      const { play, games } = makeRecordingStore(state);
+
+      play(Actions.cardMoved({
+        gameId: 1, playerId: ALICE,
+        data: move({
+          cardId: 5, startZone: 'table', targetPlayerId: BOB, targetZone: 'table', x: 3, newCardId: 130,
+        }),
+      }));
+
+      const aliceTable = games().games[1].players[ALICE].zones.table;
+      const bobTable = games().games[1].players[BOB].zones.table;
+      expect(aliceTable.order).toEqual([]);
+      expect(aliceTable.byId).toEqual({});
+      expect(bobTable.order).toEqual([5, 130]);
+      expect(bobTable.order.length).toBe(Object.keys(bobTable.byId).length);
+      expect(bobTable.byId[5].name).toBe('Gray Ogre');
+      expect(bobTable.byId[130].name).toBe('Grizzly Bears');
+      expect(bobTable.cardCount).toBe(2);
+    });
+
     it('patches the server-corrected position of an optimistic move in place', () => {
       const state = scriptedState();
       game(state).players[ALICE].zones.hand = publicZone('hand', [makeCard({ id: 21, name: 'Island' })]);

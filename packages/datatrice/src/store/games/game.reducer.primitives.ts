@@ -124,6 +124,11 @@ export const primitiveReducers = {
       return;
     }
 
+    const movesWithinZone = sourceZone === targetZone && card.id === fromCardId;
+    if (!movesWithinZone && targetZone.byId[card.id]) {
+      return;
+    }
+
     if (fromCardId >= 0) {
       const idx = sourceZone.order.indexOf(fromCardId);
       if (idx >= 0) {

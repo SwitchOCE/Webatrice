@@ -1,5 +1,6 @@
 import { act } from '@testing-library/react';
 import { ZoneName } from '@cockatrice/sockatrice';
+import { games } from '@cockatrice/datatrice';
 import { makeCard, makeZoneEntry } from '@cockatrice/datatrice/testing';
 import { renderSeatHook, type SeatGameSpec } from '../../../__test-utils__/seatFixtures';
 import { resolveBattlefieldDropX } from './useMoveCard';
@@ -185,6 +186,32 @@ describe('usePlayerZoneCommands — gifts', () => {
       targetZone: ZoneName.TABLE,
     })));
     expect(vi.mocked(utils.game.moveCard).mock.calls[0][1]).toMatchObject({ targetPlayerId: 2, x: 1, y: 0 });
+  });
+});
+
+describe('usePlayerZoneCommands — cross-player moves', () => {
+  const collidingSpec: SeatGameSpec = {
+    ...SPEC,
+    seats: [
+      { playerId: 1, table: [makeCard({ id: 5, name: 'Mine', x: 0, y: 0 })] },
+      { playerId: 2, table: [makeCard({ id: 5, name: 'Theirs', x: 0, y: 0 })] },
+    ],
+  };
+
+  it('only sends the command, leaving both tables and the pending registry alone until the echo', () => {
+    const utils = renderSeatHook(() => usePlayerZoneCommands(1), collidingSpec);
+    const before = utils.store.getState().games;
+
+    act(() => utils.result()!.move(move({
+      startZone: ZoneName.TABLE,
+      cardsToMove: { card: [{ cardId: 5 }] },
+      targetPlayerId: 2,
+      targetZone: ZoneName.TABLE,
+    })));
+
+    expect(utils.store.getState().games).toBe(before);
+    expect(games.isOptimisticPending(games.moveOpKey(1, 5))).toBe(false);
+    expect(vi.mocked(utils.game.moveCard)).toHaveBeenCalledTimes(1);
   });
 });
 

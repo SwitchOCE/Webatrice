@@ -49,6 +49,53 @@ describe('cardMovedBetweenZones', () => {
     expect(result.games[1].players[1].zones['table'].cardCount).toBe(1);
   });
 
+  it('refuses a move that would overwrite a card already in the target zone', () => {
+    const mine = makeCard({ id: 5, name: 'Mine' });
+    const theirs = makeCard({ id: 5, name: 'Theirs' });
+    const state = makeState({
+      games: {
+        1: makeGameEntry({
+          players: {
+            1: makePlayerEntry({ zones: { table: makeZoneEntry({ name: 'table', cards: [mine], cardCount: 1 }) } }),
+            2: makePlayerEntry({ zones: { table: makeZoneEntry({ name: 'table', cards: [theirs], cardCount: 1 }) } }),
+          },
+        }),
+      },
+    });
+
+    const result = gamesReducer(state, Actions.cardMovedBetweenZones({
+      gameId: 1,
+      fromPlayerId: 1, fromZone: 'table', fromCardId: 5,
+      toPlayerId: 2, toZone: 'table', card: mine,
+    }));
+
+    expect(result).toEqual(state);
+  });
+
+  it('still moves a card to a new spot in its own zone', () => {
+    const card = makeCard({ id: 5, x: 0 });
+    const state = makeState({
+      games: {
+        1: makeGameEntry({
+          players: {
+            1: makePlayerEntry({ zones: { table: makeZoneEntry({ name: 'table', cards: [card], cardCount: 1 }) } }),
+          },
+        }),
+      },
+    });
+
+    const result = gamesReducer(state, Actions.cardMovedBetweenZones({
+      gameId: 1,
+      fromPlayerId: 1, fromZone: 'table', fromCardId: 5,
+      toPlayerId: 1, toZone: 'table', card: makeCard({ id: 5, x: 6 }),
+    }));
+
+    const zone = result.games[1].players[1].zones['table'];
+    expect(zone.order).toEqual([5]);
+    expect(zone.byId[5].x).toBe(6);
+    expect(zone.cardCount).toBe(1);
+  });
+
   it('hidden-zone path: fromCardId = -1 decrements cardCount without touching byId/order', () => {
     const state = makeState({
       games: {

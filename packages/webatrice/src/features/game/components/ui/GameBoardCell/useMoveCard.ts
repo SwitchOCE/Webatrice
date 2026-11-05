@@ -93,7 +93,7 @@ export function useMoveCard(gameId: number | undefined): ((params: MoveCardParam
 
       const cardIdsFromParams = cardsToMove?.card ?? [];
       const isHiddenSource = startZone === ZoneName.DECK || startZone === ZoneName.SIDEBOARD;
-      if (isHiddenSource || cardIdsFromParams.length !== 1) {
+      if (isHiddenSource || cardIdsFromParams.length !== 1 || startPlayerId !== targetPlayerId) {
         game.moveCard(gameId, params);
         return;
       }
