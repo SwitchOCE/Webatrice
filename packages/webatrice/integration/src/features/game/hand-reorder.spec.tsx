@@ -99,7 +99,7 @@ describe('Hand drag reorder', () => {
     deliverEcho(101, 1);
 
     expect(handOrder()).toEqual(['102', '101', '103']);
-    expect(games.isOptimisticPending(games.moveOpKey(1, 101))).toBe(false);
+    expect(games.isOptimisticPending(games.moveOpKey(42, 1, 101))).toBe(false);
   });
 
   it('sends the card\'s own index when it is dropped on its own slot', async () => {

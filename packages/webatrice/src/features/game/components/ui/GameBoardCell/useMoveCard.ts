@@ -113,7 +113,7 @@ export function useMoveCard(gameId: number | undefined): ((params: MoveCardParam
         return;
       }
 
-      const sameZone = startPlayerId === targetPlayerId && startZone === targetZone;
+      const sameZone = startZone === targetZone;
       const isPositionalReorderZone =
         targetZone === ZoneName.HAND
         || targetZone === ZoneName.STACK
@@ -133,8 +133,9 @@ export function useMoveCard(gameId: number | undefined): ((params: MoveCardParam
           counterList: [],
         }
         : { ...sourceCard, x, y };
-      const opKey = games.moveOpKey(startPlayerId, cardId);
+      const opKey = games.moveOpKey(gameId, startPlayerId, cardId);
 
+      let token: ReturnType<typeof games.beginOptimistic>;
       if (sameZone && isPositionalReorderZone) {
         dispatch(games.Actions.cardMovedInSameZone({
           gameId,
@@ -144,7 +145,7 @@ export function useMoveCard(gameId: number | undefined): ((params: MoveCardParam
           toIndex: x,
           card: optimisticCard,
         }));
-        games.beginOptimistic(opKey, () => {
+        token = games.beginOptimistic(opKey, () => {
           dispatch(games.Actions.cardMovedInSameZone({
             gameId,
             playerId: startPlayerId,
@@ -153,7 +154,7 @@ export function useMoveCard(gameId: number | undefined): ((params: MoveCardParam
             toIndex: sourceIndex,
             card: sourceCard,
           }));
-        });
+        }, targetZone);
       } else {
         dispatch(games.Actions.cardMovedBetweenZones({
           gameId,
@@ -164,7 +165,7 @@ export function useMoveCard(gameId: number | undefined): ((params: MoveCardParam
           toZone: targetZone,
           card: optimisticCard,
         }));
-        games.beginOptimistic(opKey, () => {
+        token = games.beginOptimistic(opKey, () => {
           dispatch(games.Actions.cardMovedBetweenZones({
             gameId,
             fromPlayerId: targetPlayerId,
@@ -174,13 +175,16 @@ export function useMoveCard(gameId: number | undefined): ((params: MoveCardParam
             toZone: startZone,
             card: sourceCard,
           }));
-        });
+          dispatch(games.Actions.cardMovedInSameZone({
+            gameId, playerId: startPlayerId, zoneName: startZone, cardId, toIndex: sourceIndex, card: sourceCard,
+          }));
+        }, targetZone);
       }
 
       game.moveCard(gameId, params, undefined, {
         onError: (responseCode) => {
           console.warn(`Command_MoveCard rejected with code ${responseCode}; rolling back cardId ${cardId}`);
-          games.rollbackOptimistic(opKey);
+          games.rollbackOptimistic(opKey, token);
         },
       });
     };

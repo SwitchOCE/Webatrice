@@ -210,7 +210,7 @@ describe('usePlayerZoneCommands — cross-player moves', () => {
     })));
 
     expect(utils.store.getState().games).toBe(before);
-    expect(games.isOptimisticPending(games.moveOpKey(1, 5))).toBe(false);
+    expect(games.isOptimisticPending(games.moveOpKey(1, 1, 5))).toBe(false);
     expect(vi.mocked(utils.game.moveCard)).toHaveBeenCalledTimes(1);
   });
 });

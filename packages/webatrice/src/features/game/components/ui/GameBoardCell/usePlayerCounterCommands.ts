@@ -23,7 +23,7 @@ export function usePlayerCounterCommands(playerId: number): PlayerCounterCommand
     }
     const game = webClient.request.game;
     const applyCounter = (counterId: number, value: number) =>
-      dispatch(games.Actions.counterSet({
+      dispatch(games.Actions.counterValueUpdated({
         gameId,
         playerId,
         data: create(Event_SetCounterSchema, { counterId, value }),
@@ -33,22 +33,26 @@ export function usePlayerCounterCommands(playerId: number): PlayerCounterCommand
 
     return {
       increment: (counterId, delta) => {
-        const previousValue = currentCount(counterId);
-        applyCounter(counterId, previousValue + delta);
+        const key = games.counterOpKey(gameId, playerId, counterId);
+        const token = games.beginOptimisticValue(
+          key, currentCount(counterId), value => value + delta, value => applyCounter(counterId, value),
+        );
         game.incCounter(gameId, { counterId, delta }, {
           onError: (code) => {
-            console.warn(`incCounter rejected (${code}); rolling back counter ${counterId} to ${previousValue}`);
-            applyCounter(counterId, previousValue);
+            console.warn(`incCounter rejected (${code}); rolling back counter ${counterId}`);
+            games.rollbackOptimistic(key, token);
           },
         });
       },
       set: (counterId, value) => {
-        const previousValue = currentCount(counterId);
-        applyCounter(counterId, value);
+        const key = games.counterOpKey(gameId, playerId, counterId);
+        const token = games.beginOptimisticValue(
+          key, currentCount(counterId), () => value, value => applyCounter(counterId, value),
+        );
         game.setCounter(gameId, { counterId, value }, {
           onError: (code) => {
-            console.warn(`setCounter rejected (${code}); rolling back counter ${counterId} to ${previousValue}`);
-            applyCounter(counterId, previousValue);
+            console.warn(`setCounter rejected (${code}); rolling back counter ${counterId}`);
+            games.rollbackOptimistic(key, token);
           },
         });
       },

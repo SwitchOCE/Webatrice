@@ -34,7 +34,7 @@ import { gamesReducer } from './game.reducer';
 import { GamesState } from './game.interfaces';
 import { Actions } from './game.actions';
 import { registerGameListeners } from './game.listeners';
-import { beginOptimistic, consumeOptimistic, moveOpKey } from './optimistic';
+import { beginOptimistic, clearOptimistic, isOptimisticPending, moveOpKey } from './optimistic';
 import {
   makeArrow,
   makeCard,
@@ -258,13 +258,18 @@ describe('game listeners: registration', () => {
       'games/cardMoved',
       'games/cardsDrawn',
       'games/cardsRevealed',
+      'games/clearStore',
       'games/counterSet',
+      'games/gameClosed',
+      'games/gameLeft',
       'games/gameStateChanged',
+      'games/kicked',
       'games/playerJoined',
       'games/playerLeft',
       'games/playerPropertiesChanged',
       'games/tokenCreated',
       'games/turnReversed',
+      'server/disconnected',
     ]);
   });
 });
@@ -896,6 +901,15 @@ describe('game listeners: scripted event stream', () => {
           [
             "counterSet",
             {
+              "counterValueUpdated": {
+                "data": {
+                  "counterId": 1,
+                  "value": 17,
+                },
+                "playerId": 1,
+              },
+            },
+            {
               "gameMessageAppended": {
                 "message": "Alice sets counter Life to 17 (-3).",
                 "playerId": 1,
@@ -986,82 +1000,28 @@ describe('game listeners: branch recordings', () => {
   }
 
   describe('cardMoved', () => {
-    afterEach(() => {
-      consumeOptimistic(moveOpKey(ALICE, 10));
-      consumeOptimistic(moveOpKey(ALICE, 20));
-      consumeOptimistic(moveOpKey(ALICE, 21));
-    });
+    afterEach(() => clearOptimistic());
 
-    it('migrates an optimistic cross-player move to the server id, keeping client-only fields', () => {
+    it('migrates an optimistic face-down same-player move to the server id, keeping client-only fields', () => {
       const state = scriptedState();
-      const bears = game(state).players[ALICE].zones.table.byId[10];
-      game(state).players[ALICE].zones.table = table([]);
-      game(state).players[BOB].zones.table = table([
-        makeCard({ id: 30, name: 'Gray Ogre', x: 0 }),
-        makeCard({ ...bears, x: 3, annotation: 'Owner: Alice' }),
+      const bolt = game(state).players[ALICE].zones.hand.byId[20];
+      game(state).players[ALICE].zones.hand = publicZone('hand', []);
+      game(state).players[ALICE].zones.table = table([
+        makeCard({ ...bolt, x: 3, annotation: 'Owner: Alice' }),
       ]);
-      beginOptimistic(moveOpKey(ALICE, 10), () => {});
+      beginOptimistic(moveOpKey(1, ALICE, 20), () => {}, 'table');
       const { play, games } = makeRecordingStore(state);
 
-      const recorded = play(Actions.cardMoved({
+      play(Actions.cardMoved({
         gameId: 1, playerId: ALICE,
-        data: move({
-          cardId: 10, startZone: 'table', targetPlayerId: BOB, targetZone: 'table', x: 4, newCardId: 70,
-        }),
+        data: move({ cardId: 20, startZone: 'hand', targetZone: 'table', x: 4, newCardId: 70, faceDown: true }),
       }));
 
-      expect(recorded).toMatchInlineSnapshot(`
-        [
-          "cardMoved",
-          {
-            "cardRemovedFromZone": {
-              "cardId": 10,
-              "playerId": 2,
-              "zoneName": "table",
-            },
-          },
-          {
-            "cardInsertedIntoZone": {
-              "card": "#70 Grizzly Bears x=4 y=0 annotation=Owner: Alice",
-              "playerId": 2,
-              "zoneName": "table",
-            },
-          },
-          {
-            "arrowDeleted": {
-              "data": {
-                "arrowId": 1,
-              },
-              "playerId": 1,
-            },
-          },
-          {
-            "arrowDeleted": {
-              "data": {
-                "arrowId": 2,
-              },
-              "playerId": 2,
-            },
-          },
-          {
-            "cardAttachmentReparented": {
-              "fromCardId": 10,
-              "fromPlayerId": 1,
-              "toCardId": 70,
-              "toPlayerId": 2,
-            },
-          },
-          {
-            "gameMessageAppended": {
-              "message": "Alice gives Bob control over a card.",
-              "playerId": 1,
-            },
-          },
-        ]
-      `);
-      const migrated = games().games[1].players[BOB].zones.table.byId[70];
-      expect(migrated.annotation).toBe('Owner: Alice');
-      expect(games().games[1].players[BOB].zones.table.byId[10]).toBeUndefined();
+      const zone = games().games[1].players[ALICE].zones.table;
+      expect(zone.byId[70]).toMatchObject({ name: 'Lightning Bolt', annotation: 'Owner: Alice', faceDown: true, x: 4 });
+      expect(zone.byId[20]).toBeUndefined();
+      expect(zone.order).toEqual([70]);
+      expect(zone.cardCount).toBe(1);
     });
 
     it('keeps both cards when an unconfirmed cross-player echo lands on a table with the same id', () => {
@@ -1095,7 +1055,7 @@ describe('game listeners: branch recordings', () => {
         makeCard({ id: 10, name: 'Grizzly Bears', x: 0 }),
         makeCard({ id: 20, name: 'Lightning Bolt', x: 0 }),
       ]);
-      beginOptimistic(moveOpKey(ALICE, 20), () => {});
+      beginOptimistic(moveOpKey(1, ALICE, 20), () => {}, 'table');
       const { play } = makeRecordingStore(state);
 
       expect(play(Actions.cardMoved({
@@ -1127,7 +1087,7 @@ describe('game listeners: branch recordings', () => {
     });
 
     it('consumes the optimistic marker of a same-zone reorder and still re-applies it', () => {
-      beginOptimistic(moveOpKey(ALICE, 21), () => {});
+      beginOptimistic(moveOpKey(1, ALICE, 21), () => {}, 'hand');
       const { play } = makeRecordingStore(scriptedState());
 
       expect(play(Actions.cardMoved({
@@ -1147,7 +1107,7 @@ describe('game listeners: branch recordings', () => {
           },
         ]
       `);
-      expect(consumeOptimistic(moveOpKey(ALICE, 21))).toBe(false);
+      expect(isOptimisticPending(moveOpKey(1, ALICE, 21))).toBe(false);
     });
 
     it.each([ZoneName.HAND, ZoneName.STACK, ZoneName.GRAVE, ZoneName.EXILE])('reorders %s in place', (zoneName) => {
@@ -1156,7 +1116,7 @@ describe('game listeners: branch recordings', () => {
         makeCard({ id: 20, name: 'Lightning Bolt' }),
         makeCard({ id: 21, name: 'Island' }),
       ]);
-      beginOptimistic(moveOpKey(ALICE, 21), () => {});
+      beginOptimistic(moveOpKey(1, ALICE, 21), () => {}, zoneName);
       const { play, games } = makeRecordingStore(state);
 
       const recorded = play(Actions.cardMoved({
@@ -1168,7 +1128,7 @@ describe('game listeners: branch recordings', () => {
         cardMovedInSameZone: { card: '#21 Island x=0 y=0', cardId: 21, playerId: ALICE, toIndex: 0, zoneName },
       });
       expect(recorded).not.toContainEqual(expect.objectContaining({ cardMovedBetweenZones: expect.anything() }));
-      expect(consumeOptimistic(moveOpKey(ALICE, 21))).toBe(false);
+      expect(isOptimisticPending(moveOpKey(1, ALICE, 21))).toBe(false);
       expect(games().games[1].players[ALICE].zones[zoneName].order).toEqual([21, 20]);
     });
 

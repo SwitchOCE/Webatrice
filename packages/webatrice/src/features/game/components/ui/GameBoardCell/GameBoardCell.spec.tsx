@@ -341,7 +341,7 @@ describe('GameBoardCell — library, zone and reveal commands', () => {
 });
 
 describe('GameBoardCell — card commands', () => {
-  it('taps optimistically per card, skips the optimistic step when already in state, and rolls back on error', () => {
+  it('tracks each tap request per card and rolls back the rejected operation', () => {
     const { commands, game, store } = renderCell();
     act(() => commands().card.setTapped([10, 11], true));
 
@@ -352,7 +352,7 @@ describe('GameBoardCell — card commands', () => {
       { zone: ZoneName.TABLE, cardId: 11, attribute: CardAttribute.AttrTapped, attrValue: '1' },
     ]);
     expect(calls[0][3]).toEqual({ onError: expect.any(Function) });
-    expect(calls[1]).toHaveLength(2);
+    expect(calls[1][3]).toEqual({ onError: expect.any(Function) });
 
     vi.spyOn(console, 'warn').mockImplementation(() => undefined);
     act(() => calls[0][3]!.onError!(1, {} as never));

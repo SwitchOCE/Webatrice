@@ -5,6 +5,9 @@ export { Selectors, seatedPlayersOf } from './game.selectors';
 export { registerGameListeners } from './game.listeners';
 export {
   beginOptimistic,
+  beginOptimisticValue,
+  clearOptimistic,
+  counterOpKey,
   isOptimisticPending,
   consumeOptimistic,
   rollbackOptimistic,

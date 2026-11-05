@@ -1,51 +1,132 @@
+type Token = symbol;
+type MoveOperation = { token: Token; rollback: () => void; destination: string };
+type ValueOperation = { token: Token; apply: (value: number) => number };
+type MoveEntry = { kind: 'move'; operations: MoveOperation[] };
+type ValueEntry = {
+  kind: 'value';
+  confirmed: number;
+  operations: ValueOperation[];
+  write: (value: number) => void;
+};
 
-type RollbackFn = () => void;
+const pendingOps = new Map<string, MoveEntry | ValueEntry>();
 
-const pendingOps = new Map<string, RollbackFn>();
-
-/** Register an optimistic op and its rollback closure. Overwrites any
- *  existing entry for the same key — the newer intent replaces the
- *  older one (matches the behavior of clicking twice rapidly). */
-export function beginOptimistic(key: string, rollback: RollbackFn): void {
-  pendingOps.set(key, rollback);
+export function beginOptimistic(key: string, rollback: () => void, destination: string): Token {
+  const token = Symbol();
+  const existing = pendingOps.get(key);
+  const entry: MoveEntry = existing?.kind === 'move' ? existing : { kind: 'move', operations: [] };
+  entry.operations.push({ token, rollback, destination });
+  pendingOps.set(key, entry);
+  return token;
 }
 
-/** Non-mutating check — returns true if a pending op exists for the
- *  key. Used by the listener middleware to decide whether to skip the
- *  reducer dispatch on the server-side echo. */
 export function isOptimisticPending(key: string): boolean {
   return pendingOps.has(key);
 }
 
-/** Remove the entry without invoking the rollback. Called by the
- *  listener middleware when the server-side echo confirms the change —
- *  the optimistic state is now the authoritative state, so the
- *  bookkeeping entry is no longer needed. */
-export function consumeOptimistic(key: string): boolean {
-  return pendingOps.delete(key);
+export function consumeOptimistic(key: string, destination: string): 'none' | 'pending' | 'confirmed' | 'remote' {
+  const entry = pendingOps.get(key);
+  if (entry?.kind !== 'move') {
+    return 'none';
+  }
+  if (entry.operations[0].destination !== destination) {
+    pendingOps.delete(key);
+    return 'remote';
+  }
+  entry.operations.shift();
+  if (entry.operations.length) {
+    return 'pending';
+  }
+  pendingOps.delete(key);
+  return 'confirmed';
 }
 
-/** Roll back and remove. Called from the wire layer's `onError`
- *  callback when the server rejects the command. */
-export function rollbackOptimistic(key: string): void {
-  const rollback = pendingOps.get(key);
-  if (rollback) {
-    rollback();
+function displayedValue(entry: ValueEntry): number {
+  return entry.operations.reduce((value, operation) => operation.apply(value), entry.confirmed);
+}
+
+export function beginOptimisticValue(
+  key: string,
+  confirmed: number,
+  apply: (value: number) => number,
+  write: (value: number) => void,
+): Token {
+  const token = Symbol();
+  const existing = pendingOps.get(key);
+  const entry: ValueEntry = existing?.kind === 'value'
+    ? existing
+    : { kind: 'value', confirmed, operations: [], write };
+  entry.operations.push({ token, apply });
+  pendingOps.set(key, entry);
+  entry.write(displayedValue(entry));
+  return token;
+}
+
+export function confirmedOptimisticValue(key: string): number | undefined {
+  const entry = pendingOps.get(key);
+  return entry?.kind === 'value' ? entry.confirmed : undefined;
+}
+
+export function confirmOptimisticValue(key: string, value: number): number {
+  const entry = pendingOps.get(key);
+  if (entry?.kind !== 'value') {
+    return value;
+  }
+  entry.confirmed = value;
+  entry.operations.shift();
+  const displayed = displayedValue(entry);
+  if (!entry.operations.length) {
     pendingOps.delete(key);
+  }
+  return displayed;
+}
+
+export function rollbackOptimistic(key: string, token: Token): void {
+  const entry = pendingOps.get(key);
+  if (!entry) {
+    return;
+  }
+  const index = entry.operations.findIndex(operation => operation.token === token);
+  if (index < 0) {
+    return;
+  }
+  if (entry.kind === 'value') {
+    entry.operations.splice(index, 1);
+    if (!entry.operations.length) {
+      pendingOps.delete(key);
+    }
+    entry.write(displayedValue(entry));
+  } else {
+    const removed = entry.operations.splice(index);
+    if (!entry.operations.length) {
+      pendingOps.delete(key);
+    }
+    for (const operation of removed.reverse()) {
+      operation.rollback();
+    }
   }
 }
 
-/** Key builder for card-move ops. Keyed by (source-player, card id)
- *  because the wire path always addresses the card by its original
- *  location, and the server's Event_MoveCard broadcast carries the
- *  same identifiers — matching both sides. */
-export function moveOpKey(sourcePlayerId: number, cardId: number): string {
-  return `move:${sourcePlayerId}:${cardId}`;
+export function clearOptimistic(gameId?: number): void {
+  if (gameId === undefined) {
+    pendingOps.clear();
+    return;
+  }
+  for (const key of pendingOps.keys()) {
+    if (key.startsWith(`${gameId}:`)) {
+      pendingOps.delete(key);
+    }
+  }
 }
 
-/** Key builder for card-attribute ops (tap, doesntUntap, etc.). The
- *  attribute name is part of the key so simultaneous ops on different
- *  attributes of the same card don't overwrite each other. */
-export function attrOpKey(playerId: number, cardId: number, attribute: string | number): string {
-  return `attr:${playerId}:${cardId}:${attribute}`;
+export function moveOpKey(gameId: number, sourcePlayerId: number, cardId: number): string {
+  return `${gameId}:move:${sourcePlayerId}:${cardId}`;
+}
+
+export function attrOpKey(gameId: number, playerId: number, cardId: number, attribute: string | number): string {
+  return `${gameId}:attr:${playerId}:${cardId}:${attribute}`;
+}
+
+export function counterOpKey(gameId: number, playerId: number, counterId: number): string {
+  return `${gameId}:counter:${playerId}:${counterId}`;
 }

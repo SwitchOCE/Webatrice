@@ -1,6 +1,8 @@
+import { games } from '@cockatrice/datatrice';
 import { act } from '@testing-library/react';
 import { ZoneName } from '@cockatrice/sockatrice';
-import { CardAttribute } from '@cockatrice/sockatrice/generated';
+import { create } from '@bufbuild/protobuf';
+import { CardAttribute, Event_SetCardAttrSchema } from '@cockatrice/sockatrice/generated';
 import { makeCard } from '@cockatrice/datatrice/testing';
 import { renderSeatHook, buildSeatGameState, type SeatGameSpec } from '../../../__test-utils__/seatFixtures';
 import { renderWithProviders, createMockWebClient } from '../../../../../__test-utils__';
@@ -85,5 +87,77 @@ describe('usePlayerCardCommands', () => {
       { zone: ZoneName.TABLE, cardId: -1, attribute: CardAttribute.AttrTapped, attrValue: '0' },
     ]);
     expect(card(11).annotation).toBe(OGRE.annotation);
+  });
+});
+
+describe('tapped confirmation', () => {
+  const echo = (store: ReturnType<typeof renderCards>['store'], tapped: boolean) => act(() => store.dispatch(games.Actions.cardAttrChanged({
+    gameId: 1, playerId: 1,
+    data: create(Event_SetCardAttrSchema, {
+      zoneName: ZoneName.TABLE, cardId: 11, attribute: CardAttribute.AttrTapped, attrValue: tapped ? '1' : '0',
+    }),
+  })));
+
+  it('keeps untap visible while the earlier tap is confirmed', () => {
+    const { commands, card, store } = renderCards();
+    act(() => {
+      commands().setTapped([11], true);
+      commands().setTapped([11], false);
+    });
+    echo(store, true);
+    expect(card(11).tapped).toBe(false);
+    echo(store, false);
+    expect(card(11).tapped).toBe(false);
+  });
+
+  it('tracks repeated tap requests so their echoes cannot consume a later untap', () => {
+    const { commands, card, store } = renderCards();
+    act(() => {
+      commands().setTapped([11], true);
+      commands().setTapped([11], true);
+      commands().setTapped([11], false);
+    });
+    echo(store, true);
+    echo(store, true);
+    expect(card(11).tapped).toBe(false);
+    echo(store, false);
+    expect(card(11).tapped).toBe(false);
+  });
+
+  it('recomputes individual tapped values when a bulk server event confirms an older request', () => {
+    const { commands, card, store } = renderCards();
+    act(() => {
+      commands().setTapped([11], true);
+      commands().setTapped([11], false);
+    });
+    act(() => store.dispatch(games.Actions.cardAttrChanged({
+      gameId: 1, playerId: 1,
+      data: create(Event_SetCardAttrSchema, { zoneName: ZoneName.TABLE, attribute: CardAttribute.AttrTapped, attrValue: '1' }),
+    })));
+    expect(card(11).tapped).toBe(false);
+    echo(store, false);
+    expect(games.isOptimisticPending(games.attrOpKey(1, 1, 11, CardAttribute.AttrTapped))).toBe(false);
+  });
+
+  it('clears tapped entries when the game closes', () => {
+    const { commands, store } = renderCards();
+    act(() => commands().setTapped([11], true));
+    expect(games.isOptimisticPending(games.attrOpKey(1, 1, 11, CardAttribute.AttrTapped))).toBe(true);
+    act(() => store.dispatch(games.Actions.gameClosed({ gameId: 1 })));
+    expect(games.isOptimisticPending(games.attrOpKey(1, 1, 11, CardAttribute.AttrTapped))).toBe(false);
+  });
+
+  it('preserves the confirmed server tap after the pending untap fails', () => {
+    const { commands, card, store, game } = renderCards();
+    act(() => {
+      commands().setTapped([11], true);
+      commands().setTapped([11], false);
+    });
+    echo(store, true);
+    vi.spyOn(console, 'warn').mockImplementation(() => undefined);
+    act(() => vi.mocked(game.setCardAttr).mock.calls[1][3]!.onError!(1, {} as never));
+    expect(card(11).tapped).toBe(true);
+    act(() => vi.mocked(game.setCardAttr).mock.calls[0][3]!.onError!(1, {} as never));
+    expect(card(11).tapped).toBe(true);
   });
 });

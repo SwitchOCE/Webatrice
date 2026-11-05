@@ -62,28 +62,36 @@ export function registerZonesListeners(mw: ListenerMiddlewareInstance<unknown>):
         return;
       }
 
+      const optimisticKey = moveOpKey(gameId, startPlayerId, move.cardId);
+      const confirmation = consumeOptimistic(optimisticKey, targetZone);
+      const remoteSource = confirmation === 'remote'
+        ? Object.entries(game.players[startPlayerId].zones).find(([, zone]) => zone.byId[move.cardId])
+        : undefined;
+      if (remoteSource) {
+        move.sourceCard = remoteSource[1].byId[move.cardId];
+      }
       const movedCard = buildMovedCard(move, data);
       const viewSync = planZoneViewSync(move, sourceZone, targetZoneEntry, data);
-      const optimisticKey = moveOpKey(startPlayerId, move.cardId);
+      const confirmsOptimistic = confirmation === 'pending' || confirmation === 'confirmed';
 
-      if (placement === 'same-zone') {
-        consumeOptimistic(optimisticKey);
-        api.dispatch(Actions.cardMovedInSameZone({
-          gameId, playerId: startPlayerId, zoneName: startZone, cardId: move.cardId, toIndex: x, card: movedCard,
-        }));
-      } else if (placement === 'between-zones') {
-        const confirmsOptimistic = move.cardId >= 0 && consumeOptimistic(optimisticKey);
+      if ((placement === 'same-zone' && !remoteSource) || (remoteSource?.[0] === targetZone && startPlayerId === targetPlayerId)) {
+        if (confirmation !== 'pending') {
+          api.dispatch(Actions.cardMovedInSameZone({
+            gameId, playerId: startPlayerId, zoneName: targetZone, cardId: move.cardId, toIndex: x, card: movedCard,
+          }));
+        }
+      } else if (placement === 'between-zones' || remoteSource) {
         if (!confirmsOptimistic) {
           api.dispatch(Actions.cardMovedBetweenZones({
             gameId,
             fromPlayerId: startPlayerId,
-            fromZone: startZone,
+            fromZone: remoteSource?.[0] ?? startZone,
             fromCardId: move.cardId,
             toPlayerId: targetPlayerId,
             toZone: targetZone,
             card: movedCard,
           }));
-        } else {
+        } else if (confirmation === 'confirmed') {
           const postDispatch = api.getState() as { games: GamesState };
           const reconcile = planOptimisticReconcile(
             postDispatch.games.games[gameId]?.players[targetPlayerId]?.zones[targetZone],

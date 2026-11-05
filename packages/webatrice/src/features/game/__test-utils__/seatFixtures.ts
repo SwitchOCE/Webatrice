@@ -9,6 +9,7 @@
 import { createElement } from 'react';
 import { act, fireEvent, screen } from '@testing-library/react';
 import { ZoneName } from '@cockatrice/sockatrice';
+import { games } from '@cockatrice/datatrice';
 import type { ServerInfo_Card, ServerInfo_PlayerProperties_PlaymatParams } from '@cockatrice/sockatrice/generated';
 import { ServerInfo_Zone_ZoneType } from '@cockatrice/sockatrice/generated';
 import {
@@ -30,6 +31,8 @@ import {
 import GameBoardCell from '../components/ui/GameBoardCell/GameBoardCell';
 import type { BoardCell } from '../hooks/useGameBoardLayout';
 import { ReplayRewindProvider } from '../components/ui/ReplayRewindContext';
+
+afterEach(() => games.clearOptimistic());
 
 export const LIFE_COUNTER_ID = 1;
 

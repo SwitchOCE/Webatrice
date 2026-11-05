@@ -96,6 +96,28 @@ describe('cardMovedBetweenZones', () => {
     expect(zone.cardCount).toBe(1);
   });
 
+  it('refuses to push an id already in the target order even when its card entry is missing', () => {
+    const card = makeCard({ id: 5 });
+    const state = makeState({
+      games: {
+        1: makeGameEntry({
+          players: {
+            1: makePlayerEntry({
+              zones: {
+                hand: makeZoneEntry({ name: 'hand', cards: [card], cardCount: 1 }),
+                grave: makeZoneEntry({ name: 'grave', order: [5], byId: {}, cardCount: 1 }),
+              },
+            }),
+          },
+        }),
+      },
+    });
+    const result = gamesReducer(state, Actions.cardMovedBetweenZones({
+      gameId: 1, fromPlayerId: 1, fromZone: 'hand', fromCardId: 5, toPlayerId: 1, toZone: 'grave', card,
+    }));
+    expect(result).toBe(state);
+  });
+
   it('hidden-zone path: fromCardId = -1 decrements cardCount without touching byId/order', () => {
     const state = makeState({
       games: {
