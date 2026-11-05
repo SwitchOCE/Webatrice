@@ -150,6 +150,21 @@ async function autosaved(predicate: (deck: ParsedDeck) => boolean): Promise<Pars
   return match!;
 }
 
+async function settle() {
+  await act(async () => {
+    await new Promise((resolve) => setTimeout(resolve, 800));
+  });
+}
+
+async function viewSendsNothing() {
+  await settle();
+  expect(uploads()).toEqual([]);
+}
+
+function rename(from: string, to: string) {
+  fireEvent.change(screen.getByDisplayValue(from), { target: { value: to } });
+}
+
 function card(deck: ParsedDeck, name: string) {
   return deck.cards.find((c) => c.name === name);
 }
@@ -197,6 +212,8 @@ describe('DeckEditor (integration)', () => {
     expect(body.main).not.toContainEqual(expect.objectContaining({ card: 'Llanowar Elves' }));
     expect(body.commanders).toEqual([{ card: 'Atraxa, Grand Unifier', quantity: 1 }]);
 
+    await viewSendsNothing();
+    rename('Superfriends', 'Superfriends v2');
     const saved = await autosaved((d) => d.bracketAssessment?.level === 1 && d.meta.priceUsd === 24.75);
     expect(saved.meta.bracketLevel).toBe(1);
     expect(saved.bracketAssessment?.fingerprint).toMatch(/^[0-9a-z]{8}$/);
@@ -219,6 +236,8 @@ describe('DeckEditor (integration)', () => {
 
     fireEvent.click(screen.getByRole('tab', { name: 'DeckBreakdown.bracketEstimate' }));
     expect(await screen.findByText('DeckBracket.consent.prompt')).toBeInTheDocument();
+    await viewSendsNothing();
+    rename('Superfriends', 'Superfriends v2');
     const saved = await autosaved((d) => d.meta.priceUsd === 24.75);
     expect(saved.bracketAssessment).toBeUndefined();
     expect(fetchCalls(fetchMock, 'https://backend.commanderspellbook.com/')).toEqual([]);
@@ -228,6 +247,7 @@ describe('DeckEditor (integration)', () => {
 
     expect(await screen.findByTitle('DeckBracket.title', {}, { timeout: 3000 })).toBeInTheDocument();
     expect(fetchCalls(fetchMock, 'https://backend.commanderspellbook.com/find-my-combos/')).toHaveLength(1);
+    rename('Superfriends v2', 'Superfriends v3');
     await autosaved((d) => d.bracketAssessment?.level === 1);
   });
 
@@ -257,6 +277,8 @@ describe('DeckEditor (integration)', () => {
       fireEvent.click(screen.getByRole('tab', { name: 'DeckBreakdown.bracketEstimate' }));
       expect(await screen.findByTitle('DeckBracket.partialTitle', {}, { timeout: 3000 })).toBeInTheDocument();
       expect(screen.getByText('DeckBracket.sourceUnavailable')).toBeInTheDocument();
+      await viewSendsNothing();
+      rename('Superfriends', 'Superfriends v2');
       await autosaved((d) => d.meta.priceUsd === 24.75);
       expect(bracketUploads()).toEqual([]);
 
@@ -265,6 +287,7 @@ describe('DeckEditor (integration)', () => {
 
       expect(await screen.findByTitle('DeckBracket.title', {}, { timeout: 3000 })).toBeInTheDocument();
       expect(screen.queryByText('DeckBracket.partialNotice')).toBeNull();
+      rename('Superfriends v2', 'Superfriends v3');
       const saved = await autosaved((d) => d.bracketAssessment?.level === 1);
       expect(saved.meta.bracketLevel).toBe(1);
     });
@@ -284,6 +307,8 @@ describe('DeckEditor (integration)', () => {
 
       fireEvent.click(screen.getByRole('tab', { name: 'DeckBreakdown.bracketEstimate' }));
       expect(await screen.findByTitle('DeckBracket.partialTitle', {}, { timeout: 3000 })).toBeInTheDocument();
+      await viewSendsNothing();
+      rename('Superfriends', 'Superfriends v2');
       await autosaved((d) => d.meta.priceUsd === 24.75);
       expect(bracketUploads()).toEqual([]);
     });
@@ -302,6 +327,8 @@ describe('DeckEditor (integration)', () => {
 
       fireEvent.click(screen.getByRole('tab', { name: 'DeckBreakdown.bracketEstimate' }));
       expect(await screen.findByTitle('DeckBracket.partialTitle', {}, { timeout: 3000 })).toBeInTheDocument();
+      await viewSendsNothing();
+      rename('Stale', 'Stale v2');
       const saved = await autosaved((d) => d.meta.priceUsd === 1.5);
       expect(saved.bracketAssessment).toBeUndefined();
       expect(saved.meta.bracketLevel).toBeUndefined();
@@ -336,23 +363,21 @@ describe('DeckEditor (integration)', () => {
 
   it('does not upload when nothing changed', async () => {
     await openDeck(MODERN_DECK);
-    await autosaved((d) => d.meta.priceUsd !== undefined);
-    const before = uploads().length;
+    await viewSendsNothing();
 
-    fireEvent.change(screen.getByDisplayValue('Burn'), { target: { value: 'Burn v2' } });
-    fireEvent.change(screen.getByDisplayValue('Burn v2'), { target: { value: 'Burn' } });
-    await act(async () => {
-      await new Promise((resolve) => setTimeout(resolve, 800));
-    });
-    expect(uploads()).toHaveLength(before);
+    rename('Burn', 'Burn v2');
+    rename('Burn v2', 'Burn');
+    await viewSendsNothing();
   });
 
   it('leaves the format unset when a legacy deck has no evidence for inference', async () => {
     await openDeck(codXml({ name: 'Legacy', main: [{ name: 'Sol Ring' }] }));
 
     expect(screen.getByRole('combobox', { name: 'FormatPicker.label' })).toHaveValue('');
+    await viewSendsNothing();
+    rename('Legacy', 'Legacy v2');
     const saved = await autosaved((d) => d.meta.priceUsd === 1.5);
-    expect(saved).toMatchObject({ name: 'Legacy', format: '' });
+    expect(saved).toMatchObject({ name: 'Legacy v2', format: '' });
   });
 
   it('the search dock looks the card up, appends a mainboard row, and Enter increments an existing one', async () => {
@@ -512,7 +537,7 @@ describe('DeckEditor (integration)', () => {
 
   it('undoes and redoes from the buttons, the history list and the keyboard; autosave follows', async () => {
     await openDeck(MODERN_DECK);
-    await autosaved((d) => d.meta.priceUsd !== undefined);
+    await viewSendsNothing();
 
     fireEvent.change(screen.getByRole('combobox', { name: 'FormatPicker.label' }), { target: { value: 'legacy' } });
     fireEvent.click(rowActions('Sol Ring'));
@@ -590,8 +615,7 @@ describe('DeckEditor (integration)', () => {
 
   it('draws a sample hand from the main deck without saving anything', async () => {
     await openDeck(MODERN_DECK);
-    await autosaved((d) => d.meta.priceUsd !== undefined);
-    const before = uploads().length;
+    await viewSendsNothing();
 
     fireEvent.click(screen.getByRole('tab', { name: 'SampleHand.title' }));
     const hand = screen.getByRole('list', { name: 'SampleHand.title' });
@@ -603,10 +627,7 @@ describe('DeckEditor (integration)', () => {
     fireEvent.click(screen.getByRole('button', { name: 'SampleHand.redraw' }));
     expect(within(hand).getAllByRole('listitem')).toHaveLength(12);
 
-    await act(async () => {
-      await new Promise((resolve) => setTimeout(resolve, 700));
-    });
-    expect(uploads()).toHaveLength(before);
+    await viewSendsNothing();
   });
 
   it('shows the not-found shell for an unreadable deck and links back to My Decks', async () => {
