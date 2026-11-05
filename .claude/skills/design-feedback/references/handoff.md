@@ -5,10 +5,10 @@ The designer sees none of this except the two go-ahead questions and the final l
 ## 1. Working branch (start of the first real-app mock in a round)
 
 ```bash
-git switch --no-track -c design-feedback/<yyyy-mm-dd>-<topic> <upstream>/design/redesign
+git switch --no-track -c design-feedback/<yyyy-mm-dd>-<topic> <upstream>/main
 ```
 
-Always `--no-track`: without it the branch tracks `design/redesign`, and a bare `git push` would go to the main line.
+Always `--no-track`: without it the branch tracks `main`, and a bare `git push` would go to the main line.
 
 - If the harness needs seed data, commit it first, alone: `wip: harness seed`. Note its SHA in `tracker.md`.
 - **One item at a time.** Finish an item's real-app mock (Approved or Parked) before editing code for the next one.
@@ -22,7 +22,7 @@ Always `--no-track`: without it the branch tracks `design/redesign`, and a bare 
 1. Group Approved items into PRs by area (left nav, top bar, dashboard welcome card, dashboard sections, game card, right column, visual bugs). Up to ~6 items per PR. Items whose commits touch the same files stay in one PR.
 2. For each PR, build a clean branch:
    ```bash
-   git switch --no-track -c design-feedback/<yyyy-mm-dd>-<area> <upstream>/design/redesign
+   git switch --no-track -c design-feedback/<yyyy-mm-dd>-<area> <upstream>/main
    git cherry-pick <item commit SHAs, in order>
    ```
    The `wip: harness seed` commit is never picked. A conflict means the items belong together: abort and merge the groups.
@@ -38,9 +38,9 @@ Always `--no-track`: without it the branch tracks `design/redesign`, and a bare 
   ```bash
   git worktree add --orphan -b design-feedback-assets ../webatrice-assets   # first time only
   ```
-  Copy PNGs to `../webatrice-assets/<round>/`, and the Brilliant frames from `.design-feedback/<round>/brilliant/final/*.png` to `../webatrice-assets/<round>/brilliant/`. Commit, `git push mine design-feedback-assets`, and use `https://github.com/<designer>/Webatrice/raw/design-feedback-assets/<round>/<file>.png`. Remove that worktree afterwards (`git worktree remove ../webatrice-assets`). Images stay off the PR branch so they don't land in `design/redesign` on merge; GitHub has no API for attaching images to a PR body. If this fails, open the PR without images and tell the designer which files to drag into which heading; for a Brilliant item the frame PNG is required, so don't call the PR ready until it's attached.
-- Open the PR against `SwitchOCE/Webatrice`, base `design/redesign`:
-  `gh pr create --repo SwitchOCE/Webatrice --base design/redesign --head <designer>:<branch> --title "<area>: <summary>" --body-file <file>`
+  Copy PNGs to `../webatrice-assets/<round>/`, and the Brilliant frames from `.design-feedback/<round>/brilliant/final/*.png` to `../webatrice-assets/<round>/brilliant/`. Commit, `git push mine design-feedback-assets`, and use `https://github.com/<designer>/Webatrice/raw/design-feedback-assets/<round>/<file>.png`. Remove that worktree afterwards (`git worktree remove ../webatrice-assets`). Images stay off the PR branch so they don't land in `main` on merge; GitHub has no API for attaching images to a PR body. If this fails, open the PR without images and tell the designer which files to drag into which heading; for a Brilliant item the frame PNG is required, so don't call the PR ready until it's attached.
+- Open the PR against `SwitchOCE/Webatrice`, base `main`:
+  `gh pr create --repo SwitchOCE/Webatrice --base main --head <designer>:<branch> --title "<area>: <summary>" --body-file <file>`
 - If `gh` isn't available or signed in, give the designer the compare link and the body text to paste.
 
 ## PR body

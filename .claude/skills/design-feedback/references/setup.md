@@ -6,7 +6,7 @@ All paths are from the repository root. Run long commands in the background.
 
 - Confirm this is a Webatrice checkout: `packages/webatrice/layout-tests/harness.html` exists.
 - Find the remote that points at `SwitchOCE/Webatrice` (`git remote -v`). Call it `<upstream>` below; it may be `origin`, `fork` or `upstream`. If none exists, add it as `switchoce`.
-- `git fetch <upstream> design/redesign`. New design branches start from `<upstream>/design/redesign`, never from `master`.
+- `git fetch <upstream> main`. New design branches start from `<upstream>/main`, never from `master`.
 - If the working tree has uncommitted changes you didn't make, stop and ask the designer what they are before touching anything.
 
 ## 2. Working folder
