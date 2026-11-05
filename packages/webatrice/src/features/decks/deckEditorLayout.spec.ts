@@ -20,6 +20,11 @@ const prefs = (overrides: Partial<DeckEditorLayoutPrefs> = {}): DeckEditorLayout
 });
 
 describe('parseLayoutPrefs', () => {
+  it('ignores the retired density field while preserving the saved pane choices', () => {
+    expect(parseLayoutPrefs(JSON.stringify({ density: 'compact', dockWidth: 340 }))).toEqual(prefs({ dockWidth: 340 }));
+    expect(parseLayoutPrefs(JSON.stringify({ density: 'compact' }))).not.toHaveProperty('density');
+  });
+
   it('falls back to the defaults for missing or broken data', () => {
     expect(parseLayoutPrefs(null)).toEqual(DEFAULT_DECK_EDITOR_LAYOUT);
     expect(parseLayoutPrefs('{oops')).toEqual(DEFAULT_DECK_EDITOR_LAYOUT);
@@ -31,7 +36,6 @@ describe('parseLayoutPrefs', () => {
       dockWidth: 340,
       inspectorWidth: 450,
       dockCollapsed: true,
-      density: 'compact',
       collapsedGroups: ['Land'],
     });
     expect(parseLayoutPrefs(serializeLayoutPrefs(saved))).toEqual(saved);

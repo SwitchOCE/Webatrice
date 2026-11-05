@@ -1,12 +1,10 @@
 export type DeckPane = 'dock' | 'inspector';
-export type DeckRowDensity = 'comfortable' | 'compact';
 
 export interface DeckEditorLayoutPrefs {
   dockWidth: number | null;
   inspectorWidth: number | null;
   dockCollapsed: boolean;
   inspectorCollapsed: boolean;
-  density: DeckRowDensity;
   collapsedGroups: string[];
 }
 
@@ -38,7 +36,6 @@ export const DEFAULT_DECK_EDITOR_LAYOUT: DeckEditorLayoutPrefs = {
   inspectorWidth: null,
   dockCollapsed: false,
   inspectorCollapsed: false,
-  density: 'comfortable',
   collapsedGroups: [],
 };
 
@@ -73,7 +70,6 @@ export function parseLayoutPrefs(raw: string | null): DeckEditorLayoutPrefs {
     inspectorWidth: storedWidth(data.inspectorWidth, 'inspector'),
     dockCollapsed: data.dockCollapsed === true,
     inspectorCollapsed: data.inspectorCollapsed === true,
-    density: data.density === 'compact' ? 'compact' : 'comfortable',
     collapsedGroups: Array.isArray(data.collapsedGroups)
       ? [...new Set(data.collapsedGroups.filter((g): g is string => typeof g === 'string'))]
       : [],

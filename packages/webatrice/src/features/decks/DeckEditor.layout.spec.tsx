@@ -43,6 +43,17 @@ afterEach(() => {
 });
 
 describe('DeckEditor layout', () => {
+  it('ignores a stored compact density and renders the normal row layout', async () => {
+    window.localStorage.setItem(DECK_LAYOUT_STORAGE_KEY, JSON.stringify({ density: 'compact', dockWidth: 340 }));
+    mockWidth(1364);
+    await renderEditor();
+    for (const row of screen.getAllByRole('row')) {
+      expect(row).toHaveClass('h-7', 'text-[13px]');
+    }
+    expect(stored().dockWidth).toBe(340);
+    expect(stored()).not.toHaveProperty('density');
+  });
+
   it('docks the inspector with resize handles when the editor has room', async () => {
     mockWidth(1204);
     await renderEditor();
@@ -109,7 +120,7 @@ describe('DeckEditor layout', () => {
 
     expect(screen.getByRole('button', { name: 'DeckEditor.layout.hideDock' })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Forest' })).toBeInTheDocument();
-    expect(stored()).toMatchObject({ density: 'comfortable', dockCollapsed: false, collapsedGroups: [] });
+    expect(stored()).toMatchObject({ dockCollapsed: false, collapsedGroups: [] });
   });
 
   it('opens the overlay and focuses its close button when an expanded inspector cannot dock', async () => {

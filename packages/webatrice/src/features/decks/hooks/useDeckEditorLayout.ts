@@ -16,7 +16,6 @@ import {
   withPaneWidth,
   type DeckEditorLayoutPrefs,
   type DeckPane,
-  type DeckRowDensity,
 } from '../deckEditorLayout';
 import { useElementWidth } from './useElementWidth';
 
@@ -56,10 +55,6 @@ export function useDeckEditorLayout() {
     setPrefs((current) => withPaneCollapsed(current, pane, collapsed));
   }, []);
 
-  const setDensity = useCallback((density: DeckRowDensity) => {
-    setPrefs((current) => (current.density === density ? current : { ...current, density }));
-  }, []);
-
   const setGroupsCollapsed = useCallback((groups: readonly string[], collapsed: boolean) => {
     setPrefs((current) => withGroupsCollapsed(current, groups, collapsed));
   }, []);
@@ -84,7 +79,6 @@ export function useDeckEditorLayout() {
     resizePaneBy,
     resetPaneWidth,
     setPaneCollapsed,
-    setDensity,
     setGroupsCollapsed,
     reset,
   };

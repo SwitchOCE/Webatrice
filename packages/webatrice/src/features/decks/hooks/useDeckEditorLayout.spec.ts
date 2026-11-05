@@ -55,13 +55,12 @@ describe('useDeckEditorLayout', () => {
     act(() => {
       first.result.current.setPaneWidth('inspector', 450);
       first.result.current.setPaneCollapsed('dock', true);
-      first.result.current.setDensity('compact');
       first.result.current.setGroupsCollapsed(['Land'], true);
     });
     first.unmount();
 
     const { result } = renderLayout();
-    expect(result.current.prefs).toMatchObject({ inspectorWidth: 450, dockCollapsed: true, density: 'compact' });
+    expect(result.current.prefs).toMatchObject({ inspectorWidth: 450, dockCollapsed: true });
     expect(result.current.collapsedGroups.has('Land')).toBe(true);
     expect(result.current.isPaneCollapsed('dock')).toBe(true);
   });
@@ -71,7 +70,6 @@ describe('useDeckEditorLayout', () => {
     act(() => {
       result.current.setPaneWidth('dock', 400);
       result.current.setPaneCollapsed('inspector', true);
-      result.current.setDensity('compact');
       result.current.setGroupsCollapsed(['Creature'], true);
     });
     act(() => result.current.reset());
@@ -80,7 +78,6 @@ describe('useDeckEditorLayout', () => {
       inspectorWidth: null,
       dockCollapsed: false,
       inspectorCollapsed: false,
-      density: 'comfortable',
       collapsedGroups: [],
     });
   });
@@ -93,7 +90,7 @@ describe('useDeckEditorLayout', () => {
       throw new Error('denied');
     });
     const { result } = renderLayout();
-    act(() => result.current.setDensity('compact'));
-    expect(result.current.prefs.density).toBe('compact');
+    act(() => result.current.setPaneCollapsed('dock', true));
+    expect(result.current.prefs.dockCollapsed).toBe(true);
   });
 });

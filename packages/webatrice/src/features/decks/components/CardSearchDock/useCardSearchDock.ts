@@ -1,9 +1,14 @@
 import { useCallback, useEffect, useMemo, useRef, useState, type KeyboardEvent } from 'react';
 
 import { useResolvedBinding } from '@app/feature-widgets/shortcuts';
+import { usePreference } from '@app/hooks';
+import type { PrintingSummary } from '@app/services';
 import { isCommanderFormat } from '@app/types';
 
 import { buildScryfallQuery, type SearchFiltersState } from '../../cardSearchQuery';
+import { useCardPrintings } from '../../hooks/useCardPrintings';
+import type { PriceLookup } from '../../pricing';
+import { bumpPrintingsInDeck } from '../../printingOrder';
 import type { ScryfallSearchCard, ScryfallSearchFailure } from '../../search';
 import type { DeckCard } from '../../types';
 import {
@@ -21,6 +26,8 @@ import {
 } from './dockModel';
 import { useCardDatabase } from './useCardDatabase';
 import { useGameChangerList } from './useGameChangerList';
+
+export const PRINTINGS_DELAY_MS = 250;
 
 export interface CardSearchDockOptions {
   onAdd: (cardName: string, zone: DockZone, providerId?: string) => void;
@@ -54,10 +61,24 @@ export interface CardSearchDockState {
   onKeyDown: (event: KeyboardEvent<HTMLElement>) => void;
   view: DockView;
   setView: (view: DockView) => void;
+  printings: PrintingSummary[];
+  printingsLoading: boolean;
+  printingPrices: PriceLookup;
+  printingName: string | null;
+  chosenPrinting: string | undefined;
   printingChoices: Readonly<Record<string, string>>;
-  setPrintingChoice: (cardName: string, scryfallId: string | undefined) => void;
+  choosePrinting: (scryfallId: string | undefined) => void;
   gameChanger: GameChangerNote;
   keys: { main: string[]; side: string[] };
+}
+
+function useDelayed<T>(value: T, ms: number): T {
+  const [delayed, setDelayed] = useState(value);
+  useEffect(() => {
+    const timer = window.setTimeout(() => setDelayed(value), ms);
+    return () => window.clearTimeout(timer);
+  }, [value, ms]);
+  return delayed;
 }
 
 export function useCardSearchDock({
@@ -112,6 +133,14 @@ export function useCardSearchDock({
     }
   }, [selected, chosenForSelected]);
 
+  const printingName = useDelayed(selectedName, PRINTINGS_DELAY_MS);
+  const { printings: allPrintings, loading: printingsLoading, prices: printingPrices } = useCardPrintings(printingName ?? undefined);
+  const bumpSetsInDeck = usePreference('bumpSetsWithCardsInDeckToTop');
+  const printings = useMemo(
+    () => (bumpSetsInDeck && printingName && deckCards ? bumpPrintingsInDeck(allPrintings, printingName, deckCards) : allPrintings),
+    [allPrintings, bumpSetsInDeck, deckCards, printingName],
+  );
+
   const quantities = useMemo(() => deckQuantities(deckCards), [deckCards]);
 
   const add = useCallback(
@@ -161,17 +190,24 @@ export function useCardSearchDock({
     [deckCards, format, gameChangerList, selectedName],
   );
 
-  const setPrintingChoice = useCallback((cardName: string, scryfallId: string | undefined) => {
-    setChoices((prev) => {
-      const next = { ...prev };
-      if (scryfallId) {
-        next[cardName] = scryfallId;
-      } else {
-        delete next[cardName];
+  const chosenPrinting = printingName ? choices[printingName] : undefined;
+  const choosePrinting = useCallback(
+    (scryfallId: string | undefined) => {
+      if (!printingName) {
+        return;
       }
-      return next;
-    });
-  }, []);
+      setChoices((prev) => {
+        const next = { ...prev };
+        if (scryfallId) {
+          next[printingName] = scryfallId;
+        } else {
+          delete next[printingName];
+        }
+        return next;
+      });
+    },
+    [printingName],
+  );
 
   return {
     text,
@@ -196,8 +232,13 @@ export function useCardSearchDock({
     onKeyDown,
     view,
     setView,
+    printings,
+    printingsLoading,
+    printingPrices,
+    printingName,
+    chosenPrinting,
     printingChoices: choices,
-    setPrintingChoice,
+    choosePrinting,
     gameChanger,
     keys,
   };

@@ -40,7 +40,6 @@ function renderInspector(overrides: Partial<DeckInspectorProps> = {}) {
     onDelete: vi.fn(),
     onSetCommander: vi.fn(),
     onSetPrinting: vi.fn(),
-    onChoosePreviewPrinting: vi.fn(),
     onAdd: vi.fn(),
     ...overrides,
   };
@@ -49,6 +48,11 @@ function renderInspector(overrides: Partial<DeckInspectorProps> = {}) {
 }
 
 describe('DeckInspector', () => {
+  it('hides Change printing for a search result even when that card is already in the deck', () => {
+    renderInspector({ selected: { name: bolt.name, category: 'main', preview: bolt }, index: -1 });
+    expect(screen.queryByRole('button', { name: /DeckInspector\.changePrinting/ })).toBeNull();
+  });
+
   it('keeps a sized placeholder until the preview loads and after failure', () => {
     renderInspector();
     const image = screen.getByAltText('Lightning Bolt');
@@ -175,8 +179,6 @@ describe('DeckInspector', () => {
     expect(props.onAdd).toHaveBeenNthCalledWith(1, 'Ponder', 'main', 'p1');
     expect(props.onAdd).toHaveBeenNthCalledWith(2, 'Ponder', 'side', 'p1');
 
-    fireEvent.click(screen.getByRole('button', { name: /DeckInspector\.changePrinting/ }));
-    fireEvent.click(screen.getByRole('button', { name: /M10/ }));
-    expect(props.onChoosePreviewPrinting).toHaveBeenCalledWith('m10-146');
+    expect(screen.queryByRole('button', { name: /DeckInspector\.changePrinting/ })).toBeNull();
   });
 });

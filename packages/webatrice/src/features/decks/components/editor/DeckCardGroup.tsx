@@ -18,7 +18,6 @@ import { useTranslation } from 'react-i18next';
 
 import type { DeckCategory } from '@app/types';
 
-import type { DeckRowDensity } from '../../deckEditorLayout';
 import type { DeckSection } from '../../deckGrouping';
 import type { CardLegality } from '../../deckLegality';
 import type { DeckCard } from '../../types';
@@ -43,7 +42,6 @@ export interface DeckCardGroupProps {
   readOnly?: boolean;
   legality?: readonly CardLegality[];
   grid?: DeckCardGrid;
-  density?: DeckRowDensity;
   columnBreak?: boolean;
   collapsed?: boolean;
   onToggleCollapsed?: () => void;
@@ -81,7 +79,6 @@ export function DeckCardGroup({
   readOnly = false,
   legality,
   grid,
-  density,
   columnBreak = false,
   collapsed = false,
   onToggleCollapsed,
@@ -97,7 +94,7 @@ export function DeckCardGroup({
       className={[
         'min-w-0 break-inside-avoid',
         columnBreak ? 'break-before-column' : '',
-        density === 'compact' ? 'mb-3' : 'mb-4',
+        'mb-4',
       ].join(' ')}
     >
       <h3
@@ -148,7 +145,6 @@ export function DeckCardGroup({
               isCommander={isCommander}
               readOnly={readOnly}
               legality={legality?.[i]}
-              density={density}
             />
           ))}
         </div>

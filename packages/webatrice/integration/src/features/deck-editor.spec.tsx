@@ -379,6 +379,31 @@ describe('DeckEditor (integration)', () => {
     expect(incremented.cards.filter((c) => c.name === 'Sol Ring')).toHaveLength(1);
   });
 
+  it('chooses a priced search printing without changing a deck row, then plus and Enter add that printing', async () => {
+    await openDeck(MODERN_DECK);
+    const search = screen.getByRole('textbox', { name: 'CardSearch.label' });
+    fireEvent.change(search, { target: { value: 'bolt' } });
+    const result = await searchResult('Lightning Bolt');
+    const dock = within(screen.getByRole('complementary', { name: 'DeckEditor.dock.label' }));
+    const strip = await dock.findByRole('region', { name: 'CardSearchDock.printings.label' });
+    expect(await within(strip).findByText('$400.00')).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: /DeckInspector.changePrinting/ })).toBeNull();
+    fireEvent.click(within(strip).getByRole('button', { name: /LEA/ }));
+    expect(cardRow('Lightning Bolt')).toHaveTextContent('1Lightning Bolt');
+    expect(screen.getAllByRole('row').filter((row) => within(row).queryByRole('button', { name: 'Lightning Bolt' }))).toHaveLength(1);
+
+    fireEvent.click(within(result).getByRole('button', { name: 'CardSearchDock.addMain' }));
+    await autosaved((deck) => deck.cards.some((c) => c.name === 'Lightning Bolt' && c.scryfallId === 'id-bolt-lea' && c.quantity === 1));
+    fireEvent.keyDown(search, { key: 'Enter', code: 'Enter' });
+    const saved = await autosaved((deck) => deck.cards.some(
+      (c) => c.name === 'Lightning Bolt' && c.scryfallId === 'id-bolt-lea' && c.quantity === 2,
+    ));
+    expect(saved.cards.filter((c) => c.name === 'Lightning Bolt')).toEqual(expect.arrayContaining([
+      expect.objectContaining({ set: 'm11', quantity: 1 }),
+      expect.objectContaining({ scryfallId: 'id-bolt-lea', quantity: 2 }),
+    ]));
+  });
+
   it('moves a card to the sideboard and back, changes quantity, and removes it from the row menu', async () => {
     await openDeck(MODERN_DECK);
 
