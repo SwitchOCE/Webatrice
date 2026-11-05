@@ -439,15 +439,16 @@ export function useDeckEditor(deckId: number | null, draftToken: string | null =
     if (hydrating) {
       return;
     }
-    if (isDraft && deck) {
+    const cacheId = deckId ?? storedHandoffRef.current;
+    if (isDraft && cacheId == null && deck) {
       setCachedDraft(draftToken, deck);
       return;
     }
-    if (deckId == null || !deck) {
+    if (cacheId == null || !deck) {
       return;
     }
-    const existing = getCachedDeck(deckId);
-    setCachedDeck(deckId, {
+    const existing = getCachedDeck(cacheId);
+    setCachedDeck(cacheId, {
       deck,
       savedSignature: existing ? existing.savedSignature : savedSignature(),
     });

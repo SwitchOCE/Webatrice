@@ -9,7 +9,7 @@ import { rootReducerMap, type RootState } from '@app/store';
 
 import { connectedState, createMockWebClient } from '../../../__test-utils__';
 import { makeReduxWebClientHookWrapper } from '../../../__test-utils__/makeHookWrapper';
-import { clearDeckEditorCache, getCachedDeck, setCachedDeck, setCachedDraft } from '../deckEditorCache';
+import { clearDeckEditorCache, getCachedDeck, getCachedDraft, setCachedDeck, setCachedDraft } from '../deckEditorCache';
 import { deckSaveSignature } from '../deckPersistence';
 import { fetchPricesForCards } from '../pricing';
 import type { HydratedDeck } from '../types';
@@ -193,6 +193,63 @@ describe('useDeckEditor add-card lookups', () => {
         .toHaveLength(2);
     },
   );
+
+  it.each(['add', 'rename'] as const)('preserves a pending %s between draft storage and the handoff commit', async (edit) => {
+    const lookup = deferredLookup();
+    vi.mocked(lookupCard).mockReturnValue(lookup.promise);
+    setCachedDraft('draft-a', deckA);
+    const { result, open, webClient, store } = setup(null, 'draft-a');
+    let adding: Promise<void> | undefined;
+    act(() => {
+      if (edit === 'add') {
+        adding = result.current.editor.addCard('Mox');
+      }
+      result.current.editor.setName('Stored Alpha');
+      result.current.editor.flushSave();
+    });
+    act(() => store.dispatch(server.Actions.deckUpload({
+      path: '', requestId: vi.mocked(webClient.request.session.deckUpload).mock.calls[0][5],
+      treeItem: { id: 42, name: 'Stored Alpha' } as Parameters<typeof server.Actions.deckUpload>[0]['treeItem'],
+    })));
+    expect(getCachedDraft('draft-a')).toBeUndefined();
+    await act(async () => {
+      if (edit === 'add') {
+        lookup.resolve();
+        await adding;
+      } else {
+        result.current.editor.setName('Renamed Alpha');
+      }
+    });
+    const names = edit === 'add' ? ['Island', 'Mox'] : ['Island'];
+    const name = edit === 'rename' ? 'Renamed Alpha' : 'Stored Alpha';
+    expect(result.current.editor.deck?.cards.map((card) => card.name)).toEqual(names);
+    expect(result.current.editor.deck?.name).toBe(name);
+    expect(result.current.editor.isModified).toBe(true);
+    open(42);
+    expect(result.current.editor.deck?.cards.map((card) => card.name)).toEqual(names);
+    expect(result.current.editor.deck?.name).toBe(name);
+    expect(result.current.editor.isModified).toBe(false);
+    expect(getCachedDraft('draft-a')).toBeUndefined();
+    act(() => vi.advanceTimersByTime(AUTOSAVE_DEBOUNCE_MS));
+    expect(webClient.request.session.deckUpload).toHaveBeenCalledTimes(1);
+    expect(webClient.request.session.deckUpdate).toHaveBeenCalledTimes(1);
+    const [id, document, , , onSaved] = vi.mocked(webClient.request.session.deckUpdate).mock.calls[0];
+    expect(id).toBe(42);
+    expect(parseCod(document).cards.map((card) => card.name)).toEqual(names);
+    expect(parseCod(document).name).toBe(name);
+    act(() => onSaved?.(undefined));
+    act(() => result.current.editor.incQuantity(0, 1));
+    expect(result.current.editor.isModified).toBe(true);
+    act(() => vi.advanceTimersByTime(AUTOSAVE_DEBOUNCE_MS));
+    expect(webClient.request.session.deckUpdate).toHaveBeenCalledTimes(2);
+    const [nextId, nextDocument] = vi.mocked(webClient.request.session.deckUpdate).mock.calls[1];
+    const nextDeck = parseCod(nextDocument);
+    expect(nextId).toBe(42);
+    expect(nextDeck.cards.map((card) => card.name)).toEqual(names);
+    expect(nextDeck.cards[0].quantity).toBe(2);
+    expect(nextDeck.name).toBe(name);
+    expect(result.current.editor.isModified).toBe(false);
+  });
 
   it('keeps an in-flight add through the draft-to-stored handoff and saves it to the stored id', async () => {
     const lookup = deferredLookup();
