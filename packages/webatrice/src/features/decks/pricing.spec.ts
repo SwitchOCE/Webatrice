@@ -8,6 +8,7 @@ import {
   unpricedCards,
   type PriceLookup,
 } from './pricing';
+import { ScryfallRateLimitError } from '../../services/scryfall/scheduler';
 import type { DeckCard } from './types';
 
 function card(name: string, overrides: Partial<DeckCard> = {}): DeckCard {
@@ -135,5 +136,15 @@ describe('fetchPricesForCards (Scryfall request characterization)', () => {
       { name: 'Char Card 39' },
     ]);
     warn.mockRestore();
+  });
+
+  it('stops a 100-card deck at the first exhausted rate limit', async () => {
+    const fetchMock = vi.fn(async () => new Response('', { status: 429, headers: { 'Retry-After': '0' } }));
+    vi.stubGlobal('fetch', fetchMock);
+    const cards = Array.from({ length: 100 }, (_, i) => ({ scryfallId: `limit-id-${i}`, name: `Limit Card ${i}` }));
+
+    await expect(fetchPricesForCards(cards)).rejects.toBeInstanceOf(ScryfallRateLimitError);
+
+    expect(fetchMock).toHaveBeenCalledTimes(3);
   });
 });

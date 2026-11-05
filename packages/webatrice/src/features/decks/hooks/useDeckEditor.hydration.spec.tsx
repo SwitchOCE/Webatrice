@@ -212,18 +212,20 @@ it('renders a draft provisionally without caching or uploading it', async () => 
   expect(getCachedDraft('draft')).toEqual(hydrated());
 });
 
-it('defers migration until hydration replaces the provisional deck', async () => {
+it('holds migration until a real edit after hydration replaces the provisional deck', async () => {
   const pending = deferred<HydratedDeck>();
   vi.mocked(hydrateDeck).mockReturnValue(pending.promise);
   const document = cod('Migration', '');
   const view = setup();
   view.download(document);
   expect(editor.deck?.name).toBe('Migration');
-  expect(editor.isModified).toBe(false);
   expect(getCachedDeck(5)).toBeUndefined();
   await act(async () => pending.resolve(hydrated(document)));
-  expect(getCachedDeck(5)?.savedSignature).toBeNull();
-  expect(editor.isModified).toBe(true);
+  expect(getCachedDeck(5)?.savedSignature).toBe(deckSaveSignature(hydrated(document)));
+  expect(editor.isModified).toBe(false);
+  act(() => editor.flushSave());
+  expect(view.webClient.request.session.deckUpdate).not.toHaveBeenCalled();
+  act(() => editor.setName('Edited'));
   act(() => editor.flushSave());
   expect(view.webClient.request.session.deckUpdate).toHaveBeenCalledTimes(1);
   expect(parseCod(vi.mocked(view.webClient.request.session.deckUpdate).mock.calls[0][1]).format).toBe('modern');

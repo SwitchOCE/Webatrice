@@ -116,16 +116,25 @@ it('keeps stale Dexie prices in the printing picker after a failed refresh and r
   expect(second.result.current.prices.byId.get(card.scryfallId)?.usd).toBe(2);
 });
 
-it.each(['http', 'rate limit'])('keeps later chunk prices in the picker after an earlier %s failure', async (failure) => {
-  const printings = Array.from({ length: 76 }, (_, i) => ({ scryfallId: `picker-${failure}-${i}` }));
+it('stops fetching in the picker after a rate limit', async () => {
+  const printings = Array.from({ length: 76 }, (_, i) => ({ scryfallId: `picker-limit-${i}` }));
+  vi.mocked(fetchAllPrintings).mockResolvedValue(printings);
+  storage.post.mockReset();
+  storage.post.mockRejectedValueOnce(new ScryfallRateLimitError());
+  const { result } = renderHook(() => useCardPrintings('Limit Test'));
+  await waitFor(() => expect(storage.post).toHaveBeenCalledTimes(1));
+  await act(async () => new Promise((done) => setTimeout(done, 20)));
+
+  expect(storage.post).toHaveBeenCalledTimes(1);
+  expect(result.current.error).toBeNull();
+});
+
+it('keeps later chunk prices in the picker after an earlier http failure', async () => {
+  const printings = Array.from({ length: 76 }, (_, i) => ({ scryfallId: `picker-http-${i}` }));
   vi.mocked(fetchAllPrintings).mockResolvedValue(printings);
   vi.spyOn(console, 'warn').mockImplementation(() => undefined);
   storage.post.mockReset();
-  if (failure === 'http') {
-    storage.post.mockResolvedValueOnce({ ok: false });
-  } else {
-    storage.post.mockRejectedValueOnce(new ScryfallRateLimitError());
-  }
+  storage.post.mockResolvedValueOnce({ ok: false });
   let resolve!: (res: ReturnType<typeof response>) => void;
   storage.post.mockImplementationOnce(() => new Promise((done) => {
     resolve = done;

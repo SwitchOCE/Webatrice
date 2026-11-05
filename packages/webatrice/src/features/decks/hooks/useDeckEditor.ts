@@ -383,26 +383,17 @@ export function useDeckEditor(deckId: number | null, draftToken: string | null =
             return;
           }
           requests.cancel();
-          const hasLegacyCommanderZone = payload.deck.includes('<zone name="commander"');
-          const needsMigration = (!parsed.format.trim() && hydrated.format !== '') || hasLegacyCommanderZone;
-          const signature = needsMigration ? null : deckSaveSignature(hydrated);
+          const signature = deckSaveSignature(hydrated);
           deckRef.current = hydrated;
           setDeck(hydrated);
           setHydrating(false);
           provisionalDocumentRef.current = null;
           clearHistory();
-          if (signature == null) {
-            resetSaved();
-          } else {
-            markSaved(signature);
-          }
+          markSaved(signature);
           trackEvent('deck_opened', { format: hydrated.format });
           setCachedDeck(payload.deckId, { deck: hydrated, savedSignature: signature });
           void refresh?.then((data) => applyCardDataRefresh(data, controller.signal));
           setLoading(false);
-          if (needsMigration) {
-            scheduleSave();
-          }
         } catch (err) {
           if (controller.signal.aborted || (err as { name?: string })?.name === 'AbortError'
             || !requests.isCurrent(payload.requestId)) {

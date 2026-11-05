@@ -124,6 +124,40 @@ it.each([429, 500])('keeps the stored price and sends no command after Scryfall 
   expect(webClient.request.session.deckUpdate).not.toHaveBeenCalled();
 });
 
+describe.each([
+  ['no stored format', '<cockatrice_deck version="1"><deckname>Old</deckname><zone name="main"><card number="1" name="Sol Ring"/></zone></cockatrice_deck>'],
+  ['a legacy commander zone', '<cockatrice_deck version="1"><deckname>Old</deckname><format>modern</format><zone name="commander"><card number="1" name="Sol Ring"/></zone></cockatrice_deck>'],
+])('opening a deck with %s', (_name, xml) => {
+  async function open() {
+    vi.stubGlobal('fetch', vi.fn(() => new Promise<Response>(() => undefined)));
+    const view = setup(false);
+    vi.mocked(hydrateDeck).mockImplementation(async (parsed) => ({ ...parsed, format: parsed.format || 'modern' }) as HydratedDeck);
+    const requestId = vi.mocked(view.webClient.request.session.deckDownload).mock.lastCall?.[1];
+    await act(async () => view.store.dispatch(server.Actions.deckDownloaded({ deckId: 5, deck: xml, requestId })));
+    await act(async () => vi.advanceTimersByTimeAsync(1000));
+    return view;
+  }
+
+  it('sends no update, on open or on close', async () => {
+    const { webClient, unmount } = await open();
+    expect(editor.deck?.format).toBe('modern');
+    expect(editor.isModified).toBe(false);
+    unmount();
+    expect(webClient.request.session.deckUpdate).not.toHaveBeenCalled();
+  });
+
+  it('migrates the file on the next real edit', async () => {
+    const { webClient } = await open();
+    await act(async () => editor.setName('Renamed'));
+    await act(async () => vi.advanceTimersByTimeAsync(1000));
+    expect(webClient.request.session.deckUpdate).toHaveBeenCalledTimes(1);
+    const saved = vi.mocked(webClient.request.session.deckUpdate).mock.calls[0][1];
+    expect(saved).toContain('<format>modern</format>');
+    expect(saved).not.toContain('<zone name="commander"');
+    expect(parseCod(saved).cards.map((card) => card.name)).toEqual(['Sol Ring']);
+  });
+});
+
 it('opening and closing a deck keeps its position in the grid', async () => {
   let resolve!: (res: Response) => void;
   vi.stubGlobal('fetch', vi.fn(() => new Promise<Response>((done) => {

@@ -1,5 +1,5 @@
 import { chunkForCollection, postCollection } from '../../services/scryfall/client';
-import { rethrowCancellationOrRateLimit } from '../../services/scryfall/scheduler';
+import { isCancellationOrRateLimit, rethrowCancellationOrRateLimit } from '../../services/scryfall/scheduler';
 import { dexieService } from '../../services/dexie/DexieService';
 
 import type { DeckCard } from './types';
@@ -149,7 +149,8 @@ const inFlight = new Map<string, Promise<void>>();
  * onProgress emission. Useful for showing the deck total counting up
  * as Scryfall responses arrive on decks big enough to need multiple
  * batches.
- * If any chunk fails, all remaining chunks are attempted and progress
+ * A rate limit or cancellation stops the remaining chunks. After any
+ * other failed chunk the rest are still attempted. Either way, progress
  * is emitted before the promise rejects with the first failure.
  */
 export async function fetchPricesForCards(
@@ -307,6 +308,9 @@ export async function fetchPricesForCards(
       } catch (error) {
         failure ??= { error };
         onProgress?.(assemble());
+        if (isCancellationOrRateLimit(error)) {
+          break;
+        }
       } finally {
         for (const k of chunkKeys) {
           inFlight.delete(k);

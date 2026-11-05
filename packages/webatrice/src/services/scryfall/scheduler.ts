@@ -21,8 +21,12 @@ export function throwIfAborted(signal?: AbortSignal | null): void {
   }
 }
 
+export function isCancellationOrRateLimit(error: unknown): boolean {
+  return error instanceof ScryfallRateLimitError || (error as { name?: string })?.name === 'AbortError';
+}
+
 export function rethrowCancellationOrRateLimit(error: unknown): void {
-  if (error instanceof ScryfallRateLimitError || (error as { name?: string })?.name === 'AbortError') {
+  if (isCancellationOrRateLimit(error)) {
     throw error;
   }
 }
