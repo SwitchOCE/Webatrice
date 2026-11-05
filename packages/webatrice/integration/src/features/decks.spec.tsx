@@ -5,6 +5,8 @@ import { act, fireEvent, screen, waitFor, within } from '@testing-library/react'
 import { Decks, clearDeckEditorCache, clearDecksListCache } from '@app/features/decks';
 import { dexieService, parseCod } from '@app/services';
 import { RouteEnum } from '@app/types';
+import sidebarCopy from '../../../src/features/decks/components/list/DeckStorageSidebar.i18n.json';
+import defaultCopy from '../../../src/i18n-default.json';
 import {
   Command_DeckDel_ext,
   Command_DeckDelDir_ext,
@@ -106,6 +108,14 @@ function acknowledge(cmdId: number) {
 }
 
 describe('Decks (integration)', () => {
+  it('labels the private storage section Private decks in the source and generated copy', () => {
+    renderDecks();
+    const section = screen.getByRole('navigation', { name: 'DeckStorageSidebar.folders' });
+    expect(within(section).getByText('DeckStorageSidebar.folders')).toBeInTheDocument();
+    expect(sidebarCopy.DeckStorageSidebar.folders).toBe('Private decks');
+    expect(defaultCopy.DeckStorageSidebar.folders).toBe('Private decks');
+  });
+
   it('renders the My Decks heading when the user is connected', () => {
     renderDecks();
     expect(screen.getByRole('heading', { level: 1, name: 'Decks.list.title' })).toBeInTheDocument();

@@ -62,6 +62,23 @@ it('sorts, switches view and refreshes', () => {
   expect(props.onRefresh).toHaveBeenCalledOnce();
 });
 
+it('reserves the right end for controls while only the filters wrap', () => {
+  setup({ grid: grid({ filtered: true, pending: 2 }) });
+  const controls = screen.getByRole('button', { name: 'Decks.list.refreshLabel' }).parentElement!;
+  const filters = screen.getByRole('searchbox', { name: 'DeckGridToolbar.search' }).closest('div.flex-wrap')!;
+  expect(filters).not.toBeNull();
+  expect(filters).toHaveClass('min-w-0', 'flex-1', 'flex-wrap');
+  expect(filters).toContainElement(screen.getByRole('combobox', { name: 'DeckGridToolbar.bracket' }));
+  expect(filters).toContainElement(screen.getByRole('button', { name: 'DeckGridToolbar.clear' }));
+  expect(filters).toContainElement(screen.getByRole('status'));
+  expect(controls).toContainElement(screen.getByRole('combobox', { name: 'DeckGridToolbar.sort' }));
+  expect(controls).toContainElement(screen.getByRole('radiogroup', { name: 'Decks.list.viewMode' }));
+  expect(controls).toHaveClass('shrink-0');
+  expect(controls.parentElement).toBe(filters.parentElement);
+  expect(controls.parentElement).toHaveClass('flex', 'items-start');
+  expect(controls.parentElement).not.toHaveClass('flex-wrap');
+});
+
 it('offers folder actions only for a folder', () => {
   const onDelete = vi.fn();
   setup({ folder, folderActions: { onNewFolder: vi.fn(), onDownload: vi.fn(), onDelete } });

@@ -228,51 +228,53 @@ export function DeckGridToolbar({
         </span>
         {folder && folderActions && <FolderActionsMenu folder={folder} actions={folderActions} />}
       </div>
-      <div className="flex flex-wrap items-center gap-2">
-        <TextInput
-          aria-label={t('DeckGridToolbar.search')}
-          placeholder={t('DeckGridToolbar.searchPlaceholder')}
-          value={filters.query}
-          onChange={(e) => setFilters({ query: e.target.value })}
-          wrapperClassName="w-64"
-          type="search"
-        />
-        <ColourFilter
-          colours={filters.colours}
-          mode={filters.colourMode}
-          onColours={(colours) => setFilters({ colours })}
-          onMode={(colourMode) => setFilters({ colourMode })}
-        />
-        <FilterSelect
-          label={t('DeckGridToolbar.format')}
-          value={filters.format ?? ANY}
-          onChange={(v) => setFilters({ format: v || null })}
-          className="w-40"
-          options={[
-            { value: ANY, label: t('DeckGridToolbar.anyFormat') },
-            ...options.formats.map((f) => ({ value: f, label: formatDisplayLabel(f, t) })),
-          ]}
-        />
-        <FilterSelect
-          label={t('DeckGridToolbar.bracket')}
-          value={filters.bracket != null ? String(filters.bracket) : ANY}
-          onChange={(v) => setFilters({ bracket: v ? Number(v) : null })}
-          className="w-40"
-          options={[
-            { value: ANY, label: t('DeckGridToolbar.anyBracket') },
-            ...options.brackets.map((b) => ({ value: String(b), label: t('DeckGridToolbar.bracketOption', { level: b }) })),
-          ]}
-        />
-        {grid.filtered && (
-          <Button variant="quiet" size="sm" icon={<X size={13} />} onClick={grid.clearFilters}>
-            {t('DeckGridToolbar.clear')}
-          </Button>
-        )}
-        {grid.pending > 0 && (
-          <span role="status" className="text-[12px] text-text-muted">
-            {t('DeckGridToolbar.pending', { count: grid.pending })}
-          </span>
-        )}
+      <div className="flex items-start gap-2">
+        <div className="flex min-w-0 flex-1 flex-wrap items-center gap-2">
+          <TextInput
+            aria-label={t('DeckGridToolbar.search')}
+            placeholder={t('DeckGridToolbar.searchPlaceholder')}
+            value={filters.query}
+            onChange={(e) => setFilters({ query: e.target.value })}
+            wrapperClassName="w-64"
+            type="search"
+          />
+          <ColourFilter
+            colours={filters.colours}
+            mode={filters.colourMode}
+            onColours={(colours) => setFilters({ colours })}
+            onMode={(colourMode) => setFilters({ colourMode })}
+          />
+          <FilterSelect
+            label={t('DeckGridToolbar.format')}
+            value={filters.format ?? ANY}
+            onChange={(v) => setFilters({ format: v || null })}
+            className="w-40"
+            options={[
+              { value: ANY, label: t('DeckGridToolbar.anyFormat') },
+              ...options.formats.map((f) => ({ value: f, label: formatDisplayLabel(f, t) })),
+            ]}
+          />
+          <FilterSelect
+            label={t('DeckGridToolbar.bracket')}
+            value={filters.bracket != null ? String(filters.bracket) : ANY}
+            onChange={(v) => setFilters({ bracket: v ? Number(v) : null })}
+            className="w-40"
+            options={[
+              { value: ANY, label: t('DeckGridToolbar.anyBracket') },
+              ...options.brackets.map((b) => ({ value: String(b), label: t('DeckGridToolbar.bracketOption', { level: b }) })),
+            ]}
+          />
+          {grid.filtered && (
+            <Button variant="quiet" size="sm" icon={<X size={13} />} onClick={grid.clearFilters}>
+              {t('DeckGridToolbar.clear')}
+            </Button>
+          )}
+          {grid.pending > 0 && (
+            <span role="status" className="text-[12px] text-text-muted">
+              {t('DeckGridToolbar.pending', { count: grid.pending })}
+            </span>
+          )}
+        </div>
         <div className="ml-auto flex shrink-0 items-center gap-2">
           <FilterSelect<DeckGridSort>
             label={t('DeckGridToolbar.sort')}

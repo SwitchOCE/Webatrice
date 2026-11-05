@@ -22,6 +22,13 @@ function openMenu() {
   return screen.getByRole('menu', { name: 'DeckActionsMenu.label' });
 }
 
+it('gives the card footer eight pixels of padding on every side', () => {
+  render(<DeckTile view={view} actions={actions()} />);
+  const footer = screen.getByRole('list', { name: 'DeckTile.tags' }).parentElement;
+  expect(footer).toHaveClass('p-2');
+  expect(footer).not.toHaveClass('py-0.5');
+});
+
 describe.each([['tile', DeckTile], ['row', DeckListRow]] as const)('Deck%s', (_kind, Item) => {
   it('shows what the store knows about the deck and opens it', () => {
     const a = actions();
