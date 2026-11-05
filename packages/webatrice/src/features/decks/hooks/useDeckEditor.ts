@@ -140,6 +140,13 @@ export function useDeckEditor(deckId: number | null, draftToken: string | null =
   const requests = useRequestTracker();
 
   const deckRef = useRef<HydratedDeck | null>(null);
+  const generationRef = useRef(0);
+  const addControllersRef = useRef(new Set<AbortController>());
+  const storedHandoffRef = useRef<number | null>(null);
+  const abortAdds = useCallback(() => {
+    addControllersRef.current.forEach((controller) => controller.abort());
+    addControllersRef.current.clear();
+  }, []);
   const hydrationControllerRef = useRef<AbortController | null>(null);
   const provisionalDocumentRef = useRef<string | null>(null);
   const downloadReceivedRef = useRef(false);
@@ -164,6 +171,7 @@ export function useDeckEditor(deckId: number | null, draftToken: string | null =
       return;
     }
     setCachedDeck(storedId, { deck: deckRef.current, savedSignature: signature });
+    storedHandoffRef.current = storedId;
     deleteDraft(draftToken);
     navigate(generatePath(RouteEnum.DECK, { deckId: String(storedId) }), { replace: true });
   }, [isDraft, draftToken, navigate]);
@@ -190,6 +198,7 @@ export function useDeckEditor(deckId: number | null, draftToken: string | null =
   }, []);
 
   const identity = deckId ?? draftToken;
+  const sessionIdentityRef = useRef(identity);
   const [seededIdentity, setSeededIdentity] = useState(identity);
   if (seededIdentity !== identity) {
     clearHistory();
@@ -201,6 +210,22 @@ export function useDeckEditor(deckId: number | null, draftToken: string | null =
     setNotFound(false);
     setLoadError(null);
   }
+
+  useEffect(() => {
+    if (sessionIdentityRef.current !== identity) {
+      if (deckId == null || storedHandoffRef.current !== deckId) {
+        generationRef.current++;
+        abortAdds();
+      }
+      storedHandoffRef.current = null;
+      sessionIdentityRef.current = identity;
+    }
+  }, [identity, deckId, abortAdds]);
+
+  useEffect(() => () => {
+    generationRef.current++;
+    abortAdds();
+  }, [abortAdds]);
 
   useEffect(() => {
     deckRef.current = hydrating ? null : deck;
@@ -562,6 +587,8 @@ export function useDeckEditor(deckId: number | null, draftToken: string | null =
     [editCard],
   );
 
+  const applyAddEditRef = useRef(applyEdit);
+  applyAddEditRef.current = applyEdit;
   const addCard = useCallback(
     async (name: string, options: AddCardOptions = {}) => {
       const trimmed = normalizeAddedCardName(name);
@@ -582,11 +609,28 @@ export function useDeckEditor(deckId: number | null, draftToken: string | null =
           return;
         }
       }
-      const lookup = await lookupCard(trimmed);
-      const newCard = assembleDeckCard({ name: trimmed, quantity: 1, category, scryfallId: options.scryfallId }, lookup);
-      applyEdit((d) => appendCard(d, newCard), { kind: 'addCard', zone: category, name: newCard.name });
+      const generation = generationRef.current;
+      const controller = new AbortController();
+      addControllersRef.current.add(controller);
+      try {
+        const lookup = await lookupCard(trimmed, controller.signal);
+        if (generation !== generationRef.current) {
+          return;
+        }
+        const newCard = assembleDeckCard({ name: trimmed, quantity: 1, category, scryfallId: options.scryfallId }, lookup);
+        applyAddEditRef.current((d) => {
+          const existingIdx = findZoneRow(d, trimmed, category, options.scryfallId);
+          return existingIdx >= 0 ? adjustCardQuantity(d, existingIdx, 1) : appendCard(d, newCard);
+        }, { kind: 'addCard', zone: category, name: newCard.name });
+      } catch (error) {
+        if (!controller.signal.aborted) {
+          throw error;
+        }
+      } finally {
+        addControllersRef.current.delete(controller);
+      }
     },
-    [applyEdit, editCard],
+    [editCard],
   );
 
   const { totalMainboardCount, totalSideboardCount } = countDeckCards(deck?.cards);

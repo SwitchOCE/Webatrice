@@ -231,7 +231,7 @@ describe('useDeckEditor', () => {
     expect(latest.deck?.cards[0].quantity).toBe(2);
 
     await act(() => latest.addCard('Mox // Back'));
-    expect(lookupCard).toHaveBeenCalledWith('Mox');
+    expect(lookupCard).toHaveBeenCalledWith('Mox', expect.any(AbortSignal));
     expect(latest.deck?.cards.map((c) => c.name)).toEqual(['Sol Ring', 'Mox']);
   });
 
