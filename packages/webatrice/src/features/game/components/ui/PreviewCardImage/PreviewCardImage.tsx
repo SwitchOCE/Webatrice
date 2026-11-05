@@ -25,19 +25,21 @@ function useLandscapeCard(name: string | undefined): boolean {
 }
 
 interface PreviewCardImageProps {
-  src: string;
+  src?: string | null;
+  onError?: () => void;
   name?: string;
   className?: string;
   style?: CSSProperties;
 }
 
-export default function PreviewCardImage({ src, name, className, style }: PreviewCardImageProps) {
+export default function PreviewCardImage({ src, name, className, style, onError }: PreviewCardImageProps) {
   const autoRotate = usePreference('autoRotateSidewaysLayoutCards');
   const sideways = useLandscapeCard(autoRotate ? name : undefined);
 
   if (!sideways) {
     return (
-      <CardImage src={src} name={name} draggable={false} className={className} style={{ ...style, aspectRatio: '5 / 7' }} />
+      <CardImage src={src} onError={onError} name={name} draggable={false}
+        className={className} style={{ ...style, aspectRatio: '5 / 7' }} />
     );
   }
   return (
@@ -47,7 +49,7 @@ export default function PreviewCardImage({ src, name, className, style }: Previe
       data-sideways
     >
       <CardImage
-        src={src}
+        src={src} onError={onError}
         name={name}
         draggable={false}
         className="absolute left-1/2 top-1/2 max-w-none"

@@ -45,7 +45,7 @@ it('shares overlapping batch names and distinguishes printing hints', async () =
   const first = fetchCollection([{ name: 'Opt' }, { name: 'Island' }]);
   const second = fetchCollection([{ name: 'OPT' }]);
   const hinted = fetchCollection([{ name: 'Opt', set: 'XLN', collectorNumber: '65' }]);
-  await vi.advanceTimersByTimeAsync(350);
+  await vi.advanceTimersByTimeAsync(550);
   expect(bodies).toEqual([
     { identifiers: [{ name: 'Opt' }, { name: 'Island' }] },
     { identifiers: [{ set: 'xln', collector_number: '65' }] },
@@ -87,8 +87,8 @@ it('removes a shared request from the queue when its final subscriber cancels', 
   first.abort();
   second.abort();
   const next = fetchNamedCard('Next');
-  await vi.advanceTimersByTimeAsync(100);
-  expect(starts).toEqual([['First', 0], ['Next', 100]]);
+  await vi.advanceTimersByTimeAsync(500);
+  expect(starts).toEqual([['First', 0], ['Next', 500]]);
   expect(await a).toMatchObject({ name: 'AbortError' });
   expect(await b).toMatchObject({ name: 'AbortError' });
   await next;
@@ -114,7 +114,7 @@ it('keeps a shared batch alive for remaining callers and permits a fresh lookup 
   expect((await retained).get('Forest')?.id).toBe('forest');
   fetchMock.mockImplementation(() => Promise.resolve(new Response(JSON.stringify({ id: 'mountain', name: 'Mountain' }))));
   const fresh = fetchNamedCard('Mountain');
-  await vi.advanceTimersByTimeAsync(100);
+  await vi.advanceTimersByTimeAsync(500);
   expect(await fresh).toMatchObject({ id: 'mountain' });
   expect(fetchMock).toHaveBeenCalledTimes(2);
 });

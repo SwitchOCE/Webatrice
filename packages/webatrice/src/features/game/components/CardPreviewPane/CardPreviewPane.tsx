@@ -83,9 +83,10 @@ export default function CardPreviewPane() {
           ) : (
             <>
               {showImage && (
-                pane.imageUrl ? (
+                activeCard ? (
                   <PreviewCardImage
                     src={pane.imageUrl}
+                    onError={pane.onImageError}
                     name={activeCard?.name}
                     className="shrink-0 shadow-md"
                     style={{

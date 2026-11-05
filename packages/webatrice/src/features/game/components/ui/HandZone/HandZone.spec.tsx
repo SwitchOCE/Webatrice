@@ -163,10 +163,10 @@ describe('HandZone', () => {
     await waitFor(() => expect(lookupCard).toHaveBeenCalledWith('Shock'));
     await act(async () => {});
     vi.mocked(lookupCard).mockClear();
+    vi.mocked(lookupCard).mockRejectedValue(new Error('Image metadata unavailable'));
 
     fireEvent.doubleClick(cardEl(SHOCK.id, 'hand'));
     await waitFor(() => expect(game.moveCard).toHaveBeenCalledTimes(1));
-    expect(lookupCard).not.toHaveBeenCalled();
     expect(vi.mocked(game.moveCard).mock.calls[0][1]).toMatchObject({
       startZone: ZoneName.HAND,
       targetZone: ZoneName.TABLE,

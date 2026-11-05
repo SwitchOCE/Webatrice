@@ -12,7 +12,7 @@ const shareCard = createSharedRequestPool<ScryfallCard | null>();
 const sharePrintings = createSharedRequestPool<ScryfallCard[]>();
 
 export function cleanScryfallName(name: string): string {
-  return name.replace(TOKEN_SUFFIX_RE, '');
+  return name.trim().replace(TOKEN_SUFFIX_RE, '').trim();
 }
 
 function normalizedName(name: string): string {
@@ -56,13 +56,14 @@ export function postCollection(identifiers: readonly ScryfallIdentifier[], signa
 }
 
 async function fetchCard(url: string, signal: AbortSignal): Promise<ScryfallCard | null> {
-  try {
-    const response = await scheduleScryfallRequest(url, { signal });
-    return response.ok ? await response.json() as ScryfallCard : null;
-  } catch (error) {
-    rethrowCancellationOrRateLimit(error);
+  const response = await scheduleScryfallRequest(url, { signal });
+  if (response.status === 404) {
     return null;
   }
+  if (!response.ok) {
+    throw new Error(`Scryfall card request failed: ${response.status}`);
+  }
+  return response.json() as Promise<ScryfallCard>;
 }
 
 export function fetchNamedCard(name: string, signal?: AbortSignal): Promise<ScryfallCard | null> {
@@ -112,7 +113,7 @@ async function fetchChunk(chunk: PendingCard[]): Promise<void> {
       const matchesName = (card: ScryfallCard) => {
         const name = card.name.normalize('NFC').toLowerCase();
         const requested = normalizedName(hint.name).toLowerCase();
-        return name === requested || name.split(' // ')[0] === requested;
+        return name === requested || name.split(' // ').includes(requested);
       };
       const exact = hint.scryfallId ? cards.find((card) => card.id === hint.scryfallId)
         : hint.set ? cards.find((card) => card.set?.toLowerCase() === hint.set!.toLowerCase()
@@ -165,5 +166,23 @@ export function fetchPrintings(name: string, signal?: AbortSignal): Promise<Scry
       rethrowCancellationOrRateLimit(error);
       return [];
     }
+  }, signal);
+}
+
+export function fetchTokenCard(name: string, signal?: AbortSignal): Promise<ScryfallCard | null> {
+  const cleaned = normalizedName(name);
+  const q = `t:token !"${cleaned.replace(/"/g, '\\"')}"`;
+  return shareCard(`token:${cleaned.toLowerCase()}`, async (sharedSignal) => {
+    const response = await scheduleScryfallRequest(scryfallSearchUrl(q, 'include_extras=true'), { signal: sharedSignal });
+    if (response.status === 404) {
+      return null;
+    }
+    if (!response.ok) {
+      throw new Error(`Scryfall token search failed: ${response.status}`);
+    }
+    const body = await response.json() as { data?: ScryfallCard[] };
+    const matches = (value: string) => normalizedName(value).toLowerCase() === cleaned.toLowerCase();
+    return body.data?.find((card) => /\bToken\b/i.test(card.type_line ?? '')
+      && (matches(card.name) || card.card_faces?.some((face) => face.name && matches(face.name)))) ?? null;
   }, signal);
 }

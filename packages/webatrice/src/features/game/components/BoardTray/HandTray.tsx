@@ -107,7 +107,7 @@ export default function HandTray() {
     cards: handDisplayList,
     orientation: 'horizontal',
     labelOf: (c) => cardLabel(t, { name: c.name }),
-    previewOf: (c) => ({ name: c.name, scryfallId: c.scryfallId || cardMetaByName.get(c.name)?.scryfallId }),
+    previewOf: (c) => ({ name: c.name, scryfallId: c.scryfallId }),
   });
   const handButtonLabel = t('HandZone.button', { count: handSize });
 
@@ -116,7 +116,7 @@ export default function HandTray() {
       key={c.id}
       card={c}
       ownerId={playerId}
-      scryfallId={c.scryfallId || cardMetaByName.get(c.name)?.scryfallId}
+      scryfallId={c.scryfallId}
       pt={cardMetaByName.get(c.name)?.pt}
       dragging={isDragging(c.id, 'hand')}
       selected={selection?.zone === 'hand' && selection.ids.has(c.id)}

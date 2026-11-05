@@ -43,17 +43,25 @@ export async function lookupCard(name: string, signal?: AbortSignal): Promise<Lo
   const xmlLookup = xmlHit ? dexieToLookup(xmlHit, preferences) : undefined;
 
   let scryfallLookup = scryfallCached;
+  let notFound = false;
   if (!scryfallLookup || !isScryfallCacheFresh(scryfallLookup)) {
     const fetched = await fetchForLookup(fetchNamedCard(name, signal));
+    notFound = fetched === null;
     if (fetched) {
       scryfallLookup = { ...scryfallToLookup(fetched), fetchedAt: Date.now() };
       // Write-through to the persistent cache. Fire-and-forget —
       // a stalled Dexie write shouldn't hold up the caller.
       void putScryfallCache(scryfallLookup);
+      if (scryfallLookup.name !== name) {
+        void putScryfallCache({ ...scryfallLookup, name });
+      }
     }
   }
 
   const result = mergeLookup(name, xmlLookup, scryfallLookup);
+  if (notFound && !result.found) {
+    result.notFound = true;
+  }
   const pins = await resolvePins([result], [scryfallCached, scryfallLookup], preferences, signal);
   return applyPin(result, pins.get(result.name));
 }
@@ -165,7 +173,8 @@ export async function lookupCards(
   for (const hint of hints) {
     const entry = local.get(printingKey(hint))!;
     const refreshed = fetched.get(hint.name);
-    out.set(hint.name, refreshed ? applyPin(mergeHintedPrintingLookup(hint, entry.xml, refreshed), entry.pin) : entry.matchedLookup);
+    out.set(hint.name, refreshed?.notFound && entry.lookup.found ? entry.lookup
+      : refreshed ? applyPin(mergeHintedPrintingLookup(hint, entry.xml, refreshed), entry.pin) : entry.matchedLookup);
   }
 
   return completePins(out, signal);
@@ -245,7 +254,7 @@ function mergeLookup(
   if (!xml && !scryfall) {
     return { found: false, source: 'unknown', name, printings: [] };
   }
-  if (xml && !scryfall) {
+  if (xml && (!scryfall || !scryfall.found)) {
     return xml;
   }
   if (!xml && scryfall) {
@@ -300,6 +309,9 @@ async function fetchLookupBatch(hints: LookupHint[], signal?: AbortSignal): Prom
         const parsed = { ...scryfallToLookup(hit), fetchedAt: Date.now() };
         scryfallLookups.set(hint.name, parsed);
         toCache.push(parsed);
+        if (parsed.name !== hint.name) {
+          toCache.push({ ...parsed, name: hint.name });
+        }
       }
     }
     // Retry batch misses individually via `/cards/named?exact=`. The
@@ -326,10 +338,17 @@ async function fetchLookupBatch(hints: LookupHint[], signal?: AbortSignal): Prom
       );
       for (let i = 0; i < stillMissing.length; i++) {
         const hit = retried[i];
-        if (hit) {
+        if (hit === null) {
+          scryfallLookups.set(stillMissing[i].name, {
+            found: false, notFound: true, source: 'unknown', name: stillMissing[i].name, printings: [],
+          });
+        } else if (hit) {
           const parsed = { ...scryfallToLookup(hit), fetchedAt: Date.now() };
           scryfallLookups.set(stillMissing[i].name, parsed);
           toCache.push(parsed);
+          if (parsed.name !== stillMissing[i].name) {
+            toCache.push({ ...parsed, name: stillMissing[i].name });
+          }
         }
       }
     } else if (stillMissing.length > SCRYFALL_NAMED_RETRY_CAP) {
@@ -339,8 +358,6 @@ async function fetchLookupBatch(hints: LookupHint[], signal?: AbortSignal): Prom
       );
     }
     if (toCache.length > 0) {
-      // Fire-and-forget. Cache misses on write don't affect the
-      // return value — we've already got the parsed data in-hand.
       void bulkPutScryfallCache(toCache);
     }
   }
@@ -558,7 +575,9 @@ export async function lookupCardsForHydration(input: LookupInput[], signal?: Abo
       return round.flatMap((hint) => {
         const hit = found.get(hint.name);
         const entry = local.get(printingKey(hint))!;
-        return hit ? [[printingKey(hint), applyPin(mergeHintedPrintingLookup(hint, entry.xml, hit), entry.pin)] as const] : [];
+        const refreshed = hit?.notFound && entry.lookup.found ? entry.lookup
+          : hit && applyPin(mergeHintedPrintingLookup(hint, entry.xml, hit), entry.pin);
+        return refreshed ? [[printingKey(hint), refreshed] as const] : [];
       });
     }));
     const results = new Map(batches.flat());

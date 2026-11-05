@@ -33,38 +33,97 @@ it('spaces starts exactly across callers while a response is still pending', asy
   await Promise.all([first, second, third]);
 });
 
-it.each(['2', 'Thu, 01 Jan 1970 00:00:02 GMT'])('backs off the entire queue for Retry-After %s', async (header) => {
+it.each(['2', 'Thu, 01 Jan 1970 00:00:02 GMT', null])('backs off the entire queue for Retry-After %s', async (header) => {
   const starts: Array<[string, number]> = [];
   vi.stubGlobal('fetch', vi.fn((url: string) => {
     starts.push([url, Date.now()]);
+    return Promise.resolve(starts.length === 1
+      ? new Response('', { status: 429, headers: header ? { 'Retry-After': header } : undefined })
+      : new Response('{}'));
+  }));
+  const request = createScryfallScheduler();
+  const first = request('first');
+  const second = request('second');
+  await vi.advanceTimersByTimeAsync(29999);
+  expect(starts).toEqual([['first', 0]]);
+  await vi.advanceTimersByTimeAsync(1);
+  expect(starts).toEqual([['first', 0], ['first', 30000]]);
+  await vi.advanceTimersByTimeAsync(100);
+  expect(starts).toEqual([['first', 0], ['first', 30000], ['second', 30100]]);
+  await Promise.all([first, second]);
+});
+
+it.each(['45', 'Thu, 01 Jan 1970 00:00:45 GMT'])('honours a wait longer than 30 seconds: %s', async (header) => {
+  const starts: number[] = [];
+  vi.stubGlobal('fetch', vi.fn(() => {
+    starts.push(Date.now());
+    return Promise.resolve(starts.length === 1
+      ? new Response('', { status: 429, headers: { 'Retry-After': header } })
+      : new Response('{}'));
+  }));
+  const result = createScryfallScheduler()('card');
+  await vi.advanceTimersByTimeAsync(44999);
+  expect(starts).toEqual([0]);
+  await vi.advanceTimersByTimeAsync(1);
+  expect(starts).toEqual([0, 45000]);
+  await result;
+});
+
+it('rejects after two retries and preserves the final 30-second pause', async () => {
+  const fetchMock = vi.fn().mockResolvedValue(new Response('', { status: 429 }));
+  vi.stubGlobal('fetch', fetchMock);
+  const request = createScryfallScheduler();
+  const result = request('card').catch((error: unknown) => error);
+  await vi.advanceTimersByTimeAsync(60000);
+  expect(await result).toMatchObject({ status: 429 });
+  expect(fetchMock).toHaveBeenCalledTimes(3);
+  fetchMock.mockResolvedValue(new Response('{}'));
+  const next = request('next');
+  await vi.advanceTimersByTimeAsync(29999);
+  expect(fetchMock).toHaveBeenCalledTimes(3);
+  await vi.advanceTimersByTimeAsync(1);
+  await next;
+});
+
+it.each(['999999999999', 'Thu, 01 Jan 2099 00:00:00 GMT', '9'.repeat(400)])('caps Retry-After %s at 60 seconds', async (header) => {
+  const starts: number[] = [];
+  vi.stubGlobal('fetch', vi.fn(() => {
+    starts.push(Date.now());
     return Promise.resolve(starts.length === 1
       ? new Response('', { status: 429, headers: { 'Retry-After': header } })
       : new Response('{}'));
   }));
   const request = createScryfallScheduler();
   const first = request('first');
-  const second = request('second');
-  await vi.advanceTimersByTimeAsync(1999);
-  expect(starts).toEqual([['first', 0]]);
+  const queued = request('queued');
+  await vi.advanceTimersByTimeAsync(59_999);
+  expect(starts).toEqual([0]);
   await vi.advanceTimersByTimeAsync(1);
-  expect(starts).toEqual([['first', 0], ['first', 2000]]);
+  expect(starts).toEqual([0, 60_000]);
   await vi.advanceTimersByTimeAsync(100);
-  expect(starts).toEqual([['first', 0], ['first', 2000], ['second', 2100]]);
-  await Promise.all([first, second]);
+  await Promise.all([first, queued]);
+  expect(starts).toEqual([0, 60_000, 60_100]);
 });
 
-it.each(['999999999999', 'Thu, 01 Jan 2099 00:00:00 GMT'])('caps hostile wait %s and rejects after two retries', async (header) => {
+it('spaces named, collection and search starts by 500ms while keeping other starts at 100ms', async () => {
   const starts: number[] = [];
   vi.stubGlobal('fetch', vi.fn(() => {
     starts.push(Date.now());
-    return Promise.resolve(new Response('', { status: 429, headers: { 'Retry-After': header } }));
+    return Promise.resolve(new Response('{}'));
   }));
-  const result = createScryfallScheduler()('card').catch((error: unknown) => error);
-  await vi.advanceTimersByTimeAsync(119999);
-  expect(starts).toEqual([0, 60000]);
+  const request = createScryfallScheduler();
+  const requests = [
+    request('https://api.scryfall.com/cards/named?exact=Soldier'),
+    request('https://api.scryfall.com/cards/collection'),
+    request('https://api.scryfall.com/cards/known-id'),
+    request('https://api.scryfall.com/cards/search?q=token'),
+    request('https://api.scryfall.com/cards/named?exact=Treasure'),
+  ];
+  await vi.advanceTimersByTimeAsync(1499);
+  expect(starts).toEqual([0, 500, 600, 1000]);
   await vi.advanceTimersByTimeAsync(1);
-  expect(starts).toEqual([0, 60000, 120000]);
-  expect(await result).toMatchObject({ status: 429 });
+  expect(starts).toEqual([0, 500, 600, 1000, 1500]);
+  await Promise.all(requests);
 });
 
 it('removes an aborted queued request and aborts an active fetch', async () => {
@@ -104,9 +163,9 @@ it('removes a cancelled retry while preserving the global backoff for other call
   await vi.advanceTimersByTimeAsync(10);
   controller.abort();
   expect(await cancelled).toMatchObject({ name: 'AbortError' });
-  await vi.advanceTimersByTimeAsync(1989);
+  await vi.advanceTimersByTimeAsync(29989);
   expect(starts).toEqual([['limited', 0]]);
   await vi.advanceTimersByTimeAsync(1);
-  expect(starts).toEqual([['limited', 0], ['next', 2000]]);
+  expect(starts).toEqual([['limited', 0], ['next', 30000]]);
   await next;
 });

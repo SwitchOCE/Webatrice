@@ -1,4 +1,5 @@
 import type { LookupResult, RelatedCardRef } from '@app/services';
+import { scryfallToLookup } from '../../../../../services/cards/catalog/scryfallCardMapper';
 import { catalogT } from '../../../__test-utils__/catalogT';
 import menuText from '../menus.i18n.json';
 
@@ -104,6 +105,35 @@ describe('buildRelatedTokenItems', () => {
     pinned.onClick!();
     unpinned.onClick!();
     expect(create.mock.calls.map(([request]) => request.providerId)).toEqual(['stale-pin', '']);
+  });
+
+  it('prefers a pinned printing to the related id and sends the resolved canonical name', () => {
+    const create = vi.fn();
+    const relation = ref('Soldier Token', { scryfallId: 'related-id' });
+    const tokenMeta = new Map([['Soldier Token', lookup('Goblin // Soldier', {
+      pinnedPrintingId: 'other-pin', printings: [{ scryfallId: 'wrong-default' }],
+    })]]);
+    const [item] = buildRelatedTokenItems(t, [relation], tokenMeta, create).map(row);
+    item.onClick!();
+    expect(create).toHaveBeenCalledWith(expect.objectContaining({ name: 'Goblin // Soldier', providerId: 'other-pin' }));
+    const all = createAllRelated({ related: [relation], tokenMeta, parentMeta: {}, sourceCardId: 1, parentName: 'Maker' });
+    expect(all.requests[0]).toMatchObject({ name: 'Goblin // Soldier', providerId: 'other-pin' });
+    expect(all.lastToken).toMatchObject({ name: 'Goblin // Soldier', providerId: 'other-pin' });
+  });
+
+  it('sends the combined name supplied by a double-faced Scryfall related token', () => {
+    const maker = scryfallToLookup({ id: 'maker', name: 'Maker', all_parts: [{
+      id: 'related-id', name: 'Goblin // Soldier', component: 'token', uri: '',
+    }] });
+    const relation = maker.related![0];
+    const create = vi.fn();
+    const [item] = buildRelatedTokenItems(t, [relation], new Map(), create).map(row);
+    item.onClick!();
+    expect(relation.name).toBe('Goblin // Soldier');
+    expect(create).toHaveBeenCalledWith(expect.objectContaining({ name: 'Goblin // Soldier', providerId: 'related-id' }));
+    const all = createAllRelated({ related: [relation], tokenMeta: new Map(), parentMeta: {}, sourceCardId: 1, parentName: 'Maker' });
+    expect(all.requests[0]).toMatchObject({ name: 'Goblin // Soldier', providerId: 'related-id' });
+    expect(all.lastToken).toMatchObject({ name: 'Goblin // Soldier', providerId: 'related-id' });
   });
 
   it('still renders items when no create-token command is available', () => {

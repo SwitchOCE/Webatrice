@@ -59,7 +59,7 @@ export default function StackColumn() {
     labelOf: (c) => cardLabel(t, { name: c.name, pt: cardMetaByName.get(c.name)?.pt, annotation: c.annotation }),
     previewOf: (c) => ({
       name: c.name,
-      scryfallId: c.scryfallId || cardMetaByName.get(c.name)?.scryfallId,
+      scryfallId: c.scryfallId,
       pt: cardMetaByName.get(c.name)?.pt,
       annotation: c.annotation,
     }),
@@ -139,10 +139,7 @@ export default function StackColumn() {
               >
                 <Card
                   name={c.name}
-                  scryfallId={
-                    c.scryfallId
-                  || cardMetaByName.get(c.name)?.scryfallId
-                  }
+                  scryfallId={c.scryfallId}
                   pt={cardMetaByName.get(c.name)?.pt}
                   // Stack keeps annotations while other non-battlefield
                   // zones don't (Cockatrice's `keepAnnotations =

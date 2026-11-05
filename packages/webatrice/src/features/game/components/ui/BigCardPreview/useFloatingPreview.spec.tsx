@@ -5,7 +5,7 @@ import { HoverCardZoom } from './HoverCardZoom';
 import { FINE_POINTER_QUERY, HOVER_ZOOM_DELAY_MS, HOVER_ZOOM_GRACE_MS, useHoverZoomTarget } from './useFloatingPreview';
 
 const anchor = { left: 200, top: 300, right: 272, bottom: 402 };
-const BOLT: HoverZoom = { card: { name: 'Lightning Bolt', scryfallId: 'bolt-id' }, anchor };
+const BOLT: HoverZoom = { card: { name: 'Lightning Bolt', scryfallId: 'b0111111-aaaa-bbbb-cccc-111111111111' }, anchor };
 const OGRE: HoverZoom = { card: { name: 'Gray Ogre' }, anchor: { ...anchor, left: 300, right: 372 } };
 
 function mockPointer(fine: boolean) {
@@ -127,7 +127,7 @@ describe('HoverCardZoom', () => {
     expect(parseFloat(zoom.style.left)).toBeGreaterThanOrEqual(anchor.right);
     expect(parseFloat(zoom.style.width)).toBeGreaterThanOrEqual(300);
     expect(zoom.querySelector('img')?.getAttribute('src'))
-      .toBe('https://api.scryfall.com/cards/bolt-id?format=image&version=large');
+      .toBe('https://cards.scryfall.io/large/front/b/0/b0111111-aaaa-bbbb-cccc-111111111111.jpg');
 
     act(() => store.endHover());
     expect(screen.queryByTestId('hover-card-zoom')).not.toBeInTheDocument();

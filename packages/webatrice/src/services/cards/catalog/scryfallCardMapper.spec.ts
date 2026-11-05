@@ -25,6 +25,14 @@ const DELVER: ScryfallCard = {
 };
 
 describe('scryfallToLookup', () => {
+  it('maps each separate face to large art when Scryfall supplies it', () => {
+    const result = scryfallToLookup({ ...DELVER, card_faces: [{
+      name: 'Insectile Aberration', image_uris: { large: 'large-back.jpg', normal: 'normal-back.jpg' },
+    }] });
+    expect(result.faces?.[0].imageUri).toBe('large-back.jpg');
+    expect(result.printings[0].imageUri).toBe('normal-back.jpg');
+  });
+
   it('maps a multi-faced card: named faces, front-face art, joined face text, color identity fallback', () => {
     const result = scryfallToLookup(DELVER);
 

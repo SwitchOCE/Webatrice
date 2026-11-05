@@ -6,6 +6,7 @@
 // Servatrice-shaped counter set (life + the seven mana counters), plus the DOM
 // helpers the specs share for menus, pointer drags and jsdom layout.
 
+import { endSession } from '../../../services/session';
 import { createElement } from 'react';
 import { act, fireEvent, screen } from '@testing-library/react';
 import { ZoneName } from '@cockatrice/sockatrice';
@@ -32,6 +33,7 @@ import GameBoardCell from '../components/ui/GameBoardCell/GameBoardCell';
 import type { BoardCell } from '../hooks/useGameBoardLayout';
 import { ReplayRewindProvider } from '../components/ui/ReplayRewindContext';
 
+afterEach(endSession);
 afterEach(() => games.clearOptimistic());
 
 export const LIFE_COUNTER_ID = 1;

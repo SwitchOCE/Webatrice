@@ -1,9 +1,8 @@
 import { forwardRef, type HTMLAttributes } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Hand, Heart, Skull, Sparkles } from 'lucide-react';
-import { ScryfallImageSize } from '@cockatrice/datatrice';
 import { CardImage } from '@app/components';
-import { getScryfallUrlByIdOrExactName } from '@app/services';
+import { useGameCardImage } from '../../../hooks/useGameCardImage';
 
 import { useCardPreviewActions } from '../CardPreviewContext';
 import { usePlayerSeatContext } from '../PlayerBoard/PlayerSeatContext';
@@ -67,6 +66,7 @@ const LargeZoneBox = forwardRef<
         const { t } = useTranslation();
         const draggable = !!onPointerDown;
         const { setHoveredCard } = useCardPreviewActions();
+        const image = useGameCardImage(topCard);
         return (
           <div className="flex w-full justify-center">
             <div
@@ -95,14 +95,8 @@ const LargeZoneBox = forwardRef<
             >
               {topCard && (
                 <CardImage
-                  // Mirror Card.tsx's fallback: Servatrice's Event_MoveCard
-                  // populates `new_card_provider_id` from the server-side card
-                  // DB (server_abstract_player.cpp:470,500), which returns
-                  // empty for cards not in Servatrice's cards.xml — hitting
-                  // `/cards/<empty>` returns 404 → broken image. Fall back to
-                  // `/cards/named?exact=<name>` so the graveyard/exile pile
-                  // still shows real art when only the name is known.
-                  src={getScryfallUrlByIdOrExactName(topCard, ScryfallImageSize.Large)}
+                  src={image.src}
+                  onError={image.onError}
                   name={topCard.name}
                   draggable={false}
                   className="pointer-events-none select-none absolute inset-0 h-full w-full object-cover"

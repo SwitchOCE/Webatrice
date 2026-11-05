@@ -34,12 +34,26 @@ interface CardImageProps {
  */
 export default function CardImage({ src, name, className, style, draggable, onError, onLoad }: CardImageProps) {
   const [errored, setErrored] = useState(false);
+  const [attempt, setAttempt] = useState(0);
+  const retryLimit = src?.startsWith('https://api.scryfall.com/cards/') ? 0 : 2;
 
   // Reset error state when the source changes so a fresh URL gets a
   // chance to load even after a previous URL failed for the same slot.
   useEffect(() => {
     setErrored(false);
+    setAttempt(0);
   }, [src]);
+
+  useEffect(() => {
+    if (!errored || attempt >= retryLimit) {
+      return;
+    }
+    const timer = setTimeout(() => {
+      setAttempt((value) => value + 1);
+      setErrored(false);
+    }, 1000 * (attempt + 1));
+    return () => clearTimeout(timer);
+  }, [errored, attempt, src, retryLimit]);
 
   const showFallback = !src || errored;
 
@@ -72,6 +86,7 @@ export default function CardImage({ src, name, className, style, draggable, onEr
 
   return (
     <img
+      key={`${src}:${attempt}`}
       src={src}
       // Empty alt matches the callers' original behavior — the visible
       // pill / label / hover-preview owns the accessible name. When
@@ -83,7 +98,9 @@ export default function CardImage({ src, name, className, style, draggable, onEr
       onLoad={onLoad}
       onError={() => {
         setErrored(true);
-        onError?.();
+        if (attempt >= retryLimit) {
+          onError?.();
+        }
       }}
     />
   );

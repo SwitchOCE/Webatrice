@@ -1,4 +1,4 @@
-import { act, render } from '@testing-library/react';
+import { act, render, waitFor } from '@testing-library/react';
 
 import type { CardPreviewMessage } from './cardPreviewChannel';
 import CardPreviewPopupPage from './CardPreviewPopupPage';
@@ -14,22 +14,32 @@ vi.mock('./cardPreviewChannel', async (importOriginal) => ({
   },
 }));
 
+vi.mock('../../services/cardImages', async (importOriginal) => ({
+  ...(await importOriginal<typeof import('../../services/cardImages')>()),
+  lookupGameCard: async (name: string) => ({ card: {
+    found: true, source: 'scryfall', name, typeLine: name.endsWith('Token') ? 'Token Creature' : 'Creature',
+    printings: [{ scryfallId: 'resolved-id' }],
+  } }),
+}));
+
 const ID = '0f1a2b3c-4d5e-4f60-8a7b-9c0d1e2f3a4b';
 
 function showCard(card: { name: string; scryfallId?: string }) {
   const { container } = render(<CardPreviewPopupPage />);
   act(() => channel.handler?.({ kind: 'card', card }));
-  return container.querySelector('img[src*="scryfall"]')?.getAttribute('src');
+  return container;
 }
 
 describe('CardPreviewPopupPage image', () => {
   it('shows the chosen printing by Scryfall id', () => {
-    expect(showCard({ name: 'Rhino, Warrior Token', scryfallId: ID }))
-      .toBe(`https://api.scryfall.com/cards/${ID}?format=image&version=large`);
+    expect(showCard({ name: 'Rhino, Warrior Token', scryfallId: ID }).querySelector('img')?.getAttribute('src'))
+      .toBe(`https://cards.scryfall.io/large/front/0/f/${ID}.jpg`);
   });
 
-  it('shows a name-only card by its exact name', () => {
-    expect(showCard({ name: 'Rhino, Warrior Token' }))
-      .toBe('https://api.scryfall.com/cards/named?exact=Rhino%2C%20Warrior%20Token&format=image&version=large');
+  it('waits for a name-only card to resolve, then uses the shared CDN URL', async () => {
+    const container = showCard({ name: 'Rhino, Warrior Token' });
+    expect(container.querySelector('img')?.getAttribute('src')).not.toContain('api.scryfall.com');
+    await waitFor(() => expect(container.querySelector('img'))
+      .toHaveAttribute('src', 'https://cards.scryfall.io/large/front/r/e/resolved-id.jpg'));
   });
 });

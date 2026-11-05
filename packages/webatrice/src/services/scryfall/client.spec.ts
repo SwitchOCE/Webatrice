@@ -36,7 +36,9 @@ describe('URL builders', () => {
   });
 
   it('strips a trailing Token suffix in either spelling', () => {
-    expect(cleanScryfallName('Soldier Token')).toBe('Soldier');
+    expect(cleanScryfallName('Soldier Token ')).toBe('Soldier');
+    expect(cleanScryfallName(' Soldier (Token)  ')).toBe('Soldier');
+    expect(cleanScryfallName(' Soldier ')).toBe('Soldier');
     expect(cleanScryfallName('Soldier (Token)')).toBe('Soldier');
     expect(cleanScryfallName('Tokens of Value')).toBe('Tokens of Value');
   });
@@ -81,10 +83,10 @@ describe('fetchNamedCard', () => {
     );
   });
 
-  it('returns null on a miss or a network failure', async () => {
+  it('returns null only on a real miss and rejects a network failure', async () => {
     await expect(fetchNamedCard('Missing')).resolves.toBeNull();
     fetchMock.mockImplementation(() => Promise.reject(new TypeError('offline')));
-    await expect(fetchNamedCard('Missing')).resolves.toBeNull();
+    await expect(fetchNamedCard('Missing')).rejects.toThrow('offline');
   });
 });
 
@@ -96,8 +98,8 @@ describe('fetchCollection', () => {
     },
   );
 
-  it.each([['Fire', 'Fire // Ice'], ['B\u014d', 'Bo\u0304']])(
-    'matches the set-hinted name %s using NFC and the front face', async (requested, name) => {
+  it.each([['Fire', 'Fire // Ice'], ['Soldier Token', 'Goblin // Soldier'], ['B\u014d', 'Bo\u0304']])(
+    'matches the set-hinted name %s using NFC and either face', async (requested, name) => {
       fetchMock.mockImplementation(() => respond({ data: [
         { id: 'wrong-set', name, set: 'dom' },
         { id: 'wanted', name, set: 'mh2' },

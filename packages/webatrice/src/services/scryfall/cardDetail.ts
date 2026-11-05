@@ -1,4 +1,5 @@
 import { cleanScryfallName, fetchCardById, fetchNamedCard } from './client';
+import { rethrowCancellationOrRateLimit } from './scheduler';
 
 export interface ScryfallDetail {
   id: string;
@@ -49,7 +50,12 @@ export async function fetchScryfallDetail(
   name: string,
   signal?: AbortSignal,
 ): Promise<ScryfallDetail | null> {
-  return scryfallId ? fetchCardById(scryfallId, signal) : fetchNamedCard(name, signal);
+  try {
+    return await (scryfallId ? fetchCardById(scryfallId, signal) : fetchNamedCard(name, signal));
+  } catch (error) {
+    rethrowCancellationOrRateLimit(error);
+    return null;
+  }
 }
 
 export function selectCardFace(

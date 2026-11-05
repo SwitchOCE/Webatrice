@@ -1,9 +1,8 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import {
   cardOverride,
-  lookupCard,
+  cleanScryfallName,
   lookupCards,
-  preferredPrinting,
   type LookupCardFace,
   type LookupResult,
   type RelatedCardRef,
@@ -11,7 +10,9 @@ import {
 import { useCardDataPreferences } from '@app/hooks';
 
 import type { FilterableCard } from '../../../utils/cardFilter';
-import { deckCardImageUrl } from './deckCardImageUrl';
+import {
+  gameCardImageUrl, lookupGameCard, primeGameCards, resolveGameImagePrinting,
+} from '../../../services/cardImages';
 import type { BattlefieldCardViewModel, SeatDeckCard } from './playerBoard.types';
 
 export interface SeatCardMeta {
@@ -28,7 +29,7 @@ export interface SeatCardMeta {
    *  references — powers the "Token: …" items at the bottom of
    *  the right-click menu, matching Cockatrice's
    *  addRelatedCardActions (card_menu.cpp:407-479). Undefined
-   *  when the source doesn't carry relations (Scryfall) or the
+   *  when the source does not carry relations or the
    *  card genuinely has none. */
   related?: RelatedCardRef[];
   /** Scryfall layout ("transform", "modal_dfc", etc.) — gates
@@ -41,33 +42,29 @@ export interface SeatCardMeta {
    *  non-current face becomes the new-token payload for
    *  Command_CreateToken with target_mode=TRANSFORM_INTO. */
   faces?: LookupCardFace[];
-  /** Scryfall id from the first known printing. Used as a
-   *  fallback when the wire's ServerInfo_Card has no
-   *  providerId (older deck uploads without per-card uuid
-   *  attributes) so Card.tsx can hit the CDN directly instead
-   *  of the rate-limited /cards/named endpoint. */
-  scryfallId?: string;
 }
 
-export function seatCardMetaFromLookup(r: LookupResult): SeatCardMeta {
+export function seatCardMetaFromLookup(r: LookupResult, name = r.name): SeatCardMeta {
+  const face = r.faces?.find((entry) => cleanScryfallName(entry.name).toLowerCase() === cleanScryfallName(name).toLowerCase());
+  const power = face?.power ?? r.power;
+  const toughness = face?.toughness ?? r.toughness;
   const pt =
-    r.power != null && r.toughness != null
-      ? `${r.power}/${r.toughness}`
+    power != null && toughness != null
+      ? `${power}/${toughness}`
       : undefined;
   return {
-    typeLine: r.typeLine ?? '',
+    typeLine: face?.typeLine ?? r.typeLine ?? '',
     pt,
     cipt: r.cipt,
     tableRow: r.tableRow,
-    manaCost: r.manaCost,
+    manaCost: face?.manaCost ?? r.manaCost,
     cmc: r.cmc,
-    colors: r.colors,
-    power: r.power,
-    toughness: r.toughness,
+    colors: face?.colors ?? r.colors,
+    power,
+    toughness,
     related: r.related,
     layout: r.layout,
     faces: r.faces,
-    scryfallId: preferredPrinting(r)?.scryfallId,
   };
 }
 
@@ -87,23 +84,6 @@ export function useSeatCardMetadata({
   otherVisibleCards = NO_OTHER_CARDS,
 }: UseSeatCardMetadataArgs) {
   const cardDataPreferences = useCardDataPreferences();
-  // Preload every image in the viewer's deck the moment we have the deck
-  // list, so drawing feels instant instead of waiting on Scryfall. Only for
-  // the local player — opponents' hand cards never reveal their face, so
-  // burning bandwidth on their images would be wasted.
-  useEffect(() => {
-    if (!isSelf || deckCards.length === 0) {
-      return;
-    }
-    for (const c of deckCards) {
-      if (c.sideboard) {
-        continue;
-      }
-      const img = new Image();
-      img.src = deckCardImageUrl(c);
-    }
-  }, [isSelf, deckCards]);
-
   // Prefetch every deck card's metadata (`type_line` for hand
   // double-click auto-routing + `power`/`toughness` for the P/T pill
   // on the battlefield). The .cod XML we upload doesn't carry either,
@@ -128,31 +108,29 @@ export function useSeatCardMetadata({
     Map<string, LookupResult>
   >(() => new Map());
 
-  /**
-   * Resolve the per-face image URL for a card whose current wire
-   * name matches one face of a multi-faced record cached in
-   * cardMetaByName. Returns undefined for single-face cards or when
-   * the lookup effect hasn't populated the DFC yet — Card.tsx
-   * gracefully falls back to its default scryfallId-composed URL in
-   * that case.
-   *
-   * Motivation: after a DFC transform (Command_CreateToken with
-   * target_mode=TRANSFORM_INTO, Cockatrice-style), the server sets
-   * the new card's providerId to the SOURCE card's Scryfall id
-   * (Cockatrice's player_actions.cpp:1204 keeps the source's
-   * providerId). Scryfall's `/cards/<id>?format=image` for that id
-   * always returns the FRONT face, so without a per-face override
-   * the transformed card keeps rendering the front face's art.
-   * This helper feeds `imageUri` into Card.tsx so the back-face
-   * image loads.
-   */
   const resolveFaceImageUri = (cardName: string): string | undefined => {
-    const meta = cardMetaByName.get(cardName);
-    if (!meta?.faces || meta.faces.length < 2) {
-      return undefined;
-    }
-    return meta.faces.find((f) => f.name === cardName)?.imageUri;
+    const faces = cardMetaByName.get(cardName)?.faces;
+    return faces?.find((face) => cleanScryfallName(face.name).toLowerCase() === cleanScryfallName(cardName).toLowerCase())?.imageUri;
   };
+  useEffect(() => {
+    if (!isSelf) {
+      return;
+    }
+    let cancelled = false;
+    void primeGameCards(deckCards.map((card) => card.name));
+    for (const card of deckCards.filter((entry) => !entry.sideboard)) {
+      void lookupGameCard(card.name).then((lookup) => resolveGameImagePrinting(lookup, card.scryfallId, card.name)).then((lookup) => {
+        const url = gameCardImageUrl(card, lookup);
+        if (!cancelled && url) {
+          const image = new Image();
+          image.src = url;
+        }
+      }).catch(() => {});
+    }
+    return () => {
+      cancelled = true;
+    };
+  }, [isSelf, deckCards]);
   useEffect(() => {
     if (!isSelf || deckCards.length === 0) {
       return;
@@ -172,7 +150,8 @@ export function useSeatCardMetadata({
     void (async () => {
       const results = await Promise.all(
         uniqueNames.map(async (name) => {
-          return [name, seatCardMetaFromLookup(await lookupCard(name))] as const;
+          const { card } = await lookupGameCard(name);
+          return card.found ? [name, seatCardMetaFromLookup(card, name)] as const : null;
         }),
       );
       if (cancelled) {
@@ -180,12 +159,14 @@ export function useSeatCardMetadata({
       }
       setCardMetaByName((prev) => {
         const next = new Map(prev);
-        for (const [name, meta] of results) {
-          next.set(name, meta);
+        for (const entry of results) {
+          if (entry) {
+            next.set(...entry);
+          }
         }
         return next;
       });
-    })();
+    })().catch(() => {});
     return () => {
       cancelled = true;
     };
@@ -219,10 +200,12 @@ export function useSeatCardMetadata({
     if (uniqueNames.length === 0) {
       return;
     }
+    void primeGameCards(uniqueNames);
     void (async () => {
       const results = await Promise.all(
         uniqueNames.map(async (name) => {
-          return [name, seatCardMetaFromLookup(await lookupCard(name))] as const;
+          const { card } = await lookupGameCard(name);
+          return card.found ? [name, seatCardMetaFromLookup(card, name)] as const : null;
         }),
       );
       if (cancelled) {
@@ -230,12 +213,14 @@ export function useSeatCardMetadata({
       }
       setCardMetaByName((prev) => {
         const next = new Map(prev);
-        for (const [name, meta] of results) {
-          next.set(name, meta);
+        for (const entry of results) {
+          if (entry) {
+            next.set(...entry);
+          }
         }
         return next;
       });
-    })();
+    })().catch(() => {});
     return () => {
       cancelled = true;
     };
@@ -280,18 +265,15 @@ export function useSeatCardMetadata({
       }
       setTokenMetaByName((prev) => {
         const next = new Map(prev);
-        // Always cache the answer (even `source: "unknown"`) so we
-        // don't re-issue the lookup for a name we already tried.
         for (const name of uniqueNeeded) {
           const r = results.get(name);
-          next.set(
-            name,
-            r ?? { found: false, source: 'unknown', name, printings: [] },
-          );
+          if (r?.found || r?.notFound) {
+            next.set(name, r);
+          }
         }
         return next;
       });
-    })();
+    })().catch(() => {});
     return () => {
       cancelled = true;
     };

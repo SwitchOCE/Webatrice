@@ -1,9 +1,11 @@
-import { act, fireEvent, screen } from '@testing-library/react';
+import { dexieService, lookupCard, lookupCards } from '@app/services';
+import { act, fireEvent, screen, waitFor } from '@testing-library/react';
 import { makeCard } from '@cockatrice/datatrice/testing';
 import { testI18n } from '../../../../../__test-utils__/renderWithProviders';
 
 import {
   chooseMenuPath,
+  cardEl,
   menuLabels,
   openContextMenu,
   openMenus,
@@ -108,7 +110,11 @@ describe('ZoneStack', () => {
     expect(grave).toHaveFocus();
   });
 
-  it('draws a pile\'s top card from its printing, else from its exact name', () => {
+  it('draws a pile\'s top card from its printing, else from the looked-up printing', async () => {
+    vi.mocked(lookupCards).mockResolvedValueOnce(new Map([['Rhino, Warrior Token', {
+      found: true, source: 'scryfall', name: 'Rhino, Warrior', typeLine: 'Token Creature',
+      printings: [{ scryfallId: 'abcd1111-aaaa-bbbb-cccc-111111111111' }],
+    }]]));
     renderSeatCell({
       localPlayerId: 1,
       seats: [{
@@ -120,11 +126,31 @@ describe('ZoneStack', () => {
     });
     expect(pileEl('Graveyard').querySelector('img')).toHaveAttribute(
       'src',
-      'https://api.scryfall.com/cards/0f1a2b3c-4d5e-4f60-8a7b-9c0d1e2f3a4b?format=image&version=large',
+      'https://cards.scryfall.io/large/front/0/f/0f1a2b3c-4d5e-4f60-8a7b-9c0d1e2f3a4b.jpg',
     );
-    expect(pileEl('Exile').querySelector('img')).toHaveAttribute(
-      'src',
-      'https://api.scryfall.com/cards/named?exact=Rhino%2C%20Warrior%20Token&format=image&version=large',
-    );
+    await waitFor(() => expect(pileEl('Exile').querySelector('img')).toHaveAttribute(
+      'src', 'https://cards.scryfall.io/large/front/a/b/abcd1111-aaaa-bbbb-cccc-111111111111.jpg',
+    ));
+  });
+});
+
+describe('battlefield token image printing precedence', () => {
+  it.each([false, true])('honours an actual provider id over token art, when present: %s', async (hasProviderId) => {
+    const providerId = '0f1a2b3c-4d5e-4f60-8a7b-9c0d1e2f3a4b';
+    const lookupId = 'abcd1111-aaaa-bbbb-cccc-111111111111';
+    const localPic = 'https://tokens.example.test/beast.jpg';
+    vi.spyOn(dexieService, 'tokens', 'get').mockReturnValue({
+      toArray: async () => [{ name: { value: 'Beast Token' }, set: { value: 'T', uuid: lookupId, picURL: localPic } }],
+    } as typeof dexieService.tokens);
+    vi.mocked(lookupCard).mockResolvedValue({
+      found: true, source: 'scryfall', name: 'Beast', typeLine: 'Token Creature', power: '3', toughness: '3',
+      printings: [{ scryfallId: lookupId }],
+    });
+    renderSeatCell({ localPlayerId: 1, seats: [{
+      playerId: 1, table: [makeCard({ id: 40, name: 'Beast Token', providerId: hasProviderId ? providerId : '' })],
+    }] });
+    const expected = hasProviderId ? `https://cards.scryfall.io/large/front/0/f/${providerId}.jpg` : localPic;
+    await waitFor(() => expect(cardEl(40, 'battlefield')).toHaveTextContent('3/3'));
+    await waitFor(() => expect(cardEl(40, 'battlefield').querySelector('.seat-card img')).toHaveAttribute('src', expected));
   });
 });

@@ -2,10 +2,9 @@ import { useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { ChevronLeft } from 'lucide-react';
 
-import { ScryfallImageSize } from '@cockatrice/datatrice';
 
 import { CardRelatedLinks, ManaSymbols, SymbolText } from '@app/components';
-import { getScryfallUrlByIdOrExactName } from '@app/services';
+import { useGameCardImage } from '../../hooks/useGameCardImage';
 import type { PreviewMode } from '../CardPreviewPane/useCardPreviewPane';
 import type { PreviewCard } from '../ui/CardPreviewContext';
 import PreviewCardImage from '../ui/PreviewCardImage/PreviewCardImage';
@@ -29,9 +28,7 @@ const HEARTBEAT_TIMEOUT_MS = 5_000;
  * broadcasts on the card-preview channel.
  *
  * The popup honors the same tri-state view mode as the sidebar
- * (image / text / both). It doesn't do its own Scryfall fetch —
- * the main window ships the detail record on the channel so both
- * surfaces show the same content without racing.
+ * (image / text / both).
  *
  * Lifecycle:
  *   • Mount → subscribe to the channel, start a "last message" timer,
@@ -88,11 +85,8 @@ export default function CardPreviewPopupPage() {
     };
   }, []);
 
-  const imageUrl = card
-    ? card.imageUri
-      ? card.imageUri
-      : getScryfallUrlByIdOrExactName(card, ScryfallImageSize.Large)
-    : null;
+  const image = useGameCardImage(card);
+  const imageUrl = image.src;
 
   // Prefer the face matching the hovered card's name — mirrors the
   // sidebar's face-selection so a transformed DFC surfaces its back
@@ -168,9 +162,10 @@ export default function CardPreviewPopupPage() {
                 : 'contents',
             ].join(' ')}
           >
-            {imageUrl ? (
+            {card ? (
               <PreviewCardImage
                 src={imageUrl}
+                onError={image.onError}
                 name={card?.name}
                 className={[
                   'shadow-glow rounded-lg shrink-0',

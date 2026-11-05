@@ -2,14 +2,11 @@ import { useEffect, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { useTranslation } from 'react-i18next';
 
-import { ScryfallImageSize } from '@cockatrice/datatrice';
 
 import { CardRelatedLinks, ManaSymbols, SymbolText } from '@app/components';
 import {
   detailTargetKey,
   fetchScryfallDetail,
-  getScryfallUrlById,
-  getScryfallUrlByName,
   type ScryfallDetail,
 } from '@app/services';
 
@@ -18,6 +15,7 @@ import { useBigPreviewAnchor, useBigPreviewCard, useCardPreviewActions } from '.
 import { CARD_CORNER_RADIUS } from '../SeatCard/cardSize';
 import PreviewCardImage from '../PreviewCardImage/PreviewCardImage';
 import { HoverCardZoom } from './HoverCardZoom';
+import { useGameCardImage } from '../../../hooks/useGameCardImage';
 import { useFloatingPreviewLayout } from './useFloatingPreview';
 
 export const ZOOM_CHROME = { x: 24, y: 24, textWidth: 292 } as const;
@@ -50,15 +48,8 @@ export function BigCardPreview() {
     // eslint-disable-next-line react-hooks/exhaustive-deps -- refetch only when the card identity (`hoverKey`) changes
   }, [hoverKey]);
 
-  // `card.imageUri` wins when set — mirrors PreviewCard.imageUri so
-  // DFC back-face art shows correctly in the zoom modal.
-  const imageUrl = card
-    ? card.imageUri
-      ? card.imageUri
-      : card.scryfallId
-        ? getScryfallUrlById(card.scryfallId, ScryfallImageSize.Large)
-        : getScryfallUrlByName(card.name, ScryfallImageSize.Large)
-    : null;
+  const image = useGameCardImage(card);
+  const imageUrl = image.src;
 
   // Pick the face matching the hovered name — same logic as
   // CardPreviewPane. Falls back to face-0 for classic single-face
@@ -90,9 +81,9 @@ export function BigCardPreview() {
       className="pointer-events-none fixed z-[1400] flex rounded-lg border border-border-subtle bg-bg-surface p-3 shadow-2xl"
       style={{ left: layout.left, top: layout.top }}
     >
-      {imageUrl && (
+      {card && (
         <PreviewCardImage
-          src={imageUrl}
+          src={imageUrl} onError={image.onError}
           name={displayName}
           className="block shrink-0 shadow-lg"
           style={{

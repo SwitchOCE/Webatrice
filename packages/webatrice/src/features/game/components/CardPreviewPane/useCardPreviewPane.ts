@@ -1,7 +1,7 @@
+import { useGameCardImage } from '../../hooks/useGameCardImage';
 import { useCallback, useEffect, useState } from 'react';
 
-import { ScryfallImageSize } from '@cockatrice/datatrice';
-import { detailTargetKey, fetchScryfallDetail, getScryfallUrlByIdOrExactName, type ScryfallDetail } from '@app/services';
+import { detailTargetKey, fetchScryfallDetail, type ScryfallDetail } from '@app/services';
 
 import { useCardInfoRequest, useCardPreview, type PreviewCard } from '../ui/CardPreviewContext';
 import { useCardPreviewPopup } from '../CardPreviewPopup/useCardPreviewPopup';
@@ -161,11 +161,7 @@ export function useCardPreviewPane() {
     // eslint-disable-next-line react-hooks/exhaustive-deps -- refetch only when the card identity (`activeKey`) changes
   }, [mode, activeKey, hidden]);
 
-  const imageUrl = activeCard
-    ? (!override && hoveredCard?.imageUri)
-      ? hoveredCard.imageUri
-      : getScryfallUrlByIdOrExactName(activeCard, ScryfallImageSize.Large)
-    : null;
+  const image = useGameCardImage(activeCard ? { ...activeCard, imageUri: !override ? hoveredCard?.imageUri : undefined } : null);
 
   return {
     mode,
@@ -182,7 +178,8 @@ export function useCardPreviewPane() {
     detailFetchState,
     isPopupOpen,
     togglePopup,
-    imageUrl,
+    imageUrl: image.src,
+    onImageError: image.onError,
     text: previewTextOf(detail, activeCard?.name),
   };
 }

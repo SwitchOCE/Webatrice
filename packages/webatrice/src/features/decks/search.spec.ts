@@ -15,6 +15,12 @@ function json(body: unknown, ok = true, status = ok ? 200 : 500): Response {
   return { ok, status, json: async () => body } as Response;
 }
 
+let epoch = Date.now();
+beforeEach(() => {
+  vi.useFakeTimers({ shouldAdvanceTime: true });
+  vi.setSystemTime(epoch += 1_000_000);
+});
+
 afterEach(() => {
   vi.useRealTimers();
   vi.unstubAllGlobals();
@@ -86,15 +92,13 @@ describe('searchScryfallPage errors', () => {
   });
 
   it('rejects an exhausted HTTP 429 retry sequence', async () => {
-    vi.useFakeTimers();
-    vi.setSystemTime(Date.now() + 10_000);
     const fetchMock = vi.fn(async () => json({}, false, 429));
     vi.stubGlobal('fetch', fetchMock);
 
     const result = expect(searchPage('bolt')).rejects.toMatchObject({ failure: { kind: 'failed' } });
-    await vi.advanceTimersByTimeAsync(1_000);
+    await vi.advanceTimersByTimeAsync(30_000);
     expect(fetchMock).toHaveBeenCalledTimes(2);
-    await vi.advanceTimersByTimeAsync(1_000);
+    await vi.advanceTimersByTimeAsync(30_000);
     await result;
     expect(fetchMock).toHaveBeenCalledTimes(3);
   });

@@ -62,7 +62,7 @@ export default function SeatDragGhostCards({ cards, zone, lent, origin }: SeatDr
               <Card
                 id={c.id}
                 name={c.name}
-                scryfallId={c.scryfallId || baseMeta?.scryfallId}
+                scryfallId={c.scryfallId}
                 pt={bc.pt || (bc.faceDown ? undefined : baseMeta?.pt)}
                 basePT={baseMeta?.pt}
                 annotation={bc.annotation}

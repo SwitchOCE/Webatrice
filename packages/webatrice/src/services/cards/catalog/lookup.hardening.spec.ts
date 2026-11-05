@@ -3,7 +3,7 @@ import type { Mock } from 'vitest';
 import { dexieService } from '../../dexie';
 import { fetchCollection, fetchNamedCard } from '../../scryfall/client';
 import { ScryfallRateLimitError } from '../../scryfall/scheduler';
-import { lookupCard, lookupCards, lookupCardsCached } from './lookup';
+import { lookupCard, lookupCards, lookupCardsCached, lookupCardsForHydration, printingKey } from './lookup';
 import { SCRYFALL_CACHE_TTL_MS } from './scryfallCache';
 
 vi.mock('../../dexie', () => ({ dexieService: {
@@ -26,6 +26,38 @@ beforeEach(() => {
 
 afterEach(() => {
   vi.useRealTimers();
+});
+
+it('stores collection hits under both the requested face name and the combined name', async () => {
+  const name = 'Soldier Token';
+  vi.mocked(fetchCollection).mockResolvedValue(new Map([[name, { id: 'token', name: 'Goblin // Soldier' }]]));
+  await lookupCards([name]);
+  expect(dexieService.scryfallCache.bulkPut).toHaveBeenCalledWith([
+    expect.objectContaining({ name: 'Goblin // Soldier', found: true }),
+    expect.objectContaining({ name, found: true }),
+  ]);
+});
+
+it.each(['single', 'batch', 'hydration'] as const)('keeps a stale found row after a real 404 in %s refresh', async (kind) => {
+  const name = `Not found refresh ${kind}`;
+  const stale = {
+    name, found: true, source: 'scryfall', fetchedAt: Date.now() - SCRYFALL_CACHE_TTL_MS,
+    printings: [{ scryfallId: 'cached-printing' }], power: '3', toughness: '3',
+  };
+  cache.get.mockResolvedValue(stale);
+  cache.bulkGet.mockResolvedValue([stale]);
+  vi.mocked(fetchCollection).mockResolvedValue(new Map());
+  vi.mocked(fetchNamedCard).mockResolvedValue(null);
+  if (kind === 'hydration') {
+    const result = await lookupCardsForHydration([name]);
+    expect(result.lookups.get(printingKey({ name }))).toEqual(stale);
+    expect((await result.refreshed).get(printingKey({ name }))).toEqual(stale);
+  } else {
+    const result = kind === 'single' ? await lookupCard(name) : (await lookupCards([name])).get(name);
+    expect(result).toEqual(stale);
+  }
+  expect(dexieService.scryfallCache.put).not.toHaveBeenCalled();
+  expect(dexieService.scryfallCache.bulkPut).not.toHaveBeenCalled();
 });
 
 it.each(['single', 'batch'] as const)('preserves a stale row when a %s refresh fails, then replaces it on success', async (kind) => {

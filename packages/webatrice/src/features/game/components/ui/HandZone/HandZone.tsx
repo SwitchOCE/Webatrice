@@ -70,7 +70,7 @@ export default function HandZone() {
     cards: isSelf ? handDisplayList : [],
     orientation: horizontalHand ? 'horizontal' : 'vertical',
     labelOf: (c) => cardLabel(t, { name: c.name }),
-    previewOf: (c) => ({ name: c.name, scryfallId: c.scryfallId || cardMetaByName.get(c.name)?.scryfallId }),
+    previewOf: (c) => ({ name: c.name, scryfallId: c.scryfallId }),
     onKeyboardFocus: setHandFocused,
   });
 
@@ -79,7 +79,7 @@ export default function HandZone() {
       key={c.id}
       card={c}
       ownerId={playerId}
-      scryfallId={c.scryfallId || cardMetaByName.get(c.name)?.scryfallId}
+      scryfallId={c.scryfallId}
       pt={cardMetaByName.get(c.name)?.pt}
       dragging={isDragging(c.id, 'hand')}
       selected={selection?.zone === 'hand' && selection.ids.has(c.id)}

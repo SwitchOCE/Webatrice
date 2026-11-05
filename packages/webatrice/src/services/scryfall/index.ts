@@ -6,7 +6,7 @@ export {
   type ScryfallDetail,
   type ScryfallDetailFace,
 } from './cardDetail';
-export { cleanScryfallName } from './client';
+export { cleanScryfallName, fetchTokenCard } from './client';
 export {
   CARD_BACK_URL,
   getScryfallUrl,

@@ -47,7 +47,10 @@ function respond(body: unknown, ok = true, status = 200) {
 
 let fetchMock: ReturnType<typeof vi.fn>;
 
+let epoch = Date.now();
 beforeEach(() => {
+  vi.useFakeTimers({ shouldAdvanceTime: true });
+  vi.setSystemTime(epoch += 1_000_000);
   fetchMock = vi.fn(() => respond({}, false, 404));
   vi.stubGlobal('fetch', fetchMock);
   cards.get.mockResolvedValue(undefined);
@@ -68,6 +71,7 @@ describe('lookupCard', () => {
       found: false,
       source: 'unknown',
       name: 'Nonexistent',
+      notFound: true,
       printings: [],
     });
   });
@@ -260,6 +264,7 @@ describe('lookupCards', () => {
     expect(cache.bulkPut).toHaveBeenCalledWith([
       expect.objectContaining({ name: 'Opt' }),
       expect.objectContaining({ name: 'Fire // Ice' }),
+      expect.objectContaining({ name: 'Fire' }),
     ]);
   });
 
@@ -274,7 +279,7 @@ describe('lookupCards', () => {
     const result = await lookupCards(['Brainstorm', 'Missing']);
 
     expect(result.get('Brainstorm')).toMatchObject({ found: true, source: 'scryfall' });
-    expect(result.get('Missing')).toEqual({ found: false, source: 'unknown', name: 'Missing', printings: [] });
+    expect(result.get('Missing')).toEqual({ found: false, notFound: true, source: 'unknown', name: 'Missing', printings: [] });
   });
 
   it('skips per-name retries when more than 50 names are unresolved (no request storm)', async () => {
@@ -345,7 +350,8 @@ describe('Scryfall request shapes (characterization)', () => {
     const warn = vi.spyOn(console, 'warn').mockImplementation(() => undefined);
 
     const result = lookupCards(names);
-    await vi.waitFor(() => expect(pending).toHaveLength(3));
+    await vi.advanceTimersByTimeAsync(1_000);
+    expect(pending).toHaveLength(3);
     pending.forEach((settle) => settle());
     await result;
 
@@ -398,6 +404,7 @@ describe('Scryfall request shapes (characterization)', () => {
     cards.bulkGet.mockResolvedValue([XML_SWAN_SONG]);
     fetchMock.mockImplementation(() => respond({}, false, 429));
     const result = kind === 'single' ? lookupCard('Swan Song') : lookupCards(['Swan Song']).then((hits) => hits.get('Swan Song'));
+    await vi.advanceTimersByTimeAsync(60_000);
     await expect(result).resolves.toMatchObject({ found: true, source: 'dexie', name: 'Swan Song' });
     expect(fetchMock).toHaveBeenCalledTimes(3);
   });

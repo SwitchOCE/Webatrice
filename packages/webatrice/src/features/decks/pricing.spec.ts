@@ -139,12 +139,17 @@ describe('fetchPricesForCards (Scryfall request characterization)', () => {
   });
 
   it('stops a 100-card deck at the first exhausted rate limit', async () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(Date.now() + 1_000_000);
     const fetchMock = vi.fn(async () => new Response('', { status: 429, headers: { 'Retry-After': '0' } }));
     vi.stubGlobal('fetch', fetchMock);
     const cards = Array.from({ length: 100 }, (_, i) => ({ scryfallId: `limit-id-${i}`, name: `Limit Card ${i}` }));
 
-    await expect(fetchPricesForCards(cards)).rejects.toBeInstanceOf(ScryfallRateLimitError);
+    const result = fetchPricesForCards(cards).catch((error: unknown) => error);
+    await vi.advanceTimersByTimeAsync(60_000);
+    expect(await result).toBeInstanceOf(ScryfallRateLimitError);
 
     expect(fetchMock).toHaveBeenCalledTimes(3);
+    vi.useRealTimers();
   });
 });

@@ -115,7 +115,7 @@ it.each([429, 500])('keeps the stored price and sends no command after Scryfall 
   vi.stubGlobal('fetch', fetch);
   vi.spyOn(console, 'warn').mockImplementation(() => undefined);
   const { webClient, unmount } = setup();
-  await act(async () => vi.advanceTimersByTimeAsync(4000));
+  await act(async () => vi.advanceTimersByTimeAsync(status === 429 ? 61_000 : 4000));
   expect(fetch).toHaveBeenCalledTimes(status === 429 ? 3 : 1);
   expect(loadingPrices).toBe(false);
   expect(editor.deck?.meta.priceUsd).toBe(12);

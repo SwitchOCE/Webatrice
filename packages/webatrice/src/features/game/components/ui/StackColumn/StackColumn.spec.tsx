@@ -65,10 +65,10 @@ describe('StackColumn', () => {
     await waitFor(() => expect(lookupCard).toHaveBeenCalledWith('Bear'));
     await act(async () => {});
     vi.mocked(lookupCard).mockClear();
+    vi.mocked(lookupCard).mockRejectedValue(new Error('Image metadata unavailable'));
 
     fireEvent.doubleClick(cardEl(BEAR.id, 'stack'));
     await waitFor(() => expect(game.moveCard).toHaveBeenCalledTimes(1));
-    expect(lookupCard).not.toHaveBeenCalled();
     expect(vi.mocked(game.moveCard).mock.calls[0][1]).toMatchObject({
       startZone: ZoneName.STACK,
       targetZone: ZoneName.TABLE,

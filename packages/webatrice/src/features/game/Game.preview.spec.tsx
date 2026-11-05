@@ -1,5 +1,5 @@
 
-import { act, fireEvent, screen } from '@testing-library/react';
+import { act, fireEvent, screen, waitFor } from '@testing-library/react';
 import { makeCard } from '@cockatrice/datatrice/testing';
 
 import { createMockWebClient, renderWithProviders } from '../../__test-utils__';
@@ -40,14 +40,17 @@ function previewImages(): HTMLImageElement[] {
 
 describe('Game card preview', () => {
   beforeEach(() => {
-    vi.spyOn(globalThis, 'fetch').mockImplementation(() => new Promise(() => {}));
+    vi.spyOn(globalThis, 'fetch').mockImplementation(async () => new Response('{}'));
+    vi.mocked(lookupCard).mockImplementation(async (name: string) => ({
+      found: true, source: 'scryfall', name, printings: [{ scryfallId: name === 'Lightning Bolt' ? 'bolt-id' : 'spark-id' }],
+    }));
   });
 
   afterEach(() => {
     vi.restoreAllMocks();
   });
 
-  it('shows a hovered seat card in the right-rail preview', () => {
+  it('shows a hovered seat card in the right-rail preview', async () => {
     renderWithProviders(<Game />, { preloadedState: buildSeatGameState(SPEC), webClient: createMockWebClient() });
     expect(previewImages()).toHaveLength(0);
 
@@ -55,9 +58,9 @@ describe('Game card preview', () => {
     expect(face).not.toBeNull();
     fireEvent.mouseEnter(face!);
 
-    expect(previewImages().map((img) => img.getAttribute('src'))).toEqual([
-      expect.stringContaining(`exact=${encodeURIComponent('Lightning Bolt')}`),
-    ]);
+    await waitFor(() => expect(previewImages().map((img) => img.getAttribute('src'))).toEqual([
+      'https://cards.scryfall.io/large/front/b/o/bolt-id.jpg',
+    ]));
   });
 
   it('holds the middle-click zoom open until the middle button is released', () => {
@@ -100,7 +103,7 @@ describe('Game card preview', () => {
       found: true,
       source: 'dexie',
       name,
-      printings: [],
+      printings: [{ scryfallId: name === 'Lightning Bolt' ? 'bolt-id' : 'spark-id' }],
       related: name === 'Lightning Bolt'
         ? [
           { name: 'Spark Elemental', origin: 'related' },
@@ -120,9 +123,9 @@ describe('Game card preview', () => {
     openContextMenu(cardEl(BOLT.id, 'battlefield'));
     chooseMenuPath('View related cards', 'Spark Elemental');
 
-    expect(previewImages().map((img) => img.getAttribute('src'))).toEqual([
-      expect.stringContaining(`exact=${encodeURIComponent('Spark Elemental')}`),
-    ]);
+    await waitFor(() => expect(previewImages().map((img) => img.getAttribute('src'))).toEqual([
+      'https://cards.scryfall.io/large/front/s/p/spark-id.jpg',
+    ]));
     for (const send of Object.values(webClient.request.game)) {
       expect(send).not.toHaveBeenCalled();
     }
@@ -133,7 +136,7 @@ describe('Game card preview', () => {
       found: true,
       source: 'dexie',
       name,
-      printings: [],
+      printings: [{ scryfallId: name === 'Lightning Bolt' ? 'bolt-id' : 'spark-id' }],
       related: name === 'Lightning Bolt' ? [{ name: 'Spark Elemental', origin: 'related' }] : undefined,
     }));
     vi.mocked(lookupCards).mockImplementation(async (inputs) =>
@@ -154,8 +157,8 @@ describe('Game card preview', () => {
     openContextMenu(cardEl(theirBolt.id, 'stack'));
     chooseMenuPath('View related cards', 'Spark Elemental');
 
-    expect(previewImages().map((img) => img.getAttribute('src'))).toEqual([
-      expect.stringContaining(`exact=${encodeURIComponent('Spark Elemental')}`),
-    ]);
+    await waitFor(() => expect(previewImages().map((img) => img.getAttribute('src'))).toEqual([
+      'https://cards.scryfall.io/large/front/s/p/spark-id.jpg',
+    ]));
   });
 });

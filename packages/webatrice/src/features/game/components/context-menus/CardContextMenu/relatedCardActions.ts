@@ -40,7 +40,7 @@ function relatedTokenAction(ref: RelatedCardRef, tok: LookupResult | undefined, 
       ? 'm'
       : tok.colors[0].toLowerCase()
     : '';
-  const tokProviderId = tok?.pinnedPrintingId ?? '';
+  const tokProviderId = tok?.pinnedPrintingId ?? ref.scryfallId ?? '';
   const countPrefix = ref.count === 'x'
     ? 'X '
     : ref.count && /^\d+$/.test(ref.count) && Number(ref.count) > 1
@@ -191,7 +191,7 @@ function repeatTokenRequest(ref: RelatedCardRef, tok: LookupResult | undefined, 
     annotation: annotate ? tok?.text ?? '' : '',
     destroyOnZoneChange: true,
     faceDown: false,
-    providerId: tok?.pinnedPrintingId ?? '',
+    providerId: tok?.pinnedPrintingId ?? ref.scryfallId ?? '',
   };
 }
 

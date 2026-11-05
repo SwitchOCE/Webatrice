@@ -27,7 +27,7 @@ export interface ScryfallCard {
     power?: string;
     toughness?: string;
     oracle_text?: string;
-    image_uris?: { small?: string; normal?: string };
+    image_uris?: { small?: string; normal?: string; large?: string };
   }>;
   all_parts?: Array<{
     id: string;

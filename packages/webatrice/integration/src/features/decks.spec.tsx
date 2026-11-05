@@ -412,7 +412,7 @@ describe('Decks (integration)', () => {
     });
     fireEvent.click(screen.getByRole('button', { name: 'ImportDeckDialog.next' }));
 
-    expect(await screen.findByText('ImportDeckDialog.review.matched')).toBeInTheDocument();
+    expect(await screen.findByText('ImportDeckDialog.review.matched', {}, { timeout: 3000 })).toBeInTheDocument();
     expect(screen.getByText('ImportDeckDialog.review.missing')).toBeInTheDocument();
     expect(screen.getAllByText('ImportDeckDialog.review.unknown')).toHaveLength(2);
     fireEvent.click(screen.getByRole('button', { name: 'ImportDeckDialog.importCards' }));

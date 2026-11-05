@@ -4,6 +4,7 @@ export interface LookupResult {
   pinnedPrintingId?: string;
   fetchedAt?: number;
   found: boolean;
+  notFound?: boolean;
   source: 'dexie' | 'scryfall' | 'dexie+scryfall' | 'unknown';
   name: string;
   typeLine?: string;

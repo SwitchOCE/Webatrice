@@ -60,7 +60,8 @@ export function scryfallToLookup(card: ScryfallCard): LookupResult {
         power: f.power,
         toughness: f.toughness,
         text: f.oracle_text,
-        imageUri: f.image_uris?.normal ?? f.image_uris?.small,
+        imageUri: f.image_uris?.large ?? (f.image_uris?.normal ?? f.image_uris?.small)
+          ?.replace(/\/(?:normal|small)\//, '/large/').replace(/\?[^#]*$/, ''),
       }))
     : undefined;
 

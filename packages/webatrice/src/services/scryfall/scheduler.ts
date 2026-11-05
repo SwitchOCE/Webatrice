@@ -1,4 +1,6 @@
 const REQUEST_SPACING_MS = 100;
+const SLOW_REQUEST_SPACING_MS = 500;
+const RATE_LIMIT_WAIT_MS = 30_000;
 const MAX_RETRY_WAIT_MS = 60_000;
 const MAX_RETRIES = 2;
 
@@ -36,7 +38,7 @@ function retryDelay(header: string | null): number {
   const delay = value && /^\d+(?:\.\d+)?$/.test(value)
     ? Number(value) * 1000
     : value ? Date.parse(value) - Date.now() : NaN;
-  return Number.isNaN(delay) ? 1000 : Math.min(MAX_RETRY_WAIT_MS, Math.max(0, delay));
+  return Number.isNaN(delay) ? RATE_LIMIT_WAIT_MS : Math.min(MAX_RETRY_WAIT_MS, Math.max(RATE_LIMIT_WAIT_MS, delay));
 }
 
 interface Job {
@@ -52,6 +54,7 @@ interface Job {
 export function createScryfallScheduler() {
   const queue: Job[] = [];
   let nextStart = 0;
+  let nextSlowStart = 0;
   let pausedUntil = 0;
   let timer: ReturnType<typeof setTimeout> | undefined;
 
@@ -74,13 +77,17 @@ export function createScryfallScheduler() {
     if (!queue.length) {
       return;
     }
-    const delay = Math.max(nextStart, pausedUntil) - Date.now();
+    const slow = /\/cards\/(?:named|collection|search)(?:[?/]|$)/.test(queue[0].url);
+    const delay = Math.max(nextStart, pausedUntil, slow ? nextSlowStart : 0) - Date.now();
     if (delay > 0) {
       timer = setTimeout(pump, delay);
       return;
     }
     const job = queue.shift()!;
     nextStart = Date.now() + REQUEST_SPACING_MS;
+    if (slow) {
+      nextSlowStart = Date.now() + SLOW_REQUEST_SPACING_MS;
+    }
     void (async () => {
       try {
         const response = await fetch(job.url, job.init);

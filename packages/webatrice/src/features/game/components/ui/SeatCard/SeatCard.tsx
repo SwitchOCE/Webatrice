@@ -1,9 +1,8 @@
 import { memo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { usePreference } from '@app/hooks';
-import { ScryfallImageSize } from '@cockatrice/datatrice';
 import { CardImage } from '@app/components';
-import { cleanScryfallName, getScryfallUrlByIdOrExactName } from '@app/services';
+import { useGameCardImage } from '../../../hooks/useGameCardImage';
 import { CARD_BACK_URL, CARD_CORNER_RADIUS, CARD_HEIGHT, CARD_WIDTH } from './cardSize';
 import { anchorOf, useCardPreviewActions } from '../CardPreviewContext';
 import { counterLetter } from './cardLabel';
@@ -40,13 +39,6 @@ interface Props {
    *  manifested creature's P/T remains readable. */
   faceDown?: boolean;
   counters?: readonly { id: number; value: number }[];
-  /** Explicit image URL override. When set, replaces the composed
-   *  scryfallId / name-based Scryfall URL. Used by the caller to
-   *  point a card at a DFC back-face image after a transform
-   *  (Scryfall's default card record and its providerId both point
-   *  at the front face — the back face's image lives on a different
-   *  URL sourced from `card_faces[N].image_uris`). Falls back to
-   *  the default composition when undefined. */
   imageUri?: string;
 }
 
@@ -56,22 +48,8 @@ function Card({ name, scryfallId, pt, basePT, annotation, id, faceDown, counters
   // A missing basePT (non-creature with no printed PT) can't be
   // "different," so the pill stays white unless the card is face-down.
   const ptModified = !!pt && (faceDown || (!!basePT && pt !== basePT));
-  // `large` (672×936, ~100KB JPG) is roughly half the download of
-  // `png` (lossless 745×1040, ~200KB) and looks basically identical
-  // at our display size. Faster load matters more here than the
-  // slight quality bump.
-  // Scryfall names tokens without the "Token" suffix — a card the
-  // server calls "Rhino Warrior Token" resolves as "Rhino Warrior"
-  // on `/cards/named?exact=`. Strip the suffix (with or without
-  // parens) before hitting the endpoint so tokens spawned via
-  // Command_CreateToken with the Cockatrice-style " Token" naming
-  // still get art.
-  const scryfallLookupName = cleanScryfallName(name) || name;
-  const imageUrl = faceDown
-    ? CARD_BACK_URL
-    : imageUri
-      ? imageUri
-      : getScryfallUrlByIdOrExactName({ scryfallId, name: scryfallLookupName }, ScryfallImageSize.Large);
+  const image = useGameCardImage(faceDown ? null : { name, scryfallId, imageUri });
+  const imageUrl = faceDown ? CARD_BACK_URL : image.src;
 
   // Cockatrice paints a face-down card's label as `"# {id}"` (see
   // `AbstractCardItem::paintPicture`). We use the same "# " prefix so
@@ -101,9 +79,7 @@ function Card({ name, scryfallId, pt, basePT, annotation, id, faceDown, counters
         // Face-down cards don't publish to the hover preview — the true
         // face isn't shown while the card is flipped down (matches
         // Cockatrice, which paints only the back until the card is
-        // turned face-up). Pass `imageUri` through so DFC back-face art
-        // survives to the preview (Scryfall's default image endpoint
-        // always returns the front face). PT + annotation ride along
+        // turned face-up). PT + annotation ride along
         // so the sidebar's text-mode preview can render them when the
         // Scryfall fetch fails (user-created tokens without a
         // matching Scryfall record).
@@ -149,6 +125,7 @@ function Card({ name, scryfallId, pt, basePT, annotation, id, faceDown, counters
     >
       <CardImage
         src={imageUrl}
+        onError={image.onError}
         // Don't pass `name` — this card already renders its name
         // (or "# {id}" for face-down) in the top-left pill overlay
         // below. A duplicate name inside the fallback would read as

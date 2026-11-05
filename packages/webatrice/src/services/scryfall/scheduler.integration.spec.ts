@@ -35,15 +35,15 @@ it('uses one queue for catalogue, collection, metadata, printings, both searches
   ];
   await vi.advanceTimersByTimeAsync(99);
   expect(started).toEqual([['/cards/named?exact=Named', 0]]);
-  await vi.advanceTimersByTimeAsync(501);
+  await vi.advanceTimersByTimeAsync(1901);
   expect(started).toEqual([
     ['/cards/named?exact=Named', 0],
-    ['/cards/collection', 100],
-    ['/cards/detail', 200],
-    ['/cards/search?q=!%22Printed%22&unique=prints&order=released&dir=desc', 300],
-    ['/cards/search?q=advanced&unique=cards&order=name', 400],
-    ['/cards/autocomplete?q=auto', 500],
-    ['/cards/search?q=is%3Agamechanger&order=name&unique=cards', 600],
+    ['/cards/collection', 500],
+    ['/cards/detail', 600],
+    ['/cards/search?q=!%22Printed%22&unique=prints&order=released&dir=desc', 1000],
+    ['/cards/search?q=advanced&unique=cards&order=name', 1500],
+    ['/cards/autocomplete?q=auto', 1600],
+    ['/cards/search?q=is%3Agamechanger&order=name&unique=cards', 2000],
   ]);
   await Promise.all(requests);
 });
@@ -63,7 +63,7 @@ it.each([
     return Promise.resolve(new Response('', { status: 429, headers: { 'Retry-After': '1' } }));
   }));
   const result = request().catch((error: unknown) => error);
-  await vi.advanceTimersByTimeAsync(2000);
-  expect(starts).toEqual([0, 1000, 2000]);
+  await vi.advanceTimersByTimeAsync(60000);
+  expect(starts).toEqual([0, 30000, 60000]);
   expect(await result).toMatchObject({ status: 429 });
 });

@@ -1,4 +1,4 @@
-import { act, fireEvent, render, screen } from '@testing-library/react';
+import { act, fireEvent, render, screen, waitFor } from '@testing-library/react';
 
 import { getSettings, settingsStore } from '../../../../../hooks/useSettings';
 
@@ -15,6 +15,14 @@ vi.mock('@app/hooks', async (importOriginal) => {
     },
   };
 });
+
+vi.mock('../../../services/cardImages', async (importOriginal) => ({
+  ...(await importOriginal<typeof import('../../../services/cardImages')>()),
+  lookupGameCard: async (name: string) => ({ card: {
+    found: true, source: 'scryfall', name, typeLine: name.endsWith('Token') ? 'Token Creature' : 'Creature',
+    printings: [{ scryfallId: 'resolved-id' }],
+  } }),
+}));
 
 describe('SeatCard', () => {
   it('rerenders only card faces whose shallow props change', () => {
@@ -73,6 +81,7 @@ describe('SeatCard', () => {
 
     it('names a card with a picture only while the option is on', async () => {
       const { container } = render(<Card name="Grizzly Bears" />);
+      await waitFor(() => expect(container.querySelector('img')?.getAttribute('src')).toContain('cards.scryfall.io'));
       fireEvent.load(container.querySelector('img')!);
       expect(screen.getByText('Grizzly Bears')).toBeInTheDocument();
       await namesOff();
@@ -87,6 +96,7 @@ describe('SeatCard', () => {
       container.remove();
       const { container: loading } = render(<Card name="Grizzly Bears" />);
       expect(screen.getByText('Grizzly Bears')).toBeInTheDocument();
+      await waitFor(() => expect(loading.querySelector('img')?.getAttribute('src')).toContain('cards.scryfall.io'));
       fireEvent.load(loading.querySelector('img')!);
       expect(screen.queryByText('Grizzly Bears')).not.toBeInTheDocument();
 
@@ -105,17 +115,12 @@ const imgSrc = (container: HTMLElement) => container.querySelector('img')?.getAt
 describe('SeatCard image', () => {
   it('loads the chosen printing by Scryfall id', () => {
     const { container } = render(<Card name="Rhino, Warrior Token" scryfallId={ID} />);
-    expect(imgSrc(container)).toBe(`https://api.scryfall.com/cards/${ID}?format=image&version=large`);
+    expect(imgSrc(container)).toBe(`https://cards.scryfall.io/large/front/0/f/${ID}.jpg`);
   });
 
-  it('loads a name-only card by its exact name without the Token suffix', () => {
+  it('waits for metadata instead of using a name-only image request', async () => {
     const { container } = render(<Card name="Rhino, Warrior Token" />);
-    expect(imgSrc(container))
-      .toBe('https://api.scryfall.com/cards/named?exact=Rhino%2C%20Warrior&format=image&version=large');
-  });
-
-  it('keeps a name that is only the word Token', () => {
-    const { container } = render(<Card name="Token" scryfallId="" />);
-    expect(imgSrc(container)).toBe('https://api.scryfall.com/cards/named?exact=Token&format=image&version=large');
+    expect(imgSrc(container)).not.toContain('api.scryfall.com');
+    await waitFor(() => expect(imgSrc(container)).toBe('https://cards.scryfall.io/large/front/r/e/resolved-id.jpg'));
   });
 });

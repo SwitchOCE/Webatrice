@@ -232,7 +232,7 @@ export default function Battlefield() {
       ? null
       : {
         name: c.name,
-        scryfallId: c.scryfallId || cardMetaByName.get(c.name)?.scryfallId,
+        scryfallId: c.scryfallId,
         imageUri: resolveFaceImageUri(c.name),
         pt: shownPT(c),
         annotation: c.annotation,
@@ -482,10 +482,7 @@ export default function Battlefield() {
                 >
                   <Card
                     name={c.name}
-                    scryfallId={
-                      c.scryfallId
-                    || cardMetaByName.get(c.name)?.scryfallId
-                    }
+                    scryfallId={c.scryfallId}
                     id={c.id}
                     faceDown={c.faceDown}
                     // Prefer the server's `pt` (initial value from
