@@ -16,7 +16,7 @@ export function HoverCardZoom() {
   if (!zoom) {
     return null;
   }
-  const src = zoom.card.imageUri ?? getScryfallUrlByIdOrExactName(zoom.card, ScryfallImageSize.Png);
+  const src = zoom.card.imageUri ?? getScryfallUrlByIdOrExactName(zoom.card, ScryfallImageSize.Large);
   return createPortal(
     <div
       data-testid="hover-card-zoom"

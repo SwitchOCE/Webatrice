@@ -91,7 +91,7 @@ export default function CardPreviewPopupPage() {
   const imageUrl = card
     ? card.imageUri
       ? card.imageUri
-      : getScryfallUrlByIdOrExactName(card, ScryfallImageSize.Png)
+      : getScryfallUrlByIdOrExactName(card, ScryfallImageSize.Large)
     : null;
 
   // Prefer the face matching the hovered card's name — mirrors the

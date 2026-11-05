@@ -164,7 +164,7 @@ export function useCardPreviewPane() {
   const imageUrl = activeCard
     ? (!override && hoveredCard?.imageUri)
       ? hoveredCard.imageUri
-      : getScryfallUrlByIdOrExactName(activeCard, ScryfallImageSize.Png)
+      : getScryfallUrlByIdOrExactName(activeCard, ScryfallImageSize.Large)
     : null;
 
   return {

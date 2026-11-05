@@ -32,12 +32,12 @@ describe('CardPreviewPane', () => {
 
   it('previews the hovered printing by Scryfall id', () => {
     expect(hover({ name: 'Rhino, Warrior Token', scryfallId: ID }))
-      .toBe(`https://api.scryfall.com/cards/${ID}?format=image&version=png`);
+      .toBe(`https://api.scryfall.com/cards/${ID}?format=image&version=large`);
   });
 
   it('previews a name-only card by its exact name', () => {
     expect(hover({ name: 'Rhino, Warrior Token' }))
-      .toBe('https://api.scryfall.com/cards/named?exact=Rhino%2C%20Warrior%20Token&format=image&version=png');
+      .toBe('https://api.scryfall.com/cards/named?exact=Rhino%2C%20Warrior%20Token&format=image&version=large');
   });
 
   it('is a labelled region offering the desktop Image, Description and Both views', () => {
