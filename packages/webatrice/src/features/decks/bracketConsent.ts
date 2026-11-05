@@ -1,6 +1,6 @@
 import { useCallback } from 'react';
 
-import { getSettings, settingsStore, usePreference } from '@app/hooks';
+import { updateSettings, usePreference } from '@app/hooks';
 import { CommanderSpellbookIntegration } from '@app/types';
 
 export function lookupsAllowedFor(mode: CommanderSpellbookIntegration, requestedNow: boolean): boolean {
@@ -9,10 +9,7 @@ export function lookupsAllowedFor(mode: CommanderSpellbookIntegration, requested
 }
 
 export async function writeBracketLookupsMode(mode: CommanderSpellbookIntegration): Promise<void> {
-  const settings = await getSettings();
-  settings.commanderSpellbookIntegration = mode;
-  await settings.save();
-  settingsStore.setValue(settings);
+  await updateSettings({ commanderSpellbookIntegration: mode });
 }
 
 export function useBracketLookupsMode(): [CommanderSpellbookIntegration, (mode: CommanderSpellbookIntegration) => void] {

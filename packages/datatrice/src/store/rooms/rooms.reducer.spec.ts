@@ -1,15 +1,15 @@
 import { WebsocketTypes } from '@cockatrice/sockatrice/types';
-import { create } from '@bufbuild/protobuf';
+import { create, fromBinary, isFieldSet, toBinary } from '@bufbuild/protobuf';
 import { configureStore, PayloadAction } from '@reduxjs/toolkit';
 import { App } from '../../types';
-import { ServerInfo_Game, ServerInfo_GameTypeSchema, ServerInfo_RoomSchema } from '@cockatrice/sockatrice/generated';
+import { ServerInfo_Game, ServerInfo_GameSchema, ServerInfo_GameTypeSchema, ServerInfo_RoomSchema } from '@cockatrice/sockatrice/generated';
 import { roomsReducer } from './rooms.reducer';
 import { Actions } from './rooms.actions';
 import { Actions as GameActions } from '../games/game.actions';
 import { listenerMiddleware } from '../listenerMiddleware';
 import { MAX_ROOM_MESSAGES } from './rooms.types';
 import { RoomsState } from './rooms.interfaces';
-import { DEFAULT_GAME_FILTERS } from './gameFilters';
+import { DEFAULT_GAME_FILTERS, gameMatchesFilters } from './gameFilters';
 import { makeGame, makeMessage, makeRoom, makeRoomsState, makeUser } from '../../testing/fixtures/rooms';
 import { registerRoomsListeners } from './rooms.listeners';
 
@@ -68,6 +68,33 @@ describe('UPDATE_ROOMS', () => {
     const result = dispatchThroughStore(state, Actions.updateRooms({ rooms }));
     expect(result.rooms[1].order).toBe(0);
     expect(result.rooms[2].order).toBe(1);
+  });
+
+  it('preserves room order through decoded sparse updates and joining', () => {
+    const rooms = [1, 2, 3].map((roomId) => makeRoom({ roomId }).info);
+    const listed = dispatchThroughStore(makeRoomsState({ rooms: {} }), Actions.updateRooms({ rooms }));
+    const sparse = fromBinary(ServerInfo_RoomSchema, toBinary(ServerInfo_RoomSchema, create(ServerInfo_RoomSchema, {
+      roomId: 3, playerCount: 42, gameCount: 2,
+    })));
+    expect(sparse.name).toBe('');
+    expect(isFieldSet(sparse, ServerInfo_RoomSchema.field.name)).toBe(false);
+
+    const updated = dispatchThroughStore(listed, Actions.updateRooms({ rooms: [sparse] }));
+    expect.soft([1, 2, 3].map((id) => updated.rooms[id].order)).toEqual([0, 1, 2]);
+    expect(updated.rooms[3].info.playerCount).toBe(42);
+    expect(updated.rooms[3].info.gameCount).toBe(2);
+
+    const joined = roomsReducer(updated, Actions.joinRoom({ roomInfo: rooms[1] }));
+    expect([1, 2, 3].map((id) => joined.rooms[id].order)).toEqual([0, 1, 2]);
+  });
+
+  it('accepts a new full-list order when the room name is explicitly empty', () => {
+    const rooms = [1, 2, 3].map((roomId) => makeRoom({ roomId, name: '' }).info);
+    const listed = dispatchThroughStore(makeRoomsState({ rooms: {} }), Actions.updateRooms({ rooms }));
+    const reordered = rooms.toReversed().map((room) => fromBinary(ServerInfo_RoomSchema, toBinary(ServerInfo_RoomSchema, room)));
+    expect(isFieldSet(reordered[0], ServerInfo_RoomSchema.field.name)).toBe(true);
+    const updated = dispatchThroughStore(listed, Actions.updateRooms({ rooms: reordered }));
+    expect([3, 2, 1].map((id) => updated.rooms[id].order)).toEqual([0, 1, 2]);
   });
 
   it('preserves existing normalized games/users when merging into existing room', () => {
@@ -276,6 +303,31 @@ describe('ROOM_SAY_FAILED', () => {
 });
 
 describe('UPDATE_GAMES', () => {
+  it('preserves all formats and filter membership through decoded start and restart updates', () => {
+    const game = makeGame({ gameId: 1, gameTypes: [4, 5], gameType: 'Stale', maxPlayers: 4 });
+    const room = makeRoom({ roomId: 1, games: { 1: game }, gametypeMap: { 4: 'Modern', 5: 'Legacy' } });
+    let state = makeRoomsState({ rooms: { 1: room } });
+    const context = { isOwnUserRegistered: true, isUserBuddy: () => false, isUserIgnored: () => false, nowSeconds: 0 };
+
+    for (const started of [true, false]) {
+      const sparse = fromBinary(ServerInfo_GameSchema, toBinary(ServerInfo_GameSchema, create(ServerInfo_GameSchema, {
+        gameId: 1, roomId: 1, started,
+      })));
+      expect(sparse.gameTypes).toEqual([]);
+      expect(isFieldSet(sparse, ServerInfo_GameSchema.field.started)).toBe(true);
+      state = dispatchThroughStore(state, Actions.updateGames({ roomId: 1, games: [sparse] }));
+      const updated = state.rooms[1].games[1];
+      expect(updated.info.started).toBe(started);
+      expect.soft(updated.info.gameTypes).toEqual([4, 5]);
+      expect.soft(updated.gameType).toBe('Modern');
+      for (const id of [4, 5]) {
+        expect.soft(gameMatchesFilters(updated, { ...DEFAULT_GAME_FILTERS, gameTypeFilter: [id] }, context)).toBe(true);
+      }
+    }
+    expect(game.info.started).toBe(false);
+    expect(game.info.gameTypes).toEqual([4, 5]);
+  });
+
   it('removes closed games from the keyed games map', () => {
     const room = makeRoom({ roomId: 1, games: { 1: makeGame({ gameId: 1 }) } });
     const state = makeRoomsState({ rooms: { 1: room } });
@@ -292,7 +344,7 @@ describe('UPDATE_GAMES', () => {
     const state = makeRoomsState({ rooms: { 1: room } });
     const result = dispatchThroughStore(state, Actions.updateGames({
       roomId: 1,
-      games: [{ gameId: 1, description: 'new' } as ServerInfo_Game],
+      games: [create(ServerInfo_GameSchema, { gameId: 1, description: 'new' })],
     }));
     expect(result.rooms[1].games[1].info.description).toBe('new');
   });
@@ -314,7 +366,7 @@ describe('UPDATE_GAMES', () => {
     const state = makeRoomsState({ rooms: { 1: room } });
     const result = dispatchThroughStore(state, Actions.updateGames({
       roomId: 1,
-      games: [{ gameId: 2, description: 'new' } as ServerInfo_Game],
+      games: [create(ServerInfo_GameSchema, { gameId: 2, description: 'new' })],
     }));
     expect(result.rooms[1].games[1].info.description).toBe('untouched');
     expect(result.rooms[1].games[2].info.description).toBe('new');
@@ -346,7 +398,9 @@ describe('UPDATE_GAMES', () => {
     const state = makeRoomsState({ rooms: { 1: room } });
     const result = dispatchThroughStore(state, Actions.updateGames({
       roomId: 1,
-      games: [{ gameId: 1, gameTypes: [4] } as ServerInfo_Game],
+      games: [fromBinary(ServerInfo_GameSchema, toBinary(ServerInfo_GameSchema, create(ServerInfo_GameSchema, {
+        gameId: 1, gameTypes: [4],
+      })))],
     }));
     expect(result.rooms[1].games[1].gameType).toBe('Modern');
   });

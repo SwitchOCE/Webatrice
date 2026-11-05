@@ -36,6 +36,37 @@ vi.mock('dexie', () => {
       equalsIgnoreCase: () => whereTerminator,
     }),
   };
+  const settingsRows = new Map<string, any>();
+  let settingsClass: any;
+  let settingsWrites = Promise.resolve<unknown>(undefined);
+  const copySetting = (row: any) => row
+    ? Object.assign(Object.create(settingsClass?.prototype ?? Object.prototype), structuredClone(row))
+    : undefined;
+  const settingsTable = {
+    ...fakeTable,
+    mapToClass: (ctor: any) => {
+      settingsClass = ctor;
+    },
+    get: (user: string) => Promise.resolve(copySetting(settingsRows.get(user))),
+    put: (row: any) => {
+      settingsRows.set(row.user, structuredClone(row));
+      return Promise.resolve(row.user);
+    },
+    clear: () => {
+      settingsRows.clear();
+      return Promise.resolve();
+    },
+    where: () => ({
+      equalsIgnoreCase: (user: string) => ({
+        first: () => Promise.resolve(copySetting([...settingsRows.values()]
+          .find((row) => row.user.toLowerCase() === user.toLowerCase()))),
+      }),
+    }),
+  };
+  afterEach(() => {
+    settingsRows.clear();
+    settingsWrites = Promise.resolve();
+  });
   class FakeDexie {
     version() {
       const chain = { stores: () => chain, upgrade: () => chain };
@@ -44,15 +75,24 @@ vi.mock('dexie', () => {
     open() {
       return Promise.resolve(this);
     }
-    table() {
-      return fakeTable;
+    table(name: string) {
+      return name === 'settings' ? settingsTable : fakeTable;
     }
     transaction(...args: unknown[]) {
       const work = args[args.length - 1] as () => unknown;
+      if (args.flat().includes(settingsTable)) {
+        const result = settingsWrites.then(work);
+        settingsWrites = result.catch(() => undefined);
+        return result;
+      }
       return Promise.resolve().then(work);
     }
   }
-  return { default: FakeDexie, __esModule: true };
+  return {
+    default: FakeDexie,
+    liveQuery: () => ({ subscribe: () => ({ unsubscribe: () => {} }) }),
+    __esModule: true,
+  };
 });
 
 // See .github/instructions/webatrice-testing.instructions.md#mocking-footguns.

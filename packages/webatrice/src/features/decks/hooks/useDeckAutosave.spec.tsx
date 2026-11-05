@@ -70,6 +70,47 @@ afterEach(() => {
 });
 
 describe('useDeckAutosave', () => {
+  it('rejects a stale debounce target after the deck changes', () => {
+    const view = setup();
+    const staleSchedule = latest.scheduleSave;
+    view.rerender(<Probe initial={SAVED} deckId={8} />);
+    current = { ...deck, name: 'Deck B' };
+    act(() => {
+      staleSchedule();
+      vi.advanceTimersByTime(AUTOSAVE_DEBOUNCE_MS);
+    });
+    expect(view.webClient.request.session.deckUpdate).not.toHaveBeenCalled();
+  });
+
+  it('rejects a stale explicit save target after the deck changes', async () => {
+    const view = setup();
+    const staleSave = latest.saveNow;
+    view.rerender(<Probe initial={SAVED} deckId={8} />);
+    current = { ...deck, name: 'Deck B' };
+    let saved!: Promise<boolean>;
+    act(() => {
+      saved = staleSave();
+    });
+    expect(view.webClient.request.session.deckUpdate).not.toHaveBeenCalled();
+    await expect(saved).resolves.toBe(false);
+  });
+
+  it('rejects a stale draft debounce target after the draft changes', () => {
+    const webClient = createMockWebClient();
+    const onStored = vi.fn();
+    const view = renderWithProviders(<Probe initial={null} deckId={null} draft={{ key: 'A', onStored }} />, {
+      preloadedState: connectedState, webClient,
+    });
+    const staleSchedule = latest.scheduleSave;
+    view.rerender(<Probe initial={null} deckId={null} draft={{ key: 'B', onStored }} />);
+    current = { ...deck, name: 'Draft B' };
+    act(() => {
+      staleSchedule();
+      vi.advanceTimersByTime(AUTOSAVE_DEBOUNCE_MS);
+    });
+    expect(webClient.request.session.deckUpload).not.toHaveBeenCalled();
+  });
+
   it.each(['stored', 'uploading', 'failed'] as const)('resets draft identity after A is %s so B cannot save to A', (phase) => {
     const webClient = createMockWebClient();
     const onStoredA = vi.fn();

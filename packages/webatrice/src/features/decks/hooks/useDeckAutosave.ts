@@ -56,6 +56,12 @@ export function useDeckAutosave(
   const draftKey = draft?.key ?? null;
   const previousDraftKeyRef = useRef(draftKey);
   const previousIdentityRef = useRef({ deckId, draftKey });
+  const matchesTarget = useCallback((targetId: number | null, targetDraftKey: string | null) => {
+    const current = previousIdentityRef.current;
+    return targetId != null
+      ? targetId === (current.deckId ?? storedIdRef.current)
+      : current.deckId == null && current.draftKey === targetDraftKey;
+  }, []);
   const draftWaitersRef = useRef<((saved: boolean) => void)[]>([]);
   const answerDraftWaiters = useCallback((saved: boolean) => {
     const waiters = draftWaitersRef.current;
@@ -106,9 +112,12 @@ export function useDeckAutosave(
     if (autosavePausedRef.current) {
       return;
     }
+    const targetId = deckId ?? storedIdRef.current;
+    if (!matchesTarget(targetId, draftKey)) {
+      return;
+    }
     savePendingRef.current = false;
     const current = readDeck();
-    const targetId = deckId ?? storedIdRef.current;
     if (!current) {
       return;
     }
@@ -126,7 +135,7 @@ export function useDeckAutosave(
       setDraftSaveState('saving');
       webClient.request.session.deckUpload('', 0, serializeDeckForSave(current), undefined, deckColorIdentity(current.cards), requestId);
     }
-  }, [registry, deckId, webClient, readDeck]);
+  }, [registry, deckId, draftKey, webClient, readDeck, matchesTarget]);
 
   useReduxEffect<{ path: string; treeItem: { id: number }; requestId?: string }>(
     ({ payload }) => {
@@ -224,10 +233,13 @@ export function useDeckAutosave(
   }, [scheduleSave]);
 
   const saveNow = useCallback((): Promise<boolean> => {
+    const targetId = deckId ?? storedIdRef.current;
+    if (!matchesTarget(targetId, draftKey)) {
+      return Promise.resolve(false);
+    }
     autosavePausedRef.current = false;
     savePendingRef.current = false;
     cancelScheduledSave();
-    const targetId = deckId ?? storedIdRef.current;
     const current = readDeck();
     if (!current) {
       return Promise.resolve(false);
@@ -245,7 +257,7 @@ export function useDeckAutosave(
         answerDraftWaiters(draftSavedSignatureRef.current === deckSaveSignature(current));
       }
     });
-  }, [registry, deckId, readDeck, persistNow, cancelScheduledSave, answerDraftWaiters]);
+  }, [registry, deckId, draftKey, readDeck, persistNow, cancelScheduledSave, answerDraftWaiters, matchesTarget]);
 
   const discardChanges = useCallback(() => {
     savePendingRef.current = false;

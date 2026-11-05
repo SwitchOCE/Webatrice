@@ -56,8 +56,10 @@ describe('useShortcutsPersistence', () => {
       );
     });
 
-    expect(update).toHaveBeenCalledWith({
-      shortcuts: { 'game.drawCard': ['Ctrl+KeyZ'] },
+    expect(update).toHaveBeenCalledOnce();
+    const patch = update.mock.calls[0][0];
+    expect(patch(makeSettings({ shortcuts: { 'game.untapAll': ['F3'] } }))).toEqual({
+      shortcuts: { 'game.drawCard': ['Ctrl+KeyZ'], 'game.untapAll': ['F3'] },
     });
   });
 

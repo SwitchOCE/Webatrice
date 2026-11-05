@@ -297,7 +297,7 @@ describe('freeze guard (bridge → store seam)', () => {
       toZone: 'table',
       card: { ...sourceCard, x: 50, y: 60 },
     }));
-    games.beginOptimistic(games.moveOpKey(1, 101), () => {});
+    games.beginOptimistic(games.moveOpKey(GAME_ID, 1, 101), () => {}, { playerId: 1, zoneName: 'table' });
 
     moveCard(response, { cardId: 101, fromZone: 'hand', x: 50, y: 60, newCardId: 505 });
 
@@ -306,7 +306,7 @@ describe('freeze guard (bridge → store seam)', () => {
     expect(table.byId[505]).toBeDefined();
     expect(table.byId[505].name).toBe('Lightning Bolt');
     expect(Object.isFrozen(table.byId[505])).toBe(true);
-    expect(games.isOptimisticPending(games.moveOpKey(1, 101))).toBe(false);
+    expect(games.isOptimisticPending(games.moveOpKey(GAME_ID, 1, 101))).toBe(false);
   });
 
   it('freezes the position patch when a server echo corrects an optimistic move in place', () => {
@@ -322,7 +322,7 @@ describe('freeze guard (bridge → store seam)', () => {
       toZone: 'table',
       card: { ...sourceCard, x: 10, y: 20 },
     }));
-    games.beginOptimistic(games.moveOpKey(1, 101), () => {});
+    games.beginOptimistic(games.moveOpKey(GAME_ID, 1, 101), () => {}, { playerId: 1, zoneName: 'table' });
     const optimistic = player1(store).zones.table.byId[101];
 
     moveCard(response, { cardId: 101, fromZone: 'hand', x: 13, y: 20 });
@@ -331,7 +331,7 @@ describe('freeze guard (bridge → store seam)', () => {
     expect(patched.x).toBe(13);
     expect(patched).not.toBe(optimistic);
     expect(Object.isFrozen(patched)).toBe(true);
-    expect(games.isOptimisticPending(games.moveOpKey(1, 101))).toBe(false);
+    expect(games.isOptimisticPending(games.moveOpKey(GAME_ID, 1, 101))).toBe(false);
   });
 
   it('freezes merged room-game info through the updateGames batch path', () => {

@@ -1,30 +1,20 @@
-import { vi } from 'vitest';
+import 'fake-indexeddb/auto';
+import { APP_USER, PREFERENCE_DEFAULTS, SETTINGS_VERSION, ThemeName } from '@app/types';
 
-const settingsTable = vi.hoisted(() => ({
-  mapToClass: vi.fn(),
-  put: vi.fn(() => Promise.resolve('setting-key')),
-  where: vi.fn(),
-}));
+vi.unmock('dexie');
 
-vi.mock('../DexieService', () => ({
-  dexieService: { settings: settingsTable },
-}));
-
-import { PREFERENCE_DEFAULTS, SETTINGS_VERSION } from '@app/types';
+import { dexieService } from '../DexieService';
 import { SettingDTO } from './SettingDTO';
 
-const mapToClassCalls = [...settingsTable.mapToClass.mock.calls];
+beforeEach(async () => {
+  await dexieService.settings.clear();
+});
+
+afterAll(() => {
+  dexieService.settings.db.close();
+});
 
 describe('SettingDTO', () => {
-  beforeEach(() => {
-    settingsTable.put.mockClear();
-    settingsTable.where.mockReset();
-  });
-
-  it('registers itself with the settings table on import', () => {
-    expect(mapToClassCalls).toEqual([[SettingDTO]]);
-  });
-
   it('constructs with the given user, the current schema version and every preference default', () => {
     const setting = new SettingDTO('alice');
     expect(setting.user).toBe('alice');
@@ -38,22 +28,51 @@ describe('SettingDTO', () => {
     expect(new SettingDTO('b').messageMacros).toEqual([]);
   });
 
-  it('save() puts the instance into the settings table', async () => {
-    const setting = new SettingDTO('bob');
-    const result = await setting.save();
-    expect(settingsTable.put).toHaveBeenCalledWith(setting);
-    expect(result).toBe('setting-key');
+  it('saves an instance and reads it case-insensitively as a DTO', async () => {
+    const setting = new SettingDTO('Alice');
+    expect(await setting.save()).toBe('Alice');
+    const loaded = await SettingDTO.get('alice');
+    expect(loaded).toEqual(setting);
+    expect(loaded).toBeInstanceOf(SettingDTO);
   });
 
-  it('get() looks up a setting by user (case-insensitive)', async () => {
-    const first = vi.fn(() => Promise.resolve({ user: 'carol' }));
-    const equalsIgnoreCase = vi.fn(() => ({ first }));
-    settingsTable.where.mockReturnValue({ equalsIgnoreCase });
+  it('patch initializes a first visit with the default theme and current version', async () => {
+    const row = await SettingDTO.patch(APP_USER);
+    expect(row).toMatchObject({
+      user: APP_USER,
+      version: SETTINGS_VERSION,
+      themeName: PREFERENCE_DEFAULTS.themeName,
+    });
+    expect(await SettingDTO.get(APP_USER)).toEqual(row);
+  });
 
-    const result = await SettingDTO.get('carol');
+  it('patch migrates and persists the version and theme for an existing row', async () => {
+    await dexieService.settings.put({ user: APP_USER, version: 4, themeName: ThemeName.Graphite });
+    const row = await SettingDTO.patch(APP_USER);
+    expect(row).toMatchObject({ version: SETTINGS_VERSION, themeName: ThemeName.Midnight });
+    expect(await SettingDTO.get(APP_USER)).toEqual(row);
+  });
 
-    expect(settingsTable.where).toHaveBeenCalledWith('user');
-    expect(equalsIgnoreCase).toHaveBeenCalledWith('carol');
-    expect(result).toEqual({ user: 'carol' });
+  it('patch preserves a newer schema version', async () => {
+    await dexieService.settings.put({ ...new SettingDTO(APP_USER), version: SETTINGS_VERSION + 1 });
+    expect((await SettingDTO.patch(APP_USER)).version).toBe(SETTINGS_VERSION + 1);
+  });
+
+  it('patch does not resave a current row when there are no changes', async () => {
+    const original = await SettingDTO.patch(APP_USER);
+    const put = vi.spyOn(dexieService.settings, 'put');
+    expect(await SettingDTO.patch(APP_USER)).toEqual(original);
+    expect(put).not.toHaveBeenCalled();
+  });
+
+  it('patch merges literal and functional changes with the persisted row', async () => {
+    await SettingDTO.patch(APP_USER, { soundEnabled: true });
+    await SettingDTO.patch(APP_USER, (current) => ({
+      autoConnect: current.soundEnabled,
+      shortcuts: { ...current.shortcuts, 'game.drawCard': ['F2'] },
+    }));
+    expect(await SettingDTO.get(APP_USER)).toMatchObject({
+      soundEnabled: true, autoConnect: true, shortcuts: { 'game.drawCard': ['F2'] },
+    });
   });
 });

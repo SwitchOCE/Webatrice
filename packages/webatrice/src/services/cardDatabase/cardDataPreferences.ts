@@ -1,3 +1,5 @@
+import { liveQuery, type Subscription } from 'dexie';
+
 import { CardDataSettingsDTO, SetDTO, SetPreferenceDTO } from '../dexie/DexieDTOs';
 import { dexieService } from '../dexie/DexieService';
 import type { Set } from '../dexie/types';
@@ -34,8 +36,20 @@ export async function getCardPreferenceOverride(name: string): Promise<string> {
 }
 
 let snapshot: Promise<CardDataPreferences> | undefined;
+let subscription: Subscription | undefined;
+
+function followCardDataPreferences(): void {
+  subscription ??= liveQuery(loadCardDataPreferences).subscribe({
+    next: publishCardDataPreferences,
+    error: (error) => {
+      subscription = undefined;
+      console.warn('Failed to refresh card data preferences', error);
+    },
+  });
+}
 
 export function currentCardDataPreferences(): Promise<CardDataPreferences> {
+  followCardDataPreferences();
   if (!snapshot) {
     snapshot = loadCardDataPreferences();
     snapshot.catch(() => {
@@ -51,6 +65,7 @@ const listeners = new globalThis.Set<CardDataPreferencesListener>();
 
 export function onCardDataPreferencesRefreshed(listener: CardDataPreferencesListener): () => void {
   listeners.add(listener);
+  followCardDataPreferences();
   return () => {
     listeners.delete(listener);
   };
@@ -58,7 +73,11 @@ export function onCardDataPreferencesRefreshed(listener: CardDataPreferencesList
 
 export async function refreshCardDataPreferences(): Promise<CardDataPreferences> {
   const next = await loadCardDataPreferences();
+  publishCardDataPreferences(next);
+  return next;
+}
+
+function publishCardDataPreferences(next: CardDataPreferences): void {
   snapshot = Promise.resolve(next);
   listeners.forEach((listener) => listener(next));
-  return next;
 }

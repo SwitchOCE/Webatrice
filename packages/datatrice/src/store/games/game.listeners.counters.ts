@@ -2,6 +2,7 @@ import type { ListenerMiddlewareInstance } from '@reduxjs/toolkit';
 
 import { GamesState } from './game.interfaces';
 import { Actions } from './game.actions';
+import { confirmedOptimisticValue, confirmOptimisticValue, counterOpKey } from './optimistic';
 import { mergeCardCounter } from './game.reducer.helpers';
 import { formatCardCounterChanged, formatCounterSet } from './messageLog';
 
@@ -42,7 +43,10 @@ export function registerCountersListeners(mw: ListenerMiddlewareInstance<unknown
       if (!preGame || !preCounter) {
         return;
       }
-      const previousValue = preCounter.count;
+      const key = counterOpKey(gameId, playerId, data.counterId);
+      const previousValue = confirmedOptimisticValue(key) ?? preCounter.count;
+      const value = confirmOptimisticValue(key, data.value);
+      api.dispatch(Actions.counterValueUpdated({ gameId, playerId, data: { ...data, value } }));
       const message = formatCounterSet(preGame, playerId, data, preCounter.name, previousValue);
       if (message) {
         api.dispatch(Actions.gameMessageAppended({ gameId, playerId, message }));

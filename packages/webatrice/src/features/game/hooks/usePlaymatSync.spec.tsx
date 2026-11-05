@@ -49,8 +49,8 @@ afterEach(() => {
 });
 
 describe('app-level playmat sync', () => {
-  it('observes identical explicit selections separately', () => {
-    void setPlaymatSettings({ mode: PlaymatMode.OVERRIDE_DECK,
+  it('observes identical explicit selections separately', async () => {
+    await setPlaymatSettings({ mode: PlaymatMode.OVERRIDE_DECK,
       fallbackBehavior: PlaymatFallbackBehavior.RANDOM, fallbackList: [mat('A'), mat('B')] });
     vi.spyOn(Math, 'random').mockReturnValue(0);
     const { select, send } = setup();
@@ -59,8 +59,8 @@ describe('app-level playmat sync', () => {
     expect(send.mock.calls.map((call) => call[1].playmatParams?.cardName)).toEqual(['A', 'B']);
   });
 
-  it('keeps announcements separate from deck selections', () => {
-    void setPlaymatSettings({ mode: PlaymatMode.OVERRIDE_DECK,
+  it('keeps announcements separate from deck selections', async () => {
+    await setPlaymatSettings({ mode: PlaymatMode.OVERRIDE_DECK,
       fallbackBehavior: PlaymatFallbackBehavior.RANDOM, fallbackList: [mat('A'), mat('B')] });
     const { select, announce, send } = setup();
     select('Deck');
@@ -69,8 +69,8 @@ describe('app-level playmat sync', () => {
     expect(getPlaymatSyncState(1).deckPlaymat?.cardName).toBe('Deck');
   });
 
-  it('syncs settings and complete start/stop cycles without any Game route mounted', () => {
-    void setPlaymatSettings({ fallbackBehavior: PlaymatFallbackBehavior.ROUND_ROBIN, fallbackList: [mat('A'), mat('B')] });
+  it('syncs settings and complete start/stop cycles without any Game route mounted', async () => {
+    await setPlaymatSettings({ fallbackBehavior: PlaymatFallbackBehavior.ROUND_ROBIN, fallbackList: [mat('A'), mat('B')] });
     const { select, announce, started, send } = setup();
     select();
     announce({ playmatParams: { cardName: 'A' } });
@@ -79,57 +79,57 @@ describe('app-level playmat sync', () => {
     });
     announce({ readyStart: true });
     expect(send).toHaveBeenLastCalledWith(1, { playmatParams: { cardName: 'B', cardProviderId: '', ...params } });
-    act(() => {
-      void setPlaymatSettings({ fallbackList: [mat('C')] });
+    await act(async () => {
+      await setPlaymatSettings({ fallbackList: [mat('C')] });
     });
     expect(send).toHaveBeenLastCalledWith(1, { playmatParams: { cardName: 'C', cardProviderId: '', ...params } });
   });
 
-  it('restores the deck playmat after disabling an override', () => {
-    void setPlaymatSettings({ mode: PlaymatMode.OVERRIDE_DECK, fallbackList: [mat('A')] });
+  it('restores the deck playmat after disabling an override', async () => {
+    await setPlaymatSettings({ mode: PlaymatMode.OVERRIDE_DECK, fallbackList: [mat('A')] });
     const { select, announce, send } = setup();
     select('Deck');
     announce({ playmatParams: { cardName: 'A' } });
-    act(() => {
-      void setPlaymatSettings({ mode: PlaymatMode.DECK_ONLY });
+    await act(async () => {
+      await setPlaymatSettings({ mode: PlaymatMode.DECK_ONLY });
     });
     expect(send).toHaveBeenLastCalledWith(1, { playmatParams: { cardName: 'Deck', cardProviderId: '', ...params } });
   });
 
-  it('ignores visibility-only edits and stops listening on teardown', () => {
-    void setPlaymatSettings({ fallbackList: [mat('A')] });
+  it('ignores visibility-only edits and stops listening on teardown', async () => {
+    await setPlaymatSettings({ fallbackList: [mat('A')] });
     const { hook, select, send } = setup();
     select();
-    act(() => {
-      void setPlaymatSettings({ visibility: 0 });
+    await act(async () => {
+      await setPlaymatSettings({ visibility: 0 });
     });
     expect(send).toHaveBeenCalledTimes(1);
     hook.unmount();
-    act(() => {
-      void setPlaymatSettings({ fallbackList: [mat('B')] });
+    await act(async () => {
+      await setPlaymatSettings({ fallbackList: [mat('B')] });
     });
     expect(send).toHaveBeenCalledTimes(1);
   });
 
-  it.each([{ version: '3.0.0 ()' }, { spectator: true }, { replay: true }])('does not send for %j', (options) => {
-    void setPlaymatSettings({ fallbackList: [mat('A')] });
+  it.each([{ version: '3.0.0 ()' }, { spectator: true }, { replay: true }])('does not send for %j', async (options) => {
+    await setPlaymatSettings({ fallbackList: [mat('A')] });
     const { select, send } = setup(options);
     select();
     expect(send).not.toHaveBeenCalled();
   });
 
-  it('keeps the deck art in fallback mode and can explicitly clear it', () => {
+  it('keeps the deck art in fallback mode and can explicitly clear it', async () => {
     const { select, send } = setup();
     select('Deck');
     expect(send).not.toHaveBeenCalled();
-    act(() => {
-      void setPlaymatSettings({ mode: PlaymatMode.OVERRIDE_DECK, fallbackList: [] });
+    await act(async () => {
+      await setPlaymatSettings({ mode: PlaymatMode.OVERRIDE_DECK, fallbackList: [] });
     });
     expect(send).toHaveBeenCalledExactlyOnceWith(1, { playmatParams: { cardName: '' } });
   });
 
-  it('preserves the deck and round-robin cursor across listener remounts', () => {
-    void setPlaymatSettings({ fallbackBehavior: PlaymatFallbackBehavior.ROUND_ROBIN, fallbackList: [mat('A'), mat('B')] });
+  it('preserves the deck and round-robin cursor across listener remounts', async () => {
+    await setPlaymatSettings({ fallbackBehavior: PlaymatFallbackBehavior.ROUND_ROBIN, fallbackList: [mat('A'), mat('B')] });
     const { hook, Wrapper, select, announce, started, send } = setup();
     select();
     announce({ playmatParams: { cardName: 'A' } });
@@ -142,8 +142,8 @@ describe('app-level playmat sync', () => {
     expect(send).toHaveBeenLastCalledWith(1, { playmatParams: { cardName: 'B', cardProviderId: '', ...params } });
   });
 
-  it('does not send before a deck is selected', () => {
-    void setPlaymatSettings({ ...DEFAULT_PLAYMAT_SETTINGS, fallbackList: [mat('A')] });
+  it('does not send before a deck is selected', async () => {
+    await setPlaymatSettings({ ...DEFAULT_PLAYMAT_SETTINGS, fallbackList: [mat('A')] });
     expect(setup().send).not.toHaveBeenCalled();
   });
 });

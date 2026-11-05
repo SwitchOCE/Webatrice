@@ -57,6 +57,7 @@ export const joinRoom: CaseReducer<RoomsState, PayloadAction<{ roomInfo: ServerI
 
   const roomEntry = normalizeRoomInfo(rawRoomInfo);
   const roomId = roomEntry.info.roomId;
+  roomEntry.order = state.rooms[roomId]?.order ?? 0;
 
   state.rooms[roomId] = roomEntry;
   state.joinedRoomIds[roomId] = true;

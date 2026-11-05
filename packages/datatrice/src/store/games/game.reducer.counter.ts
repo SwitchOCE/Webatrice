@@ -13,7 +13,9 @@ export const counterReducers = {
     }
   }) as CaseReducer<GamesState, PayloadAction<{ gameId: number; playerId: number; data: Event_CreateCounter }>>,
 
-  counterSet: ((state, action) => {
+  counterSet: (() => {}) as CaseReducer<GamesState, PayloadAction<{ gameId: number; playerId: number; data: Event_SetCounter }>>,
+
+  counterValueUpdated: ((state, action) => {
     const { gameId, playerId, data } = action.payload;
     const player = state.games[gameId]?.players[playerId];
     const counter = player?.counters[data.counterId];

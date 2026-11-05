@@ -4,7 +4,7 @@ import type { ListenerMiddlewareInstance } from '@reduxjs/toolkit';
 import { Event_SetCardAttrSchema } from '@cockatrice/sockatrice/generated';
 import { GamesState } from './game.interfaces';
 import { Actions } from './game.actions';
-import { attrOpKey, consumeOptimistic } from './optimistic';
+import { attrOpKey, confirmOptimisticValue, isOptimisticPending } from './optimistic';
 import { buildTokenCard, cardAttachFields, cardAttrFields } from './game.reducer.helpers';
 import {
   formatCardAttached,
@@ -36,7 +36,22 @@ export function registerCardsListeners(mw: ListenerMiddlewareInstance<unknown>):
           return;
         }
         if (fields) {
-          api.dispatch(Actions.cardFieldsUpdatedBulk({ gameId, playerId, zoneName, fields }));
+          if (fields.tapped !== undefined && zone.order.some(id => isOptimisticPending(attrOpKey(gameId, playerId, id, attribute)))) {
+            for (const id of zone.order) {
+              if (fields.tapped === false && zone.byId[id]?.doesntUntap) {
+                continue;
+              }
+              const tapped = Boolean(confirmOptimisticValue(attrOpKey(gameId, playerId, id, attribute), Number(fields.tapped)));
+              api.dispatch(Actions.cardFieldsUpdated({ gameId, playerId, zoneName, cardId: id, fields: { tapped } }));
+            }
+          } else if (fields.pt !== undefined && zone.order.some(id => isOptimisticPending(attrOpKey(gameId, playerId, id, attribute)))) {
+            for (const id of zone.order) {
+              const pt = confirmOptimisticValue(attrOpKey(gameId, playerId, id, attribute), fields.pt);
+              api.dispatch(Actions.cardFieldsUpdated({ gameId, playerId, zoneName, cardId: id, fields: { pt } }));
+            }
+          } else {
+            api.dispatch(Actions.cardFieldsUpdatedBulk({ gameId, playerId, zoneName, fields }));
+          }
         }
         const bulkMessage = formatCardAttrChangedBulk(game, playerId, data);
         if (bulkMessage) {
@@ -45,6 +60,12 @@ export function registerCardsListeners(mw: ListenerMiddlewareInstance<unknown>):
         return;
       }
 
+      if (fields?.tapped !== undefined) {
+        fields.tapped = Boolean(confirmOptimisticValue(attrOpKey(gameId, playerId, cardId, attribute), Number(fields.tapped)));
+      }
+      if (fields?.pt !== undefined) {
+        fields.pt = confirmOptimisticValue(attrOpKey(gameId, playerId, cardId, attribute), fields.pt);
+      }
       const card = game.players[playerId]?.zones[zoneName]?.byId[cardId];
       if (!card) {
         return;
@@ -52,11 +73,6 @@ export function registerCardsListeners(mw: ListenerMiddlewareInstance<unknown>):
       const cardName = card.name;
 
       if (fields) {
-        // cardFieldsUpdated is idempotent (fresh clone-with, same
-        // input = same output) so the optimistic pre-dispatch can be
-        // re-applied here safely. Consume any pending marker so the
-        // rollback map doesn't leak entries.
-        consumeOptimistic(attrOpKey(playerId, cardId, attribute));
         api.dispatch(Actions.cardFieldsUpdated({ gameId, playerId, zoneName, cardId, fields }));
       }
 

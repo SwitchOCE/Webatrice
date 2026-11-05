@@ -84,6 +84,7 @@ export function planOptimisticReconcile(
   targetZone: Enriched.ZoneEntry | undefined,
   optimisticId: number,
   movedCard: ServerInfo_Card,
+  preservePending = false,
 ): OptimisticReconcile | null {
   if (!targetZone) {
     return null;
@@ -95,9 +96,9 @@ export function planOptimisticReconcile(
       kind: 'migrate',
       card: cloneWith(ServerInfo_CardSchema, optimisticCard, {
         id: serverId,
-        x: movedCard.x,
-        y: movedCard.y,
-        faceDown: movedCard.faceDown,
+        x: preservePending ? optimisticCard.x : movedCard.x,
+        y: preservePending ? optimisticCard.y : movedCard.y,
+        faceDown: preservePending ? optimisticCard.faceDown : movedCard.faceDown,
         name: movedCard.name || optimisticCard.name,
         providerId: movedCard.providerId || optimisticCard.providerId,
       }),

@@ -42,7 +42,7 @@ export function usePlayerCardCommands(playerId: number, isLocal: boolean): Playe
         const judgeTargetId = isLocal ? undefined : playerId;
         for (const cardId of cardIds) {
           const currentCard = tableCard(cardId);
-          if (currentCard == null || currentCard.tapped === tapped) {
+          if (currentCard == null) {
             if (judgeTargetId == null) {
               setAttr(cardId, CardAttribute.AttrTapped, attrValue);
             } else {
@@ -54,10 +54,11 @@ export function usePlayerCardCommands(playerId: number, isLocal: boolean): Playe
             }
             continue;
           }
-          const previousTapped = currentCard.tapped;
-          patchCard(cardId, { tapped });
-          const opKey = games.attrOpKey(playerId, cardId, CardAttribute.AttrTapped);
-          games.beginOptimistic(opKey, () => patchCard(cardId, { tapped: previousTapped }));
+          const opKey = games.attrOpKey(gameId, playerId, cardId, CardAttribute.AttrTapped);
+          const token = games.beginOptimisticValue(
+            opKey, Number(currentCard.tapped), () => Number(tapped),
+            value => patchCard(cardId, { tapped: Boolean(value) }),
+          );
           game.setCardAttr(
             gameId,
             { zone: ZoneName.TABLE, cardId, attribute: CardAttribute.AttrTapped, attrValue },
@@ -67,7 +68,7 @@ export function usePlayerCardCommands(playerId: number, isLocal: boolean): Playe
                 console.warn(
                   `Command_SetCardAttr(tapped=${tapped}) rejected with code ${responseCode}; rolling back cardId ${cardId}`,
                 );
-                games.rollbackOptimistic(opKey);
+                games.rollbackOptimistic(token);
               },
             },
           );
@@ -79,18 +80,19 @@ export function usePlayerCardCommands(playerId: number, isLocal: boolean): Playe
       setAnnotation: (cardId, annotation) => setAttr(cardId, CardAttribute.AttrAnnotation, annotation),
       setPT: (items) => {
         for (const { cardId, pt } of items) {
-          const previousPt = tableCard(cardId)?.pt ?? '';
-          if (previousPt !== pt) {
-            patchCard(cardId, { pt });
-          }
+          const opKey = games.attrOpKey(gameId, playerId, cardId, CardAttribute.AttrPT);
+          const token = games.beginOptimisticValue(
+            opKey, tableCard(cardId)?.pt ?? '', () => pt,
+            value => patchCard(cardId, { pt: value }),
+          );
           game.setCardAttr(
             gameId,
             { zone: ZoneName.TABLE, cardId, attribute: CardAttribute.AttrPT, attrValue: pt },
             undefined,
             {
               onError: (code) => {
-                console.warn(`setCardAttr(pt) rejected (${code}); rolling back cardId ${cardId} to "${previousPt}"`);
-                patchCard(cardId, { pt: previousPt });
+                console.warn(`setCardAttr(pt) rejected (${code}); rolling back cardId ${cardId}`);
+                games.rollbackOptimistic(token);
               },
             },
           );

@@ -8,15 +8,16 @@ beforeEach(async () => {
 });
 it('reads and updates the typed settings row for every consumer', async () => {
   const current = settingsStore.peek()!;
-  const save = vi.spyOn(current, 'save').mockResolvedValue('*app');
+  const patch = vi.spyOn(SettingDTO, 'patch').mockImplementation(async (_user, changes) =>
+    Object.assign(new SettingDTO('*app'), typeof changes === 'function' ? changes(current) : changes));
   const { result } = renderHook(() => usePlaymatSettings());
   expect(result.current).toEqual(DEFAULT_PLAYMAT_SETTINGS);
   await act(async () => {
     await setPlaymatSettings({ visibility: 0 });
   });
   expect(result.current.visibility).toBe(0);
-  expect(current.playmatSettings.visibility).toBe(0);
-  expect(save).toHaveBeenCalledOnce();
+  expect(settingsStore.peek()!.playmatSettings.visibility).toBe(0);
+  expect(patch).toHaveBeenCalledOnce();
 });
 it('repairs malformed legacy JSON and invalid values', () => {
   expect(parsePlaymatSettings('{bad')).toEqual(DEFAULT_PLAYMAT_SETTINGS);

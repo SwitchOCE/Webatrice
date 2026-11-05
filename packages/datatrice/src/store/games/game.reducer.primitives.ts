@@ -125,7 +125,7 @@ export const primitiveReducers = {
     }
 
     const movesWithinZone = sourceZone === targetZone && card.id === fromCardId;
-    if (!movesWithinZone && targetZone.byId[card.id]) {
+    if (!movesWithinZone && (targetZone.byId[card.id] || targetZone.order.includes(card.id))) {
       return;
     }
 

@@ -1,10 +1,11 @@
 import { useMemo } from 'react';
 import { useStore } from 'react-redux';
 
-import { games, type ZoneEntry } from '@cockatrice/datatrice';
+import { cloneWith, games, type ZoneEntry } from '@cockatrice/datatrice';
 import { useWebClient } from '@cockatrice/datatrice/react';
 import { ZoneName } from '@cockatrice/sockatrice';
-import type { MoveCardParams } from '@cockatrice/sockatrice/generated';
+import type { MoveCardParams, ServerInfo_Card } from '@cockatrice/sockatrice/generated';
+import { ServerInfo_CardSchema } from '@cockatrice/sockatrice/generated';
 import { useAppDispatch, type RootState } from '@app/store';
 
 export function resolveBattlefieldDropX(params: MoveCardParams, targetBattlefield: ZoneEntry): number {
@@ -133,8 +134,15 @@ export function useMoveCard(gameId: number | undefined): ((params: MoveCardParam
           counterList: [],
         }
         : { ...sourceCard, x, y };
-      const opKey = games.moveOpKey(startPlayerId, cardId);
+      const opKey = games.moveOpKey(gameId, startPlayerId, cardId);
 
+      const restoreCard = (confirmed?: Partial<ServerInfo_Card>) =>
+        cloneWith(ServerInfo_CardSchema, sourceCard, {
+          ...confirmed,
+          name: confirmed?.name || sourceCard.name,
+          providerId: confirmed?.providerId || sourceCard.providerId,
+        });
+      let token: ReturnType<typeof games.beginOptimistic>;
       if (sameZone && isPositionalReorderZone) {
         dispatch(games.Actions.cardMovedInSameZone({
           gameId,
@@ -144,16 +152,17 @@ export function useMoveCard(gameId: number | undefined): ((params: MoveCardParam
           toIndex: x,
           card: optimisticCard,
         }));
-        games.beginOptimistic(opKey, () => {
+        token = games.beginOptimistic(opKey, confirmed => {
+          const restored = restoreCard(confirmed);
           dispatch(games.Actions.cardMovedInSameZone({
             gameId,
             playerId: startPlayerId,
             zoneName: startZone,
-            cardId,
+            cardId: restored.id,
             toIndex: sourceIndex,
-            card: sourceCard,
+            card: restored,
           }));
-        });
+        }, { playerId: targetPlayerId, zoneName: targetZone });
       } else {
         dispatch(games.Actions.cardMovedBetweenZones({
           gameId,
@@ -164,23 +173,27 @@ export function useMoveCard(gameId: number | undefined): ((params: MoveCardParam
           toZone: targetZone,
           card: optimisticCard,
         }));
-        games.beginOptimistic(opKey, () => {
+        token = games.beginOptimistic(opKey, confirmed => {
+          const restored = restoreCard(confirmed);
           dispatch(games.Actions.cardMovedBetweenZones({
             gameId,
             fromPlayerId: targetPlayerId,
             fromZone: targetZone,
-            fromCardId: cardId,
+            fromCardId: restored.id,
             toPlayerId: startPlayerId,
             toZone: startZone,
-            card: sourceCard,
+            card: restored,
           }));
-        });
+          dispatch(games.Actions.cardMovedInSameZone({
+            gameId, playerId: startPlayerId, zoneName: startZone, cardId: restored.id, toIndex: sourceIndex, card: restored,
+          }));
+        }, { playerId: targetPlayerId, zoneName: targetZone });
       }
 
       game.moveCard(gameId, params, undefined, {
         onError: (responseCode) => {
           console.warn(`Command_MoveCard rejected with code ${responseCode}; rolling back cardId ${cardId}`);
-          games.rollbackOptimistic(opKey);
+          games.rollbackOptimistic(token);
         },
       });
     };

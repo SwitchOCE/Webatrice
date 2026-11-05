@@ -1,5 +1,5 @@
 import { create } from '@bufbuild/protobuf';
-import { fireEvent, screen, waitFor } from '@testing-library/react';
+import { act, cleanup, fireEvent, screen, waitFor } from '@testing-library/react';
 
 import { ServerInfo_PlayerProperties_PlaymatParamsSchema } from '@cockatrice/sockatrice/generated';
 import { makeGameEntry, makePlayerEntry, makePlayerProperties } from '@cockatrice/datatrice/testing';
@@ -47,8 +47,11 @@ describe('PlayerPlaymat', () => {
     cardDataPreferencesStore.setValue({ pictureUrlTemplates: [], setPreferences: new Map(), setLongNames: new Map() });
     vi.spyOn(CardDTO, 'get').mockResolvedValue(undefined);
   });
-  afterEach(() => {
-    setPlaymatSettings(DEFAULT_PLAYMAT_SETTINGS);
+  afterEach(async () => {
+    cleanup();
+    await act(async () => {
+      await setPlaymatSettings(DEFAULT_PLAYMAT_SETTINGS);
+    });
     vi.restoreAllMocks();
   });
 
@@ -82,14 +85,14 @@ describe('PlayerPlaymat', () => {
     expect(screen.queryByTestId('player-playmat')).not.toBeInTheDocument();
   });
 
-  it('hides every playmat when playmats are turned off', () => {
-    setPlaymatSettings({ visibility: PlaymatVisibility.NONE });
+  it('hides every playmat when playmats are turned off', async () => {
+    await setPlaymatSettings({ visibility: PlaymatVisibility.NONE });
     render();
     expect(screen.queryByTestId('player-playmat')).not.toBeInTheDocument();
   });
 
-  it('shows only the local player\'s playmat in own-only mode', () => {
-    setPlaymatSettings({ visibility: PlaymatVisibility.OWN_ONLY });
+  it('shows only the local player\'s playmat in own-only mode', async () => {
+    await setPlaymatSettings({ visibility: PlaymatVisibility.OWN_ONLY });
     const { unmount } = render({ isSelf: false });
     expect(screen.queryByTestId('player-playmat')).not.toBeInTheDocument();
     unmount();

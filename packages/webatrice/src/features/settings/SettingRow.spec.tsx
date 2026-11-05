@@ -1,6 +1,6 @@
 import { act, fireEvent, render, screen } from '@testing-library/react';
 
-import { getPreferencesSnapshot, getSettings, settingsStore } from '../../hooks/useSettings';
+import { getPreferencesSnapshot, getSettings, settingsStore, updateSettings } from '../../hooks/useSettings';
 import { StartupTab } from '@app/types';
 import SettingRow from './SettingRow';
 import type { SettingEntry } from './registry';
@@ -26,9 +26,7 @@ async function commit(input: HTMLElement, value: string) {
 
 async function setStartupTab(startupTab: StartupTab) {
   await act(async () => {
-    const settings = await getSettings();
-    settings.startupTab = startupTab;
-    settingsStore.setValue(settings);
+    await updateSettings({ startupTab });
   });
 }
 
