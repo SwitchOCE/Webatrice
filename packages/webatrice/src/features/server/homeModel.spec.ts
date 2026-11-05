@@ -1,9 +1,11 @@
-import { create } from '@bufbuild/protobuf';
+import { create, fromBinary, toBinary } from '@bufbuild/protobuf';
+import { createStore, rooms as roomsStore } from '@cockatrice/datatrice';
 import { makeGame, makeRoom, makeUser } from '@cockatrice/datatrice/testing';
 import {
   ServerInfo_DeckStorage_FileSchema,
   ServerInfo_DeckStorage_FolderSchema,
   ServerInfo_DeckStorage_TreeItemSchema,
+  ServerInfo_RoomSchema,
 } from '@cockatrice/sockatrice/generated';
 import type { RecentDeck } from '@app/services';
 
@@ -25,6 +27,24 @@ describe('sortRooms', () => {
   it('follows the server order', () => {
     const rooms = { 1: makeRoom({ roomId: 1, order: 2 }), 2: makeRoom({ roomId: 2, order: 1 }) };
     expect(sortRooms(rooms).map((r) => r.info.roomId)).toEqual([2, 1]);
+  });
+
+  it('keeps server order after a sparse update of room 3 and joining room 2', () => {
+    const store = createStore();
+    const rooms = [1, 2, 3].map((roomId) => makeRoom({ roomId }).info);
+    store.dispatch(roomsStore.Actions.updateRooms({ rooms }));
+    const sortedIds = () => sortRooms(store.getState().rooms.rooms).map((room) => room.info.roomId);
+    expect(sortedIds()).toEqual([1, 2, 3]);
+
+    const sparse = fromBinary(ServerInfo_RoomSchema, toBinary(ServerInfo_RoomSchema, create(ServerInfo_RoomSchema, {
+      roomId: 3, playerCount: 42, gameCount: 2,
+    })));
+    store.dispatch(roomsStore.Actions.updateRooms({ rooms: [sparse] }));
+    expect.soft(sortedIds()).toEqual([1, 2, 3]);
+
+    store.dispatch(roomsStore.Actions.joinRoom({ roomInfo: rooms[1] }));
+    expect(sortedIds()).toEqual([1, 2, 3]);
+    expect(store.getState().rooms.joinedRoomIds[2]).toBe(true);
   });
 });
 

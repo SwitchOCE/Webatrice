@@ -1,10 +1,10 @@
 import type { ListenerMiddlewareInstance } from '@reduxjs/toolkit';
-import { clone, equals } from '@bufbuild/protobuf';
+import { clone, equals, isFieldSet } from '@bufbuild/protobuf';
 import { dequal } from 'dequal';
 
 import { Enriched } from '../../types';
 import { ServerInfo_GameSchema, ServerInfo_RoomSchema } from '@cockatrice/sockatrice/generated';
-import { cloneWith, mergeSetFields, normalizeGameObject, normalizeGametypeMap } from '../../common';
+import { mergeSetFields, normalizeGameObject, normalizeGametypeMap } from '../../common';
 
 import type { ServerState } from '../server/server.interfaces';
 import { Actions } from './rooms.actions';
@@ -35,6 +35,7 @@ export function registerRoomsListeners(mw: ListenerMiddlewareInstance<unknown>):
         const rawGametypeList = rawRoom.gametypeList ?? [];
 
         if (existing) {
+          const nextOrder = isFieldSet(rawRoom, ServerInfo_RoomSchema.field.name) ? order : existing.order;
           // Sparse merge onto a fresh clone (clone preserves unset proto2 fields a spread
           // would drop). See .github/instructions/datatrice-store.instructions.md#reducer-author-hazards.
           const nextInfo = clone(ServerInfo_RoomSchema, existing.info);
@@ -44,7 +45,7 @@ export function registerRoomsListeners(mw: ListenerMiddlewareInstance<unknown>):
             : existing.gametypeMap;
           if (
             dequal(nextGametypeMap, existing.gametypeMap)
-            && existing.order === order
+            && existing.order === nextOrder
             && equals(ServerInfo_RoomSchema, nextInfo, existing.info)
           ) {
             return;
@@ -53,7 +54,7 @@ export function registerRoomsListeners(mw: ListenerMiddlewareInstance<unknown>):
             roomId,
             info: nextInfo,
             gametypeMap: nextGametypeMap,
-            order,
+            order: nextOrder,
             preserveGamesAndUsers: true,
           }));
         } else {
@@ -94,16 +95,11 @@ export function registerRoomsListeners(mw: ListenerMiddlewareInstance<unknown>):
 
         const existing = room.games[rawGame.gameId];
         if (existing) {
-          // clone base preserves existing's unset proto2 fields; rawGame's set fields win.
-          const merged = cloneWith(ServerInfo_GameSchema, existing.info, rawGame);
+          const merged = clone(ServerInfo_GameSchema, existing.info);
+          mergeSetFields(ServerInfo_GameSchema, merged, rawGame);
           changes.push({
             gameId: rawGame.gameId,
-            game: {
-              info: merged,
-              gameType: merged.gameTypes?.length
-                ? (gametypeMap[merged.gameTypes[0]] ?? '')
-                : existing.gameType,
-            },
+            game: normalizeGameObject(merged, gametypeMap),
           });
         } else {
           changes.push({
