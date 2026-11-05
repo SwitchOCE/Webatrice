@@ -121,7 +121,7 @@ export function DeckTile({ view, actions, onPrefetch }: DeckTileProps) {
           </span>
         </span>
       </button>
-      <div className="flex items-center gap-1.5 border-t border-border-subtle/70 px-2 py-0.5">
+      <div className="flex items-center gap-1.5 border-t border-border-subtle/70 p-2">
         <ul className="mr-1 flex h-5 min-w-0 flex-1 flex-wrap gap-1.5 overflow-hidden" aria-label={t('DeckTile.tags')}>
           {view.tags.map((tag) => (
             <li key={tag} className="min-w-0 max-w-full"><TagChip>{tag}</TagChip></li>
