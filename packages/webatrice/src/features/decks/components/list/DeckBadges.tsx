@@ -1,28 +1,9 @@
 import { useTranslation } from 'react-i18next';
 import { Globe } from 'lucide-react';
 
-import { ColorPips } from '@app/components';
-import { bracketToneClass, cx, toBcp47 } from '@app/utils';
+import { cx, toBcp47 } from '@app/utils';
 
-import { IDENTITY_COLOURS } from '../../deckGrid';
 import type { DeckVisibility } from '../../deckTree';
-
-export function BracketBadge({ level, solid = false, className }: { level: number; solid?: boolean; className?: string }) {
-  const { t } = useTranslation();
-  const badge = (
-    <span
-      className={cx(
-        'inline-flex h-[22px] shrink-0 items-center rounded-ui-sm border px-1.5 text-[11px] font-bold tabular-nums leading-none',
-        bracketToneClass(level, solid),
-        !solid && className,
-      )}
-      title={t('Decks.badge.bracket', { level })}
-    >
-      {t('Decks.badge.bracketShort', { level })}
-    </span>
-  );
-  return solid ? <span className={cx('inline-flex shrink-0 rounded-ui-sm bg-over-art-backdrop', className)}>{badge}</span> : badge;
-}
 
 export function DeckPriceBadge({
   price,
@@ -58,15 +39,6 @@ export function DeckPriceBadge({
       {missing ? '+' : ''}
     </span>
   );
-}
-
-export function IdentityPips({ colours, size = 10 }: { colours: string; size?: number }) {
-  const { t } = useTranslation();
-  const present = IDENTITY_COLOURS.filter((c) => colours.includes(c));
-  if (present.length === 0) {
-    return null;
-  }
-  return <ColorPips colors={present} size={size} label={t('Decks.badge.identity', { colours: present.join('') })} />;
 }
 
 export function TagChip({ children, className }: { children: string; className?: string }) {

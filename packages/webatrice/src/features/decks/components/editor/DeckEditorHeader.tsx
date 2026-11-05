@@ -6,7 +6,7 @@ import {
   Wallpaper,
 } from 'lucide-react';
 
-import { Chip, IconButton, Menu, MenuItem, MenuSeparator, type MenuAnchor } from '@app/components';
+import { Chip, IconButton, IdentityPips, Menu, MenuItem, MenuSeparator, type MenuAnchor } from '@app/components';
 import { DialogShell } from '@app/dialogs';
 import { RouteEnum } from '@app/types';
 
@@ -22,7 +22,6 @@ import { DeckBuyButton } from './DeckBuyButton';
 import { DeckOnlineServiceItems } from './DeckOnlineServices';
 import { DeckTagsEditor } from './DeckTagsEditor';
 import { useOpenDeck, type OpenDeckFlowProps } from './OpenDeckButton';
-import { IdentityPips } from '../list/DeckBadges';
 
 export interface DeckEditorHeaderProps {
   deck: HydratedDeck;

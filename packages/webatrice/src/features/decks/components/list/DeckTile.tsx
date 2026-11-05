@@ -1,37 +1,18 @@
 import { useId, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { FileText } from 'lucide-react';
 
-import type { DeckFormatFamily } from '@app/types';
-import { cx, toBcp47 } from '@app/utils';
+import { BracketBadge, DeckArt, DeckCardFace, IdentityPips, useDeckAge } from '@app/components';
+import { cx } from '@app/utils';
 
 import type { DeckTileView } from '../../deckGrid';
 import { formatDisplayLabel } from '../../deckSummary';
-import { formatDeckAge } from '../../deckTree';
 import { DeckActionsMenu, type DeckActions } from './DeckActionsMenu';
-import { BracketBadge, DeckPriceBadge, DeckVisibilityBadge, IdentityPips, TagChip } from './DeckBadges';
+import { DeckPriceBadge, DeckVisibilityBadge, TagChip } from './DeckBadges';
 
 export interface DeckTileProps {
   view: DeckTileView;
   actions: DeckActions;
   onPrefetch?: () => void;
-}
-
-const AGE_KEYS = { unknown: 'Decks.list.age.unknown', justNow: 'Decks.list.age.justNow' } as const;
-
-const FORMAT_BAND: Record<DeckFormatFamily, string> = {
-  commander: 'bg-format-commander',
-  modern: 'bg-format-modern',
-  standard: 'bg-format-standard',
-  eternal: 'bg-format-eternal',
-  pauper: 'bg-format-pauper',
-  other: 'bg-format-other',
-};
-
-function useDeckAge(creationTime: number): string {
-  const { t, i18n } = useTranslation();
-  const age = formatDeckAge(creationTime, toBcp47(i18n.language));
-  return t('Decks.list.created', { age: 'key' in age ? t(AGE_KEYS[age.key]) : age.text });
 }
 
 function useFormatLine(view: DeckTileView): string | null {
@@ -41,35 +22,12 @@ function useFormatLine(view: DeckTileView): string | null {
   return [format, cards].filter(Boolean).join(' · ') || null;
 }
 
-function DeckArt({ url, className }: { url: string | null; className?: string }) {
-  const [failed, setFailed] = useState<string | null>(null);
-  if (!url || failed === url) {
-    return (
-      <span className={cx('flex items-center justify-center bg-bg-elevated', className)} aria-hidden>
-        <FileText size={32} strokeWidth={1.25} className="text-text-muted/40" />
-      </span>
-    );
-  }
-  return (
-    <img
-      src={url}
-      alt=""
-      loading="lazy"
-      draggable={false}
-      onError={() => setFailed(url)}
-      className={cx('object-cover object-[center_25%]', className)}
-    />
-  );
-}
-
 export function DeckTile({ view, actions, onPrefetch }: DeckTileProps) {
   const { t } = useTranslation();
   const formatDescriptionId = useId();
   const { deck, summary } = view;
   const [menuOpen, setMenuOpen] = useState(false);
-  const created = useDeckAge(deck.creationTime);
   const format = summary?.format ? formatDisplayLabel(summary.format, t) : null;
-  const cards = summary?.cardCount != null ? t('DeckTile.cards', { count: summary.cardCount }) : null;
   return (
     <article
       aria-label={deck.name}
@@ -90,36 +48,19 @@ export function DeckTile({ view, actions, onPrefetch }: DeckTileProps) {
           'focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent',
         )}
       >
-        <span className="relative flex h-[124px] items-end overflow-hidden rounded-t-ui-lg px-2 pb-1 pt-2">
-          <DeckArt url={view.artUrl} className="absolute inset-0 h-full w-full" />
-          <span
-            className="absolute inset-0 bg-gradient-to-b from-transparent from-60% to-over-art-backdrop/90"
-            aria-hidden
-          />
-          <span className="relative flex min-w-0 flex-wrap items-center gap-x-2 gap-y-0.5">
-            <span className="max-w-full truncate text-[15px] font-semibold text-over-art-text">
-              {deck.name}
-            </span>
-            {view.colours !== undefined && <IdentityPips colours={view.colours} />}
-          </span>
-        </span>
-        <span className={cx('flex h-7 items-center gap-2 px-2', FORMAT_BAND[view.formatFamily])}>
-          <span
-            className="min-w-0 flex-1 truncate text-[11px] font-bold text-over-art-text"
-            title={summary && !format ? t('Decks.badge.noFormat') : undefined}
-          >
-            {format ?? (summary ? '—' : '')}
-          </span>
-          {summary && !format && <span id={formatDescriptionId} className="sr-only">{t('Decks.badge.noFormat')}</span>}
-          <DeckVisibilityBadge visibility={deck.visibility} kind="deck" />
-          {view.bracket != null && <BracketBadge level={view.bracket} solid />}
-        </span>
-        <span className="flex min-w-0 items-center px-2 py-2 text-[12px] text-text-muted">
-          <span className="truncate">
-            {created}
-            {cards && <span className="text-[11px] font-medium text-text-primary"> · {cards}</span>}
-          </span>
-        </span>
+        <DeckCardFace
+          name={deck.name}
+          artUrl={view.artUrl}
+          colours={view.colours}
+          format={format}
+          formatFamily={view.formatFamily}
+          formatKnown={!!summary}
+          formatDescriptionId={formatDescriptionId}
+          bracket={view.bracket}
+          creationTime={deck.creationTime}
+          cardCount={summary?.cardCount}
+          visibilityBadge={<DeckVisibilityBadge visibility={deck.visibility} kind="deck" />}
+        />
       </button>
       <div className="flex items-center gap-1.5 border-t border-border-subtle/70 p-2">
         <ul className="mr-1 flex h-5 min-w-0 flex-1 flex-wrap gap-1.5 overflow-hidden" aria-label={t('DeckTile.tags')}>

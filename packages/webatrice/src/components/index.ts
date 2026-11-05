@@ -53,3 +53,4 @@ export { default as PlaymatCropEditor } from './PlaymatCropEditor/PlaymatCropEdi
 export * from './ds';
 export { UserAvatarProvider } from './UserAvatarProvider/UserAvatarProvider';
 export * from './GameCard';
+export { BracketBadge, DeckArt, DeckCardFace, IdentityPips, useDeckAge } from './DeckCardFace/DeckCardFace';

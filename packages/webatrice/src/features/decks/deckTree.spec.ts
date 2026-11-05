@@ -6,7 +6,9 @@ import {
   type ServerInfo_DeckStorage_TreeItem,
 } from '@cockatrice/sockatrice/generated';
 
-import { deckVisibility, findDeckFile, flattenFolder, formatDeckAge } from './deckTree';
+import { formatDeckAge } from '@app/utils';
+
+import { deckVisibility, findDeckFile, flattenFolder } from './deckTree';
 
 function file(id: number, name: string, creationTime: number): ServerInfo_DeckStorage_TreeItem {
   return create(ServerInfo_DeckStorage_TreeItemSchema, {

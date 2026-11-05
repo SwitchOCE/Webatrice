@@ -5,7 +5,7 @@ import type { ServerInfo_DeckStorage_Folder, ServerInfo_User } from '@cockatrice
 import { hasOpenSeat } from '@app/components';
 import { flattenBackendDecks } from '@app/hooks';
 import type { RecentDeck } from '@app/services';
-import { MTG_FORMAT_LABELS, normalizeFormat } from '@app/types';
+import { MTG_FORMAT_LABELS, normalizeFormat, type DeckFormatFamily } from '@app/types';
 
 export interface BuddyGame {
   room: Room;
@@ -80,14 +80,32 @@ export function totalGames(rooms: readonly Room[]): number {
   return rooms.reduce((sum, room) => sum + room.info.gameCount, 0);
 }
 
-export function liveRecentDecks(recent: readonly RecentDeck[], root: ServerInfo_DeckStorage_Folder | undefined): RecentDeck[] {
+export interface LiveRecentDeck extends RecentDeck {
+  creationTime?: number;
+}
+
+export function recentDeckFormatFamily(format: string): DeckFormatFamily {
+  return MTG_FORMAT_LABELS.find((entry) => entry.value === normalizeFormat(format))?.family ?? 'other';
+}
+
+export function liveRecentDecks(recent: readonly RecentDeck[], root: ServerInfo_DeckStorage_Folder | undefined): LiveRecentDeck[] {
   if (!root) {
     return [...recent];
   }
-  const names = new Map(flattenBackendDecks(root).map((deck) => [deck.id, deck.name]));
+  const files = new Map<number, { name: string; creationTime?: number }>();
+  function visit(folder: ServerInfo_DeckStorage_Folder) {
+    for (const item of folder.items) {
+      if (item.file) {
+        files.set(item.id, { name: item.name, creationTime: item.file.creationTime || undefined });
+      } else if (item.folder) {
+        visit(item.folder);
+      }
+    }
+  }
+  visit(root);
   return recent
-    .filter((deck) => names.has(deck.deckId))
-    .map((deck) => ({ ...deck, name: names.get(deck.deckId) || deck.name }));
+    .filter((deck) => files.has(deck.deckId))
+    .map((deck) => ({ ...deck, ...files.get(deck.deckId), name: files.get(deck.deckId)?.name || deck.name }));
 }
 
 export function deckFormatLabel(format: string, t: TFunction): string {

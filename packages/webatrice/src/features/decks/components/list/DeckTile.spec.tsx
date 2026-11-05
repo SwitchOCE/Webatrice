@@ -29,6 +29,17 @@ it('gives the card footer eight pixels of padding on every side', () => {
   expect(footer).not.toHaveClass('py-0.5');
 });
 
+it('keeps a long title bounded while the five identity pips can wrap together below it', () => {
+  const name = 'A very long five-colour deck title '.repeat(8).trim();
+  render(<DeckTile view={deckTileView({ ...deck, name, colorIdentity: 'WUBRG' }, view.summary)} actions={actions()} />);
+  const title = screen.getByText(name);
+  expect(title).toHaveClass('max-w-full', 'truncate');
+  expect(title.parentElement).toHaveClass('min-w-0', 'flex-wrap');
+  const pips = within(title.parentElement!).getByRole('img');
+  expect(pips).toHaveClass('shrink-0');
+  expect(pips.children).toHaveLength(5);
+});
+
 describe.each([['tile', DeckTile], ['row', DeckListRow]] as const)('Deck%s', (_kind, Item) => {
   it('shows what the store knows about the deck and opens it', () => {
     const a = actions();

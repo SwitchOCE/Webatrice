@@ -53,3 +53,5 @@ export type {
 export { BRACKET_TONE, bracketToneClass } from './bracketTone';
 export type { BracketTone } from './bracketTone';
 export { formatAccountAge, formatUserLevel } from './accountDetails';
+export { formatDeckAge } from './deckAge';
+export type { DeckAge } from './deckAge';

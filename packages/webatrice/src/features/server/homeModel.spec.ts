@@ -88,6 +88,13 @@ describe('liveRecentDecks', () => {
     expect(liveRecentDecks([deck(1, 'One')], undefined)).toEqual([deck(1, 'One')]);
   });
 
+  it('carries creation time from nested live files without using the last-opened time', () => {
+    const root = create(ServerInfo_DeckStorage_FolderSchema, { items: [{
+      name: 'Folder', folder: { items: [{ id: 1, name: 'One', file: { creationTime: 123 } }] },
+    }] });
+    expect(liveRecentDecks([deck(1, 'One')], root)[0]).toMatchObject({ creationTime: 123, openedAt: 0 });
+  });
+
   it('drops deleted decks and takes renamed names from the tree', () => {
     const root = create(ServerInfo_DeckStorage_FolderSchema, {
       items: [create(ServerInfo_DeckStorage_TreeItemSchema, {

@@ -1,33 +1,37 @@
+import { useId } from 'react';
 import { FileUp, Layers, Library, Plus } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { generatePath, useNavigate } from 'react-router-dom';
 
 import { server } from '@cockatrice/datatrice';
-import { Button, Chip, ColorPips } from '@app/components';
+import { Button, DeckCardFace } from '@app/components';
 import { useRecentDecks } from '@app/hooks';
-import { recentDeckArtUrl, type RecentDeck } from '@app/services';
+import { recentDeckArtUrl } from '@app/services';
 import { useAppSelector } from '@app/store';
 import { RouteEnum } from '@app/types';
 import { useDeckEditorRoutePrefetch } from '../../../RoutePrefetch';
 
-import { deckFormatLabel, liveRecentDecks, serverDeckCount } from '../homeModel';
+import { deckFormatLabel, liveRecentDecks, recentDeckFormatFamily, serverDeckCount, type LiveRecentDeck } from '../homeModel';
 import HomeEmpty from './HomeEmpty';
 import SectionHead from './SectionHead';
 
 export const RECENT_DECKS_SHOWN = 5;
 
 function DeckTile({ deck, onOpen, onPrefetch }: {
-  deck: RecentDeck;
+  deck: LiveRecentDeck;
   onOpen: (deckId: number) => void;
   onPrefetch: () => void;
 }) {
   const { t } = useTranslation();
+  const formatDescriptionId = useId();
   const art = recentDeckArtUrl(deck);
   const format = deck.format ? deckFormatLabel(deck.format, t) : null;
   return (
     <li className="flex min-w-0">
       <button
         type="button"
+        aria-label={t('DeckTile.open', { name: deck.name })}
+        aria-describedby={!format ? formatDescriptionId : undefined}
         onClick={() => onOpen(deck.deckId)}
         onFocus={onPrefetch}
         onPointerEnter={onPrefetch}
@@ -36,22 +40,18 @@ function DeckTile({ deck, onOpen, onPrefetch }: {
           'shadow-panel hover:border-accent/60 focus-visible:outline focus-visible:outline-2 focus-visible:outline-accent',
         ].join(' ')}
       >
-        <span className="relative block h-[92px] w-full overflow-hidden bg-bg-sunken">
-          {art && <img src={art} alt="" draggable={false} className="h-full w-full object-cover" />}
-          {format && (
-            <span className="absolute left-2 top-2">
-              <Chip className="bg-bg-base/80 text-text-primary backdrop-blur-sm">{format}</Chip>
-            </span>
-          )}
-        </span>
-        <span className="flex w-full min-w-0 flex-col gap-1 px-3 py-2.5">
-          <span className="truncate text-[13.5px] font-semibold text-text-primary">{deck.name}</span>
-          <span className="flex items-center gap-2 overflow-hidden whitespace-nowrap text-[11.5px] text-text-muted">
-            {deck.colors && <ColorPips colors={[...deck.colors]} />}
-            <span>{t('RecentDecks.cards', { count: deck.cardCount })}</span>
-            {deck.bracketLevel != null && <span>{t('RecentDecks.bracket', { level: deck.bracketLevel })}</span>}
-          </span>
-        </span>
+        <DeckCardFace
+          name={deck.name}
+          artUrl={art}
+          colours={deck.colors}
+          format={format}
+          formatFamily={recentDeckFormatFamily(deck.format)}
+          formatKnown
+          formatDescriptionId={formatDescriptionId}
+          bracket={deck.bracketLevel}
+          creationTime={deck.creationTime}
+          cardCount={deck.cardCount}
+        />
       </button>
     </li>
   );
@@ -118,7 +118,7 @@ export default function RecentDecks() {
       {decks.length === 0 ? (
         <RecentDecksEmpty savedDecks={serverDeckCount(tree?.root)} />
       ) : (
-        <ul className="grid grid-cols-[repeat(auto-fill,minmax(min(100%,180px),1fr))] gap-gap">
+        <ul className="grid grid-cols-[repeat(auto-fill,minmax(min(100%,180px),1fr))] gap-gap xl:grid-cols-5">
           {decks.map((deck) => (
             <DeckTile key={deck.deckId} deck={deck} onOpen={openDeck} onPrefetch={prefetchDeckEditor} />
           ))}
