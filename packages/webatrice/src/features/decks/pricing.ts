@@ -280,6 +280,7 @@ export async function fetchPricesForCards(
             `[pricing] Scryfall /cards/collection chunk failed (${chunk.length} identifiers). ` +
               'Cards left unpriced for this render; will retry on next fetch.',
           );
+          throw new Error('Price fetch failed');
         }
         onProgress?.(assemble());
         if (writes.length) {

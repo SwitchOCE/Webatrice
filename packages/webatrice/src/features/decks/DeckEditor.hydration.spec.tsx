@@ -12,7 +12,8 @@ import { useRecordRecentDeck } from '@app/hooks';
 
 vi.mock('./hydrate', async (original) => ({ ...await original<typeof import('./hydrate')>(), hydrateDeck: vi.fn() }));
 vi.mock('./pricing', async (original) => ({
-  ...await original<typeof import('./pricing')>(), fetchPricesForCards: vi.fn().mockResolvedValue(undefined),
+  ...await original<typeof import('./pricing')>(),
+  fetchPricesForCards: vi.fn().mockImplementation(async () => ({ byId: new Map(), byName: new Map() })),
 }));
 vi.mock('@app/services', async (original) => ({
   ...await original<typeof import('@app/services')>(), lookupCardsCached: vi.fn().mockResolvedValue(new Map()),

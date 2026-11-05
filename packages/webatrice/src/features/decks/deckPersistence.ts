@@ -32,7 +32,13 @@ export function deckColorIdentity(cards: readonly DeckCard[]): string {
 }
 
 export function deckSaveSignature(deck: HydratedDeck): string {
-  const { updatedAt: _stamp, ...meta } = deck.meta;
+  const {
+    updatedAt: _stamp,
+    priceUsd: _price,
+    priceMissingCount: _missing,
+    bracketLevel: _bracket,
+    ...meta
+  } = deck.meta;
   return JSON.stringify({
     name: deck.name,
     meta,
@@ -44,7 +50,6 @@ export function deckSaveSignature(deck: HydratedDeck): string {
     sideboardPlansXml: deck.sideboardPlansXml ?? [],
     extraZonesXml: deck.extraZonesXml ?? [],
     tagsXml: deck.tagsXml ?? null,
-    bracketAssessment: deck.bracketAssessment ?? null,
     cards: deck.cards.map((c) => [
       c.name,
       c.quantity,

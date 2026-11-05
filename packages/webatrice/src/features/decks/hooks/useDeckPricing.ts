@@ -18,12 +18,19 @@ export interface DeckPricing {
   loading: boolean;
 }
 
+interface PriceState {
+  priceKey: string;
+  prices: PriceLookup;
+  status: 'loading' | 'partial' | 'success' | 'failed';
+}
+
 export function useDeckPricing(
   deck: HydratedDeck | null,
   persistPrice: (priceUsd: number | undefined, priceMissingCount: number | undefined) => void,
 ): DeckPricing {
-  const [prices, setPrices] = useState<PriceLookup>(() => emptyPriceLookup());
-  const [loading, setLoading] = useState(false);
+  const [state, setState] = useState<PriceState>(() => ({
+    priceKey: '', prices: emptyPriceLookup(), status: 'loading',
+  }));
 
   const priceKey = useMemo(() => deckPriceKey(deck), [deck]);
 
@@ -32,24 +39,24 @@ export function useDeckPricing(
       return;
     }
     let cancelled = false;
-    setLoading(true);
+    setState({ priceKey, prices: emptyPriceLookup(), status: 'loading' });
     fetchPricesForCards(deck.cards, (partial) => {
       if (cancelled) {
         return;
       }
-      setPrices(partial);
+      setState({ priceKey, prices: partial, status: 'partial' });
     })
-      .then(() => {
+      .then((prices) => {
         if (cancelled) {
           return;
         }
-        setLoading(false);
+        setState({ priceKey, prices, status: 'success' });
       })
       .catch(() => {
         if (cancelled) {
           return;
         }
-        setLoading(false);
+        setState((current) => ({ ...current, status: 'failed' }));
       });
     return () => {
       cancelled = true;
@@ -58,15 +65,21 @@ export function useDeckPricing(
   }, [priceKey]);
 
   useEffect(() => {
-    if (!deck || loading) {
+    if (!deck || state.priceKey !== priceKey || state.status !== 'success') {
       return;
     }
-    const { total, missing } = computeDeckPrice(deck.cards, prices);
+    const { total, missing } = computeDeckPrice(deck.cards, state.prices);
+    if (missing === deck.cards.reduce((count, card) => count + card.quantity, 0)) {
+      return;
+    }
     persistPrice(
-      total > 0 ? Number(total.toFixed(2)) : undefined,
+      Number(total.toFixed(2)),
       missing > 0 ? missing : undefined,
     );
-  }, [deck, prices, loading, persistPrice]);
+  }, [deck, priceKey, state, persistPrice]);
 
-  return { prices, loading };
+  return {
+    prices: state.priceKey === priceKey ? state.prices : emptyPriceLookup(),
+    loading: Boolean(priceKey) && (state.priceKey !== priceKey || state.status === 'loading' || state.status === 'partial'),
+  };
 }

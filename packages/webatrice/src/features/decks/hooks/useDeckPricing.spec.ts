@@ -1,4 +1,4 @@
-import { renderHook, waitFor } from '@testing-library/react';
+import { act, renderHook, waitFor } from '@testing-library/react';
 
 import { emptyPriceLookup, fetchPricesForCards, type PriceLookup } from '../pricing';
 import type { HydratedDeck } from '../types';
@@ -62,11 +62,72 @@ describe('useDeckPricing', () => {
     expect(fetchPricesForCards).toHaveBeenCalledTimes(1);
   });
 
-  it('settles without prices when the fetch fails', async () => {
+  it('preserves the stored total when the fetch fails', async () => {
     vi.mocked(fetchPricesForCards).mockRejectedValue(new Error('offline'));
     const persist = vi.fn();
     const { result } = renderHook(() => useDeckPricing(deck([bolt]), persist));
     await waitFor(() => expect(result.current.loading).toBe(false));
-    expect(persist).toHaveBeenLastCalledWith(undefined, 4);
+    expect(persist).not.toHaveBeenCalled();
+  });
+
+  it('does not persist the initial empty render or progress before completion', async () => {
+    let resolve!: (prices: PriceLookup) => void;
+    vi.mocked(fetchPricesForCards).mockImplementation((_cards, onProgress) => {
+      onProgress?.(priced());
+      return new Promise((done) => {
+        resolve = done;
+      });
+    });
+    const persist = vi.fn();
+    const { result } = renderHook(() => useDeckPricing(deck([bolt]), persist));
+    expect(result.current.prices.byName.size).toBe(1);
+    expect(persist).not.toHaveBeenCalled();
+    await act(async () => resolve(priced()));
+    expect(persist).toHaveBeenCalledExactlyOnceWith(8, undefined);
+  });
+
+  it('does not persist partial progress when a later chunk fails', async () => {
+    let reject!: (error: Error) => void;
+    vi.mocked(fetchPricesForCards).mockImplementation((_cards, onProgress) => {
+      onProgress?.(priced());
+      return new Promise((_resolve, fail) => {
+        reject = fail;
+      });
+    });
+    const persist = vi.fn();
+    const { result } = renderHook(() => useDeckPricing(deck([bolt, sol]), persist));
+    await act(async () => reject(new Error('offline')));
+    expect(result.current.loading).toBe(false);
+    expect(persist).not.toHaveBeenCalled();
+  });
+
+  it('keeps the stored price when a successful fetch has no usable prices', async () => {
+    vi.mocked(fetchPricesForCards).mockResolvedValue(emptyPriceLookup());
+    const persist = vi.fn();
+    const { result } = renderHook(() => useDeckPricing(deck([bolt]), persist));
+    await waitFor(() => expect(result.current.loading).toBe(false));
+    expect(persist).not.toHaveBeenCalled();
+  });
+
+  it('does not reuse successful prices for a new key or accept late results for an old key', async () => {
+    const pending: Array<(prices: PriceLookup) => void> = [];
+    vi.mocked(fetchPricesForCards).mockImplementation(() => new Promise((resolve) => pending.push(resolve)));
+    const persist = vi.fn();
+    const { result, rerender } = renderHook(({ d }) => useDeckPricing(d, persist), {
+      initialProps: { d: deck([bolt]) },
+    });
+    await act(async () => pending[0](priced()));
+    expect(persist).toHaveBeenCalledExactlyOnceWith(8, undefined);
+    persist.mockClear();
+
+    rerender({ d: deck([bolt, sol]) });
+    expect(persist).not.toHaveBeenCalled();
+    rerender({ d: deck([sol]) });
+    await act(async () => pending[1](priced()));
+    expect(persist).not.toHaveBeenCalled();
+    expect(result.current.loading).toBe(true);
+    await act(async () => pending[2](emptyPriceLookup()));
+    expect(result.current.loading).toBe(false);
+    expect(persist).not.toHaveBeenCalled();
   });
 });

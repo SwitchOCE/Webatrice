@@ -94,7 +94,9 @@ it('keeps stale prices after a failed refresh and retries on the next call', asy
   vi.mocked(Date.now).mockReturnValue(1_800_000_000_000 + 24 * 60 * 60 * 1000);
   storage.post.mockResolvedValue({ ok: false });
   vi.spyOn(console, 'warn').mockImplementation(() => undefined);
-  expect((await fetchPrices([card])).byId.get(card.scryfallId)?.usd).toBe(2);
-  await fetchPrices([card]);
+  const progress = vi.fn();
+  await expect(fetchPrices([card], progress)).rejects.toThrow('Price fetch failed');
+  expect(progress.mock.calls[0][0].byId.get(card.scryfallId)?.usd).toBe(2);
+  await expect(fetchPrices([card])).rejects.toThrow('Price fetch failed');
   expect(storage.post).toHaveBeenCalledTimes(3);
 });

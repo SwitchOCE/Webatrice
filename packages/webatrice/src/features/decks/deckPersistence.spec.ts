@@ -58,6 +58,19 @@ describe('deckSaveSignature', () => {
     expect(deckSaveSignature(touched)).toBe(deckSaveSignature(deck));
   });
 
+  it('ignores derived price and bracket fields while keeping them in the saved XML', () => {
+    const derived: HydratedDeck = {
+      ...deck,
+      meta: { ...deck.meta, priceUsd: 12.5, priceMissingCount: 2, bracketLevel: 4 },
+      bracketAssessment: { ...deck.bracketAssessment!, level: 4, fingerprint: 'new' },
+    };
+    expect(deckSaveSignature(derived)).toBe(deckSaveSignature(deck));
+    expect(deckSaveSignature({ ...derived, bracketAssessment: undefined })).toBe(deckSaveSignature(deck));
+    const parsed = parseCod(serializeDeckForSave(derived));
+    expect(parsed.meta).toMatchObject({ priceUsd: 12.5, priceMissingCount: 2, bracketLevel: 4 });
+    expect(parsed.bracketAssessment).toEqual(derived.bracketAssessment);
+  });
+
   it('ignores lookup-only card fields', () => {
     const rehydrated = { ...deck, cards: [{ ...deck.cards[0], typeLine: 'Instant', imageUri: 'x' }] };
     expect(deckSaveSignature(rehydrated)).toBe(deckSaveSignature(deck));
@@ -75,7 +88,6 @@ describe('deckSaveSignature', () => {
     ['banner', { bannerCard: 'Shock' }],
     ['banner printing', { bannerCardProviderId: 'other' }],
     ['tags', { tagsXml: '<tags><tag>Aggro</tag></tags>' }],
-    ['bracket cache', { bracketAssessment: undefined }],
     ['quantity', { cards: [{ ...deck.cards[0], quantity: 3 }] }],
     ['zone', { cards: [{ ...deck.cards[0], category: 'sideboard' }] }],
     ['commander flag', { cards: [{ ...deck.cards[0], isCommander: true }] }],

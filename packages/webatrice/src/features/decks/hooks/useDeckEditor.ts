@@ -448,11 +448,11 @@ export function useDeckEditor(deckId: number | null, draftToken: string | null =
       }
       deckRef.current = next;
       setDeck(next);
-      if (reason || !isDraft) {
+      if (reason) {
         scheduleSave();
       }
     },
-    [record, scheduleSave, isDraft],
+    [record, scheduleSave],
   );
 
   const editCard = useCallback(
