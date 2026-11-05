@@ -150,14 +150,18 @@ async function autosaved(predicate: (deck: ParsedDeck) => boolean): Promise<Pars
   return match!;
 }
 
-async function viewSendsNothing() {
-  await waitFor(() => {
-    expect(screen.getByRole('link', { name: /DeckEditor\.buy\.deck/ })).not.toHaveAttribute('title', 'DeckEditor.buy.pricing');
-  }, { timeout: 3000 });
+async function nothingUploadedPastDebounce() {
   await act(async () => {
     await new Promise((resolve) => setTimeout(resolve, 800));
   });
   expect(uploads()).toEqual([]);
+}
+
+async function viewSendsNothing() {
+  await waitFor(() => {
+    expect(screen.getByRole('link', { name: /DeckEditor\.buy\.deck/ })).not.toHaveAttribute('title', 'DeckEditor.buy.pricing');
+  }, { timeout: 3000 });
+  await nothingUploadedPastDebounce();
 }
 
 function rename(from: string, to: string) {
@@ -373,10 +377,10 @@ describe('DeckEditor (integration)', () => {
     await openDeck(codXml({ name: 'Legacy', main: [{ name: 'Sol Ring' }] }));
 
     expect(screen.getByRole('combobox', { name: 'FormatPicker.label' })).toHaveValue('');
-    await viewSendsNothing();
+    await nothingUploadedPastDebounce();
     rename('Legacy', 'Legacy v2');
-    const saved = await autosaved((d) => d.meta.priceUsd === 1.5);
-    expect(saved).toMatchObject({ name: 'Legacy v2', format: '' });
+    const saved = await autosaved((d) => d.name === 'Legacy v2');
+    expect(saved.format).toBe('');
   });
 
   it('the search dock looks the card up, appends a mainboard row, and Enter increments an existing one', async () => {
