@@ -9,13 +9,13 @@ type MoveOperation = {
   destination: MoveDestination;
   confirmed?: MoveConfirmation;
 };
-type ValueOperation = { token: Token; apply: (value: number) => number };
+type ValueOperation<Value> = { token: Token; apply: (value: Value) => Value };
 type MoveEntry = { kind: 'move'; operations: MoveOperation[]; cardId?: number };
-type ValueEntry = {
+type ValueEntry<Value = unknown> = {
   kind: 'value';
-  confirmed: number;
-  operations: ValueOperation[];
-  write: (value: number) => void;
+  confirmed: Value;
+  operations: ValueOperation<Value>[];
+  write: (value: Value) => void;
 };
 
 const pendingOps = new Map<string, MoveEntry | ValueEntry>();
@@ -65,34 +65,34 @@ export function reconcileOptimisticMove(key: string, newKey: string, card: Serve
   }
 }
 
-function displayedValue(entry: ValueEntry): number {
+function displayedValue<Value>(entry: ValueEntry<Value>): Value {
   return entry.operations.reduce((value, operation) => operation.apply(value), entry.confirmed);
 }
 
-export function beginOptimisticValue(
+export function beginOptimisticValue<Value>(
   key: string,
-  confirmed: number,
-  apply: (value: number) => number,
-  write: (value: number) => void,
+  confirmed: Value,
+  apply: (value: Value) => Value,
+  write: (value: Value) => void,
 ): Token {
   const token = Symbol();
   const existing = pendingOps.get(key);
-  const entry: ValueEntry = existing?.kind === 'value'
-    ? existing
+  const entry: ValueEntry<Value> = existing?.kind === 'value'
+    ? existing as ValueEntry<Value>
     : { kind: 'value', confirmed, operations: [], write };
   entry.operations.push({ token, apply });
-  pendingOps.set(key, entry);
+  pendingOps.set(key, entry as ValueEntry);
   entry.write(displayedValue(entry));
   return token;
 }
 
-export function confirmedOptimisticValue(key: string): number | undefined {
+export function confirmedOptimisticValue<Value = number>(key: string): Value | undefined {
   const entry = pendingOps.get(key);
-  return entry?.kind === 'value' ? entry.confirmed : undefined;
+  return entry?.kind === 'value' ? entry.confirmed as Value : undefined;
 }
 
-export function confirmOptimisticValue(key: string, value: number): number {
-  const entry = pendingOps.get(key);
+export function confirmOptimisticValue<Value>(key: string, value: Value): Value {
+  const entry = pendingOps.get(key) as MoveEntry | ValueEntry<Value> | undefined;
   if (entry?.kind !== 'value') {
     return value;
   }
@@ -105,20 +105,12 @@ export function confirmOptimisticValue(key: string, value: number): number {
   return displayed;
 }
 
-export function rollbackOptimistic(key: string, token: Token): void {
-  let entry = pendingOps.get(key);
-  if (!entry?.operations.some(operation => operation.token === token)) {
-    for (const [candidateKey, candidate] of pendingOps) {
-      if (candidate.operations.some(operation => operation.token === token)) {
-        key = candidateKey;
-        entry = candidate;
-        break;
-      }
-    }
-  }
-  if (!entry) {
+export function rollbackOptimistic(token: Token): void {
+  const match = [...pendingOps].find(([, entry]) => entry.operations.some(operation => operation.token === token));
+  if (!match) {
     return;
   }
+  const [key, entry] = match;
   const index = entry.operations.findIndex(operation => operation.token === token);
   if (index < 0) {
     return;

@@ -38,9 +38,10 @@ export function usePlayerCounterCommands(playerId: number): PlayerCounterCommand
           key, currentCount(counterId), value => value + delta, value => applyCounter(counterId, value),
         );
         game.incCounter(gameId, { counterId, delta }, {
+          onSuccess: () => games.rollbackOptimistic(token),
           onError: (code) => {
             console.warn(`incCounter rejected (${code}); rolling back counter ${counterId}`);
-            games.rollbackOptimistic(key, token);
+            games.rollbackOptimistic(token);
           },
         });
       },
@@ -50,9 +51,10 @@ export function usePlayerCounterCommands(playerId: number): PlayerCounterCommand
           key, currentCount(counterId), () => value, value => applyCounter(counterId, value),
         );
         game.setCounter(gameId, { counterId, value }, {
+          onSuccess: () => games.rollbackOptimistic(token),
           onError: (code) => {
             console.warn(`setCounter rejected (${code}); rolling back counter ${counterId}`);
-            games.rollbackOptimistic(key, token);
+            games.rollbackOptimistic(token);
           },
         });
       },

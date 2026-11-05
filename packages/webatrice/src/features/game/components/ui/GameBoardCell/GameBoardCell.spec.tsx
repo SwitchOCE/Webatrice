@@ -510,19 +510,25 @@ describe('GameBoardCell — player counters', () => {
 
     act(() => commands().counter.increment(LIFE_COUNTER_ID, -3));
     expect(count(LIFE_COUNTER_ID)).toBe(17);
-    expect(game.incCounter).toHaveBeenLastCalledWith(1, { counterId: LIFE_COUNTER_ID, delta: -3 }, { onError: expect.any(Function) });
+    expect(game.incCounter).toHaveBeenLastCalledWith(
+      1, { counterId: LIFE_COUNTER_ID, delta: -3 }, { onSuccess: expect.any(Function), onError: expect.any(Function) },
+    );
     act(() => vi.mocked(game.incCounter).mock.calls.at(-1)![2]!.onError!(1, {} as never));
     expect(count(LIFE_COUNTER_ID)).toBe(20);
 
     act(() => commands().counter.set(LIFE_COUNTER_ID, 5));
     expect(count(LIFE_COUNTER_ID)).toBe(5);
-    expect(game.setCounter).toHaveBeenLastCalledWith(1, { counterId: LIFE_COUNTER_ID, value: 5 }, { onError: expect.any(Function) });
+    expect(game.setCounter).toHaveBeenLastCalledWith(
+      1, { counterId: LIFE_COUNTER_ID, value: 5 }, { onSuccess: expect.any(Function), onError: expect.any(Function) },
+    );
 
     act(() => commands().counter.increment(MANA_COUNTER_IDS.g, 2));
     expect(count(MANA_COUNTER_IDS.g)).toBe(2);
     act(() => commands().counter.set(MANA_COUNTER_IDS.r, 4));
     expect(count(MANA_COUNTER_IDS.r)).toBe(4);
-    expect(game.setCounter).toHaveBeenLastCalledWith(1, { counterId: MANA_COUNTER_IDS.r, value: 4 }, { onError: expect.any(Function) });
+    expect(game.setCounter).toHaveBeenLastCalledWith(
+      1, { counterId: MANA_COUNTER_IDS.r, value: 4 }, { onSuccess: expect.any(Function), onError: expect.any(Function) },
+    );
   });
 
   it('flip coin is a single d2 roll', () => {

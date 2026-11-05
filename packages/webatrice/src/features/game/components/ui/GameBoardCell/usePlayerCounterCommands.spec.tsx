@@ -61,6 +61,39 @@ describe('counter command confirmation', () => {
     gameId: 1, playerId: 1, data: create(Event_SetCounterSchema, { counterId: LIFE_COUNTER_ID, value }),
   })));
 
+  it('settles an unchanged set on success without consuming a later increment', () => {
+    const { commands, player, store, game } = renderCounters();
+    act(() => {
+      commands().set(LIFE_COUNTER_ID, 20);
+      commands().increment(LIFE_COUNTER_ID, 1);
+    });
+    act(() => vi.mocked(game.setCounter).mock.calls[0][2]!.onSuccess?.());
+    expect(player().counters[LIFE_COUNTER_ID].count).toBe(21);
+    echo(store, 21);
+    expect(player().counters[LIFE_COUNTER_ID].count).toBe(21);
+    expect(games.isOptimisticPending(games.counterOpKey(1, 1, LIFE_COUNTER_ID))).toBe(false);
+    act(() => commands().increment(LIFE_COUNTER_ID, 1));
+    act(() => vi.mocked(game.incCounter).mock.calls[0][2]!.onSuccess?.());
+    expect(player().counters[LIFE_COUNTER_ID].count).toBe(22);
+    echo(store, 22);
+    act(() => vi.mocked(game.incCounter).mock.calls[1][2]!.onSuccess?.());
+    expect(player().counters[LIFE_COUNTER_ID].count).toBe(22);
+  });
+
+  it('settles a zero delta without an echo before confirming a later decrement', () => {
+    const { commands, player, store, game } = renderCounters();
+    act(() => {
+      commands().increment(LIFE_COUNTER_ID, 0);
+      commands().increment(LIFE_COUNTER_ID, -1);
+    });
+    act(() => vi.mocked(game.incCounter).mock.calls[0][2]!.onSuccess?.());
+    expect(player().counters[LIFE_COUNTER_ID].count).toBe(19);
+    echo(store, 19);
+    act(() => vi.mocked(game.incCounter).mock.calls[1][2]!.onSuccess?.());
+    expect(player().counters[LIFE_COUNTER_ID].count).toBe(19);
+    expect(games.isOptimisticPending(games.counterOpKey(1, 1, LIFE_COUNTER_ID))).toBe(false);
+  });
+
   it('keeps three quick increments visible through interleaved echoes and logs only server values', () => {
     const { commands, player, store } = renderCounters();
     const counts: number[] = [];

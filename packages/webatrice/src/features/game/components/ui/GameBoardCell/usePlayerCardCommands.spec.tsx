@@ -48,7 +48,7 @@ describe('usePlayerCardCommands', () => {
     }
   });
 
-  it('patches P/T before the server answers and restores it on rejection', () => {
+  it('keeps a later P/T edit when the first edit fails, then restores the confirmed value', () => {
     const { commands, card, game } = renderCards();
     act(() => commands().setPT([{ cardId: 11, pt: '5/5' }, { cardId: 11, pt: '5/5' }]));
     expect(card(11).pt).toBe('5/5');
@@ -56,6 +56,8 @@ describe('usePlayerCardCommands', () => {
 
     vi.spyOn(console, 'warn').mockImplementation(() => undefined);
     act(() => vi.mocked(game.setCardAttr).mock.calls[0][3]!.onError!(1, {} as never));
+    expect(card(11).pt).toBe('5/5');
+    act(() => vi.mocked(game.setCardAttr).mock.calls[1][3]!.onError!(1, {} as never));
     expect(card(11).pt).toBe('3/3');
   });
 
@@ -87,6 +89,39 @@ describe('usePlayerCardCommands', () => {
       { zone: ZoneName.TABLE, cardId: -1, attribute: CardAttribute.AttrTapped, attrValue: '0' },
     ]);
     expect(card(11).annotation).toBe(OGRE.annotation);
+  });
+});
+
+describe('P/T confirmation', () => {
+  const echo = (store: ReturnType<typeof renderCards>['store'], pt: string, cardId: number | null = 11) => act(() => store.dispatch(
+    games.Actions.cardAttrChanged({
+      gameId: 1, playerId: 1,
+      data: create(Event_SetCardAttrSchema, {
+        zoneName: ZoneName.TABLE, ...(cardId === null ? {} : { cardId }), attribute: CardAttribute.AttrPT, attrValue: pt,
+      }),
+    }),
+  ));
+
+  it('preserves a server P/T update received before a rejected edit', () => {
+    const { commands, card, store, game } = renderCards();
+    act(() => commands().setPT([{ cardId: 11, pt: '5/5' }]));
+    echo(store, '7/7');
+    vi.spyOn(console, 'warn').mockImplementation(() => undefined);
+    act(() => vi.mocked(game.setCardAttr).mock.calls[0][3]!.onError!(1, {} as never));
+    expect(card(11).pt).toBe('7/7');
+    expect(games.isOptimisticPending(games.attrOpKey(1, 1, 11, CardAttribute.AttrPT))).toBe(false);
+  });
+
+  it.each([false, true])('keeps the latest P/T through unchanged and earlier echoes (bulk: %s)', bulk => {
+    const { commands, card, store } = renderCards();
+    act(() => {
+      commands().setPT([{ cardId: 11, pt: '3/3' }, { cardId: 11, pt: '5/5' }]);
+    });
+    echo(store, '3/3', bulk ? null : 11);
+    expect(card(11).pt).toBe('5/5');
+    echo(store, '6/6');
+    expect(card(11).pt).toBe('6/6');
+    expect(games.isOptimisticPending(games.attrOpKey(1, 1, 11, CardAttribute.AttrPT))).toBe(false);
   });
 });
 
