@@ -126,7 +126,8 @@ describe('HoverCardZoom', () => {
     const zoom = screen.getByTestId('hover-card-zoom');
     expect(parseFloat(zoom.style.left)).toBeGreaterThanOrEqual(anchor.right);
     expect(parseFloat(zoom.style.width)).toBeGreaterThanOrEqual(300);
-    expect(zoom.querySelector('img')?.getAttribute('src')).toContain('bolt-id');
+    expect(zoom.querySelector('img')?.getAttribute('src'))
+      .toBe('https://api.scryfall.com/cards/bolt-id?format=image&version=large');
 
     act(() => store.endHover());
     expect(screen.queryByTestId('hover-card-zoom')).not.toBeInTheDocument();
