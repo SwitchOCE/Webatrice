@@ -139,6 +139,39 @@ describe('tapped confirmation', () => {
     expect(games.isOptimisticPending(games.attrOpKey(1, 1, 11, CardAttribute.AttrTapped))).toBe(false);
   });
 
+  it('preserves doesntUntap cards when untap-all arrives with another card tap pending', () => {
+    const { result, store } = renderSeatHook(() => usePlayerCardCommands(1, true), {
+      localPlayerId: 1,
+      seats: [{ playerId: 1, table: [makeCard({ id: 10, tapped: true, doesntUntap: true }), OGRE] }],
+    });
+    act(() => {
+      result()!.setTapped([11], true);
+      result()!.untapAll();
+    });
+    act(() => store.dispatch(games.Actions.cardAttrChanged({
+      gameId: 1, playerId: 1,
+      data: create(Event_SetCardAttrSchema, { zoneName: ZoneName.TABLE, attribute: CardAttribute.AttrTapped, attrValue: '0' }),
+    })));
+    const table = store.getState().games.games[1].players[1].zones[ZoneName.TABLE];
+    expect(table.byId[10].tapped).toBe(true);
+    expect(table.byId[11].tapped).toBe(false);
+    expect(games.isOptimisticPending(games.attrOpKey(1, 1, 11, CardAttribute.AttrTapped))).toBe(false);
+  });
+
+  it('confirms tap echoes after the card has left the event zone', () => {
+    const { commands, store, card, game } = renderCards();
+    act(() => commands().setTapped([11], true));
+    act(() => store.dispatch(games.Actions.cardMovedBetweenZones({
+      gameId: 1, fromPlayerId: 1, fromZone: ZoneName.TABLE, fromCardId: 11,
+      toPlayerId: 1, toZone: ZoneName.GRAVE, card: makeCard({ ...card(11), tapped: false }),
+    })));
+    echo(store, true);
+    expect(games.isOptimisticPending(games.attrOpKey(1, 1, 11, CardAttribute.AttrTapped))).toBe(false);
+    const state = store.getState();
+    act(() => vi.mocked(game.setCardAttr).mock.calls[0][3]!.onError!(1, {} as never));
+    expect(store.getState()).toBe(state);
+  });
+
   it('clears tapped entries when the game closes', () => {
     const { commands, store } = renderCards();
     act(() => commands().setTapped([11], true));

@@ -1,7 +1,16 @@
+import type { ServerInfo_Card } from '@cockatrice/sockatrice/generated';
+
 type Token = symbol;
-type MoveOperation = { token: Token; rollback: () => void; destination: string };
+type MoveDestination = { playerId: number; zoneName: string };
+type MoveConfirmation = Pick<ServerInfo_Card, 'id' | 'x' | 'y' | 'faceDown' | 'name' | 'providerId'>;
+type MoveOperation = {
+  token: Token;
+  rollback: (confirmed?: Partial<MoveConfirmation>) => void;
+  destination: MoveDestination;
+  confirmed?: MoveConfirmation;
+};
 type ValueOperation = { token: Token; apply: (value: number) => number };
-type MoveEntry = { kind: 'move'; operations: MoveOperation[] };
+type MoveEntry = { kind: 'move'; operations: MoveOperation[]; cardId?: number };
 type ValueEntry = {
   kind: 'value';
   confirmed: number;
@@ -11,7 +20,7 @@ type ValueEntry = {
 
 const pendingOps = new Map<string, MoveEntry | ValueEntry>();
 
-export function beginOptimistic(key: string, rollback: () => void, destination: string): Token {
+export function beginOptimistic(key: string, rollback: MoveOperation['rollback'], destination: MoveDestination): Token {
   const token = Symbol();
   const existing = pendingOps.get(key);
   const entry: MoveEntry = existing?.kind === 'move' ? existing : { kind: 'move', operations: [] };
@@ -24,12 +33,13 @@ export function isOptimisticPending(key: string): boolean {
   return pendingOps.has(key);
 }
 
-export function consumeOptimistic(key: string, destination: string): 'none' | 'pending' | 'confirmed' | 'remote' {
+export function consumeOptimistic(key: string, destination: MoveDestination): 'none' | 'pending' | 'confirmed' | 'remote' {
   const entry = pendingOps.get(key);
   if (entry?.kind !== 'move') {
     return 'none';
   }
-  if (entry.operations[0].destination !== destination) {
+  const expected = entry.operations[0].destination;
+  if (expected.playerId !== destination.playerId || expected.zoneName !== destination.zoneName) {
     pendingOps.delete(key);
     return 'remote';
   }
@@ -39,6 +49,20 @@ export function consumeOptimistic(key: string, destination: string): 'none' | 'p
   }
   pendingOps.delete(key);
   return 'confirmed';
+}
+
+export function reconcileOptimisticMove(key: string, newKey: string, card: ServerInfo_Card): void {
+  const entry = pendingOps.get(key);
+  if (entry?.kind !== 'move') {
+    return;
+  }
+  const { id, x, y, faceDown, name, providerId } = card;
+  entry.cardId = id;
+  entry.operations[0].confirmed = { id, x, y, faceDown, name, providerId };
+  if (key !== newKey) {
+    pendingOps.delete(key);
+    pendingOps.set(newKey, entry);
+  }
 }
 
 function displayedValue(entry: ValueEntry): number {
@@ -82,7 +106,16 @@ export function confirmOptimisticValue(key: string, value: number): number {
 }
 
 export function rollbackOptimistic(key: string, token: Token): void {
-  const entry = pendingOps.get(key);
+  let entry = pendingOps.get(key);
+  if (!entry?.operations.some(operation => operation.token === token)) {
+    for (const [candidateKey, candidate] of pendingOps) {
+      if (candidate.operations.some(operation => operation.token === token)) {
+        key = candidateKey;
+        entry = candidate;
+        break;
+      }
+    }
+  }
   if (!entry) {
     return;
   }
@@ -102,7 +135,7 @@ export function rollbackOptimistic(key: string, token: Token): void {
       pendingOps.delete(key);
     }
     for (const operation of removed.reverse()) {
-      operation.rollback();
+      operation.rollback({ ...operation.confirmed, ...(entry.cardId === undefined ? {} : { id: entry.cardId }) });
     }
   }
 }

@@ -16,7 +16,7 @@ import {
   resolveMoveIdentity,
   sweepsArrows,
 } from './cardMove';
-import { consumeOptimistic, moveOpKey } from './optimistic';
+import { consumeOptimistic, moveOpKey, reconcileOptimisticMove } from './optimistic';
 import { formatCardPeeked, formatCardsDrawn, formatCardsRevealed } from './messageLog';
 
 export function registerZonesListeners(mw: ListenerMiddlewareInstance<unknown>): void {
@@ -63,7 +63,7 @@ export function registerZonesListeners(mw: ListenerMiddlewareInstance<unknown>):
       }
 
       const optimisticKey = moveOpKey(gameId, startPlayerId, move.cardId);
-      const confirmation = consumeOptimistic(optimisticKey, targetZone);
+      const confirmation = consumeOptimistic(optimisticKey, { playerId: targetPlayerId, zoneName: targetZone });
       const remoteSource = confirmation === 'remote'
         ? Object.entries(game.players[startPlayerId].zones).find(([, zone]) => zone.byId[move.cardId])
         : undefined;
@@ -73,6 +73,18 @@ export function registerZonesListeners(mw: ListenerMiddlewareInstance<unknown>):
       const movedCard = buildMovedCard(move, data);
       const viewSync = planZoneViewSync(move, sourceZone, targetZoneEntry, data);
       const confirmsOptimistic = confirmation === 'pending' || confirmation === 'confirmed';
+
+      if (confirmation === 'pending') {
+        reconcileOptimisticMove(optimisticKey, moveOpKey(gameId, targetPlayerId, movedCard.id), movedCard);
+        const currentZone = Object.entries(game.players[targetPlayerId].zones).find(([, zone]) => zone.byId[move.cardId]);
+        const reconcile = planOptimisticReconcile(currentZone?.[1], move.cardId, movedCard, true);
+        if (currentZone && reconcile?.kind === 'migrate') {
+          api.dispatch(Actions.cardMovedInSameZone({
+            gameId, playerId: targetPlayerId, zoneName: currentZone[0], cardId: move.cardId,
+            toIndex: currentZone[1].order.indexOf(move.cardId), card: reconcile.card,
+          }));
+        }
+      }
 
       if ((placement === 'same-zone' && !remoteSource) || (remoteSource?.[0] === targetZone && startPlayerId === targetPlayerId)) {
         if (confirmation !== 'pending') {

@@ -297,7 +297,7 @@ describe('freeze guard (bridge → store seam)', () => {
       toZone: 'table',
       card: { ...sourceCard, x: 50, y: 60 },
     }));
-    games.beginOptimistic(games.moveOpKey(GAME_ID, 1, 101), () => {}, 'table');
+    games.beginOptimistic(games.moveOpKey(GAME_ID, 1, 101), () => {}, { playerId: 1, zoneName: 'table' });
 
     moveCard(response, { cardId: 101, fromZone: 'hand', x: 50, y: 60, newCardId: 505 });
 
@@ -322,7 +322,7 @@ describe('freeze guard (bridge → store seam)', () => {
       toZone: 'table',
       card: { ...sourceCard, x: 10, y: 20 },
     }));
-    games.beginOptimistic(games.moveOpKey(GAME_ID, 1, 101), () => {}, 'table');
+    games.beginOptimistic(games.moveOpKey(GAME_ID, 1, 101), () => {}, { playerId: 1, zoneName: 'table' });
     const optimistic = player1(store).zones.table.byId[101];
 
     moveCard(response, { cardId: 101, fromZone: 'hand', x: 13, y: 20 });

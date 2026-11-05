@@ -38,6 +38,9 @@ export function registerCardsListeners(mw: ListenerMiddlewareInstance<unknown>):
         if (fields) {
           if (fields.tapped !== undefined && zone.order.some(id => isOptimisticPending(attrOpKey(gameId, playerId, id, attribute)))) {
             for (const id of zone.order) {
+              if (fields.tapped === false && zone.byId[id]?.doesntUntap) {
+                continue;
+              }
               const tapped = Boolean(confirmOptimisticValue(attrOpKey(gameId, playerId, id, attribute), Number(fields.tapped)));
               api.dispatch(Actions.cardFieldsUpdated({ gameId, playerId, zoneName, cardId: id, fields: { tapped } }));
             }
@@ -52,6 +55,9 @@ export function registerCardsListeners(mw: ListenerMiddlewareInstance<unknown>):
         return;
       }
 
+      if (fields?.tapped !== undefined) {
+        fields.tapped = Boolean(confirmOptimisticValue(attrOpKey(gameId, playerId, cardId, attribute), Number(fields.tapped)));
+      }
       const card = game.players[playerId]?.zones[zoneName]?.byId[cardId];
       if (!card) {
         return;
@@ -59,9 +65,6 @@ export function registerCardsListeners(mw: ListenerMiddlewareInstance<unknown>):
       const cardName = card.name;
 
       if (fields) {
-        if (fields.tapped !== undefined) {
-          fields.tapped = Boolean(confirmOptimisticValue(attrOpKey(gameId, playerId, cardId, attribute), Number(fields.tapped)));
-        }
         api.dispatch(Actions.cardFieldsUpdated({ gameId, playerId, zoneName, cardId, fields }));
       }
 

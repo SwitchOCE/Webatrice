@@ -2940,23 +2940,23 @@ describe('2L: Null-guard / missing entity early-returns', () => {
     }))).toBe(state);
   });
 
-  it('COUNTER_SET with unknown gameId → state unchanged', () => {
+  it('COUNTER_VALUE_UPDATED with unknown gameId → state unchanged', () => {
     const state = makeState();
-    expect(gamesReducer(state, Actions.counterSet({
+    expect(gamesReducer(state, Actions.counterValueUpdated({
       gameId: UNKNOWN_GAME, playerId: 1, data: { counterId: 1, value: 5 },
     }))).toBe(state);
   });
 
-  it('COUNTER_SET with unknown playerId → state unchanged', () => {
+  it('COUNTER_VALUE_UPDATED with unknown playerId → state unchanged', () => {
     const state = makeState();
-    expect(gamesReducer(state, Actions.counterSet({
+    expect(gamesReducer(state, Actions.counterValueUpdated({
       gameId: 1, playerId: UNKNOWN_PLAYER, data: { counterId: 1, value: 5 },
     }))).toBe(state);
   });
 
-  it('COUNTER_SET with unknown counterId → state unchanged', () => {
+  it('COUNTER_VALUE_UPDATED with unknown counterId → state unchanged', () => {
     const state = makeState();
-    expect(gamesReducer(state, Actions.counterSet({ gameId: 1, playerId: 1, data: { counterId: 9999, value: 5 } }))).toBe(state);
+    expect(gamesReducer(state, Actions.counterValueUpdated({ gameId: 1, playerId: 1, data: { counterId: 9999, value: 5 } }))).toBe(state);
   });
 
   it('COUNTER_DELETED with unknown gameId → state unchanged', () => {

@@ -1009,7 +1009,7 @@ describe('game listeners: branch recordings', () => {
       game(state).players[ALICE].zones.table = table([
         makeCard({ ...bolt, x: 3, annotation: 'Owner: Alice' }),
       ]);
-      beginOptimistic(moveOpKey(1, ALICE, 20), () => {}, 'table');
+      beginOptimistic(moveOpKey(1, ALICE, 20), () => {}, { playerId: ALICE, zoneName: 'table' });
       const { play, games } = makeRecordingStore(state);
 
       play(Actions.cardMoved({
@@ -1055,7 +1055,7 @@ describe('game listeners: branch recordings', () => {
         makeCard({ id: 10, name: 'Grizzly Bears', x: 0 }),
         makeCard({ id: 20, name: 'Lightning Bolt', x: 0 }),
       ]);
-      beginOptimistic(moveOpKey(1, ALICE, 20), () => {}, 'table');
+      beginOptimistic(moveOpKey(1, ALICE, 20), () => {}, { playerId: ALICE, zoneName: 'table' });
       const { play } = makeRecordingStore(state);
 
       expect(play(Actions.cardMoved({
@@ -1087,7 +1087,7 @@ describe('game listeners: branch recordings', () => {
     });
 
     it('consumes the optimistic marker of a same-zone reorder and still re-applies it', () => {
-      beginOptimistic(moveOpKey(1, ALICE, 21), () => {}, 'hand');
+      beginOptimistic(moveOpKey(1, ALICE, 21), () => {}, { playerId: ALICE, zoneName: 'hand' });
       const { play } = makeRecordingStore(scriptedState());
 
       expect(play(Actions.cardMoved({
@@ -1116,7 +1116,7 @@ describe('game listeners: branch recordings', () => {
         makeCard({ id: 20, name: 'Lightning Bolt' }),
         makeCard({ id: 21, name: 'Island' }),
       ]);
-      beginOptimistic(moveOpKey(1, ALICE, 21), () => {}, zoneName);
+      beginOptimistic(moveOpKey(1, ALICE, 21), () => {}, { playerId: ALICE, zoneName });
       const { play, games } = makeRecordingStore(state);
 
       const recorded = play(Actions.cardMoved({

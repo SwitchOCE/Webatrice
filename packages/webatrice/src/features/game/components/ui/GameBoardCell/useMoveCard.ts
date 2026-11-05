@@ -1,10 +1,11 @@
 import { useMemo } from 'react';
 import { useStore } from 'react-redux';
 
-import { games, type ZoneEntry } from '@cockatrice/datatrice';
+import { cloneWith, games, type ZoneEntry } from '@cockatrice/datatrice';
 import { useWebClient } from '@cockatrice/datatrice/react';
 import { ZoneName } from '@cockatrice/sockatrice';
 import type { MoveCardParams } from '@cockatrice/sockatrice/generated';
+import { ServerInfo_CardSchema } from '@cockatrice/sockatrice/generated';
 import { useAppDispatch, type RootState } from '@app/store';
 
 export function resolveBattlefieldDropX(params: MoveCardParams, targetBattlefield: ZoneEntry): number {
@@ -145,16 +146,21 @@ export function useMoveCard(gameId: number | undefined): ((params: MoveCardParam
           toIndex: x,
           card: optimisticCard,
         }));
-        token = games.beginOptimistic(opKey, () => {
+        token = games.beginOptimistic(opKey, confirmed => {
+          const restored = cloneWith(ServerInfo_CardSchema, sourceCard, {
+            ...confirmed,
+            name: confirmed?.name || sourceCard.name,
+            providerId: confirmed?.providerId || sourceCard.providerId,
+          });
           dispatch(games.Actions.cardMovedInSameZone({
             gameId,
             playerId: startPlayerId,
             zoneName: startZone,
-            cardId,
+            cardId: restored.id,
             toIndex: sourceIndex,
-            card: sourceCard,
+            card: restored,
           }));
-        }, targetZone);
+        }, { playerId: targetPlayerId, zoneName: targetZone });
       } else {
         dispatch(games.Actions.cardMovedBetweenZones({
           gameId,
@@ -165,20 +171,25 @@ export function useMoveCard(gameId: number | undefined): ((params: MoveCardParam
           toZone: targetZone,
           card: optimisticCard,
         }));
-        token = games.beginOptimistic(opKey, () => {
+        token = games.beginOptimistic(opKey, confirmed => {
+          const restored = cloneWith(ServerInfo_CardSchema, sourceCard, {
+            ...confirmed,
+            name: confirmed?.name || sourceCard.name,
+            providerId: confirmed?.providerId || sourceCard.providerId,
+          });
           dispatch(games.Actions.cardMovedBetweenZones({
             gameId,
             fromPlayerId: targetPlayerId,
             fromZone: targetZone,
-            fromCardId: cardId,
+            fromCardId: restored.id,
             toPlayerId: startPlayerId,
             toZone: startZone,
-            card: sourceCard,
+            card: restored,
           }));
           dispatch(games.Actions.cardMovedInSameZone({
-            gameId, playerId: startPlayerId, zoneName: startZone, cardId, toIndex: sourceIndex, card: sourceCard,
+            gameId, playerId: startPlayerId, zoneName: startZone, cardId: restored.id, toIndex: sourceIndex, card: restored,
           }));
-        }, targetZone);
+        }, { playerId: targetPlayerId, zoneName: targetZone });
       }
 
       game.moveCard(gameId, params, undefined, {

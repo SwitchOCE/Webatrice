@@ -20,14 +20,18 @@ function renderMoves(spec: SeatGameSpec = SPEC) {
     state.games.games[2] = { ...state.games.games[1], info: { ...state.games.games[1].info, gameId: 2 } };
   });
   const zone = (name: string, gameId = 1, playerId = 1) => utils.store.getState().games.games[gameId].players[playerId].zones[name];
-  const move = (startZone: string, targetZone: string, x = 0, gameId = 1, targetPlayerId = 1) => act(() => utils.result()[gameId - 1]({
-    startPlayerId: 1, startZone, targetPlayerId, targetZone, x, y: 0, cardsToMove: { card: [{ cardId: 5 }] },
+  const move = (
+    startZone: string, targetZone: string, x = 0, gameId = 1, targetPlayerId = 1, cardId = 5, faceDown = false,
+  ) => act(() => utils.result()[gameId - 1]({
+    startPlayerId: 1, startZone, targetPlayerId, targetZone, x, y: 0, cardsToMove: { card: [{ cardId, ...(faceDown && { faceDown }) }] },
   }));
-  const echo = (startZone: string, targetZone: string, x = 0, gameId = 1, targetPlayerId = 1, newCardId = 5) =>
+  const echo = (
+    startZone: string, targetZone: string, x = 0, gameId = 1, targetPlayerId = 1, newCardId = 5, cardId = 5, faceDown = false, y = 0,
+  ) =>
     act(() => utils.store.dispatch(games.Actions.cardMoved({
       gameId, playerId: 1,
       data: create(Event_MoveCardSchema, {
-        startPlayerId: 1, startZone, targetPlayerId, targetZone, cardId: 5, newCardId, cardName: 'Bolt', x, y: 0, position: -1,
+        startPlayerId: 1, startZone, targetPlayerId, targetZone, cardId, newCardId, faceDown, cardName: 'Bolt', x, y, position: -1,
       }),
     })));
   const reject = (index: number) => act(() => vi.mocked(utils.game.moveCard).mock.calls[index][3]!.onError!(1, {} as never));
@@ -88,6 +92,81 @@ describe('useMoveCard with server echoes', () => {
     expectPosition(ZoneName.STACK);
     reject(0);
     expectPosition(ZoneName.STACK);
+  });
+
+  it.each([ZoneName.TABLE, ZoneName.GRAVE])('migrates the id in %s and restores the confirmed move on rejection', target => {
+    const { move, echo, reject, zone } = renderMoves();
+    move(ZoneName.HAND, ZoneName.TABLE, 3, 1, 1, 5, true);
+    move(ZoneName.TABLE, target, 6);
+    echo(ZoneName.HAND, ZoneName.TABLE, 9, 1, 1, 70, 5, true, 2);
+    expect(zone(target).order).toEqual([70]);
+    expect(zone(target).byId[5]).toBeUndefined();
+    expect(zone(target).byId[70]).toMatchObject({ x: 6, y: 0 });
+    expect(zone(target).cardCount).toBe(1);
+    expect(games.isOptimisticPending(games.moveOpKey(1, 1, 70))).toBe(true);
+    reject(1);
+    expect(zone(ZoneName.TABLE).order).toEqual([70]);
+    expect(zone(ZoneName.TABLE).byId[70]).toMatchObject({ id: 70, name: 'Bolt', x: 9, y: 2, faceDown: true });
+    expect(zone(ZoneName.TABLE).cardCount).toBe(1);
+    if (target !== ZoneName.TABLE) {
+      expect(zone(target).order).toEqual([]);
+      expect(zone(target).cardCount).toBe(0);
+    }
+    expect(zone(ZoneName.HAND).order).toEqual([6, 7]);
+    expect(zone(ZoneName.HAND).cardCount).toBe(2);
+    const confirmed = zone(ZoneName.TABLE);
+    reject(0);
+    expect(zone(ZoneName.TABLE)).toBe(confirmed);
+    move(ZoneName.TABLE, ZoneName.GRAVE, 0, 1, 1, 70);
+    echo(ZoneName.TABLE, ZoneName.GRAVE, 0, 1, 1, 70, 70);
+    expect(zone(ZoneName.GRAVE).order).toEqual([70]);
+    expect(games.isOptimisticPending(games.moveOpKey(1, 1, 70))).toBe(false);
+  });
+
+  it('keeps the first server position when a later move fails without an id change', () => {
+    const { move, echo, reject, zone } = renderMoves();
+    move(ZoneName.HAND, ZoneName.TABLE, 3);
+    move(ZoneName.TABLE, ZoneName.TABLE, 6);
+    echo(ZoneName.HAND, ZoneName.TABLE, 9);
+    expect(zone(ZoneName.TABLE).byId[5].x).toBe(6);
+    reject(1);
+    expect(zone(ZoneName.TABLE).byId[5].x).toBe(9);
+  });
+
+  it('rekeys every later rollback and consumes subsequent echoes using the server id', () => {
+    const { move, echo, reject, zone } = renderMoves();
+    move(ZoneName.HAND, ZoneName.TABLE, 3);
+    move(ZoneName.TABLE, ZoneName.GRAVE);
+    move(ZoneName.GRAVE, ZoneName.EXILE);
+    echo(ZoneName.HAND, ZoneName.TABLE, 9, 1, 1, 70, 5, true);
+    expect(zone(ZoneName.EXILE).order).toEqual([70]);
+    reject(2);
+    expect(zone(ZoneName.GRAVE).order).toEqual([70]);
+    echo(ZoneName.TABLE, ZoneName.GRAVE, 4, 1, 1, 70, 70);
+    expect(zone(ZoneName.GRAVE).byId[70].x).toBe(4);
+    expect(games.isOptimisticPending(games.moveOpKey(1, 1, 70))).toBe(false);
+    reject(1);
+    expect(zone(ZoneName.GRAVE).order).toEqual([70]);
+  });
+
+  it('rolls back every later move newest first with the migrated identity', () => {
+    const { move, echo, reject, zone } = renderMoves();
+    move(ZoneName.HAND, ZoneName.TABLE, 3, 1, 1, 5, true);
+    move(ZoneName.TABLE, ZoneName.GRAVE);
+    move(ZoneName.GRAVE, ZoneName.EXILE);
+    echo(ZoneName.HAND, ZoneName.TABLE, 9, 1, 1, 70, 5, true, 2);
+    reject(1);
+    expect(zone(ZoneName.TABLE).order).toEqual([70]);
+    expect(zone(ZoneName.TABLE).byId[70]).toMatchObject({ id: 70, x: 9, y: 2, faceDown: true });
+    expect(zone(ZoneName.TABLE).cardCount).toBe(1);
+    for (const name of [ZoneName.GRAVE, ZoneName.EXILE]) {
+      expect(zone(name).order).toEqual([]);
+      expect(zone(name).cardCount).toBe(0);
+    }
+    const confirmed = zone(ZoneName.TABLE);
+    reject(2);
+    expect(zone(ZoneName.TABLE)).toBe(confirmed);
+    expect(games.isOptimisticPending(games.moveOpKey(1, 1, 70))).toBe(false);
   });
 
   it('ignores an old failure while a newer operation is pending for the same card', () => {
@@ -159,6 +238,30 @@ describe('useMoveCard with server echoes', () => {
     expect(target.byId[5].name).toBe('Ogre');
     expect(target.byId[130].name).toBe('Bolt');
     expect(target.cardCount).toBe(2);
+  });
+
+  it('lets a cross-player echo win over a pending local drag without migrating the recipient card', () => {
+    const { move, echo, reject, zone } = renderMoves({
+      localPlayerId: 1,
+      seats: [
+        { playerId: 1, table: [makeCard({ id: 5, name: 'Bolt' })] },
+        { playerId: 2, table: [makeCard({ id: 5, name: 'Ogre' })] },
+      ],
+    });
+    move(ZoneName.TABLE, ZoneName.TABLE, 3, 1, 2);
+    move(ZoneName.TABLE, ZoneName.TABLE, 6);
+    echo(ZoneName.TABLE, ZoneName.TABLE, 3, 1, 2, 130);
+    expect(zone(ZoneName.TABLE).order).toEqual([]);
+    expect(zone(ZoneName.TABLE).cardCount).toBe(0);
+    const target = zone(ZoneName.TABLE, 1, 2);
+    expect(target.order).toEqual([5, 130]);
+    expect(target.byId[5].name).toBe('Ogre');
+    expect(target.byId[130]).toMatchObject({ name: 'Bolt', x: 3 });
+    expect(target.cardCount).toBe(2);
+    expect(games.isOptimisticPending(games.moveOpKey(1, 1, 5))).toBe(false);
+    reject(1);
+    expect(zone(ZoneName.TABLE).order).toEqual([]);
+    expect(zone(ZoneName.TABLE, 1, 2)).toBe(target);
   });
 
   it.each([games.Actions.gameLeft, games.Actions.gameClosed, games.Actions.kicked])('clears only the removed game for $type', remove => {
