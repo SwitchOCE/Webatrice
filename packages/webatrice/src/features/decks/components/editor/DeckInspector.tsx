@@ -155,7 +155,7 @@ export function DeckInspector({
           rel="noopener noreferrer"
           className={cx(
             'flex h-[35px] items-center justify-between gap-2 rounded-ui-sm border px-3',
-            'border-accent/40 bg-accent-secondary/50 text-white shadow-glow hover:border-accent hover:bg-accent-secondary',
+            'border-accent/40 bg-accent-secondary text-white shadow-glow hover:border-accent',
             FOCUS,
           )}
         >
