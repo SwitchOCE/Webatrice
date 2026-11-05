@@ -1,5 +1,6 @@
 import 'fake-indexeddb/auto';
-import { act, cleanup, renderHook, waitFor } from '@testing-library/react';
+import { act, cleanup, fireEvent, render, renderHook, waitFor } from '@testing-library/react';
+import { createElement } from 'react';
 import { APP_USER, CommanderSpellbookIntegration, PREFERENCE_DEFAULTS, ThemeName } from '@app/types';
 
 vi.unmock('dexie');
@@ -12,8 +13,19 @@ async function openTab() {
   const { dexieService } = await import('../services/dexie/DexieService');
   const { CardDataSettingsDTO } = await import('../services/dexie/DexieDTOs/CardDataSettingsDTO');
   const { cardDatabaseService } = await import('../services/cardDatabase/CardDatabaseService');
-  const { refreshCardDataPreferences } = await import('../services/cardDatabase/cardDataPreferences');
-  return { dexie, ...settings, ...playmat, ...bracket, dexieService, CardDataSettingsDTO, cardDatabaseService, refreshCardDataPreferences };
+  const cardPreferences = await import('../services/cardDatabase/cardDataPreferences');
+  const { cardDataPreferencesStore } = await import('./useCardDataPreferences');
+  const { SettingDTO } = await import('../services/dexie/DexieDTOs/SettingDTO');
+  const { useShortcutsHydration } = await import('../feature-widgets/shortcuts/useShortcutsHydration');
+  const { useShortcutsPersistence } = await import('../feature-widgets/shortcuts/useShortcutsPersistence');
+  const { shortcuts } = await import('../store');
+  const { makeReduxHookWrapper } = await import('../__test-utils__/makeHookWrapper');
+  const { default: HighlightWordsField } = await import('../features/settings/controls/HighlightWordsField');
+  return {
+    dexie, ...settings, ...playmat, ...bracket, ...cardPreferences, cardDataPreferencesStore,
+    dexieService, SettingDTO, CardDataSettingsDTO, cardDatabaseService,
+    useShortcutsHydration, useShortcutsPersistence, shortcuts, makeReduxHookWrapper, HighlightWordsField,
+  };
 }
 
 let first: Awaited<ReturnType<typeof openTab>>;
@@ -27,6 +39,21 @@ function barrier() {
     };
   });
   return { reached, release };
+}
+
+function holdSettingsWrites(tab: typeof first, ...gates: { read: ReturnType<typeof barrier>; resume: ReturnType<typeof barrier> }[]) {
+  const get = tab.SettingDTO.get.bind(tab.SettingDTO);
+  vi.spyOn(tab.SettingDTO, 'get').mockImplementation((user) => {
+    const gate = tab.dexie.currentTransaction?.mode === 'readwrite' ? gates.shift() : undefined;
+    return get(user).then(async (row) => {
+      if (gate) {
+        gate.read.release();
+        await tab.dexie.waitFor(gate.resume.reached);
+      }
+      return row;
+    });
+  });
+  return get;
 }
 
 beforeAll(async () => {
@@ -121,15 +148,21 @@ it.each(['update check', 'templates', 'new sets'] as const)(
       pictureUrlTemplates: ['old'],
       alwaysEnableNewSets: false,
     });
+    await Promise.all([first.cardDataPreferencesStore.whenReady(), second.cardDataPreferencesStore.whenReady()]);
     const read = barrier();
     const resume = barrier();
     const competingRead = barrier();
     const getFirst = first.CardDataSettingsDTO.get.bind(first.CardDataSettingsDTO);
     const getSecond = second.CardDataSettingsDTO.get.bind(second.CardDataSettingsDTO);
-    vi.spyOn(first.CardDataSettingsDTO, 'get').mockImplementationOnce(async () => {
+    let held = false;
+    vi.spyOn(first.CardDataSettingsDTO, 'get').mockImplementation(async () => {
+      const hold = !held && first.dexie.currentTransaction?.mode === 'readwrite';
+      held ||= hold;
       const row = await getFirst();
-      read.release();
-      await first.dexie.waitFor(resume.reached);
+      if (hold) {
+        read.release();
+        await first.dexie.waitFor(resume.reached);
+      }
       return row;
     });
     vi.spyOn(second.CardDataSettingsDTO, 'get').mockImplementationOnce(() => {
@@ -159,8 +192,17 @@ it.each(['update check', 'templates', 'new sets'] as const)(
     };
     expect(await first.CardDataSettingsDTO.get()).toMatchObject(expected);
     expect(await second.CardDataSettingsDTO.get()).toMatchObject(expected);
-    expect((await first.refreshCardDataPreferences()).cardOverrides).toEqual(expected.cardOverrides);
-    expect((await second.refreshCardDataPreferences()).cardOverrides).toEqual(expected.cardOverrides);
+    await waitFor(async () => {
+      for (const tab of [first, second]) {
+        expect(await tab.currentCardDataPreferences()).toMatchObject({
+          cardOverrides: expected.cardOverrides, pictureUrlTemplates: expected.pictureUrlTemplates,
+        });
+        expect(tab.cardDataPreferencesStore.peek()).toMatchObject({
+          cardOverrides: expected.cardOverrides, pictureUrlTemplates: expected.pictureUrlTemplates,
+        });
+        expect(await tab.getCardPreferenceOverride('Dr. Julius Jumblemorph')).toBe('printing');
+      }
+    });
     await second.CardDataSettingsDTO.setCardOverride('Dr. Julius Jumblemorph', undefined);
     expect((await first.CardDataSettingsDTO.get()).cardOverrides).toEqual({ Counterspell: 'keep' });
   },
@@ -175,4 +217,132 @@ it('preserves concurrent update-check and template writes', async () => {
     lastUpdateCheck: '2026-11-06T00:00:00.000Z',
     pictureUrlTemplates: ['new'],
   });
+});
+
+it('merges stale shortcut edits, refreshes both Redux stores and does not write refreshed bindings back', async () => {
+  function mount(tab: typeof first) {
+    const { Wrapper, store } = tab.makeReduxHookWrapper(
+      { shortcuts: tab.shortcuts.shortcutsReducer } as any,
+      { shortcuts: { overrides: {}, hydrated: false, recordingActionId: null, recordingSequences: [] } } as any,
+    );
+    renderHook(() => {
+      tab.useShortcutsHydration();
+      tab.useShortcutsPersistence();
+    }, { wrapper: Wrapper });
+    return store;
+  }
+  const a = mount(first);
+  const b = mount(second);
+  const read = barrier();
+  const resume = barrier();
+  const get = second.SettingDTO.get.bind(second.SettingDTO);
+  vi.spyOn(second.SettingDTO, 'get').mockImplementationOnce((user) => get(user).then(async (row) => {
+    read.release();
+    await resume.reached;
+    return row;
+  }));
+  const writeA = vi.spyOn(first.SettingDTO, 'patch');
+  const writeB = vi.spyOn(second.SettingDTO, 'patch');
+  try {
+    await act(async () => {
+      a.dispatch(first.shortcuts.Actions.setOverride({ actionId: 'game.drawCard', sequences: ['F2'] }));
+    });
+    await read.reached;
+    expect((b.getState() as any).shortcuts.overrides).toEqual({});
+    await act(async () => {
+      b.dispatch(second.shortcuts.Actions.setOverride({ actionId: 'game.untapAll', sequences: ['F3'] }));
+    });
+    await waitFor(async () => expect((await get(APP_USER)).shortcuts).toEqual({
+      'game.drawCard': ['F2'], 'game.untapAll': ['F3'],
+    }));
+  } finally {
+    resume.release();
+  }
+  await waitFor(() => {
+    for (const store of [a, b]) {
+      expect((store.getState() as any).shortcuts.overrides).toEqual({
+        'game.drawCard': ['F2'], 'game.untapAll': ['F3'],
+      });
+    }
+  });
+  expect(writeA).toHaveBeenCalledTimes(1);
+  expect(writeB).toHaveBeenCalledTimes(1);
+  await act(async () => {
+    b.dispatch(second.shortcuts.Actions.resetAction({ actionId: 'game.drawCard' }));
+  });
+  await waitFor(async () => {
+    expect((await get(APP_USER)).shortcuts).toEqual({ 'game.untapAll': ['F3'] });
+    expect((a.getState() as any).shortcuts.overrides).toEqual({ 'game.untapAll': ['F3'] });
+  });
+  expect(writeA).toHaveBeenCalledTimes(1);
+  expect(writeB).toHaveBeenCalledTimes(2);
+});
+
+it('keeps newer typed words visible when an earlier commit and refresh arrive', async () => {
+  const view = render(createElement(first.HighlightWordsField, { id: 'words', labelId: 'words-label', disabled: false }));
+  const input = view.getByRole('textbox');
+  const read = barrier();
+  const resume = barrier();
+  const get = holdSettingsWrites(first, { read, resume });
+  const secondRead = barrier();
+  const secondResume = barrier();
+  const patch = first.SettingDTO.patch.bind(first.SettingDTO);
+  const writes: Promise<unknown>[] = [];
+  vi.spyOn(first.SettingDTO, 'patch').mockImplementation((...args) => {
+    const delayed = typeof args[1] === 'object' && args[1]?.chatHighlightWords === 'abc';
+    const writing = delayed ? secondResume.reached.then(() => patch(...args)) : patch(...args);
+    if (delayed) {
+      secondRead.release();
+    }
+    writes.push(writing);
+    return writing;
+  });
+  try {
+    act(() => fireEvent.change(input, { target: { value: 'a' } }));
+    expect(first.getPreferencesSnapshot().chatHighlightWords).toBe('a');
+    await read.reached;
+    act(() => fireEvent.change(input, { target: { value: 'ab' } }));
+    expect(first.getPreferencesSnapshot().chatHighlightWords).toBe('ab');
+    act(() => fireEvent.change(input, { target: { value: 'abc' } }));
+    resume.release();
+    await secondRead.reached;
+    await waitFor(async () => expect((await second.SettingDTO.get(APP_USER)).chatHighlightWords).toBe('ab'));
+    await act(async () => {
+      await second.updateSettings({ autoConnect: true });
+    });
+    await waitFor(() => expect(first.getPreferencesSnapshot().autoConnect).toBe(true));
+    expect(input).toHaveValue('abc');
+    expect(first.getPreferencesSnapshot().chatHighlightWords).toBe('abc');
+  } finally {
+    resume.release();
+    secondResume.release();
+    await Promise.resolve();
+    await Promise.all(writes);
+  }
+  await waitFor(async () => expect((await get(APP_USER)).chatHighlightWords).toBe('abc'));
+});
+
+it('publishes playmat changes synchronously and retains newer edits over earlier commits', async () => {
+  const resume = barrier();
+  const read = barrier();
+  const secondRead = barrier();
+  const secondResume = barrier();
+  holdSettingsWrites(first, { read, resume }, { read: secondRead, resume: secondResume });
+  const older = first.setPlaymatSettings({ visibility: 0 });
+  let newer: Promise<void> | undefined;
+  try {
+    expect(first.getPlaymatSettings().visibility).toBe(0);
+    await read.reached;
+    newer = first.setPlaymatSettings({ visibility: 2 });
+    expect(first.getPlaymatSettings().visibility).toBe(2);
+    resume.release();
+    await secondRead.reached;
+    await older;
+    expect(first.getPlaymatSettings().visibility).toBe(2);
+  } finally {
+    resume.release();
+    secondResume.release();
+    await Promise.all([older, newer]);
+  }
+  expect((await second.SettingDTO.get(APP_USER)).playmatSettings.visibility).toBe(2);
 });

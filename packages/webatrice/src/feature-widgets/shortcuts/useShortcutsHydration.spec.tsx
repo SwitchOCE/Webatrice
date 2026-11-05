@@ -66,7 +66,7 @@ describe('useShortcutsHydration', () => {
     expect((store.getState() as any).shortcuts.hydrated).toBe(false);
   });
 
-  it('skips hydration when already hydrated', () => {
+  it('refreshes persisted bindings when already hydrated', () => {
     const dispatchedOverrides = { 'game.drawCard': ['Ctrl+KeyZ'] };
     vi.mocked(useSettings).mockReturnValue(
       makeSettingsHook({ value: makeSettings({ shortcuts: dispatchedOverrides as any }) }),
@@ -75,6 +75,6 @@ describe('useShortcutsHydration', () => {
 
     renderHook(() => useShortcutsHydration(), { wrapper: Wrapper });
 
-    expect((store.getState() as any).shortcuts.overrides).toEqual({});
+    expect((store.getState() as any).shortcuts.overrides).toEqual(dispatchedOverrides);
   });
 });
