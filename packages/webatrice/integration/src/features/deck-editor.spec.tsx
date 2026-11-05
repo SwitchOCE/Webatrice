@@ -150,14 +150,13 @@ async function autosaved(predicate: (deck: ParsedDeck) => boolean): Promise<Pars
   return match!;
 }
 
-async function settle() {
+async function viewSendsNothing() {
+  await waitFor(() => {
+    expect(screen.getByRole('link', { name: /DeckEditor\.buy\.deck/ })).not.toHaveAttribute('title', 'DeckEditor.buy.pricing');
+  }, { timeout: 3000 });
   await act(async () => {
     await new Promise((resolve) => setTimeout(resolve, 800));
   });
-}
-
-async function viewSendsNothing() {
-  await settle();
   expect(uploads()).toEqual([]);
 }
 
