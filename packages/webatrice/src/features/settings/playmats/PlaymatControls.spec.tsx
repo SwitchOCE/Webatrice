@@ -1,5 +1,5 @@
 import { type ComponentType } from 'react';
-import { act, fireEvent, screen, within } from '@testing-library/react';
+import { act, cleanup, fireEvent, screen, within } from '@testing-library/react';
 
 import { DEFAULT_PLAYMAT_SETTINGS, getPlaymatSettings, setPlaymatSettings, settingsStore } from '@app/hooks';
 import { renderWithProviders } from '../../../__test-utils__';
@@ -56,13 +56,14 @@ describe('playmat controls', () => {
     settingsStore.setValue(new SettingDTO('*app'));
     vi.spyOn(CardDTO, 'get').mockResolvedValue({ name: { value: 'Island' }, set: [] } as unknown as CardDTO);
   });
-  afterEach(() => {
-    act(() => {
-      void setPlaymatSettings(DEFAULT_PLAYMAT_SETTINGS);
+  afterEach(async () => {
+    cleanup();
+    await act(async () => {
+      await setPlaymatSettings(DEFAULT_PLAYMAT_SETTINGS);
     });
   });
 
-  it('shows desktop\'s defaults and saves each choice as soon as it is made', () => {
+  it('shows desktop\'s defaults and saves each choice as soon as it is made', async () => {
     renderWithProviders(
       <>
         <span id="v">Visibility</span>
@@ -80,9 +81,11 @@ describe('playmat controls', () => {
     expect(mode).toHaveDisplayValue('PlaymatSettings.mode.fallback');
     expect(list).toHaveDisplayValue('PlaymatSettings.collection.fixed');
 
-    fireEvent.change(visibility, { target: { value: '1' } });
-    fireEvent.change(mode, { target: { value: '0' } });
-    fireEvent.change(list, { target: { value: '2' } });
+    await act(async () => {
+      fireEvent.change(visibility, { target: { value: '1' } });
+      fireEvent.change(mode, { target: { value: '0' } });
+      fireEvent.change(list, { target: { value: '2' } });
+    });
 
     expect(getPlaymatSettings()).toMatchObject({ visibility: 1, mode: 0, fallbackBehavior: 2 });
   });
@@ -156,9 +159,10 @@ describe('playmat controls', () => {
 
   it('locks Cancel once the new card is being saved, so a cancel cannot leave it saved behind the user', async () => {
     let finishSave: () => void = () => {};
-    const save = vi.spyOn(SettingDTO.prototype, 'save').mockReturnValue(new Promise((resolve) => {
-      finishSave = () => resolve('*app');
-    }) as ReturnType<SettingDTO['save']>);
+    const patch = SettingDTO.patch.bind(SettingDTO);
+    const save = vi.spyOn(SettingDTO, 'patch').mockImplementation((...args) => new Promise<void>((resolve) => {
+      finishSave = resolve;
+    }).then(() => patch(...args)));
     renderCollection();
     const input = await openAddForm();
     fireEvent.change(input, { target: { value: 'Island' } });
@@ -186,7 +190,7 @@ describe('playmat controls', () => {
   });
 
   it('keeps the typed name and says so when saving the new card fails', async () => {
-    const save = vi.spyOn(SettingDTO.prototype, 'save').mockRejectedValue(new Error('quota'));
+    const save = vi.spyOn(SettingDTO, 'patch').mockRejectedValue(new Error('quota'));
     renderCollection();
     const input = await openAddForm();
     fireEvent.change(input, { target: { value: 'Island' } });
@@ -214,35 +218,43 @@ describe('playmat controls', () => {
     expect(screen.queryByRole('textbox')).not.toBeInTheDocument();
   });
 
-  it('reorders and removes entries, naming the card on each button', () => {
-    act(() => {
-      void setPlaymatSettings({ fallbackList: [mat('A'), mat('B'), mat('C')] });
+  it('reorders and removes entries, naming the card on each button', async () => {
+    await act(async () => {
+      await setPlaymatSettings({ fallbackList: [mat('A'), mat('B'), mat('C')] });
     });
     renderCollection();
     const tiles = () => within(screen.getByRole('group', { name: 'Collection' })).getAllByRole('listitem');
     expect(within(tiles()[0]).getByRole('button', { name: 'PlaymatSettings.collection.moveEarlier' })).toBeDisabled();
     expect(within(tiles()[2]).getByRole('button', { name: 'PlaymatSettings.collection.moveLater' })).toBeDisabled();
 
-    fireEvent.click(within(tiles()[2]).getByRole('button', { name: 'PlaymatSettings.collection.moveEarlier' }));
+    await act(async () => {
+      fireEvent.click(within(tiles()[2]).getByRole('button', { name: 'PlaymatSettings.collection.moveEarlier' }));
+    });
     expect(names()).toEqual(['A', 'C', 'B']);
 
-    fireEvent.click(within(tiles()[0]).getByRole('button', { name: 'PlaymatSettings.collection.moveLater' }));
+    await act(async () => {
+      fireEvent.click(within(tiles()[0]).getByRole('button', { name: 'PlaymatSettings.collection.moveLater' }));
+    });
     expect(names()).toEqual(['C', 'A', 'B']);
 
-    fireEvent.click(within(tiles()[1]).getByRole('button', { name: 'PlaymatSettings.collection.removeCard' }));
+    await act(async () => {
+      fireEvent.click(within(tiles()[1]).getByRole('button', { name: 'PlaymatSettings.collection.removeCard' }));
+    });
     expect(names()).toEqual(['C', 'B']);
   });
 
-  it('edits an entry\'s crop and closes the editor with Done', () => {
-    act(() => {
-      void setPlaymatSettings({ fallbackList: [mat('A')] });
+  it('edits an entry\'s crop and closes the editor with Done', async () => {
+    await act(async () => {
+      await setPlaymatSettings({ fallbackList: [mat('A')] });
     });
     renderCollection();
 
     const edit = screen.getByRole('button', { name: 'PlaymatSettings.collection.editCrop' });
     fireEvent.click(edit);
     expect(edit).toHaveAttribute('aria-pressed', 'true');
-    fireEvent.change(screen.getByRole('slider', { name: 'PlaymatSettings.crop.zoom' }), { target: { value: 2.5 } });
+    await act(async () => {
+      fireEvent.change(screen.getByRole('slider', { name: 'PlaymatSettings.crop.zoom' }), { target: { value: 2.5 } });
+    });
     expect(getPlaymatSettings().fallbackList[0].params).toEqual({ ...PARAMS, zoom: 2.5 });
 
     fireEvent.click(screen.getByRole('button', { name: 'PlaymatSettings.collection.done' }));
@@ -250,9 +262,9 @@ describe('playmat controls', () => {
     expect(edit).toHaveFocus();
   });
 
-  it('saves a dragged crop once, on release, and announces the margins as percentages', () => {
-    act(() => {
-      void setPlaymatSettings({ fallbackList: [mat('A')] });
+  it('saves a dragged crop once, on release, and announces the margins as percentages', async () => {
+    await act(async () => {
+      await setPlaymatSettings({ fallbackList: [mat('A')] });
     });
     renderCollection();
     fireEvent.click(screen.getByRole('button', { name: 'PlaymatSettings.collection.editCrop' }));
@@ -267,7 +279,9 @@ describe('playmat controls', () => {
     expect(getPlaymatSettings()).toBe(saved);
     expect(left).toHaveAttribute('aria-valuetext', '20');
 
-    fireEvent.change(left);
+    await act(async () => {
+      fireEvent.change(left);
+    });
     expect(getPlaymatSettings().fallbackList[0].params).toEqual({ ...PARAMS, marginPctL: 0.2 });
   });
 });

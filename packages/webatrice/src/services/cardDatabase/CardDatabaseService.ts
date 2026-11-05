@@ -532,11 +532,7 @@ class CardDatabaseService {
 
     if (answer === 'enable-always') {
 
-      const settings = await CardDataSettingsDTO.get();
-
-      settings.alwaysEnableNewSets = true;
-
-      await settings.save();
+      await CardDataSettingsDTO.patch({ alwaysEnableNewSets: true });
 
     }
 
@@ -582,11 +578,7 @@ class CardDatabaseService {
 
   async savePictureUrlTemplates(templates: readonly string[]): Promise<void> {
 
-    const settings = await CardDataSettingsDTO.get();
-
-    settings.pictureUrlTemplates = [...templates];
-
-    await settings.save();
+    await CardDataSettingsDTO.patch({ pictureUrlTemplates: [...templates] });
 
     await refreshCardDataPreferences();
 
@@ -596,11 +588,7 @@ class CardDatabaseService {
 
   async recordUpdateCheck(at = new Date()): Promise<void> {
 
-    const settings = await CardDataSettingsDTO.get();
-
-    settings.lastUpdateCheck = at.toISOString();
-
-    await settings.save();
+    await CardDataSettingsDTO.patch({ lastUpdateCheck: at.toISOString() });
 
   }
 

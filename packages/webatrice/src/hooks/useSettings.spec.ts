@@ -1,4 +1,5 @@
 import { renderHook, act, waitFor } from '@testing-library/react';
+import { migrateSetting } from '@app/services';
 
 const mockSave = vi.fn();
 let storedSetting: any = null;
@@ -7,11 +8,28 @@ vi.mock('@app/services', () => ({
   SettingDTO: class MockSettingDTO {
     user: string;
     autoConnect = false;
+    version?: number;
+    themeName?: string;
     constructor(user: string) {
       this.user = user;
     }
     save = mockSave;
     static get = vi.fn(() => Promise.resolve(storedSetting));
+    static async patch(user: string, patch: any = {}) {
+      const existing = storedSetting;
+      const current = existing ?? new this(user);
+      const version = current.version;
+      migrateSetting(current);
+      if (!existing) {
+        current.themeName = 'graphite';
+      }
+      Object.assign(current, typeof patch === 'function' ? patch(current) : patch);
+      if (!existing || version !== current.version || Object.keys(patch).length) {
+        await mockSave();
+      }
+      storedSetting = current;
+      return current;
+    }
   },
   migrateSetting: vi.fn((row: any) => {
     row.migrated = true;
@@ -124,7 +142,7 @@ describe('useSettings', () => {
   });
 
   test('does not re-save on the initial load when setting already exists', async () => {
-    storedSetting = { user: '*app', autoConnect: true, save: mockSave };
+    storedSetting = { user: '*app', version: 5, autoConnect: true, save: mockSave };
 
     renderHook(() => useSettingsModule.useSettings());
 

@@ -1,29 +1,39 @@
 import { useMemo, useSyncExternalStore } from 'react';
+import { liveQuery, type Subscription } from 'dexie';
 
-import { migrateSetting, SettingDTO } from '@app/services';
+import { migrateSetting, SettingDTO, type SettingsPatch } from '@app/services';
 import { APP_USER, PREFERENCE_DEFAULTS, PreferenceKey, Preferences } from '@app/types';
 import { LEGACY_PLAYMAT_SETTINGS_KEY } from '../services/dexie/playmatSettings';
 import { createSharedStore, Loadable, LoadingState, useSharedStore } from './useSharedStore';
 
-export const settingsStore = createSharedStore<SettingDTO>(async () => {
-  let loaded: SettingDTO | undefined = await SettingDTO.get(APP_USER);
-  if (!loaded) {
-    loaded = new SettingDTO(APP_USER);
-    loaded.version = 2;
-    migrateSetting(loaded);
-    loaded.themeName = PREFERENCE_DEFAULTS.themeName;
-    await loaded.save();
-  }
-  const version = loaded.version;
-  const migrated = migrateSetting(loaded);
-  if (version !== migrated.version) {
-    await migrated.save();
-  }
-  try {
-    globalThis.localStorage?.removeItem(LEGACY_PLAYMAT_SETTINGS_KEY);
-  } catch { /* storage unavailable */ }
-  return migrated;
-});
+function createSettingsStore() {
+  let subscription: Subscription | undefined;
+  const store = createSharedStore<SettingDTO>(async () => {
+    const loaded = await SettingDTO.patch(APP_USER);
+    subscription = liveQuery(async () => {
+      const row = await SettingDTO.get(APP_USER);
+      return row ? migrateSetting(row) : undefined;
+    }).subscribe((row) => {
+      if (row) {
+        store.setValue(row);
+      }
+    });
+    try {
+      globalThis.localStorage?.removeItem(LEGACY_PLAYMAT_SETTINGS_KEY);
+    } catch { /* storage unavailable */ }
+    return loaded;
+  });
+  return {
+    ...store,
+    reset: () => {
+      subscription?.unsubscribe();
+      subscription = undefined;
+      store.reset();
+    },
+  };
+}
+
+export const settingsStore = createSettingsStore();
 const store = settingsStore;
 
 export type SettingsHook = Loadable<SettingDTO> & {
@@ -38,15 +48,18 @@ export function useSettings(): SettingsHook {
     if (!current) {
       throw new Error('useSettings.update called before settings loaded');
     }
-    Object.assign(current, patch);
-    await current.save();
-    store.setValue(current);
+    await updateSettings(patch);
   };
 
   return { ...state, update };
 }
 
-export const getSettings = (): Promise<SettingDTO> => store.whenReady();
+export const getSettings = (): Promise<SettingDTO> => Promise.resolve(store.peek() ?? store.whenReady());
+
+export async function updateSettings(patch: SettingsPatch): Promise<void> {
+  await getSettings();
+  store.setValue(await SettingDTO.patch(APP_USER, patch));
+}
 
 export function usePreferences(): Preferences {
   const state = useSharedStore(store);

@@ -21,15 +21,25 @@ export class CardDataSettingsDTO extends CardDataSettings {
     return new CardDataSettingsDTO(stored ?? undefined);
   }
 
+  static patch(
+    patch: Partial<CardDataSettings> | ((current: CardDataSettingsDTO) => Partial<CardDataSettings>),
+  ): Promise<CardDataSettingsDTO> {
+    return dexieService.readWrite([dexieService.cardDataSettings], async () => {
+      const current = await CardDataSettingsDTO.get();
+      Object.assign(current, typeof patch === 'function' ? patch(current) : patch);
+      await dexieService.cardDataSettings.put(current);
+      return current;
+    });
+  }
+
   static async setCardOverride(name: string, providerId: string | undefined): Promise<void> {
-    await dexieService.readWrite([dexieService.cardDataSettings], async () => {
-      const settings = await CardDataSettingsDTO.get();
+    await CardDataSettingsDTO.patch((settings) => {
       if (providerId) {
         settings.cardOverrides[name] = providerId;
       } else {
         delete settings.cardOverrides[name];
       }
-      await settings.save();
+      return { cardOverrides: settings.cardOverrides };
     });
   }
 }
