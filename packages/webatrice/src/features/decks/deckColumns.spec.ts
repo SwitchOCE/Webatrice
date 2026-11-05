@@ -7,17 +7,12 @@ import {
 
 describe('deckColumnCount', () => {
   it('fits as many columns as the width allows, but no more than there are groups', () => {
-    expect(deckColumnCount(624, 'comfortable', 9)).toBe(2);
-    expect(deckColumnCount(1104, 'comfortable', 9)).toBe(3);
-    expect(deckColumnCount(1320, 'comfortable', 9)).toBe(4);
-    expect(deckColumnCount(1320, 'comfortable', 3)).toBe(3);
-    expect(deckColumnCount(0, 'comfortable', 9)).toBe(1);
-    expect(deckColumnCount(800, 'comfortable', 0)).toBe(1);
-  });
-
-  it('fits more columns with compact rows', () => {
-    expect(deckColumnCount(830, 'comfortable', 9)).toBe(2);
-    expect(deckColumnCount(830, 'compact', 9)).toBe(3);
+    expect(deckColumnCount(624, 9)).toBe(2);
+    expect(deckColumnCount(1104, 9)).toBe(3);
+    expect(deckColumnCount(1320, 9)).toBe(4);
+    expect(deckColumnCount(1320, 3)).toBe(3);
+    expect(deckColumnCount(0, 9)).toBe(1);
+    expect(deckColumnCount(800, 0)).toBe(1);
   });
 });
 
@@ -53,15 +48,15 @@ describe('partitionIntoColumns', () => {
 describe('deckColumnLayout', () => {
   it('marks the groups that start a new column', () => {
     const groups = [10, 10, 10].map((rows) => ({ rows, collapsed: false }));
-    const layout = deckColumnLayout(624, 'comfortable', groups);
+    const layout = deckColumnLayout(624, groups);
     expect(layout.count).toBe(2);
     expect(layout.breaks.size).toBe(1);
 
-    const collapsed = deckColumnLayout(624, 'comfortable', [...groups.slice(0, 2), { rows: 10, collapsed: true }]);
+    const collapsed = deckColumnLayout(624, [...groups.slice(0, 2), { rows: 10, collapsed: true }]);
     expect([...collapsed.breaks]).toEqual([1]);
   });
 
   it('has no breaks in a single column', () => {
-    expect(deckColumnLayout(0, 'comfortable', [{ rows: 3, collapsed: false }, { rows: 2, collapsed: false }]).breaks.size).toBe(0);
+    expect(deckColumnLayout(0, [{ rows: 3, collapsed: false }, { rows: 2, collapsed: false }]).breaks.size).toBe(0);
   });
 });

@@ -14,10 +14,10 @@ const card: DeckCard = { name: 'Bear', category: 'main', quantity: 1, lookupSour
 
 function inspector(previewOnly = false, fallback: DeckCard = card) {
   return <DeckInspector
-    selected={{ name: fallback.name, category: 'main', preview: fallback }} index={-1} deckCards={[]}
+    selected={{ name: fallback.name, category: 'main' }} index={0} deckCards={[fallback]}
     prices={emptyPriceLookup()} isCommanderDeck={false} previewOnly={previewOnly}
     onInc={vi.fn()} onDelete={vi.fn()} onSetCommander={vi.fn()} onSetPrinting={vi.fn()}
-    onChoosePreviewPrinting={vi.fn()} onAdd={vi.fn()}
+    onAdd={vi.fn()}
   />;
 }
 

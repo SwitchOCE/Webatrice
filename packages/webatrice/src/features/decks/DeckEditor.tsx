@@ -228,16 +228,6 @@ const DeckEditor = () => {
   const inspectorAdd = (name: string, zone: 'main' | 'side', scryfallId?: string) => (preview.index >= 0
     ? void editorAddCard(name, { zone, scryfallId })
     : addCard(name, zone, scryfallId));
-  const choosePreviewPrinting = (scryfallId: string | undefined) => {
-    const name = preview.card?.name;
-    if (!name) {
-      return;
-    }
-    dockApi.current?.choosePrinting(name, scryfallId);
-    setSelected((current) => (current?.preview
-      ? { ...current, scryfallId, preview: { ...current.preview, scryfallId } }
-      : current));
-  };
   const collapsePane = (pane: 'dock' | 'inspector', collapsed: boolean) => {
     const overlay = pane === 'inspector' && !collapsed && !paneLayout.inspectorDocksWhenExpanded;
     paneFocus.updateThenFocus(() => {
@@ -301,7 +291,6 @@ const DeckEditor = () => {
           onDelete={deleteFromInspector}
           onSetCommander={editor.setCommander}
           onSetPrinting={setPrinting}
-          onChoosePreviewPrinting={choosePreviewPrinting}
           onAdd={inspectorAdd}
         />
       )}
@@ -471,7 +460,6 @@ const DeckEditor = () => {
             placeholderRows={frame.placeholderRows}
             waitingMessage={frame.waitingMessage}
             legality={legality.rows}
-            density={prefs.density}
             collapsedGroups={paneLayout.collapsedGroups}
             onToggleGroup={toggleGroup}
           />

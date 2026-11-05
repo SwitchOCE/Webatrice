@@ -1,14 +1,12 @@
-import type { DeckRowDensity } from './deckEditorLayout';
-
 export const DECK_COLUMN_GAP = 24;
-export const DECK_COLUMN_MIN_WIDTH: Record<DeckRowDensity, number> = { comfortable: 300, compact: 260 };
+export const DECK_COLUMN_MIN_WIDTH = 300;
 const HEADER_WEIGHT = 2;
 
-export function deckColumnCount(width: number, density: DeckRowDensity, groupCount: number): number {
+export function deckColumnCount(width: number, groupCount: number): number {
   if (groupCount <= 0) {
     return 1;
   }
-  const fit = Math.floor((width + DECK_COLUMN_GAP) / (DECK_COLUMN_MIN_WIDTH[density] + DECK_COLUMN_GAP));
+  const fit = Math.floor((width + DECK_COLUMN_GAP) / (DECK_COLUMN_MIN_WIDTH + DECK_COLUMN_GAP));
   return Math.max(1, Math.min(groupCount, fit));
 }
 
@@ -61,8 +59,8 @@ export interface DeckColumnLayout {
   breaks: ReadonlySet<number>;
 }
 
-export function deckColumnLayout(width: number, density: DeckRowDensity, groups: readonly DeckColumnGroup[]): DeckColumnLayout {
-  const count = deckColumnCount(width, density, groups.length);
+export function deckColumnLayout(width: number, groups: readonly DeckColumnGroup[]): DeckColumnLayout {
+  const count = deckColumnCount(width, groups.length);
   const columns = partitionIntoColumns(groups.map(({ rows, collapsed }) => deckGroupWeight(rows, collapsed)), count);
   return {
     count: Math.max(1, columns.length),

@@ -29,7 +29,6 @@ export interface DeckInspectorProps {
   onDelete: (index: number) => void;
   onSetCommander: (index: number, isCommander: boolean) => void;
   onSetPrinting: (index: number, printing: PrintingSummary) => void;
-  onChoosePreviewPrinting: (scryfallId: string | undefined) => void;
   onAdd: (name: string, zone: 'main' | 'side', scryfallId?: string) => void;
 }
 
@@ -46,7 +45,6 @@ export function DeckInspector({
   onDelete,
   onSetCommander,
   onSetPrinting,
-  onChoosePreviewPrinting,
   onAdd,
 }: DeckInspectorProps) {
   const { t } = useTranslation();
@@ -165,20 +163,18 @@ export function DeckInspector({
       )}
 
       <div className="flex flex-col gap-1.5">
-        <PrintingsDisclosure
+        {printingIndex >= 0 && <PrintingsDisclosure
           card={card}
           deckCards={deckCards}
           open={printingsOpen}
           previewOnly={previewOnly}
           onToggle={() => setPrintingsOpen((open) => !open)}
           onChoose={(printing) => {
-            if (printingIndex < 0) {
-              onChoosePreviewPrinting(printing?.scryfallId);
-            } else if (printing) {
+            if (printing) {
               onSetPrinting(printingIndex, printing);
             }
           }}
-        />
+        />}
         {row && (
           <button
             type="button"

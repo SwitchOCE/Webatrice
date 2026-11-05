@@ -69,8 +69,9 @@ it('chooses a search printing without changing an existing deck row, then Enter 
   });
   const inspector = await renderEditor([ring('sr-a')]);
   const before = currentCards();
-  fireEvent.click(inspector.getByRole('button', { name: /DeckInspector.changePrinting/ }));
-  fireEvent.click(inspector.getByRole('button', { name: /C21/ }));
+  expect(inspector.queryByRole('button', { name: /DeckInspector.changePrinting/ })).toBeNull();
+  const dock = within(screen.getByRole('complementary', { name: 'DeckEditor.dock.label' }));
+  fireEvent.click(await dock.findByRole('button', { name: /C21/ }));
   expect(currentCards()).toEqual(before);
   const search = screen.getByPlaceholderText('CardSearchDock.placeholder');
   fireEvent.keyDown(search, { key: 'Enter', code: 'Enter' });

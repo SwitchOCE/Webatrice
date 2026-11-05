@@ -5,7 +5,6 @@ import { Ban, ChevronDown, CircleAlert, Crown } from 'lucide-react';
 import { isContextMenuKey, ManaSymbols, type MenuAnchor } from '@app/components';
 import type { DeckCategory } from '@app/types';
 
-import type { DeckRowDensity } from '../../deckEditorLayout';
 import type { CardLegality } from '../../deckLegality';
 import type { DeckCardRowProps as GridRowProps } from '../../hooks/useDeckCardGrid';
 import type { DeckCard } from '../../types';
@@ -27,7 +26,6 @@ export interface DeckCardRowProps {
   readOnly?: boolean;
   legality?: CardLegality;
   rowProps?: GridRowProps;
-  density?: DeckRowDensity;
 }
 
 export function DeckCardRow({
@@ -46,7 +44,6 @@ export function DeckCardRow({
   readOnly = false,
   legality,
   rowProps,
-  density = 'comfortable',
 }: DeckCardRowProps) {
   const { t } = useTranslation();
   const [menuAnchor, setMenuAnchor] = useState<MenuAnchor | null>(null);
@@ -97,7 +94,7 @@ export function DeckCardRow({
       aria-selected={selected}
       className={[
         'group flex items-center gap-2 rounded-ui-sm pl-2 pr-1 transition-colors',
-        density === 'compact' ? 'h-[22px] text-[12px]' : 'h-7 text-[13px]',
+        'h-7 text-[13px]',
         'focus:outline-none focus-visible:ring-2 focus-visible:ring-accent',
         selected ? 'bg-accent/15 text-accent' : illegal ? 'bg-danger/10 hover:bg-danger/15' : 'text-text-primary hover:bg-bg-elevated',
       ].join(' ')}
@@ -159,7 +156,7 @@ export function DeckCardRow({
           }}
           className={[
             'inline-flex items-center justify-center rounded-ui-sm text-text-muted transition-colors',
-            density === 'compact' ? 'h-5 w-5' : 'h-6 w-6',
+            'h-6 w-6',
             'hover:bg-bg-elevated hover:text-text-primary focus-visible:outline focus-visible:outline-2 focus-visible:outline-accent',
           ].join(' ')}
           aria-label={t('DeckEditor.rowActions.trigger', { card: card.name })}

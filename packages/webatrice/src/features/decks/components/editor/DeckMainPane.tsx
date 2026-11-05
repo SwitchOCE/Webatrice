@@ -4,7 +4,6 @@ import { useTranslation } from 'react-i18next';
 import type { DeckCategory } from '@app/types';
 
 import { DECK_COLUMN_GAP, deckColumnLayout } from '../../deckColumns';
-import type { DeckRowDensity } from '../../deckEditorLayout';
 import { sortIndicesByName, type DeckCardGroup as DeckCardGroupData } from '../../deckGrouping';
 import type { CardLegality } from '../../deckLegality';
 import { useDeckCardGrid, type DeckCardGrid } from '../../hooks/useDeckCardGrid';
@@ -36,7 +35,6 @@ export interface DeckMainPaneProps {
   placeholderRows?: readonly number[];
   waitingMessage?: string;
   legality?: readonly CardLegality[];
-  density?: DeckRowDensity;
   collapsedGroups?: ReadonlySet<string>;
   onToggleGroup?: (label: string) => void;
 }
@@ -63,7 +61,6 @@ export const DeckMainPane = memo(function DeckMainPane({
   placeholderRows,
   waitingMessage,
   legality,
-  density = 'comfortable',
   collapsedGroups = NO_GROUPS,
   onToggleGroup,
 }: DeckMainPaneProps) {
@@ -76,11 +73,11 @@ export const DeckMainPane = memo(function DeckMainPane({
     [isMtg, readOnly, groups, deck.cards, collapsedGroups],
   );
   const columns = useMemo(
-    () => deckColumnLayout(width, density, groups.map(({ label, indices }) => ({
+    () => deckColumnLayout(width, groups.map(({ label, indices }) => ({
       rows: indices.length,
       collapsed: collapsedGroups.has(label),
     }))),
-    [width, density, groups, collapsedGroups],
+    [width, groups, collapsedGroups],
   );
   const grid = useDeckCardGrid({
     readOnly,
@@ -99,7 +96,7 @@ export const DeckMainPane = memo(function DeckMainPane({
       {placeholderRows ? (
         <ul aria-label={t('DeckEditor.shell.loadingDeck')} aria-busy="true" className="max-w-md">
           {placeholderRows.map((row) => (
-            <li key={row} className={density === 'compact' ? 'flex h-7 items-center gap-3' : 'flex h-9 items-center gap-3'}>
+            <li key={row} className="flex h-9 items-center gap-3">
               <span className="h-4 w-6 animate-pulse rounded bg-bg-elevated" />
               <span className="h-4 w-3/5 animate-pulse rounded bg-bg-elevated" />
             </li>
@@ -132,7 +129,6 @@ export const DeckMainPane = memo(function DeckMainPane({
               readOnly={readOnly}
               legality={legality}
               grid={grid}
-              density={density}
               columnBreak={columns.breaks.has(position)}
               collapsed={collapsedGroups.has(label)}
               onToggleCollapsed={onToggleGroup && (() => onToggleGroup(label))}

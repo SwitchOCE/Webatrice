@@ -13,9 +13,12 @@ import dockText from './CardSearchDock.i18n.json';
 import { useCardDatabase, type CardDatabase } from './useCardDatabase';
 import { useGameChangerList } from './useGameChangerList';
 import * as search from '../../search';
+import { useCardPrintings } from '../../hooks/useCardPrintings';
+import { emptyPriceLookup } from '../../pricing';
 
 vi.mock('./useCardDatabase', () => ({ useCardDatabase: vi.fn() }));
 vi.mock('./useGameChangerList', () => ({ useGameChangerList: vi.fn(() => null) }));
+vi.mock('../../hooks/useCardPrintings', () => ({ useCardPrintings: vi.fn() }));
 
 const bowmasters: ScryfallSearchCard = {
   id: 'bow-1',
@@ -51,6 +54,12 @@ beforeAll(async () => {
 beforeEach(() => {
   vi.mocked(useCardDatabase).mockReturnValue(database());
   vi.mocked(useGameChangerList).mockReturnValue(null);
+  const prices = emptyPriceLookup();
+  prices.byId.set('p-452', { usd: 12.34, tcgplayer: null });
+  vi.mocked(useCardPrintings).mockReturnValue({
+    printings: [{ name: bowmasters.name, scryfallId: 'p-452', set: 'ltr', collectorNumber: '452' }],
+    loading: false, error: null, prices,
+  });
 });
 
 function renderDock(props: Partial<CardSearchDockProps> = {}) {
@@ -65,6 +74,73 @@ function renderDock(props: Partial<CardSearchDockProps> = {}) {
 }
 
 describe('CardSearchDock', () => {
+  it('shows printing prices and adds the chosen search printing with plus, Enter and Ctrl+Enter', async () => {
+    const onPreview = vi.fn();
+    const { input, onAdd } = renderDock({ onPreview });
+    const strip = await screen.findByRole('region', { name: 'Printings of Orcish Bowmasters' });
+    expect(within(strip).getByText('$12.34')).toBeInTheDocument();
+    const printing = within(strip).getByRole('button', { name: /LTR/ });
+    fireEvent.click(printing);
+    expect(printing).toHaveAttribute('aria-pressed', 'true');
+    expect(onPreview).toHaveBeenLastCalledWith(bowmasters, 'p-452');
+    fireEvent.click(screen.getByRole('button', { name: 'Add Orcish Bowmasters to the deck' }));
+    expect(onAdd).toHaveBeenLastCalledWith(bowmasters.name, 'main', 'p-452');
+    fireEvent.keyDown(input, { key: 'Enter', code: 'Enter' });
+    expect(onAdd).toHaveBeenLastCalledWith(bowmasters.name, 'main', 'p-452');
+    fireEvent.keyDown(input, { key: 'Enter', code: 'Enter', ctrlKey: true });
+    expect(onAdd).toHaveBeenLastCalledWith(bowmasters.name, 'side', 'p-452');
+    fireEvent.click(printing);
+    fireEvent.keyDown(input, { key: 'Enter', code: 'Enter' });
+    expect(onAdd).toHaveBeenLastCalledWith(bowmasters.name, 'main', undefined);
+  });
+
+  it('waits 250ms before loading printings for the highlighted result', () => {
+    vi.useFakeTimers();
+    try {
+      const { input } = renderDock();
+      fireEvent.keyDown(input, { key: 'ArrowDown', code: 'ArrowDown' });
+      act(() => vi.advanceTimersByTime(249));
+      expect(useCardPrintings).not.toHaveBeenCalledWith(esper.name);
+      act(() => vi.advanceTimersByTime(1));
+      expect(useCardPrintings).toHaveBeenLastCalledWith(esper.name);
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it.each(['list', 'art'] as const)('keeps both shortcut tooltips outside the clipping container on every %s row', (view) => {
+    renderDock();
+    if (view === 'art') {
+      fireEvent.click(screen.getByRole('radio', { name: 'Art' }));
+    }
+    const results = screen.getByRole('region', { name: 'Search results' });
+    for (const card of [bowmasters, esper]) {
+      for (const zone of ['deck', 'sideboard']) {
+        const button = within(results).getByRole('button', { name: `Add ${card.name} to the ${zone}` });
+        fireEvent.mouseEnter(button.parentElement!);
+        const tip = screen.getByRole('tooltip');
+        expect(results).not.toContainElement(tip);
+        expect(tip).toHaveClass('fixed');
+        expect(tip).toHaveTextContent(zone === 'deck' ? 'Add to deckEnter' : 'Add to sideboardCtrl+Enter');
+        fireEvent.mouseLeave(button.parentElement!);
+        expect(screen.queryByRole('tooltip')).toBeNull();
+      }
+    }
+  });
+
+  it('shows a focused shortcut tooltip below a button near the viewport top and dismisses it on scroll', () => {
+    renderDock();
+    const button = screen.getByRole('button', { name: 'Add Orcish Bowmasters to the deck' });
+    const trigger = button.parentElement!;
+    const tip = screen.getAllByRole('tooltip', { hidden: true })[0];
+    vi.spyOn(trigger, 'getBoundingClientRect').mockReturnValue(new DOMRect(250, 10, 28, 28));
+    vi.spyOn(tip, 'getBoundingClientRect').mockReturnValue(new DOMRect(0, 0, 200, 28));
+    fireEvent.focus(button);
+    expect(screen.getByRole('tooltip')).toHaveStyle({ top: '42px', left: '78px' });
+    fireEvent.scroll(screen.getByRole('region', { name: 'Search results' }));
+    expect(screen.queryByRole('tooltip')).toBeNull();
+  });
+
   it.each(['list', 'art'] as const)('refreshes quantities and stale actions in memoized %s results', (view) => {
     const db = database();
     vi.mocked(useCardDatabase).mockReturnValue(db);
@@ -227,20 +303,8 @@ describe('CardSearchDock', () => {
   it('shows the shortcut bindings in the add buttons’ tooltips', () => {
     renderDock();
     const row = within(screen.getByRole('region', { name: 'Search results' })).getByText('Orcish Bowmasters').closest('li')!;
-    expect(row).toHaveTextContent(/Add to deckEnter/);
-    expect(row).toHaveTextContent(/Add to sideboardCtrl\+Enter/);
-  });
-
-  it('adds the printing the editor chose', () => {
-    let api: CardSearchDockApi | undefined;
-    const onPreview = vi.fn();
-    const { input, onAdd } = renderDock({ onPreview, onReady: (a) => {
-      api = a;
-    } });
-    act(() => api!.choosePrinting('Orcish Bowmasters', 'p-452'));
-    expect(onPreview).toHaveBeenLastCalledWith(bowmasters, 'p-452');
-    fireEvent.keyDown(input, { key: 'Enter', code: 'Enter' });
-    expect(onAdd).toHaveBeenLastCalledWith('Orcish Bowmasters', 'main', 'p-452');
+    fireEvent.focus(within(row).getByRole('button', { name: 'Add Orcish Bowmasters to the deck' }));
+    expect(screen.getByRole('tooltip')).toHaveTextContent('Add to deckEnter');
   });
 
   it('notes a Game Changer only once the list is available', () => {

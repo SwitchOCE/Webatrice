@@ -1,3 +1,4 @@
+import { createPortal } from 'react-dom';
 import { memo, useCallback, useEffect, useId, useMemo, useRef, type ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Info, LayoutGrid, List, Loader2, Plus, Search, X } from 'lucide-react';
@@ -18,6 +19,8 @@ import type { DeckCard } from '../../types';
 import { DockFilters } from './DockFilters';
 import type { DockView, DockZone, GameChangerNote } from './dockModel';
 import { useCardSearchDock } from './useCardSearchDock';
+import { PrintingStrip } from './PrintingStrip';
+import { useShortcutTip } from './useShortcutTip';
 
 export type CardSearchDockZone = DockZone;
 
@@ -36,7 +39,6 @@ export interface CardSearchDockProps {
 
 export interface CardSearchDockApi {
   focusSearch: () => void;
-  choosePrinting: (cardName: string, scryfallId: string | undefined) => void;
 }
 
 const FOCUS = 'focus-visible:outline focus-visible:outline-2 focus-visible:outline-accent';
@@ -47,20 +49,22 @@ export interface DockShortcuts {
 }
 
 function ShortcutTip({ label, shortcut, children }: { label: string; shortcut?: string; children: ReactNode }) {
+  const tip = useShortcutTip();
   return (
-    <span className="group/tip relative inline-flex">
+    <span className="inline-flex" {...tip.triggerProps}>
       {children}
-      <span
-        aria-hidden
+      {createPortal(<span
+        ref={tip.tipRef}
+        role="tooltip"
+        style={tip.style}
         className={cx(
-          'pointer-events-none absolute bottom-full right-0 z-30 mb-1 hidden items-center gap-2 whitespace-nowrap rounded-ui-sm',
+          'pointer-events-none fixed z-30 flex items-center gap-2 whitespace-nowrap rounded-ui-sm',
           'border border-border-subtle bg-bg-sunken py-1 pl-2 pr-1.5 text-[11.5px] text-text-primary shadow-pop',
-          'group-hover/tip:flex group-focus-within/tip:flex',
         )}
       >
         {label}
         {shortcut && <Kbd>{shortcut}</Kbd>}
-      </span>
+      </span>, document.body)}
     </span>
   );
 }
@@ -336,10 +340,9 @@ export default function CardSearchDock({
 
   const onReadyRef = useRef(onReady);
   onReadyRef.current = onReady;
-  const { setPrintingChoice } = dock;
   useEffect(() => {
-    onReadyRef.current?.({ focusSearch: () => inputRef.current?.focus(), choosePrinting: setPrintingChoice });
-  }, [setPrintingChoice]);
+    onReadyRef.current?.({ focusSearch: () => inputRef.current?.focus() });
+  }, []);
 
   useEffect(() => {
     if (dock.highlight >= 0) {
@@ -495,9 +498,19 @@ export default function CardSearchDock({
         )}
       </div>
 
-      {selectedName && dock.gameChanger.kind !== 'none' && (
+      {selectedName && (
         <div className="shrink-0 border-t border-border-subtle pt-2">
           <GameChangerLine note={dock.gameChanger} />
+          {dock.printingName && (
+            <PrintingStrip
+              cardName={dock.printingName}
+              printings={dock.printings}
+              loading={dock.printingsLoading || dock.printingName !== selectedName}
+              prices={dock.printingPrices}
+              chosen={dock.chosenPrinting}
+              onChoose={dock.choosePrinting}
+            />
+          )}
         </div>
       )}
 
