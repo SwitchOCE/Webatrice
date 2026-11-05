@@ -124,9 +124,12 @@ it.each([429, 500])('keeps the stored price and sends no command after Scryfall 
   expect(webClient.request.session.deckUpdate).not.toHaveBeenCalled();
 });
 
+const storedDeck = (format: string, zone: string) => `<cockatrice_deck version="1"><deckname>Old</deckname>${format}`
+  + `<zone name="${zone}"><card number="1" name="Sol Ring"/></zone></cockatrice_deck>`;
+
 describe.each([
-  ['no stored format', '<cockatrice_deck version="1"><deckname>Old</deckname><zone name="main"><card number="1" name="Sol Ring"/></zone></cockatrice_deck>'],
-  ['a legacy commander zone', '<cockatrice_deck version="1"><deckname>Old</deckname><format>modern</format><zone name="commander"><card number="1" name="Sol Ring"/></zone></cockatrice_deck>'],
+  ['no stored format', storedDeck('', 'main')],
+  ['a legacy commander zone', storedDeck('<format>modern</format>', 'commander')],
 ])('opening a deck with %s', (_name, xml) => {
   async function open() {
     vi.stubGlobal('fetch', vi.fn(() => new Promise<Response>(() => undefined)));
