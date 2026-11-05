@@ -56,16 +56,19 @@ export function useCardPrintings(cardName: string | undefined): CardPrintings {
           .filter((p) => p.scryfallId)
           .map((p) => ({ scryfallId: p.scryfallId!, name: cardName }));
         if (cards.length > 0) {
-          fetchPricesForCards(cards)
+          fetchPricesForCards(cards, (partial) => {
+            if (controller.signal.aborted) {
+              return;
+            }
+            setPrices(partial);
+          })
             .then((lookup) => {
               if (controller.signal.aborted) {
                 return;
               }
               setPrices(lookup);
             })
-            .catch(() => {
-              /* silent — tiles just render without a price */
-            });
+            .catch(() => {});
         }
       } catch (e) {
         if (controller.signal.aborted) {

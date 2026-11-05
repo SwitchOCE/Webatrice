@@ -170,3 +170,31 @@ it('a real edit saves the latest derived price and bracket data in its XML', asy
   expect(saved.bracketAssessment).toEqual(assessment);
   act(() => command[4]!(null));
 });
+
+it.each(['empty', 'unpriced'] as const)('a real edit saves a cleared price when the deck becomes %s', async (change) => {
+  let resolve!: (res: Response) => void;
+  vi.stubGlobal('fetch', vi.fn(() => new Promise<Response>((done) => {
+    resolve = done;
+  })));
+  const { webClient, deck } = setup();
+  await act(async () => vi.advanceTimersByTimeAsync(100));
+  await act(async () => resolve(response(deck, change === 'empty' ? '8.00' : null)));
+  if (change === 'empty') {
+    act(() => editor.deleteCard(0));
+  } else {
+    await act(async () => vi.advanceTimersByTimeAsync(1000));
+    expect(editor.deck?.meta.priceUsd).toBeUndefined();
+    expect(editor.isModified).toBe(false);
+    expect(webClient.request.session.deckUpdate).not.toHaveBeenCalled();
+    act(() => editor.setName('Edited'));
+  }
+  await act(async () => vi.advanceTimersByTimeAsync(500));
+
+  expect(webClient.request.session.deckUpdate).toHaveBeenCalledOnce();
+  const command = vi.mocked(webClient.request.session.deckUpdate).mock.lastCall!;
+  const saved = parseCod(command[1]);
+  expect(saved.meta?.priceUsd).toBeUndefined();
+  expect(saved.meta?.priceMissingCount).toBe(change === 'empty' ? undefined : 2);
+  expect(saved.cards).toHaveLength(change === 'empty' ? 0 : 1);
+  act(() => command[4]!(null));
+});

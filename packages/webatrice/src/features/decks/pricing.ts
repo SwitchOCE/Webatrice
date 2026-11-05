@@ -149,6 +149,8 @@ const inFlight = new Map<string, Promise<void>>();
  * onProgress emission. Useful for showing the deck total counting up
  * as Scryfall responses arrive on decks big enough to need multiple
  * batches.
+ * If any chunk fails, all remaining chunks are attempted and progress
+ * is emitted before the promise rejects with the first failure.
  */
 export async function fetchPricesForCards(
   cards: ReadonlyArray<{ scryfallId?: string; name: string }>,
@@ -196,11 +198,14 @@ export async function fetchPricesForCards(
   // another caller.
   const toFetch: Identifier[] = [];
   const waitingOn: Array<Promise<void>> = [];
+  let failure: { error: unknown } | undefined;
   for (let i = 0; i < identifiers.length; i++) {
     const key = cacheKeys[i];
     const pending = inFlight.get(key);
     if (pending) {
-      waitingOn.push(pending);
+      waitingOn.push(pending.catch((error) => {
+        failure ??= { error };
+      }));
     } else {
       toFetch.push(identifiers[i]);
     }
@@ -299,6 +304,9 @@ export async function fetchPricesForCards(
       }
       try {
         await chunkPromise;
+      } catch (error) {
+        failure ??= { error };
+        onProgress?.(assemble());
       } finally {
         for (const k of chunkKeys) {
           inFlight.delete(k);
@@ -310,6 +318,9 @@ export async function fetchPricesForCards(
   await Promise.all(waitingOn);
   const final = assemble();
   onProgress?.(final);
+  if (failure) {
+    throw failure.error;
+  }
   return final;
 }
 

@@ -101,15 +101,52 @@ describe('useDeckPricing', () => {
     expect(persist).not.toHaveBeenCalled();
   });
 
-  it('keeps the stored price when a successful fetch has no usable prices', async () => {
+  it('clears the stored price when a successful fetch has no usable prices', async () => {
     vi.mocked(fetchPricesForCards).mockResolvedValue(emptyPriceLookup());
     const persist = vi.fn();
     const { result } = renderHook(() => useDeckPricing(deck([bolt]), persist));
     await waitFor(() => expect(result.current.loading).toBe(false));
+    expect(persist).toHaveBeenCalledExactlyOnceWith(undefined, 4);
+  });
+
+  it.each([
+    ['adding a card', [bolt, sol]],
+    ['changing a printing', [{ ...bolt, scryfallId: 'id-bolt' }]],
+  ] as const)('keeps previous prices visible while %s loads a new key', async (_change, cards) => {
+    const previous = priced();
+    vi.mocked(fetchPricesForCards).mockResolvedValueOnce(previous).mockImplementation(() => new Promise(() => {}));
+    const persist = vi.fn();
+    const { result, rerender } = renderHook(({ d }) => useDeckPricing(d, persist), {
+      initialProps: { d: deck([bolt]) },
+    });
+    await waitFor(() => expect(result.current.loading).toBe(false));
+    persist.mockClear();
+
+    rerender({ d: deck([...cards]) });
+
+    expect(result.current.prices).toBe(previous);
+    expect(result.current.loading).toBe(true);
     expect(persist).not.toHaveBeenCalled();
   });
 
-  it('does not reuse successful prices for a new key or accept late results for an old key', async () => {
+  it.each([true, false])('clears the stored price for an empty deck (initially empty: %s)', async (initiallyEmpty) => {
+    vi.mocked(fetchPricesForCards).mockResolvedValue(priced());
+    const persist = vi.fn();
+    const { result, rerender } = renderHook(({ d }) => useDeckPricing(d, persist), {
+      initialProps: { d: deck(initiallyEmpty ? [] : [bolt]) },
+    });
+    if (!initiallyEmpty) {
+      await waitFor(() => expect(result.current.loading).toBe(false));
+      persist.mockClear();
+      rerender({ d: deck([]) });
+    }
+
+    expect(result.current.loading).toBe(false);
+    expect(persist).toHaveBeenCalledExactlyOnceWith(undefined, undefined);
+    expect(fetchPricesForCards).toHaveBeenCalledTimes(initiallyEmpty ? 0 : 1);
+  });
+
+  it('does not persist previous prices for a new key or accept late results for an old key', async () => {
     const pending: Array<(prices: PriceLookup) => void> = [];
     vi.mocked(fetchPricesForCards).mockImplementation(() => new Promise((resolve) => pending.push(resolve)));
     const persist = vi.fn();
@@ -128,6 +165,6 @@ describe('useDeckPricing', () => {
     expect(result.current.loading).toBe(true);
     await act(async () => pending[2](emptyPriceLookup()));
     expect(result.current.loading).toBe(false);
-    expect(persist).not.toHaveBeenCalled();
+    expect(persist).toHaveBeenCalledExactlyOnceWith(undefined, 1);
   });
 });

@@ -74,6 +74,29 @@ describe('fetchPricesForCards (Scryfall request characterization)', () => {
     vi.unstubAllGlobals();
   });
 
+  it('emits successful later chunks before rejecting a failed batch', async () => {
+    const cards = Array.from({ length: 40 }, (_, i) => ({ scryfallId: `failed-id-${i}`, name: `Failed Card ${i}` }));
+    let resolve!: (response: Response) => void;
+    const fetchMock = vi.fn()
+      .mockResolvedValueOnce(new Response('', { status: 500 }))
+      .mockImplementationOnce(() => new Promise<Response>((done) => {
+        resolve = done;
+      }));
+    vi.stubGlobal('fetch', fetchMock);
+    vi.spyOn(console, 'warn').mockImplementation(() => undefined);
+    const progress = vi.fn();
+    const rejected = expect(fetchPricesForCards(cards, progress)).rejects.toThrow('Price fetch failed');
+    await vi.waitFor(() => expect(fetchMock).toHaveBeenCalledTimes(2));
+    resolve(new Response(JSON.stringify({ data: [{
+      id: cards[39].scryfallId, name: cards[39].name, prices: { usd: '3.00' },
+    }] })));
+
+    await rejected;
+
+    expect(progress.mock.lastCall?.[0].byId.get(cards[39].scryfallId)?.usd).toBe(3);
+    expect(progress.mock.lastCall?.[0].byId.has(cards[0].scryfallId)).toBe(false);
+  });
+
   it('posts an id and a name identifier per card, 75 to a request, one request at a time', async () => {
     const pending: Array<() => void> = [];
     const fetchMock = vi.fn((_url: string, _init: RequestInit) =>

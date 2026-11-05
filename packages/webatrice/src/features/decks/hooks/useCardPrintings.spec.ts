@@ -1,8 +1,8 @@
-import { renderHook, waitFor } from '@testing-library/react';
+import { act, renderHook, waitFor } from '@testing-library/react';
 
 import { fetchAllPrintings, lookupCard } from '@app/services';
 
-import { emptyPriceLookup, fetchPricesForCards } from '../pricing';
+import { emptyPriceLookup, fetchPricesForCards, type PriceLookup } from '../pricing';
 import { useCardPrintings } from './useCardPrintings';
 
 vi.mock('@app/services', async (importOriginal) => ({
@@ -40,7 +40,7 @@ describe('useCardPrintings', () => {
     await waitFor(() => expect(result.current.prices.byId.get('id-lea')?.usd).toBe(400));
     expect(result.current.printings.map((p) => p.set)).toEqual(['lea', 'm11']);
     expect(result.current.loading).toBe(false);
-    expect(fetchPricesForCards).toHaveBeenCalledWith([{ scryfallId: 'id-lea', name: 'Lightning Bolt' }]);
+    expect(fetchPricesForCards).toHaveBeenCalledWith([{ scryfallId: 'id-lea', name: 'Lightning Bolt' }], expect.any(Function));
   });
 
   it('falls back to the catalog printings when Scryfall has none', async () => {
@@ -86,5 +86,32 @@ describe('useCardPrintings', () => {
     expect(firstSignal).toBeInstanceOf(AbortSignal);
     expect(firstSignal?.aborted).toBe(true);
     expect(fetchAllPrintings).toHaveBeenLastCalledWith('Opt', expect.any(AbortSignal));
+  });
+
+  it('ignores price progress and completion after the card changes', async () => {
+    vi.mocked(fetchAllPrintings).mockResolvedValue([{ scryfallId: 'id-lea' }]);
+    let progress: ((prices: PriceLookup) => void) | undefined;
+    let resolve!: (prices: PriceLookup) => void;
+    vi.mocked(fetchPricesForCards).mockImplementationOnce((_cards, onProgress) => {
+      progress = onProgress;
+      return new Promise((done) => {
+        resolve = done;
+      });
+    });
+    const { result, rerender } = renderHook(({ name }) => useCardPrintings(name), {
+      initialProps: { name: 'Lightning Bolt' },
+    });
+    await waitFor(() => expect(fetchPricesForCards).toHaveBeenCalled());
+    vi.mocked(fetchAllPrintings).mockImplementation(() => new Promise(() => {}));
+    rerender({ name: 'Opt' });
+    const old = emptyPriceLookup();
+    old.byId.set('id-lea', { usd: 400, tcgplayer: null });
+
+    await act(async () => {
+      progress?.(old);
+      resolve(old);
+    });
+
+    expect(result.current.prices.byId.size).toBe(0);
   });
 });

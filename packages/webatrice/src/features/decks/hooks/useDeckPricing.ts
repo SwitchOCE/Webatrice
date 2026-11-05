@@ -39,7 +39,7 @@ export function useDeckPricing(
       return;
     }
     let cancelled = false;
-    setState({ priceKey, prices: emptyPriceLookup(), status: 'loading' });
+    setState((current) => ({ priceKey, prices: current.prices, status: 'loading' }));
     fetchPricesForCards(deck.cards, (partial) => {
       if (cancelled) {
         return;
@@ -65,21 +65,26 @@ export function useDeckPricing(
   }, [priceKey]);
 
   useEffect(() => {
-    if (!deck || state.priceKey !== priceKey || state.status !== 'success') {
+    if (!deck) {
+      return;
+    }
+    if (deck.cards.length === 0) {
+      persistPrice(undefined, undefined);
+      return;
+    }
+    if (state.priceKey !== priceKey || state.status !== 'success') {
       return;
     }
     const { total, missing } = computeDeckPrice(deck.cards, state.prices);
-    if (missing === deck.cards.reduce((count, card) => count + card.quantity, 0)) {
-      return;
-    }
+    const allMissing = missing === deck.cards.reduce((count, card) => count + card.quantity, 0);
     persistPrice(
-      Number(total.toFixed(2)),
+      allMissing ? undefined : Number(total.toFixed(2)),
       missing > 0 ? missing : undefined,
     );
   }, [deck, priceKey, state, persistPrice]);
 
   return {
-    prices: state.priceKey === priceKey ? state.prices : emptyPriceLookup(),
+    prices: state.prices,
     loading: Boolean(priceKey) && (state.priceKey !== priceKey || state.status === 'loading' || state.status === 'partial'),
   };
 }
