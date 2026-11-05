@@ -30,6 +30,20 @@ describe('GameCard', () => {
     expect(screen.getByRole('img', { name: 'DesignSystem.seats' })).toBeInTheDocument();
   });
 
+  it('truncates a long game title and exposes its full text on hover', () => {
+    const title = 'Commander night with friends '.repeat(12).trim();
+    render(<GameCard game={game({ description: title })} gametypeMap={MAP} onJoin={vi.fn()} onSpectate={vi.fn()} />);
+
+    const heading = screen.getByRole('heading', { name: title });
+    const label = screen.getByText(title);
+    expect(label).toHaveClass('truncate');
+    expect(label).toHaveAttribute('title', title);
+    expect(heading).toHaveClass('min-w-0');
+    expect(heading.parentElement).toHaveClass('min-w-0', 'flex-1');
+    expect(screen.getByText('Commander')).toBeVisible();
+    expect(screen.getByText('cEDH')).toBeVisible();
+  });
+
   it('names an untitled game by its id', () => {
     render(<GameCard game={game({ description: '' })} onJoin={vi.fn()} onSpectate={vi.fn()} />);
     expect(screen.getByRole('heading', { name: 'GameCard.untitled' })).toBeInTheDocument();

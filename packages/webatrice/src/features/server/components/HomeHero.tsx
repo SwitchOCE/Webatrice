@@ -46,8 +46,17 @@ export default function HomeHero({ home }: { home: HomeData }) {
         </div>
         {room && (
           <div className="flex flex-wrap items-center gap-3 border-t border-border-subtle px-5 py-3">
-            <Button size="lg" variant="primary" iconRight={<ArrowRight size={17} aria-hidden />} onClick={home.play}>
-              <span><Trans i18nKey="HomeHero.play" values={{ room: room.info.name }} components={{ room: <strong /> }} /></span>
+            <Button
+              size="lg"
+              variant="primary"
+              className="min-w-0 max-w-[min(460px,100%)]"
+              title={room.info.name}
+              iconRight={<ArrowRight size={17} aria-hidden />}
+              onClick={home.play}
+            >
+              <span className="min-w-0 truncate">
+                <Trans i18nKey="HomeHero.play" values={{ room: room.info.name }} components={{ room: <strong /> }} />
+              </span>
             </Button>
             {home.usualRoomJoined && (
               <Button size="lg" icon={<Plus size={17} aria-hidden />} onClick={home.createGame}>

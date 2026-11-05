@@ -21,8 +21,10 @@ export default function ReconnectingHome({ snapshot }: { snapshot: HomeSnapshot 
             {t('HomeHero.welcome', { name: snapshot.userName })}
           </h1>
           {room && (
-            <Button disabled>
-              <span><Trans i18nKey="HomeHero.play" values={{ room: room.name }} components={{ room: <strong /> }} /></span>
+            <Button disabled className="min-w-0 max-w-[min(460px,100%)]" title={room.name}>
+              <span className="min-w-0 truncate">
+                <Trans i18nKey="HomeHero.play" values={{ room: room.name }} components={{ room: <strong /> }} />
+              </span>
             </Button>
           )}
         </section>
