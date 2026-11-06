@@ -593,13 +593,13 @@ describe('requestPasswordSalt', () => {
   it('onSuccess passes the salt and all challenge parameters to callers', () => {
     const onSaltReceived = vi.fn();
     const onFailure = vi.fn();
-    requestPasswordSalt({ host: 'h', port: '1', userName: 'alice' }, onSaltReceived, onFailure);
+    requestPasswordSalt({ host: 'h', port: '1', userName: 'alice' }, { onResponse: onSaltReceived }, onFailure);
     const resp = {
       passwordSalt: 'salt123', n: 1024, r: 8, p: 1,
       nonce: new Uint8Array([0, 128, 255]), needsMigration: true, scryptSalt: 'c2FsdA==',
     };
     invokeOnSuccess(resp, { responseCode: 0 });
-    expect(onSaltReceived).toHaveBeenCalledWith('salt123', resp);
+    expect(onSaltReceived).toHaveBeenCalledWith(resp);
   });
 
   it('onResponseCode RespRegistrationRequired calls updateStatus and onFailure', () => {

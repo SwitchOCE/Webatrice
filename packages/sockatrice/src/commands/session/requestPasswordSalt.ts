@@ -16,7 +16,7 @@ import { updateStatus } from './';
 
 export function requestPasswordSalt(
   options: ConnectTarget & RequestPasswordSaltParams,
-  onSaltReceived: (passwordSalt: string, response: Response_PasswordSalt) => void,
+  onSaltReceived: ((passwordSalt: string) => void) | { onResponse: (response: Response_PasswordSalt) => void },
   onFailure: (failure?: CommandFailure) => void,
 ): void {
   const { userName } = options;
@@ -27,7 +27,11 @@ export function requestPasswordSalt(
   }), {
     responseExt: Response_PasswordSalt_ext,
     onSuccess: (resp) => {
-      onSaltReceived(resp.passwordSalt, resp);
+      if (typeof onSaltReceived === 'function') {
+        onSaltReceived(resp.passwordSalt);
+      } else {
+        onSaltReceived.onResponse(resp);
+      }
     },
     onResponseCode: {
       [Response_ResponseCode.RespRegistrationRequired]: () => {

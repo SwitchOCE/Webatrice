@@ -12,7 +12,8 @@ import { CommandFailure } from '../../services/command-options';
 import { StatusEnum } from '../../types/StatusEnum';
 import { WebClient } from '../../WebClient';
 import type { ConnectTarget } from '../../types/WebClientConfig';
-import { login, loginWithFreshSalt, disconnect, updateStatus } from './';
+import { loginWithFreshSalt, disconnect, updateStatus } from './';
+import { loginWithoutChallenge } from './loginWithChallenge';
 
 export function register(options: ConnectTarget & RegisterParams, password?: string): void {
   const { userName, email, country, realName, hashedPassword } = options;
@@ -37,7 +38,7 @@ export function register(options: ConnectTarget & RegisterParams, password?: str
   WebClient.instance.protobuf.sendSessionCommand(Command_Register_ext, create(Command_RegisterSchema, params), {
     onResponseCode: {
       [Response_ResponseCode.RespRegistrationAccepted]: () => {
-        const logIn = WebClient.instance.serverSupportsChallengeResponse ? loginWithFreshSalt : login;
+        const logIn = WebClient.instance.serverSupportsChallengeResponse ? loginWithFreshSalt : loginWithoutChallenge;
         logIn({
           host: options.host,
           port: options.port,

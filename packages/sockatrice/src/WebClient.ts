@@ -55,6 +55,7 @@ export class WebClient {
     const client = WebClient._instance;
     client.disposed = true;
     client.connectionGeneration++;
+    client.pendingAuthentication = undefined;
     try {
       client.socket.dispose();
       client.retireTestSocket();
@@ -72,6 +73,7 @@ export class WebClient {
   serverSupportsPasswordHash = false;
   serverSupportsChallengeResponse = false;
   connectionGeneration = 0;
+  pendingAuthentication?: () => void;
   private testSocket: WebSocket | null = null;
   private clearTestTimer: (() => void) | undefined;
   private disposed = false;
@@ -104,7 +106,9 @@ export class WebClient {
           return;
         }
         if (status === StatusEnum.DISCONNECTED || status === StatusEnum.RECONNECTING) {
-          this.connectionGeneration++;
+          const pending = this.pendingAuthentication;
+          this.pendingAuthentication = undefined;
+          pending?.();
         }
         this.updateStatus(status);
         this.response.session.updateStatus(status, description);
@@ -153,6 +157,7 @@ export class WebClient {
     }
     this.resetting = true;
     this.connectionGeneration++;
+    this.pendingAuthentication = undefined;
     try {
       this.protobuf.resetCommands();
       if (!this.disposed) {
@@ -246,6 +251,7 @@ export class WebClient {
 
   public disconnect(): void {
     this.connectionGeneration++;
+    this.pendingAuthentication = undefined;
     this.socket.disconnect();
   }
 

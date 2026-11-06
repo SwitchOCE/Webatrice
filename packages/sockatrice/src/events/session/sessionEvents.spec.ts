@@ -396,7 +396,7 @@ describe('serverIdentification', () => {
     serverIdentification(makeInfo({ serverOptions: 1 }));
     expect(SessionCmds.requestPasswordSalt).toHaveBeenCalledWith(
       expect.objectContaining({ userName: 'alice' }),
-      expect.any(Function),
+      expect.objectContaining({ onResponse: expect.any(Function) }),
       expect.any(Function),
     );
   });
@@ -551,7 +551,8 @@ describe('serverIdentification', () => {
     it('salt callback with non-empty salt → login with pre-computed hashedPassword', async () => {
       setup();
       const [, onSalt] = (SessionCmds.requestPasswordSalt as Mock).mock.calls[0];
-      await onSalt('xyz', { passwordSalt: 'xyz' });
+      await onSalt.onResponse({ passwordSalt: 'xyz' });
+      await Promise.resolve();
       expect(SessionCmds.login).toHaveBeenCalledWith(
         expect.objectContaining({ userName: 'alice', hashedPassword: 'hashedFromSalt' }),
         'pw',
@@ -561,7 +562,7 @@ describe('serverIdentification', () => {
     it('salt callback with empty salt falls back to plain-password login', async () => {
       setup();
       const [, onSalt] = (SessionCmds.requestPasswordSalt as Mock).mock.calls[0];
-      await onSalt('', { passwordSalt: '' });
+      await onSalt.onResponse({ passwordSalt: '' });
       expect(SessionCmds.login).toHaveBeenCalledWith(
         expect.not.objectContaining({ hashedPassword: expect.anything() }),
         'pw',

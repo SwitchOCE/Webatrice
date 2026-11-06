@@ -4,15 +4,12 @@ import { StatusEnum } from '../../types/StatusEnum';
 import { consumePendingOptions } from '../../utils/connectionState';
 import { WebSocketConnectReason } from '../../types/ConnectOptions';
 import { generateSalt, generatePasswordVerifier, hashPassword, passwordHashAvailable, passwordSaltSupported } from '../../utils';
-import { loginWithPasswordSalt } from '../../commands/session/loginWithChallenge';
+import { loginWithoutChallenge, loginWithPasswordSalt } from '../../commands/session/loginWithChallenge';
 import * as SessionCommands from '../../commands/session';
 import { CommandFailure } from '../../types/CommandFailure';
 
-function onSaltFailure(settle: (failure?: CommandFailure) => void, isCurrent: () => boolean) {
+function onSaltFailure(settle: (failure?: CommandFailure) => void) {
   return (failure?: CommandFailure) => {
-    if (!isCurrent()) {
-      return;
-    }
     settle(failure);
     if (failure !== CommandFailure.Disconnected) {
       SessionCommands.disconnect();
@@ -51,15 +48,15 @@ export async function serverIdentification(info: Event_ServerIdentification): Pr
       SessionCommands.updateStatus(StatusEnum.LOGGING_IN, 'Logging In...');
       if (getPasswordSalt || info.supportsChallengeResponse) {
         SessionCommands.requestPasswordSalt(rest,
-          async (_salt, response) => {
-            if (isCurrent()) {
-              await loginWithPasswordSalt(rest, password, response);
-            }
+          {
+            onResponse: (response) => {
+              void loginWithPasswordSalt(rest, password, response);
+            },
           },
-          onSaltFailure(() => response.session.loginFailed(), isCurrent),
+          onSaltFailure(() => response.session.loginFailed()),
         );
       } else {
-        SessionCommands.login(rest, password);
+        loginWithoutChallenge(rest, password);
       }
       break;
     }
@@ -83,9 +80,6 @@ export async function serverIdentification(info: Event_ServerIdentification): Pr
       } else if (getPasswordSalt) {
         const passwordSalt = generateSalt();
         const hashedPassword = await hashPassword(passwordSalt, password);
-        if (!isCurrent()) {
-          return;
-        }
         SessionCommands.register({ ...rest, hashedPassword }, password);
       } else {
         SessionCommands.register(rest, password);
@@ -99,15 +93,10 @@ export async function serverIdentification(info: Event_ServerIdentification): Pr
       } else if (getPasswordSalt) {
         SessionCommands.requestPasswordSalt(rest,
           async (salt) => {
-            if (!isCurrent()) {
-              return;
-            }
             const hashedPassword = salt ? await hashPassword(salt, password) : undefined;
-            if (isCurrent()) {
-              SessionCommands.activate(rest, password, hashedPassword);
-            }
+            SessionCommands.activate(rest, password, hashedPassword);
           },
-          onSaltFailure((failure) => response.session.accountActivationFailed(failure), isCurrent),
+          onSaltFailure((failure) => response.session.accountActivationFailed(failure)),
         );
       } else {
         SessionCommands.activate(rest, password);
@@ -140,19 +129,14 @@ export async function serverIdentification(info: Event_ServerIdentification): Pr
       } else if (getPasswordSalt) {
         SessionCommands.requestPasswordSalt(rest,
           async (salt) => {
-            if (!isCurrent()) {
-              return;
-            }
             if (salt) {
               const hashedNewPassword = await hashPassword(salt, newPassword);
-              if (isCurrent()) {
-                SessionCommands.forgotPasswordReset({ ...rest, hashedNewPassword }, newPassword);
-              }
+              SessionCommands.forgotPasswordReset({ ...rest, hashedNewPassword }, newPassword);
             } else {
               SessionCommands.forgotPasswordReset(rest, newPassword);
             }
           },
-          onSaltFailure(() => response.session.resetPasswordFailed(), isCurrent),
+          onSaltFailure(() => response.session.resetPasswordFailed()),
         );
       } else {
         SessionCommands.forgotPasswordReset(rest, newPassword);
@@ -166,7 +150,5 @@ export async function serverIdentification(info: Event_ServerIdentification): Pr
     }
   }
 
-  if (isCurrent()) {
-    response.session.updateInfo(serverName, serverVersion, serverSupportsPasswordHash);
-  }
+  response.session.updateInfo(serverName, serverVersion, serverSupportsPasswordHash);
 }
