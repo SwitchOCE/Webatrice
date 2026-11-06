@@ -7,7 +7,7 @@ import { resolveSupportedLanguage } from './locale';
 
 import browserFeatureI18n from '../features/shell/BrowserFeature.i18n.json';
 import unsupportedI18n from '../features/shell/Unsupported.i18n.json';
-import { getBrowserSupport, type BrowserFeature } from './browserSupport';
+import { getBrowserSupport, isUnsupportedDevice, type BrowserFeature } from './browserSupport';
 
 const PREFLIGHT = readFileSync(resolve(__dirname, '../../public/preflight.js'), 'utf8');
 const PREFLIGHT_CSS = readFileSync(resolve(__dirname, '../../public/preflight.css'), 'utf8');
@@ -150,6 +150,97 @@ describe('public/preflight.js', () => {
       },
     });
     expect(runPreflight(win).missingRequired).toEqual(['indexedDB']);
+  });
+
+  describe('unsupported device', () => {
+    const CHROME = 'AppleWebKit/537.36 (KHTML, like Gecko) Chrome/130.0.0.0';
+    const MAC = 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/18.0 Safari/605.1.15';
+    const WINDOWS = `Mozilla/5.0 (Windows NT 10.0; Win64; x64) ${CHROME} Safari/537.36`;
+    const LINUX = `Mozilla/5.0 (X11; Linux x86_64) ${CHROME} Safari/537.36`;
+    const CHROME_OS = `Mozilla/5.0 (X11; CrOS x86_64 14541.0.0) ${CHROME} Safari/537.36`;
+
+    const device = (userAgent: string, maxTouchPoints = 0, mobileBuild = false) => supportedBrowser({
+      navigator: { language: 'en-US', clipboard: { writeText: stubFn }, userAgent, maxTouchPoints },
+      ...(mobileBuild ? { orientation: 0 } : {}),
+    });
+
+    const unsupportedDevice = (win: FakeWindow) => {
+      runPreflight(win);
+      return (win.Cockatrice as { unsupportedDevice?: boolean }).unsupportedDevice;
+    };
+
+    it.each<[string, FakeWindow]>([
+      ['an iPhone', device('Mozilla/5.0 (iPhone; CPU iPhone OS 18_0 like Mac OS X) Mobile/15E148 Safari/604.1', 5, true)],
+      ['an older iPad', device('Mozilla/5.0 (iPad; CPU OS 12_0 like Mac OS X) Mobile/15E148 Safari/604.1', 5, true)],
+      ['an iPad claiming to be a Mac', device(MAC, 5, true)],
+      ['an Android phone', device(`Mozilla/5.0 (Linux; Android 14; Pixel 8) ${CHROME} Mobile Safari/537.36`, 5, true)],
+      ['an Android tablet', device(`Mozilla/5.0 (Linux; Android 14; SM-X710) ${CHROME} Safari/537.36`, 5, true)],
+      ['an Android tablet in Firefox', device('Mozilla/5.0 (Android 14; Tablet; rv:130.0) Gecko/130.0 Firefox/130.0', 5, true)],
+      ['an Android tablet claiming to be a Linux desktop', device(LINUX, 5, true)],
+      ['a phone in desktop-site mode', device(LINUX, 5, true)],
+    ])('blocks %s', (_name, win) => {
+      expect(unsupportedDevice(win)).toBe(true);
+    });
+
+    it.each<[string, FakeWindow]>([
+      ['a Windows PC', device(WINDOWS)],
+      ['a touchscreen Windows laptop', device(WINDOWS, 10)],
+      ['a Mac', device(MAC)],
+      ['a Linux PC', device(LINUX)],
+      ['a touchscreen Linux desktop', device(LINUX, 10)],
+      ['a touchscreen Chromebook', device(CHROME_OS, 10)],
+      ['a desktop browser with an orientation property but no touch screen', device(LINUX, 0, true)],
+      ['a browser with no navigator', supportedBrowser({ navigator: undefined })],
+    ])('allows %s', (_name, win) => {
+      expect(unsupportedDevice(win)).toBe(false);
+      expect(document.getElementById('root')!.innerHTML).toBe('<p>app</p>');
+    });
+
+    it('replaces the app root with the device message', () => {
+      runPreflight(device(MAC, 5));
+
+      const root = document.getElementById('root')!;
+      expect(root.children).toHaveLength(1);
+      const main = root.querySelector('main.Unsupported')!;
+      expect(main.querySelector('h1')!.textContent).toBe(unsupportedI18n.Unsupported.deviceTitle);
+      expect(main.textContent).toContain(unsupportedI18n.Unsupported.deviceMessage);
+      expect(document.head.querySelector('link[rel="stylesheet"]')?.getAttribute('href')).toBe('/preflight.css');
+    });
+
+    it('explains the device rather than listing missing browser features', () => {
+      const win = device(MAC, 5);
+      win.WebSocket = undefined;
+      runPreflight(win);
+
+      expect(document.querySelector('h1')!.textContent).toBe(unsupportedI18n.Unsupported.deviceTitle);
+      expect(document.querySelector('#root li')).toBeNull();
+    });
+
+    it('swaps in the user\'s language when its translation loads', () => {
+      let respond = stubFn as (body: string) => void;
+      class FakeXhr {
+        status = 200;
+        responseText = '';
+        onload: () => void = stubFn;
+        open() { /* The request is answered by the test. */ }
+        send() {
+          respond = (body) => {
+            this.responseText = body;
+            this.onload();
+          };
+        }
+      }
+      const win = device(MAC, 5);
+      win.XMLHttpRequest = FakeXhr;
+      (win.navigator as { language: string }).language = 'de';
+      runPreflight(win);
+
+      respond(JSON.stringify({ Unsupported: { deviceTitle: 'Nicht unterstützt' } }));
+
+      expect(document.querySelector('h1')!.textContent).toBe('Nicht unterstützt');
+      expect(document.querySelector('p')!.textContent).toBe(unsupportedI18n.Unsupported.deviceMessage);
+      document.documentElement.lang = 'en';
+    });
   });
 
   describe('unsupported screen', () => {
@@ -361,5 +452,20 @@ describe('getBrowserSupport', () => {
 
   it('reports full support when the preflight did not run', () => {
     expect(getBrowserSupport()).toEqual({ missingRequired: [], missingOptional: [] });
+  });
+});
+
+describe('isUnsupportedDevice', () => {
+  afterEach(() => {
+    delete window.Cockatrice;
+  });
+
+  it.each([[true, true], [false, false], [undefined, false]])('reads %s from the preflight as %s', (value, expected) => {
+    window.Cockatrice = { unsupportedDevice: value };
+    expect(isUnsupportedDevice()).toBe(expected);
+  });
+
+  it('allows the device when the preflight did not run', () => {
+    expect(isUnsupportedDevice()).toBe(false);
   });
 });

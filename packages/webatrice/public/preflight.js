@@ -17,6 +17,9 @@
 // IndexedDB is also checked asynchronously after boot (dexieService.testConnection):
 // the global can exist while opening a database fails, as in some private modes.
 //
+// Phones and tablets are not supported, so they get their own screen and the app
+// never loads.
+//
 // Trade-off: the screen cannot use the app's i18next instance or bundled CSS.
 // It carries the English strings of Unsupported.i18n.json and
 // BrowserFeature.i18n.json, swaps in the user's language from
@@ -163,12 +166,26 @@
     return support;
   }
 
+  function isPhoneOrTablet() {
+    var navigator = root.navigator;
+    if (!navigator) {
+      return false;
+    }
+    var agent = navigator.userAgent || '';
+    var touchPoints = navigator.maxTouchPoints || 0;
+    return /Android|iPhone|iPad|iPod|Mobi/i.test(agent)
+      || (touchPoints > 1 && /Macintosh/.test(agent))
+      || (touchPoints > 0 && 'orientation' in root);
+  }
+
   var STRINGS = {
     Unsupported: {
       title: 'Unsupported Browser',
       subtitle1: 'Please update your browser and/or check your permissions.',
       subtitle2: 'Note: Private browsing causes some browsers to disable certain permissions or features.',
       missing: 'This browser does not provide:',
+      deviceTitle: 'Phones and tablets are not supported',
+      deviceMessage: 'Webatrice only works on a desktop or laptop computer. Open it there to log in.',
     },
     BrowserFeature: {
       syntax: 'Modern JavaScript, used by the whole client',
@@ -223,12 +240,21 @@
     return main;
   }
 
-  function render(missing, strings) {
+  function buildDeviceScreen(strings) {
+    var main = element('main', 'Unsupported');
+    var paper = element('div', 'Unsupported-paper');
+    paper.appendChild(element('h1', null, strings.Unsupported.deviceTitle));
+    paper.appendChild(element('p', null, strings.Unsupported.deviceMessage));
+    main.appendChild(paper);
+    return main;
+  }
+
+  function render(screen) {
     var container = document.getElementById('root') || document.body;
     while (container.firstChild) {
       container.removeChild(container.firstChild);
     }
-    container.appendChild(buildScreen(missing, strings));
+    container.appendChild(screen);
   }
 
   function translate(translation) {
@@ -332,22 +358,31 @@
   var support = detect();
   root.Cockatrice = root.Cockatrice || {};
   root.Cockatrice.browserSupport = support;
+  root.Cockatrice.unsupportedDevice = isPhoneOrTablet();
 
-  if (support.missingRequired.length > 0) {
+  function showScreen(build) {
     var baseUrl = assetsBaseUrl();
     var style = element('link');
     style.rel = 'stylesheet';
     style.href = baseUrl + 'preflight.css';
     (document.head || document.documentElement).appendChild(style);
     applySavedTheme();
-    render(support.missingRequired, STRINGS);
+    render(build(STRINGS));
 
     var locales = preferredLocales();
     if (locales.length > 0 && locales[0].indexOf('en') !== 0) {
       loadTranslation(locales, baseUrl + 'locales/', function showTranslated(translation, locale) {
         document.documentElement.lang = locale.replace('_', '-');
-        render(support.missingRequired, translate(translation));
+        render(build(translate(translation)));
       });
     }
+  }
+
+  if (root.Cockatrice.unsupportedDevice) {
+    showScreen(buildDeviceScreen);
+  } else if (support.missingRequired.length > 0) {
+    showScreen(function buildMissingScreen(strings) {
+      return buildScreen(support.missingRequired, strings);
+    });
   }
 })(window);

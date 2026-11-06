@@ -4993,7 +4993,9 @@
     "title": "Unsupported Browser",
     "subtitle1": "Please update your browser and/or check your permissions.",
     "subtitle2": "Note: Private browsing causes some browsers to disable certain permissions or features.",
-    "missing": "This browser does not provide:"
+    "missing": "This browser does not provide:",
+    "deviceTitle": "Phones and tablets are not supported",
+    "deviceMessage": "Webatrice only works on a desktop or laptop computer. Open it there to log in."
   },
   "CommandFailure": {
     "notSent": "You are not connected to the server.",
