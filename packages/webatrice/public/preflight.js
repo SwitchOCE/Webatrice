@@ -18,9 +18,7 @@
 // the global can exist while opening a database fails, as in some private modes.
 //
 // Phones and tablets are not supported, so they get their own screen and the app
-// never loads. The user agent alone misses iPads and desktop-site mode, which
-// claim to be desktop browsers; a touch screen alone would catch touch laptops,
-// so those count only when nothing fine-grained like a mouse or trackpad exists.
+// never loads.
 //
 // Trade-off: the screen cannot use the app's i18next instance or bundled CSS.
 // It carries the English strings of Unsupported.i18n.json and
@@ -175,14 +173,9 @@
     }
     var agent = navigator.userAgent || '';
     var touchPoints = navigator.maxTouchPoints || 0;
-    if ((navigator.userAgentData && navigator.userAgentData.mobile)
-      || /Android|iPhone|iPad|iPod|Mobi|Silk|Kindle/i.test(agent)
-      || (touchPoints > 1 && /Macintosh/.test(agent))) {
-      return true;
-    }
-    return touchPoints > 0 && isFunction(root.matchMedia)
-      && root.matchMedia('(any-pointer: coarse)').matches
-      && !root.matchMedia('(any-pointer: fine)').matches;
+    return /Android|iPhone|iPad|iPod|Mobi/i.test(agent)
+      || (touchPoints > 1 && /Macintosh/.test(agent))
+      || (touchPoints > 0 && 'orientation' in root);
   }
 
   var STRINGS = {

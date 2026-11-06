@@ -159,15 +159,10 @@ describe('public/preflight.js', () => {
     const LINUX = `Mozilla/5.0 (X11; Linux x86_64) ${CHROME} Safari/537.36`;
     const CHROME_OS = `Mozilla/5.0 (X11; CrOS x86_64 14541.0.0) ${CHROME} Safari/537.36`;
 
-    const pointers = (...kinds: ('fine' | 'coarse')[]) => (query: string) => ({
-      matches: kinds.some((kind) => query === `(any-pointer: ${kind})`),
+    const device = (userAgent: string, maxTouchPoints = 0, mobileBuild = false) => supportedBrowser({
+      navigator: { language: 'en-US', clipboard: { writeText: stubFn }, userAgent, maxTouchPoints },
+      ...(mobileBuild ? { orientation: 0 } : {}),
     });
-
-    const device = (userAgent: string, maxTouchPoints = 0, matchMedia?: ReturnType<typeof pointers>, mobile?: boolean) =>
-      supportedBrowser({
-        navigator: { language: 'en-US', clipboard: { writeText: stubFn }, userAgent, maxTouchPoints, userAgentData: { mobile } },
-        matchMedia,
-      });
 
     const unsupportedDevice = (win: FakeWindow) => {
       runPreflight(win);
@@ -175,28 +170,26 @@ describe('public/preflight.js', () => {
     };
 
     it.each<[string, FakeWindow]>([
-      ['an iPhone', device('Mozilla/5.0 (iPhone; CPU iPhone OS 18_0 like Mac OS X) Mobile/15E148 Safari/604.1', 5)],
-      ['an older iPad', device('Mozilla/5.0 (iPad; CPU OS 12_0 like Mac OS X) Mobile/15E148 Safari/604.1', 5)],
-      ['an iPad claiming to be a Mac', device(MAC, 5, pointers('coarse'))],
-      ['an iPad with a Magic Keyboard', device(MAC, 5, pointers('coarse', 'fine'))],
-      ['an Android phone', device(`Mozilla/5.0 (Linux; Android 14; Pixel 8) ${CHROME} Mobile Safari/537.36`, 5)],
-      ['an Android tablet', device(`Mozilla/5.0 (Linux; Android 14; SM-X710) ${CHROME} Safari/537.36`, 5)],
-      ['an Android tablet in Firefox', device('Mozilla/5.0 (Android 14; Tablet; rv:130.0) Gecko/130.0 Firefox/130.0', 5)],
-      ['a Kindle Fire', device(`Mozilla/5.0 (Linux; Android 11; KFTRWI) ${CHROME} Silk/130 Safari/537.36`, 5)],
-      ['a phone in desktop-site mode', device(LINUX, 5, pointers('coarse'))],
-      ['a browser reporting itself as mobile', device(WINDOWS, 0, pointers('fine'), true)],
+      ['an iPhone', device('Mozilla/5.0 (iPhone; CPU iPhone OS 18_0 like Mac OS X) Mobile/15E148 Safari/604.1', 5, true)],
+      ['an older iPad', device('Mozilla/5.0 (iPad; CPU OS 12_0 like Mac OS X) Mobile/15E148 Safari/604.1', 5, true)],
+      ['an iPad claiming to be a Mac', device(MAC, 5, true)],
+      ['an Android phone', device(`Mozilla/5.0 (Linux; Android 14; Pixel 8) ${CHROME} Mobile Safari/537.36`, 5, true)],
+      ['an Android tablet', device(`Mozilla/5.0 (Linux; Android 14; SM-X710) ${CHROME} Safari/537.36`, 5, true)],
+      ['an Android tablet in Firefox', device('Mozilla/5.0 (Android 14; Tablet; rv:130.0) Gecko/130.0 Firefox/130.0', 5, true)],
+      ['an Android tablet claiming to be a Linux desktop', device(LINUX, 5, true)],
+      ['a phone in desktop-site mode', device(LINUX, 5, true)],
     ])('blocks %s', (_name, win) => {
       expect(unsupportedDevice(win)).toBe(true);
     });
 
     it.each<[string, FakeWindow]>([
-      ['a Windows PC', device(WINDOWS, 0, pointers('fine'))],
-      ['a touchscreen Windows laptop', device(WINDOWS, 10, pointers('coarse', 'fine'))],
-      ['a Mac', device(MAC, 0, pointers('fine'))],
-      ['a Linux PC', device(LINUX, 0, pointers('fine'))],
-      ['a touchscreen Chromebook with a trackpad', device(CHROME_OS, 10, pointers('coarse', 'fine'))],
-      ['a touchscreen where pointer queries are unknown', device(WINDOWS, 10, pointers())],
-      ['a touchscreen where matchMedia is missing', device(WINDOWS, 10)],
+      ['a Windows PC', device(WINDOWS)],
+      ['a touchscreen Windows laptop', device(WINDOWS, 10)],
+      ['a Mac', device(MAC)],
+      ['a Linux PC', device(LINUX)],
+      ['a touchscreen Linux desktop', device(LINUX, 10)],
+      ['a touchscreen Chromebook', device(CHROME_OS, 10)],
+      ['a desktop browser with an orientation property but no touch screen', device(LINUX, 0, true)],
       ['a browser with no navigator', supportedBrowser({ navigator: undefined })],
     ])('allows %s', (_name, win) => {
       expect(unsupportedDevice(win)).toBe(false);
