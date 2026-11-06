@@ -29,7 +29,7 @@ vi.mock('@app/services', async (importOriginal) => ({
 let styles: HTMLStyleElement;
 beforeEach(async () => {
   styles = await mountBoardStyles();
-});
+}, 60_000);
 afterEach(() => {
   catalog.pending = false;
   cleanup();

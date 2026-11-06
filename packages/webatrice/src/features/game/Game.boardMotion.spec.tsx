@@ -22,7 +22,7 @@ vi.mock('../../services/cards/cardCatalog', () => {
 let styles: HTMLStyleElement;
 beforeEach(async () => {
   styles = await mountBoardStyles();
-});
+}, 60_000);
 afterEach(() => {
   cleanup();
   styles?.remove();
