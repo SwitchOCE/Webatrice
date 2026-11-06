@@ -80,6 +80,7 @@ export function useGridRows({
 }: GridRowsOptions) {
   const elements = useRef(new Map<string, HTMLElement>());
   const pendingFocus = useRef<string | null>(null);
+  const restoringFocus = useRef(false);
   const [focusRequest, setFocusRequest] = useState(0);
   const [rendered, setRendered] = useState<{ visibleStart: number; start: number; stop: number } | null>(null);
   const onRowsRendered = useCallback((visibleRows: RenderedRows, allRows: RenderedRows) => {
@@ -111,6 +112,7 @@ export function useGridRows({
 
   const requestFocus = useCallback((key: string) => {
     pendingFocus.current = key;
+    restoringFocus.current = false;
     setFocusRequest((n) => n + 1);
   }, []);
 
@@ -139,7 +141,10 @@ export function useGridRows({
         elements.current.set(key, element);
         if (pendingFocus.current === key) {
           pendingFocus.current = null;
-          element.focus();
+          const active = document.activeElement;
+          if (!restoringFocus.current || active == null || active === document.body) {
+            element.focus();
+          }
         }
         return;
       }
@@ -150,6 +155,7 @@ export function useGridRows({
       }
       if (pendingFocus.current == null) {
         pendingFocus.current = key;
+        restoringFocus.current = true;
       }
       if (keepFocusOnRemoval) {
         const index = keys.indexOf(key);

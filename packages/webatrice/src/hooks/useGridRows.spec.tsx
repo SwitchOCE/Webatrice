@@ -1,4 +1,5 @@
-import { useState } from 'react';
+import { useLayoutEffect, useRef, useState } from 'react';
+import { createPortal } from 'react-dom';
 import { act, fireEvent, render, screen } from '@testing-library/react';
 
 import { useGridRows, type GridRowsOptions } from './useGridRows';
@@ -20,7 +21,55 @@ function Grid(props: Partial<GridRowsOptions>) {
   );
 }
 
+function PortalMenu() {
+  const item = useRef<HTMLButtonElement>(null);
+  useLayoutEffect(() => item.current?.focus(), []);
+  return createPortal(<button ref={item} type="button">menu item</button>, document.body);
+}
+
+function RowWithMenu() {
+  const [menuOpen, setMenuOpen] = useState(false);
+  const [rowShown, setRowShown] = useState(true);
+  const rows = useGridRows({ keys: ['a'], selectedKey: null, onSelect: vi.fn(), onActivate: vi.fn() });
+  return (
+    <>
+      <button type="button" onClick={() => setRowShown((shown) => !shown)}>toggle row</button>
+      {rowShown && (
+        <div
+          role="row"
+          data-testid="a"
+          {...rows.getRowProps('a')}
+          onContextMenu={() => setMenuOpen(true)}
+        >
+          {menuOpen && <PortalMenu />}
+        </div>
+      )}
+    </>
+  );
+}
+
 describe('useGridRows', () => {
+  it('leaves focus in a menu opened in the same commit that re-renders the row', () => {
+    render(<RowWithMenu />);
+    const row = screen.getByTestId('a');
+    act(() => row.focus());
+
+    fireEvent.contextMenu(row);
+
+    expect(screen.getByRole('button', { name: 'menu item' })).toHaveFocus();
+  });
+
+  it('gives focus back to a row that was removed while focused and returns', () => {
+    render(<RowWithMenu />);
+    act(() => screen.getByTestId('a').focus());
+
+    fireEvent.click(screen.getByRole('button', { name: 'toggle row' }));
+    expect(document.body).toHaveFocus();
+    fireEvent.click(screen.getByRole('button', { name: 'toggle row' }));
+
+    expect(screen.getByTestId('a')).toHaveFocus();
+  });
+
   it('keeps a single tab stop, on the first row until a row is selected', () => {
     render(<Grid />);
     expect(KEYS.map((key) => screen.getByTestId(key).tabIndex)).toEqual([0, -1, -1]);
