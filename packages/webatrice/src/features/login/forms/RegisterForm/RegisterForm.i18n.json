@@ -4,8 +4,6 @@
       "register": "Register"
     },
     "error": {
-      "tooManyRequests": "Too many registration requests. Please try again later.",
-      "tooManyRequestsUntil": "Too many registration requests. Please try again after {until}.",
       "retryAfter": "{reason}. Please try again after {until}."
     },
     "toast": {

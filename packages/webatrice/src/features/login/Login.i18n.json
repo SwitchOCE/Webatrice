@@ -27,7 +27,6 @@
       "serverFull": "The server has reached its maximum number of users. Please check back later.",
       "wrongCredentials": "Incorrect username or password.",
       "passwordRequired": "Please enter your password to sign in again. Your saved credentials cannot be used for this account.",
-      "missingFeatures": "The server requires features this client does not support. Please update the client and try again.",
       "authenticationDowngrade": "The server uses an older password format for this account. Untick “Save password” and try again with your password.",
       "authenticationUnsupported": "The server requested authentication settings this client cannot safely use. Login was stopped.",
       "tooManyRequests": "Too many login attempts. Please try again later.",

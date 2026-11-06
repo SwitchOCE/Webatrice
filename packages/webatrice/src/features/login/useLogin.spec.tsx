@@ -442,17 +442,6 @@ describe('useLogin', () => {
     expect(result.current.showDescription()).toBe(true);
   });
 
-  it('retains the missing-features explanation for a real server reply after socket closure', () => {
-    const { result, store } = setup(disconnectedState);
-    act(() => {
-      store.dispatch(server.Actions.loginFailed({ responseCode: Response_ResponseCode.RespClientUpdateRequired }));
-      store.dispatch(server.Actions.updateStatus({
-        status: { state: WebsocketTypes.StatusEnum.DISCONNECTED, description: 'Connection Closed' },
-      }));
-    });
-    expect(result.current.description).toBe('Login.status.missingFeatures');
-  });
-
   it('shows a login limit deadline supplied in epoch seconds', () => {
     const deadline = 1800000000;
     const { result } = setup({

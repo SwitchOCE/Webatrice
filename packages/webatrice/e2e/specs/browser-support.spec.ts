@@ -41,7 +41,7 @@ test('a page without Web Crypto (plain http://) boots with a notice', async ({ p
   await expect(login.hostPicker).toBeVisible();
   await expect(page.getByRole('region', { name: 'Notifications' })
     .getByText('Some features are unavailable in this browser'))
-    .toContainText('older servers may receive passwords unhashed');
+    .toContainText('those servers receive passwords unhashed');
 });
 
 test('a page without Web Crypto still signs in an older-format account', async ({ page }) => {

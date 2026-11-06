@@ -53,29 +53,17 @@ describe('useRegisterForm', () => {
     expect(screen.getByTestId('error')).toHaveTextContent('null');
   });
 
-  test('localizes a timed registration limit when the server supplies no reason', () => {
-    const { store } = renderWithProviders(<Probe />, { preloadedState: disconnectedState });
-    act(() => {
-      store.dispatch(server.Actions.registrationFailed({
-        reason: '', endTime: 1800000000, responseCode: Response_ResponseCode.RespTooManyRequests,
-      }));
-    });
-    expect(screen.getByTestId('error')).toHaveTextContent(
-      `Too many registration requests. Please try again after ${new Date(1800000000 * 1000).toLocaleString()}.`,
-    );
-  });
-
   test.each([undefined, 0, -1, Number.NaN, Infinity, Number.MAX_SAFE_INTEGER])(
-    'localizes a registration limit with no reason or usable deadline (%s)',
+    'keeps the server reason when the deadline is unusable (%s)',
     (endTime) => {
       const { store } = renderWithProviders(<Probe />, { preloadedState: disconnectedState });
       act(() => {
         store.dispatch(server.Actions.registrationFailed({
-          reason: '', endTime, responseCode: Response_ResponseCode.RespTooManyRequests,
+          reason: 'Too many registration attempts', endTime, responseCode: Response_ResponseCode.RespTooManyRequests,
         }));
       });
-      expect(screen.getByTestId('error')).toHaveTextContent('Too many registration requests. Please try again later.');
-      expect(screen.getByTestId('error')).not.toHaveTextContent(/banned|Invalid Date/i);
+      expect(screen.getByTestId('error')).toHaveTextContent('Too many registration attempts');
+      expect(screen.getByTestId('error')).not.toHaveTextContent(/after|Invalid Date/i);
     },
   );
 

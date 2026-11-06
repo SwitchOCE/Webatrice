@@ -55,7 +55,6 @@ const LOGIN_FAILURE_MESSAGE_KEYS: Partial<Record<number, string>> = {
   [Response_ResponseCode.RespServerFull]: 'Login.status.serverFull',
   [Response_ResponseCode.RespWrongPassword]: 'Login.status.wrongCredentials',
   [Response_ResponseCode.RespUsernameInvalid]: 'Login.status.wrongCredentials',
-  [Response_ResponseCode.RespClientUpdateRequired]: 'Login.status.missingFeatures',
 };
 
 const LOCAL_LOGIN_FAILURE_KEYS: Record<WebsocketTypes.LocalLoginFailure, string> = {

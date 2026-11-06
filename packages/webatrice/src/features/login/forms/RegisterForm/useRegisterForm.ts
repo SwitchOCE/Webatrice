@@ -29,14 +29,10 @@ export function useRegisterForm(): RegisterForm {
   const failureCode = useSelector(server.Selectors.getRegistrationFailureCode);
   const deniedEndTime = useSelector(server.Selectors.getRegistrationDeniedEndTime);
   let error = rawError;
-  if (failureCode === Response_ResponseCode.RespTooManyRequests) {
-    const reason = rawError?.trim();
+  if (failureCode === Response_ResponseCode.RespTooManyRequests && rawError) {
     const until = new Date((deniedEndTime ?? 0) * 1000);
-    error = reason || t('RegisterForm.error.tooManyRequests');
-    if (deniedEndTime !== null && deniedEndTime > 0 && Number.isFinite(until.getTime())) {
-      error = reason
-        ? t('RegisterForm.error.retryAfter', { reason, until: until.toLocaleString() })
-        : t('RegisterForm.error.tooManyRequestsUntil', { until: until.toLocaleString() });
+    if ((deniedEndTime ?? 0) > 0 && Number.isFinite(until.getTime())) {
+      error = t('RegisterForm.error.retryAfter', { reason: rawError, until: until.toLocaleString() });
     }
   }
   const { openToast } = useToast({

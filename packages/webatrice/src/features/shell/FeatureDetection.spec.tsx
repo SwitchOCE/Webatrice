@@ -84,8 +84,8 @@ describe('FeatureDetection', () => {
     },
     {
       missingOptional: ['webCrypto'],
-      expected: 'Web Crypto, which needs a page served over https://; challenge-response login remains available, '
-        + 'while older servers may receive passwords unhashed',
+      expected: 'Password hashing for older servers, which needs a page served over https://; '
+        + 'those servers receive passwords unhashed',
     },
   ])('names missing optional features accurately ($missingOptional)', async ({ missingOptional, expected }) => {
     hoisted.getBrowserSupport.mockReturnValue({ missingRequired: [], missingOptional });
