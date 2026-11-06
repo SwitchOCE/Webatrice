@@ -31,7 +31,6 @@ export type LoginFailurePayload = WebsocketTypes.LoginFailure;
 export interface ServerState {
   initialized: boolean;
   sessionEpoch: number;
-  sessionOpen?: boolean;
   testConnectionStatus: TestConnectionStatus;
   buddyList: { [userName: string]: ServerInfo_User };
   ignoreList: { [userName: string]: ServerInfo_User };

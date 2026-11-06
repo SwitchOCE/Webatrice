@@ -107,6 +107,10 @@ export function useLogin(): Login {
     key: 'password-reset-success',
     children: t('Login.toasts.passwordResetSuccessToast'),
   });
+  const registrationToast = useToast({
+    key: 'registration-success',
+    children: t('RegisterForm.toast.registerSuccess'),
+  });
   const accountActivatedToast = useToast({
     key: 'account-activation-success',
     children: t('Login.toasts.accountActivationSuccess'),
@@ -151,23 +155,16 @@ export function useLogin(): Login {
   }, server.Types.RESET_PASSWORD_REQUESTED, []);
 
   useReduxEffect(() => {
+    registrationToast.openToast();
     closeRegistrationDialog();
   }, server.Types.REGISTRATION_SUCCESS, []);
 
-  const closeAllDialogs = () => {
+  useReduxEffect(() => {
     closeRequestPasswordResetDialog();
     closeResetPasswordDialog();
     closeRegistrationDialog();
     closeActivateAccountDialog();
-  };
-
-  useReduxEffect(closeAllDialogs, server.Types.CONNECTION_FAILED, []);
-
-  useReduxEffect(() => {
-    if (connectionAttemptMade) {
-      closeAllDialogs();
-    }
-  }, server.Actions.connectUnreachable.type, [connectionAttemptMade]);
+  }, server.Types.CONNECTION_FAILED, []);
 
   useReduxEffect(() => {
     passwordResetToast.openToast();

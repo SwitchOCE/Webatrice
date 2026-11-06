@@ -2,7 +2,6 @@ import { useState } from 'react';
 import { useSelector } from 'react-redux';
 import { useTranslation } from 'react-i18next';
 
-import { useToast } from '@app/components';
 import { useReduxEffect } from '@app/hooks';
 import { server } from '@cockatrice/datatrice';
 
@@ -33,10 +32,6 @@ export function useRegisterForm(): RegisterForm {
       error = t('RegisterForm.error.retryAfter', { reason: rawError, until: until.toLocaleString() });
     }
   }
-  const { openToast } = useToast({
-    key: 'registration-success',
-    children: t('RegisterForm.toast.registerSuccess'),
-  });
 
   const onHostChange = () => setEmailRequired(false);
   const onEmailChange = () => emailError && setEmailError(null);
@@ -46,10 +41,6 @@ export function useRegisterForm(): RegisterForm {
   useReduxEffect(() => {
     setEmailRequired(true);
   }, server.Types.REGISTRATION_REQUIRES_EMAIL);
-
-  useReduxEffect(() => {
-    openToast();
-  }, server.Types.REGISTRATION_SUCCESS);
 
   useReduxEffect<{ error: string }>(({ payload: { error } }) => {
     setEmailError(error);

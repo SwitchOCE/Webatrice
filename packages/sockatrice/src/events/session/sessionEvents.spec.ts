@@ -258,6 +258,11 @@ describe('listRooms', () => {
 
 describe('connectionClosed', () => {
 
+  it('reports a failed connection, so the reason is not hidden behind a dialog', () => {
+    connectionClosed(create(Event_ConnectionClosedSchema, { reasonStr: 'custom' }));
+    expect(WebClient.instance.response.session.connectionFailed).toHaveBeenCalled();
+  });
+
   it('uses reasonStr when provided', () => {
     connectionClosed(create(Event_ConnectionClosedSchema, { reason: 0, reasonStr: 'custom' }));
     expect(SessionCmds.updateStatus).toHaveBeenCalledWith(expect.anything(), 'custom');
@@ -368,6 +373,7 @@ describe('serverIdentification', () => {
 
   it('disconnects on protocol version mismatch', () => {
     serverIdentification(makeInfo({ protocolVersion: 99 }));
+    expect(WebClient.instance.response.session.connectionFailed).toHaveBeenCalled();
     expect(SessionCmds.updateStatus).toHaveBeenCalledWith(StatusEnum.DISCONNECTED, expect.stringContaining('Protocol version mismatch'));
     expect(SessionCmds.disconnect).toHaveBeenCalled();
     expect(WebClient.instance.response.session.updateInfo).not.toHaveBeenCalled();
@@ -376,6 +382,7 @@ describe('serverIdentification', () => {
   it('disconnects with a user-facing message when pending options are missing (reconnect path)', () => {
     serverIdentification(makeInfo());
     expect(SessionCmds.updateStatus).toHaveBeenCalledWith(StatusEnum.DISCONNECTED, 'Connection lost — please log in again');
+    expect(WebClient.instance.response.session.connectionFailed).toHaveBeenCalled();
     expect(SessionCmds.disconnect).toHaveBeenCalled();
     expect(WebClient.instance.response.session.updateInfo).not.toHaveBeenCalled();
   });

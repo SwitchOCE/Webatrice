@@ -1,7 +1,7 @@
 import { act, fireEvent, screen } from '@testing-library/react';
 
 import { renderWithProviders, disconnectedState } from '../../../../__test-utils__';
-import { useRegisterForm, type RegisterForm } from './useRegisterForm';
+import { useRegisterForm } from './useRegisterForm';
 import { server } from '@cockatrice/datatrice';
 import { Response_ResponseCode } from '@cockatrice/sockatrice/generated';
 import { testI18n } from '../../../../__test-utils__/renderWithProviders';
@@ -9,10 +9,8 @@ import messages from './RegisterForm.i18n.json';
 
 // Probe component: surfaces the hook's return value and exposes buttons that
 // invoke each imperative callback so we can assert state transitions.
-let latest: RegisterForm;
 const Probe = () => {
   const hook = useRegisterForm();
-  latest = hook;
   return (
     <div>
       <span data-testid="emailRequired">{String(hook.emailRequired)}</span>
@@ -158,15 +156,5 @@ describe('useRegisterForm', () => {
     expect(screen.getByTestId('emailError').textContent).toBe('null');
     expect(screen.getByTestId('passwordError').textContent).toBe('null');
     expect(screen.getByTestId('userNameError').textContent).toBe('null');
-  });
-
-  test('REGISTRATION_SUCCESS is handled without throwing', () => {
-    const { store } = renderWithProviders(<Probe />, { preloadedState: disconnectedState });
-    expect(() =>
-      act(() => {
-        store.dispatch({ type: server.Types.REGISTRATION_SUCCESS, payload: {} });
-      }),
-    ).not.toThrow();
-    expect(latest).toBeDefined();
   });
 });

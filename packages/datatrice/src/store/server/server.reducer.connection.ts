@@ -19,7 +19,6 @@ export const EMPTY_LATENCY: ServerLatency = {
 export const initialState: ServerState = {
   initialized: false,
   sessionEpoch: 0,
-  sessionOpen: false,
   testConnectionStatus: null,
   buddyList: {},
   ignoreList: {},
@@ -137,7 +136,6 @@ export const connectionReducers = {
     ...initialState,
     status: { ...state.status },
     sessionEpoch: (state.sessionEpoch ?? 0) + 1,
-    sessionOpen: state.sessionOpen,
     locale: state.locale,
     testConnectionStatus: state.testConnectionStatus,
   })) as CaseReducer<ServerState>,
@@ -145,7 +143,7 @@ export const connectionReducers = {
   disconnected: ((state) => ({
     ...initialState,
     status: { ...state.status },
-    sessionEpoch: (state.sessionEpoch ?? 0) + (state.sessionOpen ? 1 : 0),
+    sessionEpoch: (state.sessionEpoch ?? 0) + (state.user ? 1 : 0),
     locale: state.locale,
     testConnectionStatus: state.testConnectionStatus,
     connectUnreachable: state.connectUnreachable,
@@ -173,7 +171,6 @@ export const connectionReducers = {
     const { status } = action.payload;
     if (status.state === WebsocketTypes.StatusEnum.LOGGED_IN && state.status.state !== status.state) {
       state.sessionEpoch = (state.sessionEpoch ?? 0) + 1;
-      state.sessionOpen = true;
     }
     state.status.state = status.state;
     state.status.description = status.description;

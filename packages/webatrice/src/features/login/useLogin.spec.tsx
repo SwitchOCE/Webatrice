@@ -546,6 +546,7 @@ describe('useLogin', () => {
       store.dispatch(server.Actions.registrationSuccess());
     });
     expect(result.current.dialogState.registrationDialog).toBe(false);
+    expect(screen.getByText('RegisterForm.toast.registerSuccess')).toBeInTheDocument();
   });
 
   it('leaves the registration dialog open for a rejection it shows itself', () => {
@@ -576,20 +577,6 @@ describe('useLogin', () => {
     });
     act(() => {
       store.dispatch(server.Actions.connectionFailed());
-    });
-    expect(result.current.dialogState).toEqual(noDialogs);
-  });
-
-  it('closes every dialog when a submitted connection cannot reach the server', () => {
-    const { result, store } = setup(disconnectedState);
-    act(() => {
-      result.current.openRegistrationDialog();
-    });
-    act(() => {
-      store.dispatch(server.Actions.connectionAttempted());
-    });
-    act(() => {
-      store.dispatch(server.Actions.connectUnreachable());
     });
     expect(result.current.dialogState).toEqual(noDialogs);
   });

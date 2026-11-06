@@ -50,6 +50,7 @@ it('cleans modules before remount, cancels requests synchronously and preserves 
     act(() => view.store.dispatch(server.Actions.clearStore()));
     expect(screen.getByRole('textbox')).toHaveValue('');
     expect(cleanup).toHaveBeenCalledTimes(2);
+    act(() => view.store.dispatch(server.Actions.updateUser({ user: { name: 'alice' } })));
     fireEvent.change(screen.getByRole('textbox'), { target: { value: 'discard on disconnect' } });
     act(() => view.store.dispatch(server.Actions.updateStatus({
       status: { state: WebsocketTypes.StatusEnum.DISCONNECTED, description: null },

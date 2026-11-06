@@ -57,6 +57,7 @@ export async function serverIdentification(info: Event_ServerIdentification): Pr
 
   if (!options) {
     SessionCommands.updateStatus(StatusEnum.DISCONNECTED, 'Connection lost — please log in again');
+    response.session.connectionFailed();
     SessionCommands.disconnect();
     return;
   }

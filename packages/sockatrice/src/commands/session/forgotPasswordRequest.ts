@@ -6,6 +6,7 @@ import {
   type ForgotPasswordRequestParams,
 } from '../../generated';
 
+import { CommandFailure } from '../../services/command-options';
 import { StatusEnum } from '../../types/StatusEnum';
 import { WebClient } from '../../WebClient';
 import type { ConnectTarget } from '../../types/WebClientConfig';
@@ -29,8 +30,10 @@ export function forgotPasswordRequest(options: ConnectTarget & ForgotPasswordReq
       }
       disconnect();
     },
-    onError: () => {
-      updateStatus(StatusEnum.DISCONNECTED, null);
+    onError: (_responseCode, _raw, failure) => {
+      if (failure !== CommandFailure.Disconnected) {
+        updateStatus(StatusEnum.DISCONNECTED, null);
+      }
       WebClient.instance.response.session.resetPasswordFailed();
       disconnect();
     },

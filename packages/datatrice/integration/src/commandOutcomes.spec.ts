@@ -5,7 +5,7 @@ import { Event_NotifyUserSchema, Event_ServerShutdownSchema } from '@cockatrice/
 import { attachResponseHandlers, createStore, server } from '../../src';
 import { Actions } from '../../src/store/server/server.actions';
 import { Actions as RoomActions } from '../../src/store/rooms/rooms.actions';
-import { makeServerState } from '../../src/testing/fixtures/server';
+import { makeServerState, makeUser } from '../../src/testing/fixtures/server';
 
 it.each([undefined, ...Object.values(WebsocketTypes.CommandFailure)])('dispatches exact command failures with reason %s', (failure) => {
   const store = createStore();
@@ -67,7 +67,7 @@ it.each([undefined, 8])('preserves or initializes preloaded session epoch %s', (
 });
 
 it.each(['clear', 'disconnect', 'login'] as const)('advances a legacy session epoch through %s', (event) => {
-  const preloaded = makeServerState({ sessionOpen: event === 'disconnect' });
+  const preloaded = makeServerState({ user: event === 'disconnect' ? makeUser() : null });
   Reflect.deleteProperty(preloaded, 'sessionEpoch');
   const store = createStore({ preloadedState: { server: preloaded } });
   const response = attachResponseHandlers(store);
