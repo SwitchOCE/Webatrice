@@ -12,8 +12,6 @@ import { navRailLink } from '../pages';
 // Account creation and opening My Decks are mouse-driven setup.
 //
 // Against a server without deck sharing the spec stops after the save.
-const SERVER_SHARES_DECKS = serverHas('deckSharing');
-
 test('create, fill, save and share a deck with the keyboard only', async ({ page }) => {
   test.setTimeout(120_000);
   await registerAndReachRooms(page);
@@ -66,7 +64,7 @@ test('create, fill, save and share a deck with the keyboard only', async ({ page
   await expect(page.getByRole('row', { name: '1 × Forest' })).toBeVisible();
   await expect(page.getByRole('row', { name: '3 × Forest' })).toBeVisible();
 
-  if (!SERVER_SHARES_DECKS) {
+  if (!serverHas('deckSharing')) {
     return;
   }
 

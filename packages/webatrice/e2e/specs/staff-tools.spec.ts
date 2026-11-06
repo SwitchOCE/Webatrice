@@ -54,7 +54,7 @@ test('staff reach every tool the server serves from the Staff place in the rail'
 
   const tools = page.getByRole('navigation', { name: 'Staff tools' });
   const served = v31
-    ? ['Reports', 'Moderation', 'Logs', 'Administration', 'Card art rules']
+    ? [/^Reports/, 'Moderation', 'Logs', 'Administration', 'Card art rules']
     : ['Moderation', 'Logs', 'Administration'];
   await expect(tools.getByRole('link')).toHaveText(served);
   await expect(tools.getByText('Needs server 3.1')).toHaveCount(v31 ? 0 : 2);

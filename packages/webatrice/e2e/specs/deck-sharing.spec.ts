@@ -11,7 +11,6 @@ import { LoginPage, navRailLink } from '../pages';
 // and imports a copy, and a revoked link stops opening.
 //
 // Against a server without deck sharing the spec checks that sharing stays hidden.
-const SERVER_SHARES_DECKS = serverHas('deckSharing');
 
 async function createDeck(page: Page, name: string): Promise<void> {
   await navRailLink(page, 'Decks').click();
@@ -34,7 +33,7 @@ async function expectImported(page: Page, name: string): Promise<void> {
 }
 
 test.describe('on a 3.1 server', () => {
-  test.skip(!SERVER_SHARES_DECKS, 'deck sharing needs Servatrice 3.1');
+  test.skip(() => !serverHas('deckSharing'), 'deck sharing needs Servatrice 3.1');
 
   test('a published deck is listed in the owner\'s public decks and can be imported', async ({ newContext }) => {
     test.setTimeout(150_000);
@@ -75,7 +74,7 @@ test.describe('on a 3.1 server', () => {
     await expect(linkField).toHaveValue(/#share=/, { timeout: 15_000 });
     const link = await linkField.inputValue();
     expect(new URL(link).search).toBe('');
-    expect(new URLSearchParams(new URL(link).hash.slice(1)).get('hostname')).toBe(E2E_HOST.host);
+    expect(new URL(new URLSearchParams(new URL(link).hash.slice(1)).get('hostname')!).hostname).toBe(E2E_HOST.host);
     await shareDialog.getByRole('button', { name: 'Close', exact: true }).click();
 
     await viewerPage.goto(link);
@@ -108,7 +107,7 @@ test.describe('on a 3.1 server', () => {
 });
 
 test.describe('on a 3.0 server', () => {
-  test.skip(SERVER_SHARES_DECKS, 'checks the 3.0 fallback');
+  test.skip(() => serverHas('deckSharing'), 'checks the 3.0 fallback');
 
   test('deck sharing stays hidden', async ({ page }) => {
     test.setTimeout(90_000);

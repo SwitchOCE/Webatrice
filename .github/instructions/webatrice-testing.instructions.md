@@ -34,3 +34,22 @@ Store slices have co-located `__mocks__/fixtures.ts` files exposing `make*` fact
 - `fake-indexeddb` polyfills `globalThis.indexedDB`. It **must** be imported before any module that opens a Dexie database (Dexie opens on first table access). Harmless for the websocket suite, which doesn't touch Dexie.
 - Dexie is a real singleton, the database a real (fake-indexeddb) instance. State leaks between tests otherwise — reset via [integration/src/services/dexie/resetDexie.ts](../../packages/webatrice/integration/src/services/dexie/resetDexie.ts).
 - The app integration suite ([integration/src/app/helpers.tsx](../../packages/webatrice/integration/src/app/helpers.tsx)) provides `WebClientContext` directly rather than wrapping in `<WebClientProvider>` (the shared setup already instantiates the WebClient singleton in `beforeEach`) and passes **`setup.ts`'s store** so assertions hit the same store the WebClient dispatches against.
+
+## E2e server version
+
+`npm run test:e2e` runs against the image pinned in the root `.env.e2e` (Servatrice 3.1.2). To test another server, set one variable:
+
+```sh
+SERVATRICE_IMAGE=ghcr.io/cockatrice/servatrice:2026-05-08-Release-3.0.0 npm run test:e2e
+```
+
+Global setup prints the version the server advertises. Specs decide what to skip with `serverHas()` from `e2e/fixtures/serverVersion.ts`, which reads that version, never the image name. Older servers aren't part of regular runs.
+
+WebKit needs host libraries that some machines lack. Without them, run the browsers from the Playwright image that matches the installed version, and leave the test runner on the host:
+
+```sh
+docker run -d --rm --init --name pw-server --network host --workdir /home/pwuser --user pwuser \
+  mcr.microsoft.com/playwright:v1.65.0-noble /bin/sh -c "npx -y playwright@1.65.0 run-server --port 3000 --host 127.0.0.1"
+PW_TEST_CONNECT_WS_ENDPOINT=ws://127.0.0.1:3000/ npx playwright test --project=webkit
+docker stop pw-server
+```
