@@ -1,7 +1,7 @@
 # Cockatrice parity
 
 Where Webatrice stands against the desktop client, and how the parity PR series gets it there. Desktop Cockatrice at
-master `add65ca` is the spec.
+`2026-10-25-Release-3.1.2` is the spec. The rows below were checked against master `add65ca`, 168 commits earlier.
 
 The rows come from a functional-parity audit of Webatrice `cfdf276` against Cockatrice `a571a9a` (2026-08-24): 94
 stable IDs in three areas. `PLAT` covers platform, connection, account, rooms, chat and users; `GAME` covers decks,
@@ -58,7 +58,7 @@ IDs P*, G* and D* in 26–31 are progress on LONG-017, not claims to close that 
 | ID | Capability | Priority | Status | Closed by / owner | Note |
 |---|---|---|---|---|---|
 | PLAT-001 | Protocol: protocol framing/version/features | P3 | Complete | audit baseline |  |
-| PLAT-002 | Protocol: current protocol source synchronization | P1 | Complete (was Partial) | `parity/03-protocol` | Protocol synchronized to Cockatrice `add65ca`, with every new command builder (03 Summary); playmat/RTT state and UI followed in `parity/23-playmats`. |
+| PLAT-002 | Protocol: current protocol source synchronization | P1 | Complete (was Partial) | `parity/03-protocol` | Protocol synchronized to Cockatrice `add65ca`, with every new command builder (03 Summary), and later to `2026-10-25-Release-3.1.2`; playmat/RTT state and UI followed in `parity/23-playmats`. |
 | PLAT-003 | Protocol: client version identity | P2 | Complete (was Divergent) | `parity/03-protocol` | `clientver` is `webatrice-<version> (<commit date>)`, like desktop `VERSION_STRING`. |
 | PLAT-004 | Protocol: command response lifecycle | P2 | Complete (was Partial) | `parity/04-command-outcomes` | Per-command deadline; timeouts and disconnects settle once with `RespNotConnected`. |
 | PLAT-005 | Transport: browser WebSocket and keepalive | P3 | Complete | audit baseline | e2e covers Chromium, Firefox and WebKit since `parity/06-e2e-hardening`. |
