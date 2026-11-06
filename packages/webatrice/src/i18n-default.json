@@ -3510,7 +3510,8 @@
       "tooManyRequests": "Too many login attempts. Please try again later.",
       "tooManyRequestsUntil": "Too many login attempts. Please try again after {until}.",
       "missingFeatures": "The server requires features this client does not support. Please update the client and try again.",
-      "authenticationDowngrade": "The server uses an older password format for this account. Untick “Save password” and try again with your password."
+      "authenticationDowngrade": "The server uses an older password format for this account. Untick “Save password” and try again with your password.",
+      "wrongCredentials": "Incorrect username or password."
     },
     "art": {
       "label": "Art:",

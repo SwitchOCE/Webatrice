@@ -407,6 +407,8 @@ describe('useLogin', () => {
   it.each([
     [Response_ResponseCode.RespPasswordChangeRequired, 'Login.status.passwordChangeRequired'],
     [Response_ResponseCode.RespServerFull, 'Login.status.serverFull'],
+    [Response_ResponseCode.RespWrongPassword, 'Login.status.wrongCredentials'],
+    [Response_ResponseCode.RespUsernameInvalid, 'Login.status.wrongCredentials'],
   ])('explains login rejection %s with %s', (loginFailureCode, key) => {
     const { result } = setup({
       ...disconnectedState,

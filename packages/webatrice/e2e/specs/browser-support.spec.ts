@@ -1,5 +1,6 @@
 import { expect, test } from '../fixtures/test';
 
+import { E2E_JUDGE, reachRoomsAs } from '../fixtures/flows';
 import { LoginPage } from '../pages';
 
 const blank = (api: string) => {
@@ -29,7 +30,7 @@ for (const [api, label] of [
   });
 }
 
-test('a page without Web Crypto (plain http://) boots with a password-hashing notice', async ({ page }) => {
+test('a page without Web Crypto (plain http://) boots with a notice', async ({ page }) => {
   await page.addInitScript(() => {
     Object.defineProperty(window.crypto, 'subtle', { value: undefined, configurable: true });
   });
@@ -40,5 +41,13 @@ test('a page without Web Crypto (plain http://) boots with a password-hashing no
   await expect(login.hostPicker).toBeVisible();
   await expect(page.getByRole('region', { name: 'Notifications' })
     .getByText('Some features are unavailable in this browser'))
-    .toContainText('passwords are sent to the server unhashed instead');
+    .toContainText('older servers may receive passwords unhashed');
+});
+
+test('a page without Web Crypto still signs in an older-format account', async ({ page }) => {
+  await page.addInitScript(() => {
+    Object.defineProperty(window.crypto, 'subtle', { value: undefined, configurable: true });
+  });
+
+  await reachRoomsAs(page, E2E_JUDGE);
 });

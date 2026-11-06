@@ -53,6 +53,8 @@ export interface Login {
 const LOGIN_FAILURE_MESSAGE_KEYS: Partial<Record<number, string>> = {
   [Response_ResponseCode.RespPasswordChangeRequired]: 'Login.status.passwordChangeRequired',
   [Response_ResponseCode.RespServerFull]: 'Login.status.serverFull',
+  [Response_ResponseCode.RespWrongPassword]: 'Login.status.wrongCredentials',
+  [Response_ResponseCode.RespUsernameInvalid]: 'Login.status.wrongCredentials',
   [Response_ResponseCode.RespClientUpdateRequired]: 'Login.status.missingFeatures',
 };
 

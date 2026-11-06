@@ -25,7 +25,7 @@ export interface RegisteredSession {
 }
 
 // Select the e2e docker host on the login screen (shared by register + login).
-async function reachHost(login: LoginPage): Promise<void> {
+export async function reachHost(login: LoginPage): Promise<void> {
   await login.goto();
   await login.addHost(E2E_HOST_LABEL, E2E_HOST.host, E2E_HOST.port);
   await login.selectHost(E2E_HOST_LABEL);
