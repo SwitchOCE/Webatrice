@@ -39,13 +39,17 @@ export function requestPasswordSalt(
         onFailure(undefined, Response_ResponseCode.RespRegistrationRequired);
       },
     },
-    onError: (_responseCode, _raw, failure) => {
+    onError: (responseCode, _raw, failure) => {
       if (failure !== CommandFailure.Disconnected) {
         updateStatus(StatusEnum.DISCONNECTED, failure === CommandFailure.Timeout
           ? 'Login failed: the server did not respond'
           : 'Login failed: Unknown Reason');
       }
-      onFailure(failure);
+      if (failure === undefined) {
+        onFailure(undefined, responseCode);
+      } else {
+        onFailure(failure);
+      }
     },
   });
 }

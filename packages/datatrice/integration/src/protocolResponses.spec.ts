@@ -31,7 +31,7 @@ describe('protocol 3.1 response bridge', () => {
     const store = createStore();
     const response = attachResponseHandlers(store);
     expect(server.Selectors.getLoginFailureCode(store.getState())).toBeNull();
-    response.session.loginFailed(Data.Response_ResponseCode.RespServerFull);
+    response.session.loginFailed({ responseCode: Data.Response_ResponseCode.RespServerFull });
     response.session.updateStatus(WebsocketTypes.StatusEnum.DISCONNECTED, 'Server full');
     expect(server.Selectors.getLoginFailureCode(store.getState())).toBe(Data.Response_ResponseCode.RespServerFull);
     response.session.connectionAttempted();
@@ -41,7 +41,7 @@ describe('protocol 3.1 response bridge', () => {
   it('clears a stored login rejection when a failure arrives without a code', () => {
     const store = createStore();
     const response = attachResponseHandlers(store);
-    response.session.loginFailed(Data.Response_ResponseCode.RespWrongPassword);
+    response.session.loginFailed({ responseCode: Data.Response_ResponseCode.RespWrongPassword });
     expect(server.Selectors.getLoginFailureCode(store.getState())).toBe(Data.Response_ResponseCode.RespWrongPassword);
     response.session.loginFailed();
     expect(server.Selectors.getLoginFailureCode(store.getState())).toBeNull();

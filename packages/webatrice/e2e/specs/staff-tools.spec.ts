@@ -1,7 +1,7 @@
-import { execFileSync } from 'node:child_process';
 
 import type { Page } from '@playwright/test';
 
+import { queryServerDb } from '../fixtures/serverDb';
 import { expect, test } from '../fixtures/test';
 import { E2E_ADMIN, E2E_MODERATOR, reachRoomsAs, registerAndReachRooms, openAdministrationUnlocked } from '../fixtures/flows';
 import { serverHas } from '../fixtures/serverVersion';
@@ -17,14 +17,6 @@ import { homeLink, navRailLink } from '../pages';
 // parts of the staff tools.
 const ADVERTISED_VERSION = process.env.SERVATRICE_ADVERTISED_VERSION;
 
-function runSql(sql: string): void {
-  execFileSync('docker', [
-    'compose', '--env-file', '../../.env.e2e', '--env-file', '.env.e2e',
-    '-f', '../../docker/servatrice/docker-compose.e2e.yml',
-    'exec', '-T', 'mysql', 'mysql', '-uservatrice', '-ppassword', 'servatrice', '-e', sql,
-  ], { stdio: 'pipe' });
-}
-
 async function openUserMenu(page: Page, userName: string): Promise<void> {
   await page.getByRole('button', { name: userName, exact: true }).click();
 }
@@ -34,7 +26,7 @@ test('an admin publishes a new server message from Administration', async ({ pag
   await reachRoomsAs(page, E2E_ADMIN);
 
   const message = `E2E server message ${randomSuffix()}`;
-  runSql(`INSERT INTO cockatrice_servermessages (id_server, timest, message) VALUES (0, NOW() + INTERVAL 1 SECOND, '${message}')`);
+  queryServerDb(`INSERT INTO cockatrice_servermessages (id_server, timest, message) VALUES (0, NOW() + INTERVAL 1 SECOND, '${message}')`);
 
   await openAdministrationUnlocked(page, E2E_ADMIN.username);
   await page.getByRole('button', { name: /^Update server message/ }).click();

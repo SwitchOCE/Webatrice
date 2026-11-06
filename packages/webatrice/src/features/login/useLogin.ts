@@ -151,6 +151,17 @@ export function useLogin(): Login {
   }, server.Types.RESET_PASSWORD_REQUESTED, []);
 
   useReduxEffect(() => {
+    closeRegistrationDialog();
+  }, server.Types.REGISTRATION_SUCCESS, []);
+
+  useReduxEffect(() => {
+    closeRequestPasswordResetDialog();
+    closeResetPasswordDialog();
+    closeRegistrationDialog();
+    closeActivateAccountDialog();
+  }, [server.Types.CONNECTION_FAILED, server.Actions.connectUnreachable.type], []);
+
+  useReduxEffect(() => {
     passwordResetToast.openToast();
     closeResetPasswordDialog();
   }, server.Types.RESET_PASSWORD_SUCCESS, []);

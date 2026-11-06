@@ -67,7 +67,7 @@ it.each([undefined, 8])('preserves or initializes preloaded session epoch %s', (
 });
 
 it.each(['clear', 'disconnect', 'login'] as const)('advances a legacy session epoch through %s', (event) => {
-  const preloaded = makeServerState();
+  const preloaded = makeServerState({ sessionOpen: event === 'disconnect' });
   Reflect.deleteProperty(preloaded, 'sessionEpoch');
   const store = createStore({ preloadedState: { server: preloaded } });
   const response = attachResponseHandlers(store);

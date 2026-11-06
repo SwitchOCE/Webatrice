@@ -630,6 +630,13 @@ describe('requestPasswordSalt', () => {
     expect(onFailure).toHaveBeenCalledWith(undefined, Response_ResponseCode.RespRegistrationRequired);
   });
 
+  it('passes a rejection code from the server to onFailure', () => {
+    const onFailure = vi.fn();
+    requestPasswordSalt({ host: 'h', port: '1', userName: 'alice' }, vi.fn(), onFailure);
+    invokeOnError(Response_ResponseCode.RespContextError);
+    expect(onFailure).toHaveBeenCalledWith(undefined, Response_ResponseCode.RespContextError);
+  });
+
   it('onError calls updateStatus DISCONNECTED and onFailure', () => {
     const onSaltReceived = vi.fn();
     const onFailure = vi.fn();

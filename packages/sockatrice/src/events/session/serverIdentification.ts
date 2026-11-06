@@ -44,6 +44,7 @@ export async function serverIdentification(info: Event_ServerIdentification): Pr
 
   if (protocolVersion !== WebClient.instance.protocolVersion) {
     SessionCommands.updateStatus(StatusEnum.DISCONNECTED, `Protocol version mismatch: ${protocolVersion}`);
+    response.session.connectionFailed();
     SessionCommands.disconnect();
     return;
   }

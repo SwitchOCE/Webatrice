@@ -101,7 +101,11 @@ it.each(['success', 'rejected', 'timeout', 'disconnected'] as const)('reports ex
       getWebClient().disconnect();
     }
     const reason = outcome === 'rejected' ? undefined : outcome === 'timeout' ? CommandFailure.Timeout : CommandFailure.Disconnected;
-    expect(failure).toHaveBeenCalledExactlyOnceWith(reason);
+    if (outcome === 'rejected') {
+      expect(failure).toHaveBeenCalledExactlyOnceWith(undefined, Data.Response_ResponseCode.RespInvalidCommand);
+    } else {
+      expect(failure).toHaveBeenCalledExactlyOnceWith(reason);
+    }
     expect(success).not.toHaveBeenCalled();
     expect(vi.mocked(getMockResponse().session.updateStatus).mock.calls).toEqual([[StatusEnum.DISCONNECTED,
       outcome === 'disconnected' ? 'Connection Closed' : outcome === 'timeout'

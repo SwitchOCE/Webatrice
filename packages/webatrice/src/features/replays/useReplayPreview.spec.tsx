@@ -102,7 +102,7 @@ describe('useReplayPreview', () => {
     await waitFor(() => expect(view.state.status).toBe('ready'));
 
     act(() => {
-      view.store.dispatch(server.Actions.disconnected());
+      view.store.dispatch(server.Actions.clearStore());
     });
     expect(view.state.status).toBe('idle');
     act(() => view.state.load(source));

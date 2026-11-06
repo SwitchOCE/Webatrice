@@ -538,6 +538,49 @@ describe('useLogin', () => {
     expect(result.current.description).toBe('Protocol version mismatch: 15');
   });
 
+  it('closes the registration dialog once the server accepts, so a failed sign-in stays visible', () => {
+    const { result, store } = setup(disconnectedState);
+    act(() => result.current.openRegistrationDialog());
+    expect(result.current.dialogState.registrationDialog).toBe(true);
+    act(() => {
+      store.dispatch(server.Actions.registrationSuccess());
+    });
+    expect(result.current.dialogState.registrationDialog).toBe(false);
+  });
+
+  it('leaves the registration dialog open for a rejection it shows itself', () => {
+    const { result, store } = setup(disconnectedState);
+    act(() => result.current.openRegistrationDialog());
+    act(() => {
+      store.dispatch(server.Actions.registrationUserNameError({ error: 'Username is taken' }));
+      store.dispatch(server.Actions.updateStatus({
+        status: { state: WebsocketTypes.StatusEnum.DISCONNECTED, description: 'Registration failed' },
+      }));
+      store.dispatch(server.Actions.disconnected());
+    });
+    expect(result.current.dialogState.registrationDialog).toBe(true);
+  });
+
+  it.each([
+    ['failed', () => server.Actions.connectionFailed()],
+    ['unreachable', () => server.Actions.connectUnreachable()],
+  ])('closes every dialog when the connection is %s, so the reason is visible', (_name, failure) => {
+    const { result, store } = setup(disconnectedState);
+    act(() => {
+      result.current.openRegistrationDialog();
+      result.current.openRequestPasswordResetDialog();
+    });
+    act(() => {
+      store.dispatch(failure());
+    });
+    expect(result.current.dialogState).toEqual({
+      passwordResetRequestDialog: false,
+      resetPasswordDialog: false,
+      registrationDialog: false,
+      activationDialog: false,
+    });
+  });
+
   it('allows another attempt after a disconnect that carries no login failure', () => {
     const { result, store } = setup(disconnectedState);
     act(() => {
