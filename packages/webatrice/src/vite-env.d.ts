@@ -23,5 +23,6 @@ interface Window {
       missingRequired: string[];
       missingOptional: string[];
     };
+    unsupportedDevice?: boolean;
   };
 }

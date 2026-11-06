@@ -28,3 +28,7 @@ export function getBrowserSupport(): BrowserSupport {
     missingOptional: (support?.missingOptional ?? []) as BrowserFeature[],
   };
 }
+
+export function isUnsupportedDevice(): boolean {
+  return window.Cockatrice?.unsupportedDevice === true;
+}

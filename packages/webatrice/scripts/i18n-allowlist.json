@@ -1,3 +1,5 @@
 {
-  "Unsupported.missing": "public/preflight.js renders the unsupported screen before i18next loads and reads this key from public/locales by hand"
+  "Unsupported.missing": "public/preflight.js renders the unsupported screen before i18next loads and reads this key from public/locales by hand",
+  "Unsupported.deviceTitle": "public/preflight.js renders the unsupported device screen before i18next loads and reads this key from public/locales by hand",
+  "Unsupported.deviceMessage": "public/preflight.js renders the unsupported device screen before i18next loads and reads this key from public/locales by hand"
 }
