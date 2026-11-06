@@ -11,8 +11,6 @@ import { ReplaysPage } from '../pages/ReplaysPage';
 
 const DECK_PATH = resolve(__dirname, '..', 'fixtures', 'decks', 'forest-60.cod');
 
-const SERVER_HAS_REPORTS = serverHas('reports');
-
 async function openUserMenuItem(page: Page, userName: string, item: string): Promise<void> {
   await page.getByRole('button', { name: userName, exact: true }).click();
   await page.getByRole('menuitem', { name: item }).click();
@@ -24,7 +22,7 @@ async function openPlayerPage(page: Page, rooms: RoomsPage, userName: string): P
 }
 
 test('3.0 servers show no report entry points', async ({ newContext }) => {
-  test.skip(SERVER_HAS_REPORTS, 'covered by the full report flow on a 3.1 server');
+  test.skip(serverHas('reports'), 'covered by the full report flow on a 3.1 server');
   const pageA = await (await newContext()).newPage();
   const pageB = await (await newContext()).newPage();
   const a = await registerAndJoinFirstRoom(pageA);
@@ -38,7 +36,7 @@ test('3.0 servers show no report entry points', async ({ newContext }) => {
 });
 
 test('a report goes from user A to a moderator and its resolution back to A', async ({ newContext }) => {
-  test.skip(!SERVER_HAS_REPORTS, 'needs a Servatrice with user reports (Cockatrice 3.1)');
+  test.skip(!serverHas('reports'), 'needs a Servatrice with user reports (Cockatrice 3.1)');
   test.setTimeout(180_000);
   const pageA = await (await newContext()).newPage();
   const pageB = await (await newContext()).newPage();
@@ -89,7 +87,7 @@ test('a report goes from user A to a moderator and its resolution back to A', as
 });
 
 test('a moderator watches the reported game\'s replay from the queue', async ({ newContext }) => {
-  test.skip(!SERVER_HAS_REPORTS, 'needs a Servatrice with user reports (Cockatrice 3.1)');
+  test.skip(!serverHas('reports'), 'needs a Servatrice with user reports (Cockatrice 3.1)');
   test.setTimeout(240_000);
   const pageA = await (await newContext()).newPage();
   const pageB = await (await newContext()).newPage();
