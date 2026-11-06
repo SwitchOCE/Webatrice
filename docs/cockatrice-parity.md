@@ -174,6 +174,7 @@ The audit predates these Cockatrice master additions. `parity/03-protocol` broug
 | Card art rules | Complete | `parity/13-administration` |
 | Playmats (#7101) | Partial: board rendering, collection, crop and selection settings delivered; per-deck authoring and direct-manipulation crop preview remain | `parity/23-playmats`; card presentation/backgrounds in `parity/25b-board-prefs` |
 | Command round-trip latency (#7153) | Complete; client-side measurement also works on 3.0 servers | `parity/23-playmats` |
+| Challenge-response login (3.1.0) | Complete: typed and saved passwords on scrypt and older accounts, with new credentials stored as verifiers; `Command_SubmitPasswordVerifier` migration remains backlog | `claude/challenge-response-login` |
 | Deck share links (#7241) | Partial: create/copy/open/import/revoke for decks and folders delivered; sharing a hand-picked multi-deck selection remains | `parity/23d-deck-share` |
 | Public decks (#7241) | Complete: publish/unpublish decks and folders, public/inherited badges, browse/import another user's decks | `parity/23d-deck-share` |
 

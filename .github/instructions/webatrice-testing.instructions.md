@@ -43,7 +43,7 @@ Store slices have co-located `__mocks__/fixtures.ts` files exposing `make*` fact
 SERVATRICE_IMAGE=ghcr.io/cockatrice/servatrice:2026-05-08-Release-3.0.0 npm run test:e2e
 ```
 
-Global setup prints the version the server advertises. Specs decide what to skip with `serverHas()` from `e2e/fixtures/serverVersion.ts`, which reads that version, never the image name. Older servers aren't part of regular runs.
+Global setup prints the version the server advertises. Specs decide what to skip with `serverHas()` from `e2e/fixtures/serverVersion.ts`, which reads that version, never the image name. Older servers aren't part of regular runs. Between images, run `npm run test:e2e:down` from `packages/webatrice`, because a stale database volume can carry a newer schema.
 
 WebKit needs host libraries that some machines lack. Without them, run the browsers from the Playwright image that matches the installed version, and leave the test runner on the host:
 
