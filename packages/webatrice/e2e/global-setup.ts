@@ -52,7 +52,12 @@ export default async function globalSetup(): Promise<void> {
   while (Date.now() < deadline) {
     const version = await probe();
     if (version) {
+      const { server, ServerCapability } = await import('@cockatrice/datatrice');
       process.env.SERVATRICE_ADVERTISED_VERSION = version;
+      process.env.SERVATRICE_CAPABILITIES = Object.values(ServerCapability)
+        .filter((capability) => server.serverSupports(version, capability))
+        .join(',');
+      console.log(`E2e server: Servatrice ${version}`);
       return;
     }
     await new Promise((r) => setTimeout(r, POLL_INTERVAL_MS));

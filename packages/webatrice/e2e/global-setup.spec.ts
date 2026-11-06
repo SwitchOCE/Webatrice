@@ -22,16 +22,19 @@ afterEach(() => {
 });
 
 it.each([
-  ['3.1.0 ()', 'custom/servatrice:stable'],
-  ['3.0.0 ()', 'custom/servatrice:master'],
-  ['Development-3.1.0-beta.7', 'custom/servatrice:3.1'],
-])('records advertised version %s independently of image %s', async (version, image) => {
+  ['3.1.0 ()', 'custom/servatrice:stable', true],
+  ['3.2.0-beta (2026-11-03)', 'custom/servatrice:3.0', true],
+  ['3.0.0 ()', 'custom/servatrice:master', false],
+  ['Development-3.1.0-beta.7', 'custom/servatrice:3.1', false],
+])('records advertised version %s independently of image %s', async (version, image, hasReports) => {
   vi.stubEnv('SERVATRICE_IMAGE', image);
   vi.stubEnv('SERVATRICE_ADVERTISED_VERSION', undefined);
+  vi.stubEnv('SERVATRICE_CAPABILITIES', undefined);
   const sessionEvent = create(SessionEventSchema);
   setExtension(sessionEvent, Event_ServerIdentification_ext, create(Event_ServerIdentificationSchema, { serverVersion: version }));
   const message = create(ServerMessageSchema, { messageType: ServerMessage_MessageType.SESSION_EVENT, sessionEvent });
   frame.bytes = toBinary(ServerMessageSchema, message);
   await globalSetup();
   expect(process.env.SERVATRICE_ADVERTISED_VERSION).toBe(version);
+  expect(process.env.SERVATRICE_CAPABILITIES?.split(',').includes('reports')).toBe(hasReports);
 });

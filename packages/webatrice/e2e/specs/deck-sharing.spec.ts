@@ -2,6 +2,7 @@ import type { Page } from '@playwright/test';
 
 import { expect, test } from '../fixtures/test';
 import { E2E_HOST, E2E_HOST_LABEL, registerAndJoinFirstRoom, registerAndReachRooms } from '../fixtures/flows';
+import { serverHas } from '../fixtures/serverVersion';
 import { randomSuffix, randomUser } from '../fixtures/users';
 import { LoginPage, navRailLink } from '../pages';
 
@@ -9,10 +10,8 @@ import { LoginPage, navRailLink } from '../pages';
 // Servatrice: one user shares or publishes a deck, another opens it read-only
 // and imports a copy, and a revoked link stops opening.
 //
-// Needs a 3.1 server. Run against Cockatrice master with
-//   SERVATRICE_IMAGE=webatrice-local/servatrice:master-add65ca npm run test:e2e
-// Against the pinned 3.0 release the spec checks that sharing stays hidden.
-const SERVER_IS_3_1 = /master|3\.1/.test(process.env.SERVATRICE_IMAGE ?? '');
+// Against a server without deck sharing the spec checks that sharing stays hidden.
+const SERVER_SHARES_DECKS = serverHas('deckSharing');
 
 async function createDeck(page: Page, name: string): Promise<void> {
   await navRailLink(page, 'Decks').click();
@@ -35,7 +34,7 @@ async function expectImported(page: Page, name: string): Promise<void> {
 }
 
 test.describe('on a 3.1 server', () => {
-  test.skip(!SERVER_IS_3_1, 'deck sharing needs Servatrice 3.1 (SERVATRICE_IMAGE=…master…)');
+  test.skip(!SERVER_SHARES_DECKS, 'deck sharing needs Servatrice 3.1');
 
   test('a published deck is listed in the owner\'s public decks and can be imported', async ({ newContext }) => {
     test.setTimeout(150_000);
@@ -109,7 +108,7 @@ test.describe('on a 3.1 server', () => {
 });
 
 test.describe('on a 3.0 server', () => {
-  test.skip(SERVER_IS_3_1, 'checks the 3.0 fallback');
+  test.skip(SERVER_SHARES_DECKS, 'checks the 3.0 fallback');
 
   test('deck sharing stays hidden', async ({ page }) => {
     test.setTimeout(90_000);

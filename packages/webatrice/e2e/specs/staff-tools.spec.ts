@@ -4,6 +4,7 @@ import type { Page } from '@playwright/test';
 
 import { expect, test } from '../fixtures/test';
 import { E2E_ADMIN, E2E_MODERATOR, reachRoomsAs, registerAndReachRooms, openAdministrationUnlocked } from '../fixtures/flows';
+import { serverHas } from '../fixtures/serverVersion';
 import { randomSuffix } from '../fixtures/users';
 import { homeLink, navRailLink } from '../pages';
 
@@ -12,10 +13,8 @@ import { homeLink, navRailLink } from '../pages';
 // (desktop TabModeration, Cockatrice 3.1 only). The seeded staff accounts come
 // from docker/servatrice/judge-seed.sql.
 //
-// Alts and sessions need a 3.1 server. Run against Cockatrice master with
-//   SERVATRICE_IMAGE=webatrice-local/servatrice:master-add65ca npm run test:e2e
-// Against the pinned 3.0 release the specs check the 3.0 parts of the staff tools.
-// global-setup decodes Event_ServerIdentification, independently of the UI and image tag.
+// Alts and sessions need a 3.1 server. Against an older one the specs check its
+// parts of the staff tools.
 const ADVERTISED_VERSION = process.env.SERVATRICE_ADVERTISED_VERSION;
 
 function runSql(sql: string): void {
@@ -45,15 +44,9 @@ test('an admin publishes a new server message from Administration', async ({ pag
   await expect(page.getByText(message)).toBeVisible({ timeout: 15_000 });
 });
 
-async function speaksModerationTools(): Promise<boolean> {
-  expect(ADVERTISED_VERSION, 'global setup must capture the advertised server version').toBeTruthy();
-  const { server, ServerCapability } = await import('@cockatrice/datatrice');
-  return server.serverSupports(ADVERTISED_VERSION ?? null, ServerCapability.MODERATION_TOOLS);
-}
-
 test('staff reach every tool the server serves from the Staff place in the rail', async ({ page }) => {
   test.setTimeout(90_000);
-  const v31 = await speaksModerationTools();
+  const v31 = serverHas('moderationTools');
   await reachRoomsAs(page, E2E_MODERATOR);
 
   await navRailLink(page, /^staff/i).click();
@@ -87,7 +80,7 @@ test('a regular user has no Staff place and no staff tools', async ({ page }) =>
 
 test('a moderator investigates an account from Moderation', async ({ newContext, page }) => {
   test.setTimeout(120_000);
-  const v31 = await speaksModerationTools();
+  const v31 = serverHas('moderationTools');
 
   const suspectContext = await newContext();
   const suspectPage = await suspectContext.newPage();

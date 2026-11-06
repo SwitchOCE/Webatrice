@@ -1,5 +1,6 @@
 import { expect, test } from '../fixtures/test';
 import { tabTo } from '../fixtures/keyboard';
+import { serverHas } from '../fixtures/serverVersion';
 import { registerAndReachRooms } from '../fixtures/flows';
 import { navRailLink } from '../pages';
 
@@ -10,10 +11,8 @@ import { navRailLink } from '../pages';
 // list's grid, save, add to the sideboard from the dock, and share it.
 // Account creation and opening My Decks are mouse-driven setup.
 //
-// Sharing needs a 3.1 server
-// (SERVATRICE_IMAGE=webatrice-local/servatrice:master-add65ca); against the
-// pinned 3.0 release the spec stops after the save.
-const SERVER_IS_3_1 = /master|3\.1/.test(process.env.SERVATRICE_IMAGE ?? '');
+// Against a server without deck sharing the spec stops after the save.
+const SERVER_SHARES_DECKS = serverHas('deckSharing');
 
 test('create, fill, save and share a deck with the keyboard only', async ({ page }) => {
   test.setTimeout(120_000);
@@ -67,7 +66,7 @@ test('create, fill, save and share a deck with the keyboard only', async ({ page
   await expect(page.getByRole('row', { name: '1 × Forest' })).toBeVisible();
   await expect(page.getByRole('row', { name: '3 × Forest' })).toBeVisible();
 
-  if (!SERVER_IS_3_1) {
+  if (!SERVER_SHARES_DECKS) {
     return;
   }
 

@@ -1,25 +1,17 @@
-import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 
 import type { Page } from '@playwright/test';
 
 import { expect, test } from '../fixtures/test';
 import { E2E_MODERATOR, reachRoomsAs, registerAndJoinFirstRoom } from '../fixtures/flows';
+import { serverHas } from '../fixtures/serverVersion';
 import { randomSuffix } from '../fixtures/users';
 import { GamePage, topBarTab, type RoomsPage } from '../pages';
 import { ReplaysPage } from '../pages/ReplaysPage';
 
-function servatriceImage(): string {
-  if (process.env.SERVATRICE_IMAGE) {
-    return process.env.SERVATRICE_IMAGE;
-  }
-  const pin = readFileSync(resolve(__dirname, '..', '..', '..', '..', '.env.e2e'), 'utf-8');
-  return /^SERVATRICE_IMAGE=(.*)$/m.exec(pin)?.[1] ?? '';
-}
-
 const DECK_PATH = resolve(__dirname, '..', 'fixtures', 'decks', 'forest-60.cod');
 
-const SERVER_HAS_REPORTS = !/Release-3\.0\./.test(servatriceImage());
+const SERVER_HAS_REPORTS = serverHas('reports');
 
 async function openUserMenuItem(page: Page, userName: string, item: string): Promise<void> {
   await page.getByRole('button', { name: userName, exact: true }).click();
