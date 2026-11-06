@@ -279,12 +279,10 @@ describe('Selectors', () => {
 
   it('returns registration limit details and tolerates older state without them', () => {
     const limited = rootState(makeServerState({
-      registrationFailureCode: Response_ResponseCode.RespTooManyRequests, registrationDeniedEndTime: 1800000000,
+      registrationDeniedEndTime: 1800000000,
     }));
-    expect(Selectors.getRegistrationFailureCode(limited)).toBe(Response_ResponseCode.RespTooManyRequests);
     expect(Selectors.getRegistrationDeniedEndTime(limited)).toBe(1800000000);
-    const older = rootState(makeServerState({ registrationFailureCode: undefined, registrationDeniedEndTime: undefined }));
-    expect(Selectors.getRegistrationFailureCode(older)).toBeNull();
+    const older = rootState(makeServerState({ registrationDeniedEndTime: undefined }));
     expect(Selectors.getRegistrationDeniedEndTime(older)).toBeNull();
   });
 

@@ -209,15 +209,12 @@ describe('Registration', () => {
     }));
     expect(limited.registrationError).toBe('Too many registration attempts');
     expect(limited.registrationDeniedEndTime).toBe(1800000000);
-    expect(limited.registrationFailureCode).toBe(Response_ResponseCode.RespTooManyRequests);
     for (const action of [Actions.clearRegistrationErrors(), Actions.clearStore(), Actions.initialized()]) {
       const cleared = serverReducer(limited, action);
       expect(cleared.registrationError).toBeNull();
       expect(cleared.registrationDeniedEndTime).toBeNull();
-      expect(cleared.registrationFailureCode).toBeNull();
     }
     const nextFailure = serverReducer(limited, Actions.registrationFailed({ reason: 'Registration disabled' }));
-    expect(nextFailure.registrationFailureCode).toBeNull();
     expect(nextFailure.registrationDeniedEndTime).toBeNull();
   });
 

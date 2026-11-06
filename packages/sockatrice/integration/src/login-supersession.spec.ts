@@ -3,6 +3,7 @@ import * as Data from '../../src/generated';
 import * as utils from '../../src/utils';
 import { WebClient } from '../../src/WebClient';
 import { StatusEnum } from '../../src/types/StatusEnum';
+import { WebSocketConnectReason } from '../../src/types/ConnectOptions';
 import { loginWithFreshSalt } from '../../src/commands/session/loginWithChallenge';
 import {
   connectRaw, createWebClientForTest, getMockResponse, getMockWebSocket, getWebClient, openMockWebSocket,
@@ -40,10 +41,8 @@ function beginDerivation() {
 
 it.each(['resolve', 'reject'] as const)('ignores a superseded key derivation that later %ss', async (outcome) => {
   const { pending, resolve, reject } = beginDerivation();
-  const previousGeneration = getWebClient().connectionGeneration;
   connectRaw({ host: 'new-server', userName: 'bob' });
   const currentSocket = getMockWebSocket();
-  expect(getWebClient().connectionGeneration).toBeGreaterThan(previousGeneration);
   if (outcome === 'resolve') {
     resolve({ hashedPassword: '$challenge$old$reply', credential: '$scrypt$stored' });
   } else {
@@ -93,13 +92,11 @@ it.each(['legacy', 'challenge', 'fresh'] as const)('settles %s salt login when t
 
 it.each(['resolve', 'reject'] as const)('settles a socket drop during key derivation that later %ss', async (outcome) => {
   const { pending, resolve, reject } = beginDerivation();
-  const generation = getWebClient().connectionGeneration;
   const socket = getMockWebSocket();
   socket.readyState = WebSocket.CLOSED;
   socket.onclose?.({ code: 1006, reason: '', wasClean: false } as CloseEvent);
   expect(getMockResponse().session.loginFailed).toHaveBeenCalledExactlyOnceWith();
   expect(getWebClient().status).toBe(StatusEnum.RECONNECTING);
-  expect(getWebClient().connectionGeneration).toBe(generation);
   vi.advanceTimersByTime(1000);
   openMockWebSocket();
   const reconnectedSocket = getMockWebSocket();
@@ -115,4 +112,31 @@ it.each(['resolve', 'reject'] as const)('settles a socket drop during key deriva
   expect(reconnectedSocket.send).not.toHaveBeenCalled();
   expect(reconnectedSocket.close).not.toHaveBeenCalled();
   expect(getWebClient().status).toBe(StatusEnum.CONNECTED);
+});
+
+it.each([
+  ['register', WebSocketConnectReason.REGISTER, { password: 'secret', email: '', country: '', realName: '' }, 'registrationFailed'],
+  ['reset', WebSocketConnectReason.PASSWORD_RESET, { newPassword: 'secret', token: 'token' }, 'resetPasswordFailed'],
+] as const)('settles %s once when the socket drops during verifier generation', async (_name, reason, fields, failure) => {
+  let resolve!: (verifier: string) => void;
+  const pending = new Promise<string>((onResolve) => {
+    resolve = onResolve;
+  });
+  vi.spyOn(utils, 'generatePasswordVerifier').mockReturnValueOnce(pending);
+  connectRaw({ reason, ...fields } as never);
+  identifyServer();
+  const socket = getMockWebSocket();
+  socket.readyState = WebSocket.CLOSED;
+  socket.onclose?.({ code: 1006, reason: '', wasClean: false } as CloseEvent);
+  expect(getMockResponse().session[failure]).toHaveBeenCalledTimes(1);
+
+  vi.advanceTimersByTime(1000);
+  openMockWebSocket();
+  const reconnectedSocket = getMockWebSocket();
+  expect(reconnectedSocket).not.toBe(socket);
+  resolve('$scrypt$32768$8$1$c2FsdA==$a2V5');
+  await pending;
+  await Promise.resolve();
+  expect(getMockResponse().session[failure]).toHaveBeenCalledTimes(1);
+  expect(reconnectedSocket.send).not.toHaveBeenCalled();
 });

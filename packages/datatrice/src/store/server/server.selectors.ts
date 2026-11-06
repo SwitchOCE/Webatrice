@@ -146,7 +146,6 @@ export const Selectors = {
   getPublicDecks: ({ server }: State, userName: string): Response_DeckList | undefined => server.publicDecks[userName],
   getDownloadedReplay: ({ server }: State) => server.downloadedReplay,
   getRegistrationError: ({ server }: State) => server.registrationError,
-  getRegistrationFailureCode: ({ server }: State) => server.registrationFailureCode ?? null,
   getRegistrationDeniedEndTime: ({ server }: State) => server.registrationDeniedEndTime ?? null,
   getNotifications: ({ server }: State) => server.notifications,
   getServerShutdown: ({ server }: State) => server.serverShutdown,

@@ -205,6 +205,7 @@ export const WebClient = {
     connect: vi.fn(),
     testConnect: vi.fn(),
     disconnect: vi.fn(),
+    beginAuthentication: vi.fn(() => () => true),
     updateStatus: vi.fn(),
     replayGameEventContainer: vi.fn(),
     loadReplayGame: vi.fn(),

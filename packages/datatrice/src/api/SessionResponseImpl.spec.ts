@@ -39,11 +39,9 @@ describe('SessionResponseImpl.registrationFailed', () => {
     impl.registrationFailed('Too many registration attempts', 1800000000, Response_ResponseCode.RespTooManyRequests);
     impl.updateStatus(WebsocketTypes.StatusEnum.DISCONNECTED, 'Registration failed');
     expect(store.getState().server.registrationError).toBe('Too many registration attempts');
-    expect(store.getState().server.registrationFailureCode).toBe(Response_ResponseCode.RespTooManyRequests);
     expect(store.getState().server.registrationDeniedEndTime).toBe(1800000000);
     impl.connectionAttempted();
     expect(store.getState().server.registrationError).toBeNull();
-    expect(store.getState().server.registrationFailureCode).toBeNull();
     expect(store.getState().server.registrationDeniedEndTime).toBeNull();
   });
 });

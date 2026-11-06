@@ -72,7 +72,6 @@ export const initialState: ServerState = {
   gamesOfUserRoomNames: {},
   gamesOfUserStatus: {},
   registrationError: null,
-  registrationFailureCode: null,
   registrationDeniedEndTime: null,
   staff: initialStaffState,
   reports: initialReportsState,
@@ -97,7 +96,6 @@ export const connectionReducers = {
     state.loginDeniedEndTime = null;
     state.loginLocalFailure = null;
     state.registrationError = null;
-    state.registrationFailureCode = null;
     state.registrationDeniedEndTime = null;
   }) as CaseReducer<ServerState>,
 
@@ -147,7 +145,6 @@ export const connectionReducers = {
     loginDeniedEndTime: state.loginDeniedEndTime,
     loginLocalFailure: state.loginLocalFailure,
     registrationError: state.registrationError,
-    registrationFailureCode: state.registrationFailureCode,
     registrationDeniedEndTime: state.registrationDeniedEndTime,
   })) as CaseReducer<ServerState>,
 

@@ -54,8 +54,7 @@ export class WebClient {
     }
     const client = WebClient._instance;
     client.disposed = true;
-    client.connectionGeneration++;
-    client.pendingAuthentication = undefined;
+    client.authenticationAttempt = undefined;
     try {
       client.socket.dispose();
       client.retireTestSocket();
@@ -72,8 +71,7 @@ export class WebClient {
   status: StatusEnum;
   serverSupportsPasswordHash = false;
   serverSupportsChallengeResponse = false;
-  connectionGeneration = 0;
-  pendingAuthentication?: () => void;
+  private authenticationAttempt?: () => void;
   private testSocket: WebSocket | null = null;
   private clearTestTimer: (() => void) | undefined;
   private disposed = false;
@@ -106,9 +104,9 @@ export class WebClient {
           return;
         }
         if (status === StatusEnum.DISCONNECTED || status === StatusEnum.RECONNECTING) {
-          const pending = this.pendingAuthentication;
-          this.pendingAuthentication = undefined;
-          pending?.();
+          const lost = this.authenticationAttempt;
+          this.authenticationAttempt = undefined;
+          lost?.();
         }
         this.updateStatus(status);
         this.response.session.updateStatus(status, description);
@@ -151,13 +149,24 @@ export class WebClient {
     this.response.session.initialized();
   }
 
+  public beginAuthentication(onLost: () => void): () => boolean {
+    const attempt = () => onLost();
+    this.authenticationAttempt = attempt;
+    return () => {
+      const current = this.authenticationAttempt === attempt;
+      if (current) {
+        this.authenticationAttempt = undefined;
+      }
+      return current;
+    };
+  }
+
   public connect(target: ConnectTarget): void {
     if (this.disposed || this.resetting) {
       return;
     }
     this.resetting = true;
-    this.connectionGeneration++;
-    this.pendingAuthentication = undefined;
+    this.authenticationAttempt = undefined;
     try {
       this.protobuf.resetCommands();
       if (!this.disposed) {
@@ -250,8 +259,6 @@ export class WebClient {
   }
 
   public disconnect(): void {
-    this.connectionGeneration++;
-    this.pendingAuthentication = undefined;
     this.socket.disconnect();
   }
 

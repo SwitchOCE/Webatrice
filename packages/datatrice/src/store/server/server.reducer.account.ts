@@ -12,13 +12,11 @@ export const accountReducers = {
       ? normalizeBannedUserError(reason, endTime)
       : reason;
     state.registrationError = error;
-    state.registrationFailureCode = responseCode ?? null;
     state.registrationDeniedEndTime = limited ? endTime ?? null : null;
   }) as CaseReducer<ServerState, PayloadAction<{ reason: string; endTime?: number; responseCode?: number }>>,
 
   clearRegistrationErrors: ((state) => {
     state.registrationError = null;
-    state.registrationFailureCode = null;
     state.registrationDeniedEndTime = null;
   }) as CaseReducer<ServerState>,
 

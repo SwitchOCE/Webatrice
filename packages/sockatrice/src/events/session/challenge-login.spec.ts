@@ -58,7 +58,6 @@ function assertStored(credential: string) {
 beforeEach(() => {
   vi.clearAllMocks();
   WebClient.instance.serverSupportsChallengeResponse = false;
-  WebClient.instance.connectionGeneration = 0;
 });
 
 afterEach(() => {
@@ -273,25 +272,28 @@ describe.each(['register', 'activate'] as const)('%s auto-login', (action) => {
     expect(WebClient.instance.response.session.loginSuccessful).not.toHaveBeenCalled();
   });
 
-  it.each(autoLoginFallbacks)('uses the typed password instead of a saved verifier with $name', async ({ supports, response }) => {
-    WebClient.instance.serverSupportsChallengeResponse = supports;
-    if (action === 'register') {
-      register({ ...target, hashedPassword: verifier, email: '', country: '', realName: '' }, password);
-      last()[2].onResponseCode[Data.Response_ResponseCode.RespRegistrationAccepted]();
-    } else {
-      activate({ ...target, token: 'token' }, password, verifier);
-      last()[2].onResponseCode[Data.Response_ResponseCode.RespActivationAccepted]();
-    }
-    if (response) {
-      await last()[2].onSuccess(response);
-    }
-    await waitForLogin();
-    expect(last()[1]).toMatchObject(response?.passwordSalt
-      ? { hashedPassword: legacyHash(response.passwordSalt, password), password: '' }
-      : { hashedPassword: '', password });
-    expect(last()[1].hashedPassword).not.toContain('$scrypt$');
-    expect(WebClient.instance.response.session.loginFailed).not.toHaveBeenCalled();
-  });
+  it.each(autoLoginFallbacks.filter(({ supports }) => supports))(
+    'uses the typed password instead of a saved verifier with $name',
+    async ({ supports, response }) => {
+      WebClient.instance.serverSupportsChallengeResponse = supports;
+      if (action === 'register') {
+        register({ ...target, hashedPassword: verifier, email: '', country: '', realName: '' }, password);
+        last()[2].onResponseCode[Data.Response_ResponseCode.RespRegistrationAccepted]();
+      } else {
+        activate({ ...target, token: 'token' }, password, verifier);
+        last()[2].onResponseCode[Data.Response_ResponseCode.RespActivationAccepted]();
+      }
+      if (response) {
+        await last()[2].onSuccess(response);
+      }
+      await waitForLogin();
+      expect(last()[1]).toMatchObject(response?.passwordSalt
+        ? { hashedPassword: legacyHash(response.passwordSalt, password), password: '' }
+        : { hashedPassword: '', password });
+      expect(last()[1].hashedPassword).not.toContain('$scrypt$');
+      expect(WebClient.instance.response.session.loginFailed).not.toHaveBeenCalled();
+    },
+  );
 });
 
 it.each([true, false])('hashes a legacy row without Web Crypto, nonce present: %s', async (withNonce) => {

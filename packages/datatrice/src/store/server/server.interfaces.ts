@@ -82,7 +82,6 @@ export interface ServerState {
   gamesOfUserRoomNames: { [userName: string]: { [roomId: number]: string } };
   gamesOfUserStatus: { [userName: string]: GamesOfUserStatus };
   registrationError: string | null;
-  registrationFailureCode?: number | null;
   registrationDeniedEndTime?: number | null;
   staff: ServerStateStaff;
   reports: ServerStateReports;

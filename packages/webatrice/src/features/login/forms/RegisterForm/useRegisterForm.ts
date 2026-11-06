@@ -5,7 +5,6 @@ import { useTranslation } from 'react-i18next';
 import { useToast } from '@app/components';
 import { useReduxEffect } from '@app/hooks';
 import { server } from '@cockatrice/datatrice';
-import { Response_ResponseCode } from '@cockatrice/sockatrice/generated';
 
 export interface RegisterForm {
   emailRequired: boolean;
@@ -26,10 +25,9 @@ export function useRegisterForm(): RegisterForm {
   const [passwordError, setPasswordError] = useState<string | null>(null);
   const [userNameError, setUserNameError] = useState<string | null>(null);
   const rawError = useSelector(server.Selectors.getRegistrationError);
-  const failureCode = useSelector(server.Selectors.getRegistrationFailureCode);
   const deniedEndTime = useSelector(server.Selectors.getRegistrationDeniedEndTime);
   let error = rawError;
-  if (failureCode === Response_ResponseCode.RespTooManyRequests && rawError) {
+  if (rawError) {
     const until = new Date((deniedEndTime ?? 0) * 1000);
     if ((deniedEndTime ?? 0) > 0 && Number.isFinite(until.getTime())) {
       error = t('RegisterForm.error.retryAfter', { reason: rawError, until: until.toLocaleString() });

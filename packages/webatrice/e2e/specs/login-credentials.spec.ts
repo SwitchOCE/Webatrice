@@ -1,6 +1,7 @@
 import type { Page } from '@playwright/test';
 
 import { E2E_HOST_LABEL, E2E_JUDGE, reachHost, registerAndReachRooms } from '../fixtures/flows';
+import { serverHas } from '../fixtures/serverVersion';
 import { expect, test } from '../fixtures/test';
 import { LoginPage, RoomsPage } from '../pages';
 
@@ -74,4 +75,16 @@ test('a wrong password is refused and nothing is saved', async ({ page }) => {
   await expect(page.getByText(/incorrect username or password/i).first()).toBeVisible({ timeout: 15_000 });
   await expect(login.loginButton).toBeEnabled({ timeout: 15_000 });
   expect(await storedCredentials(page)).toEqual([]);
+});
+
+test('repeated wrong passwords name the time to try again', async ({ page }) => {
+  test.skip(!serverHas('deckSharing'), 'login limits arrived with Cockatrice 3.1');
+  const { login, user } = await registerAndReachRooms(page);
+  await page.reload();
+  await login.selectHost(E2E_HOST_LABEL);
+
+  await expect(async () => {
+    await login.login(user.username, `${user.password}wrong`);
+    await expect(page.getByText(/too many login attempts\. please try again after/i).first()).toBeVisible({ timeout: 2_000 });
+  }).toPass({ timeout: 60_000 });
 });

@@ -17,12 +17,30 @@ function onSaltFailure(settle: (failure?: CommandFailure) => void) {
   };
 }
 
+async function sendWithNewVerifier(
+  password: string,
+  onLost: () => void,
+  onError: () => void,
+  send: (verifier: string) => void,
+): Promise<void> {
+  const stillCurrent = WebClient.instance.beginAuthentication(onLost);
+  let verifier: string;
+  try {
+    verifier = await generatePasswordVerifier(password);
+  } catch {
+    if (stillCurrent()) {
+      onError();
+    }
+    return;
+  }
+  if (stillCurrent()) {
+    send(verifier);
+  }
+}
+
 export async function serverIdentification(info: Event_ServerIdentification): Promise<void> {
   const { serverName, serverVersion, protocolVersion, serverOptions } = info;
-  const client = WebClient.instance;
-  const generation = client.connectionGeneration;
-  const isCurrent = () => client.connectionGeneration === generation;
-  const response = client.response;
+  const response = WebClient.instance.response;
 
   if (protocolVersion !== WebClient.instance.protocolVersion) {
     SessionCommands.updateStatus(StatusEnum.DISCONNECTED, `Protocol version mismatch: ${protocolVersion}`);
@@ -63,20 +81,16 @@ export async function serverIdentification(info: Event_ServerIdentification): Pr
     case WebSocketConnectReason.REGISTER: {
       const { password, ...rest } = options;
       if (info.supportsChallengeResponse) {
-        try {
-          const hashedPassword = await generatePasswordVerifier(password);
-          if (!isCurrent()) {
-            return;
-          }
-          SessionCommands.register({ ...rest, hashedPassword }, password);
-        } catch {
-          if (!isCurrent()) {
-            return;
-          }
-          response.session.registrationFailed('Unable to prepare the password verifier. Please try again.');
-          SessionCommands.updateStatus(StatusEnum.DISCONNECTED, 'Registration failed');
-          SessionCommands.disconnect();
-        }
+        await sendWithNewVerifier(
+          password,
+          () => response.session.registrationFailed('The connection to the server has been lost.'),
+          () => {
+            response.session.registrationFailed('Unable to prepare the password verifier. Please try again.');
+            SessionCommands.updateStatus(StatusEnum.DISCONNECTED, 'Registration failed');
+            SessionCommands.disconnect();
+          },
+          (hashedPassword) => SessionCommands.register({ ...rest, hashedPassword }, password),
+        );
       } else if (getPasswordSalt) {
         const passwordSalt = generateSalt();
         const hashedPassword = await hashPassword(passwordSalt, password);
@@ -112,20 +126,16 @@ export async function serverIdentification(info: Event_ServerIdentification): Pr
     case WebSocketConnectReason.PASSWORD_RESET: {
       const { newPassword, ...rest } = options;
       if (info.supportsChallengeResponse) {
-        try {
-          const hashedNewPassword = await generatePasswordVerifier(newPassword);
-          if (!isCurrent()) {
-            return;
-          }
-          SessionCommands.forgotPasswordReset({ ...rest, hashedNewPassword }, newPassword);
-        } catch {
-          if (!isCurrent()) {
-            return;
-          }
-          response.session.resetPasswordFailed();
-          SessionCommands.updateStatus(StatusEnum.DISCONNECTED, 'Unable to prepare the password verifier. Please try again.');
-          SessionCommands.disconnect();
-        }
+        await sendWithNewVerifier(
+          newPassword,
+          () => response.session.resetPasswordFailed(),
+          () => {
+            response.session.resetPasswordFailed();
+            SessionCommands.updateStatus(StatusEnum.DISCONNECTED, 'Unable to prepare the password verifier. Please try again.');
+            SessionCommands.disconnect();
+          },
+          (hashedNewPassword) => SessionCommands.forgotPasswordReset({ ...rest, hashedNewPassword }, newPassword),
+        );
       } else if (getPasswordSalt) {
         SessionCommands.requestPasswordSalt(rest,
           async (salt) => {

@@ -216,7 +216,6 @@ export function makeServerState(overrides: Partial<ServerState> = {}): ServerSta
     gamesOfUserRoomNames: {},
     gamesOfUserStatus: {},
     registrationError: null,
-    registrationFailureCode: null,
     registrationDeniedEndTime: null,
     staff: { investigation: null, moderatorLastLogins: null, cardArtRules: null, serverStats: null },
     reports: makeReportsState(),
