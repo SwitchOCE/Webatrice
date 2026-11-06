@@ -522,15 +522,15 @@ describe('useLogin', () => {
       ...disconnectedState,
       server: {
         ...(disconnectedState.server as any),
-        loginFailureCode: Response_ResponseCode.RespWrongPassword,
+        loginFailureCode: Response_ResponseCode.RespUserIsBanned,
         status: {
           ...(disconnectedState.server as any).status,
-          description: 'Login failed: incorrect username or password',
+          description: 'Login failed: banned user',
         },
       },
     });
 
-    expect(result.current.description).toBe('Login failed: incorrect username or password');
+    expect(result.current.description).toBe('Login failed: banned user');
   });
 
   it('does not surface the reachability message once connected, even if the flag lingers', () => {
