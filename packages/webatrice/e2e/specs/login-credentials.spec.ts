@@ -106,8 +106,12 @@ test('signing in elsewhere signs the first page out and says why', async ({ page
   const secondPage = await (await newContext()).newPage();
   await reachRoomsAs(secondPage, user);
 
-  await expect(page.getByText(/logged out due to logging in at another location/i)).toBeVisible({ timeout: 15_000 });
+  const notice = page.getByRole('dialog', { name: 'Connection closed' });
+  await expect(notice).toContainText(/logged out due to logging in at another location/i, { timeout: 15_000 });
+  await notice.getByRole('button', { name: 'OK' }).click();
+  await expect(notice).toBeHidden();
   await expect(login.hostPicker).toBeVisible();
+  await expect(page.getByText(/logged out due to logging in at another location/i)).toBeVisible();
   await new RoomsPage(secondPage).waitForRoomList();
 });
 
