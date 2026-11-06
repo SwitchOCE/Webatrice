@@ -561,24 +561,49 @@ describe('useLogin', () => {
     expect(result.current.dialogState.registrationDialog).toBe(true);
   });
 
-  it.each([
-    ['failed', () => server.Actions.connectionFailed()],
-    ['unreachable', () => server.Actions.connectUnreachable()],
-  ])('closes every dialog when the connection is %s, so the reason is visible', (_name, failure) => {
+  const noDialogs = {
+    passwordResetRequestDialog: false,
+    resetPasswordDialog: false,
+    registrationDialog: false,
+    activationDialog: false,
+  };
+
+  it('closes every dialog when a submitted connection fails, so the reason is visible', () => {
     const { result, store } = setup(disconnectedState);
     act(() => {
       result.current.openRegistrationDialog();
       result.current.openRequestPasswordResetDialog();
     });
     act(() => {
-      store.dispatch(failure());
+      store.dispatch(server.Actions.connectionFailed());
     });
-    expect(result.current.dialogState).toEqual({
-      passwordResetRequestDialog: false,
-      resetPasswordDialog: false,
-      registrationDialog: false,
-      activationDialog: false,
+    expect(result.current.dialogState).toEqual(noDialogs);
+  });
+
+  it('closes every dialog when a submitted connection cannot reach the server', () => {
+    const { result, store } = setup(disconnectedState);
+    act(() => {
+      result.current.openRegistrationDialog();
     });
+    act(() => {
+      store.dispatch(server.Actions.connectionAttempted());
+    });
+    act(() => {
+      store.dispatch(server.Actions.connectUnreachable());
+    });
+    expect(result.current.dialogState).toEqual(noDialogs);
+  });
+
+  it('keeps an unsubmitted dialog open when a background server check fails', () => {
+    const { result, store } = setup(disconnectedState);
+    act(() => {
+      result.current.openRegistrationDialog();
+    });
+    act(() => {
+      store.dispatch(server.Actions.testConnectionFailed());
+      store.dispatch(server.Actions.connectUnreachable());
+    });
+    expect(result.current.dialogState.registrationDialog).toBe(true);
   });
 
   it('allows another attempt after a disconnect that carries no login failure', () => {

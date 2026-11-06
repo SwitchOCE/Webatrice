@@ -154,12 +154,20 @@ export function useLogin(): Login {
     closeRegistrationDialog();
   }, server.Types.REGISTRATION_SUCCESS, []);
 
-  useReduxEffect(() => {
+  const closeAllDialogs = () => {
     closeRequestPasswordResetDialog();
     closeResetPasswordDialog();
     closeRegistrationDialog();
     closeActivateAccountDialog();
-  }, [server.Types.CONNECTION_FAILED, server.Actions.connectUnreachable.type], []);
+  };
+
+  useReduxEffect(closeAllDialogs, server.Types.CONNECTION_FAILED, []);
+
+  useReduxEffect(() => {
+    if (connectionAttemptMade) {
+      closeAllDialogs();
+    }
+  }, server.Actions.connectUnreachable.type, [connectionAttemptMade]);
 
   useReduxEffect(() => {
     passwordResetToast.openToast();
