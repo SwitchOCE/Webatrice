@@ -13,4 +13,12 @@ export interface LoginSuccessContext {
   missingFeatures?: string[];
 }
 
+export interface LoginFailure {
+  responseCode?: number;
+  deniedEndTime?: number;
+  deniedReason?: string;
+  missingFeatures?: string[];
+  localFailure?: LocalLoginFailure;
+}
+
 export type LocalLoginFailure = 'passwordRequired' | 'authenticationUnsupported' | 'authenticationDowngrade';

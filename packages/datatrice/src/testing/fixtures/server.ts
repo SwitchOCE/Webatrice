@@ -177,6 +177,8 @@ export function makeServerState(overrides: Partial<ServerState> = {}): ServerSta
     connectUnreachable: false,
     loginFailureCode: null,
     loginDeniedEndTime: null,
+    loginDeniedReason: null,
+    loginMissingFeatures: null,
     loginLocalFailure: null,
     info: {
       message: null,

@@ -19,6 +19,7 @@ import { reportSelectors } from './server.selectors.reports';
 type State = { server: ServerState };
 
 const EMPTY_USERS: ServerInfo_User[] = [];
+const EMPTY_FEATURES: string[] = [];
 const EMPTY_REPLAYS: ServerInfo_ReplayMatch[] = [];
 const EMPTY_MESSAGES: PrivateMessage[] = [];
 const EMPTY_NOTICES: PrivateChatNotice[] = [];
@@ -47,6 +48,8 @@ export const Selectors = {
   getConnectUnreachable: ({ server }: State) => server.connectUnreachable ?? false,
   getLoginFailureCode: ({ server }: State) => server.loginFailureCode ?? null,
   getLoginDeniedEndTime: ({ server }: State) => server.loginDeniedEndTime ?? null,
+  getLoginDeniedReason: ({ server }: State) => server.loginDeniedReason ?? null,
+  getLoginMissingFeatures: ({ server }: State) => server.loginMissingFeatures ?? EMPTY_FEATURES,
   getLoginLocalFailure: ({ server }: State) => server.loginLocalFailure ?? null,
   supports: ({ server }: State, capability: ServerCapability): boolean =>
     serverSupports(server.info.version, capability),

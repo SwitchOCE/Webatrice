@@ -19,6 +19,7 @@ export const EMPTY_LATENCY: ServerLatency = {
 export const initialState: ServerState = {
   initialized: false,
   sessionEpoch: 0,
+  sessionOpen: false,
   testConnectionStatus: null,
   buddyList: {},
   ignoreList: {},
@@ -33,6 +34,8 @@ export const initialState: ServerState = {
   connectUnreachable: false,
   loginFailureCode: null,
   loginDeniedEndTime: null,
+  loginDeniedReason: null,
+  loginMissingFeatures: null,
   loginLocalFailure: null,
   info: {
     message: null,
@@ -94,6 +97,8 @@ export const connectionReducers = {
     state.connectUnreachable = false;
     state.loginFailureCode = null;
     state.loginDeniedEndTime = null;
+    state.loginDeniedReason = null;
+    state.loginMissingFeatures = null;
     state.loginLocalFailure = null;
     state.registrationError = null;
     state.registrationDeniedEndTime = null;
@@ -102,6 +107,8 @@ export const connectionReducers = {
   loginFailed: ((state, action) => {
     state.loginFailureCode = action.payload?.responseCode ?? null;
     state.loginDeniedEndTime = action.payload?.deniedEndTime ?? null;
+    state.loginDeniedReason = action.payload?.deniedReason ?? null;
+    state.loginMissingFeatures = action.payload?.missingFeatures ?? null;
     state.loginLocalFailure = action.payload?.localFailure ?? null;
   }) as CaseReducer<ServerState, PayloadAction<LoginFailurePayload | undefined>>,
 
@@ -130,6 +137,7 @@ export const connectionReducers = {
     ...initialState,
     status: { ...state.status },
     sessionEpoch: (state.sessionEpoch ?? 0) + 1,
+    sessionOpen: state.sessionOpen,
     locale: state.locale,
     testConnectionStatus: state.testConnectionStatus,
   })) as CaseReducer<ServerState>,
@@ -137,12 +145,14 @@ export const connectionReducers = {
   disconnected: ((state) => ({
     ...initialState,
     status: { ...state.status },
-    sessionEpoch: (state.sessionEpoch ?? 0) + 1,
+    sessionEpoch: (state.sessionEpoch ?? 0) + (state.sessionOpen ? 1 : 0),
     locale: state.locale,
     testConnectionStatus: state.testConnectionStatus,
     connectUnreachable: state.connectUnreachable,
     loginFailureCode: state.loginFailureCode,
     loginDeniedEndTime: state.loginDeniedEndTime,
+    loginDeniedReason: state.loginDeniedReason,
+    loginMissingFeatures: state.loginMissingFeatures,
     loginLocalFailure: state.loginLocalFailure,
     registrationError: state.registrationError,
     registrationDeniedEndTime: state.registrationDeniedEndTime,
@@ -163,6 +173,7 @@ export const connectionReducers = {
     const { status } = action.payload;
     if (status.state === WebsocketTypes.StatusEnum.LOGGED_IN && state.status.state !== status.state) {
       state.sessionEpoch = (state.sessionEpoch ?? 0) + 1;
+      state.sessionOpen = true;
     }
     state.status.state = status.state;
     state.status.description = status.description;

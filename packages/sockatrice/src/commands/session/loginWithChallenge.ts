@@ -61,8 +61,8 @@ export function loginWithFreshSalt(options: ConnectTarget & LoginParams, passwor
     onResponse: (response) => {
       void loginWithPasswordSalt(options, password, response);
     },
-  }, (failure) => {
-    WebClient.instance.response.session.loginFailed();
+  }, (failure, responseCode) => {
+    WebClient.instance.response.session.loginFailed(responseCode === undefined ? undefined : { responseCode });
     if (failure !== CommandFailure.Disconnected) {
       disconnect();
     }

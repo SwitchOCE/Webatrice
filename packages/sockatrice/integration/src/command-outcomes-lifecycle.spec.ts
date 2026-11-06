@@ -20,7 +20,8 @@ const cases = [
     capture: () => findLastSessionCommand(Data.Command_Login_ext),
     wire: create(Data.Command_LoginSchema, { ...CLIENT_CONFIG, userName: 'alice', password: 'secret' }),
     callback: () => getMockResponse().session.loginFailed,
-    args: (code: number, _outcome: string) => [code],
+    args: (code: number, outcome: string) => outcome === 'rejected' ? [{ responseCode: code }]
+      : outcome === 'timeout' ? [{}] : [],
     status: (outcome: string, code: number) => outcome === 'timeout'
       ? 'Login failed: the server did not respond' : `Login failed: unknown error: ${code}`,
   },

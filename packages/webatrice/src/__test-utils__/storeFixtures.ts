@@ -75,6 +75,7 @@ export const connectedState: Partial<RootState> = {
   ...disconnectedState,
   server: {
     ...(disconnectedState.server as any),
+    sessionOpen: true,
     initialized: true,
     status: {
       connectionAttemptMade: true,

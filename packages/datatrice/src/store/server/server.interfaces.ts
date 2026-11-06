@@ -26,15 +26,12 @@ export type TestConnectionStatus = 'testing' | 'success' | 'failed' | null;
 
 export type PrivateMessage = Event_UserMessage & { timeReceived: number };
 
-export interface LoginFailurePayload {
-  responseCode?: number;
-  deniedEndTime?: number;
-  localFailure?: WebsocketTypes.LocalLoginFailure;
-}
+export type LoginFailurePayload = WebsocketTypes.LoginFailure;
 
 export interface ServerState {
   initialized: boolean;
   sessionEpoch: number;
+  sessionOpen?: boolean;
   testConnectionStatus: TestConnectionStatus;
   buddyList: { [userName: string]: ServerInfo_User };
   ignoreList: { [userName: string]: ServerInfo_User };
@@ -45,6 +42,8 @@ export interface ServerState {
   connectUnreachable: boolean;
   loginFailureCode?: number | null;
   loginDeniedEndTime?: number | null;
+  loginDeniedReason?: string | null;
+  loginMissingFeatures?: string[] | null;
   loginLocalFailure?: WebsocketTypes.LocalLoginFailure | null;
   logs: ServerStateLogs;
   user: ServerInfo_User | null;

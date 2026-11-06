@@ -17,7 +17,7 @@ import { updateStatus } from './';
 export function requestPasswordSalt(
   options: ConnectTarget & RequestPasswordSaltParams,
   onSaltReceived: ((passwordSalt: string) => void) | { onResponse: (response: Response_PasswordSalt) => void },
-  onFailure: (failure?: CommandFailure) => void,
+  onFailure: (failure?: CommandFailure, responseCode?: number) => void,
 ): void {
   const { userName } = options;
 
@@ -36,7 +36,7 @@ export function requestPasswordSalt(
     onResponseCode: {
       [Response_ResponseCode.RespRegistrationRequired]: () => {
         updateStatus(StatusEnum.DISCONNECTED, 'Login failed: registration required');
-        onFailure();
+        onFailure(undefined, Response_ResponseCode.RespRegistrationRequired);
       },
     },
     onError: (_responseCode, _raw, failure) => {

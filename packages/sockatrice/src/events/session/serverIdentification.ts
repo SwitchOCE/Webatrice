@@ -8,9 +8,9 @@ import { loginWithoutChallenge, loginWithPasswordSalt } from '../../commands/ses
 import * as SessionCommands from '../../commands/session';
 import { CommandFailure } from '../../types/CommandFailure';
 
-function onSaltFailure(settle: (failure?: CommandFailure) => void) {
-  return (failure?: CommandFailure) => {
-    settle(failure);
+function onSaltFailure(settle: (failure?: CommandFailure, responseCode?: number) => void) {
+  return (failure?: CommandFailure, responseCode?: number) => {
+    settle(failure, responseCode);
     if (failure !== CommandFailure.Disconnected) {
       SessionCommands.disconnect();
     }
@@ -73,7 +73,9 @@ export async function serverIdentification(info: Event_ServerIdentification): Pr
               void loginWithPasswordSalt(rest, password, response);
             },
           },
-          onSaltFailure(() => response.session.loginFailed()),
+          onSaltFailure((_failure, responseCode) => {
+            response.session.loginFailed(responseCode === undefined ? undefined : { responseCode });
+          }),
         );
       } else {
         loginWithoutChallenge(rest, password);

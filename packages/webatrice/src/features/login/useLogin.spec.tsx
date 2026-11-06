@@ -408,7 +408,7 @@ describe('useLogin', () => {
     [Response_ResponseCode.RespPasswordChangeRequired, 'Login.status.passwordChangeRequired'],
     [Response_ResponseCode.RespServerFull, 'Login.status.serverFull'],
     [Response_ResponseCode.RespWrongPassword, 'Login.status.wrongCredentials'],
-    [Response_ResponseCode.RespUsernameInvalid, 'Login.status.wrongCredentials'],
+    [Response_ResponseCode.RespWouldOverwriteOldSession, 'Login.status.activeSession'],
   ])('explains login rejection %s with %s', (loginFailureCode, key) => {
     const { result } = setup({
       ...disconnectedState,
@@ -506,20 +506,51 @@ describe('useLogin', () => {
     expect(result.current.passwordChangeRequired).toBe(false);
   });
 
-  it('keeps the status line for a login rejection without a localized message', () => {
+  it('passes the denial details to the rejection message', () => {
     const { result } = setup({
       ...disconnectedState,
       server: {
         ...(disconnectedState.server as any),
-        loginFailureCode: Response_ResponseCode.RespUserIsBanned,
+        loginFailureCode: Response_ResponseCode.RespClientUpdateRequired,
+        loginDeniedReason: 'Upgrade your client',
         status: {
           ...(disconnectedState.server as any).status,
-          description: 'Login failed: banned user',
+          description: 'Login failed: missing features',
         },
       },
     });
 
-    expect(result.current.description).toBe('Login failed: banned user');
+    expect(result.current.description).toBe('Upgrade your client');
+  });
+
+  it('keeps the status line for a failure with no rejection code', () => {
+    const { result } = setup({
+      ...disconnectedState,
+      server: {
+        ...(disconnectedState.server as any),
+        status: {
+          ...(disconnectedState.server as any).status,
+          description: 'Protocol version mismatch: 15',
+        },
+      },
+    });
+
+    expect(result.current.description).toBe('Protocol version mismatch: 15');
+  });
+
+  it('allows another attempt after a disconnect that carries no login failure', () => {
+    const { result, store } = setup(disconnectedState);
+    act(() => {
+      result.current.handleLogin(makeLoginValues());
+    });
+    expect(result.current.submitButtonDisabled).toBe(true);
+    act(() => {
+      store.dispatch(server.Actions.updateStatus({
+        status: { state: WebsocketTypes.StatusEnum.DISCONNECTED, description: 'Protocol version mismatch: 15' },
+      }));
+      store.dispatch(server.Actions.disconnected());
+    });
+    expect(result.current.submitButtonDisabled).toBe(false);
   });
 
   it('does not surface the reachability message once connected, even if the flag lingers', () => {

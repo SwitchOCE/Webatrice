@@ -38,7 +38,7 @@ it('refuses the saved verifier without a typed password on a non-challenge serve
     value: create(Data.Response_PasswordSaltSchema, { passwordSalt: salt }),
   })));
   expect(() => findLastSessionCommand(Data.Command_Login_ext)).toThrow();
-  expect(getMockResponse().session.loginFailed).toHaveBeenCalledExactlyOnceWith(undefined, undefined, 'passwordRequired');
+  expect(getMockResponse().session.loginFailed).toHaveBeenCalledExactlyOnceWith({ localFailure: 'passwordRequired' });
   expect(getMockWebSocket().close).toHaveBeenCalledTimes(1);
   expect(getWebClient().serverSupportsChallengeResponse).toBe(false);
 });

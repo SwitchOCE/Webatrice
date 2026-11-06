@@ -108,6 +108,9 @@ export class WebClient {
           this.authenticationAttempt = undefined;
           lost?.();
         }
+        if (status === StatusEnum.DISCONNECTED && this.status === StatusEnum.DISCONNECTED) {
+          return;
+        }
         this.updateStatus(status);
         this.response.session.updateStatus(status, description);
       },
@@ -170,6 +173,7 @@ export class WebClient {
     try {
       this.protobuf.resetCommands();
       if (!this.disposed) {
+        this.status = StatusEnum.CONNECTING;
         this.response.session.connectionAttempted();
         this.socket.connect(target);
       }

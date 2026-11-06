@@ -16,6 +16,7 @@ import type { RegisterFormValues } from './forms/RegisterForm/RegisterForm';
 import type { RequestPasswordResetFormValues } from './forms/RequestPasswordResetForm/RequestPasswordResetForm';
 import type { ResetPasswordFormValues } from './forms/ResetPasswordForm/ResetPasswordForm';
 import { loginAttempt, useLoginAttemptFailed } from './loginAttempt';
+import { loginFailureMessage } from './loginFailureMessage';
 import { useAutoLogin } from './useAutoLogin';
 import { persistLoginCredentials } from './persistLoginCredentials';
 import { autoLoginGate } from '../../services/session/autoLoginGate';
@@ -50,13 +51,6 @@ export interface Login {
   closeActivateAccountDialog: () => void;
 }
 
-const LOGIN_FAILURE_MESSAGE_KEYS: Partial<Record<number, string>> = {
-  [Response_ResponseCode.RespPasswordChangeRequired]: 'Login.status.passwordChangeRequired',
-  [Response_ResponseCode.RespServerFull]: 'Login.status.serverFull',
-  [Response_ResponseCode.RespWrongPassword]: 'Login.status.wrongCredentials',
-  [Response_ResponseCode.RespUsernameInvalid]: 'Login.status.wrongCredentials',
-};
-
 const LOCAL_LOGIN_FAILURE_KEYS: Record<WebsocketTypes.LocalLoginFailure, string> = {
   passwordRequired: 'Login.status.passwordRequired',
   authenticationUnsupported: 'Login.status.authenticationUnsupported',
@@ -70,11 +64,12 @@ export function useLogin(): Login {
   const connectUnreachable = useAppSelector(server.Selectors.getConnectUnreachable);
   const loginFailureCode = useAppSelector(server.Selectors.getLoginFailureCode);
   const loginDeniedEndTime = useAppSelector(server.Selectors.getLoginDeniedEndTime);
+  const loginDeniedReason = useAppSelector(server.Selectors.getLoginDeniedReason);
+  const loginMissingFeatures = useAppSelector(server.Selectors.getLoginMissingFeatures);
   const loginLocalFailure = useAppSelector(server.Selectors.getLoginLocalFailure);
   const webClient = useWebClient();
   const { t } = useTranslation();
 
-  const loginFailureKey = loginFailureCode === null ? undefined : LOGIN_FAILURE_MESSAGE_KEYS[loginFailureCode];
   const passwordChangeRequired =
     !isConnected && loginFailureCode === Response_ResponseCode.RespPasswordChangeRequired;
   let description = rawDescription;
@@ -82,13 +77,13 @@ export function useLogin(): Login {
     description = t('Login.status.serverUnreachable');
   } else if (!isConnected && loginLocalFailure) {
     description = t(LOCAL_LOGIN_FAILURE_KEYS[loginLocalFailure]);
-  } else if (!isConnected && loginFailureCode === Response_ResponseCode.RespTooManyRequests) {
-    const deniedUntil = new Date((loginDeniedEndTime ?? 0) * 1000);
-    description = loginDeniedEndTime !== null && loginDeniedEndTime > 0 && Number.isFinite(deniedUntil.getTime())
-      ? t('Login.status.tooManyRequestsUntil', { until: deniedUntil.toLocaleString() })
-      : t('Login.status.tooManyRequests');
-  } else if (!isConnected && loginFailureKey) {
-    description = t(loginFailureKey);
+  } else if (!isConnected && loginFailureCode !== null) {
+    description = loginFailureMessage(t, {
+      code: loginFailureCode,
+      deniedEndTime: loginDeniedEndTime,
+      deniedReason: loginDeniedReason,
+      missingFeatures: loginMissingFeatures,
+    });
   }
 
   const [pendingActivationOptions, setPendingActivationOptions] =
@@ -200,7 +195,7 @@ export function useLogin(): Login {
   useReduxEffect(() => {
     resetSubmitButton();
     loginAttempt.failed();
-  }, [server.Types.CONNECTION_FAILED, server.Types.LOGIN_FAILED, server.Actions.connectUnreachable.type], []);
+  }, [server.Types.CONNECTION_FAILED, server.Types.LOGIN_FAILED, server.Types.DISCONNECTED, server.Actions.connectUnreachable.type], []);
 
   useReduxEffect<{ options: WebsocketTypes.LoginSuccessContext }>(({ payload: { options } }) => {
     const loginForm = rememberLoginRef.current;

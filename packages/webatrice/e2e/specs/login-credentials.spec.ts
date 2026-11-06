@@ -1,6 +1,7 @@
 import type { Page } from '@playwright/test';
 
-import { E2E_HOST_LABEL, E2E_JUDGE, reachHost, registerAndReachRooms } from '../fixtures/flows';
+import { E2E_ADMIN, E2E_HOST_LABEL, E2E_JUDGE, reachHost, registerAndReachRooms } from '../fixtures/flows';
+import { queryServerDb } from '../fixtures/serverDb';
 import { serverHas } from '../fixtures/serverVersion';
 import { expect, test } from '../fixtures/test';
 import { LoginPage, RoomsPage } from '../pages';
@@ -74,7 +75,56 @@ test('a wrong password is refused and nothing is saved', async ({ page }) => {
 
   await expect(page.getByText(/incorrect username or password/i).first()).toBeVisible({ timeout: 15_000 });
   await expect(login.loginButton).toBeEnabled({ timeout: 15_000 });
+  await expect(page.getByLabel(/^username$/i)).toHaveValue(user.username);
   expect(await storedCredentials(page)).toEqual([]);
+});
+
+test('a ban shows its end time and reason, and is indefinite without one', async ({ page }) => {
+  const { login, user } = await registerAndReachRooms(page);
+  await page.reload();
+  await login.selectHost(E2E_HOST_LABEL);
+  const ban = (minutes: number, reason: string) => queryServerDb(
+    'insert into cockatrice_bans (user_name, ip_address, id_admin, time_from, minutes, reason, visible_reason, clientid) '
+    + `select '${user.username}', '', id, now(), ${minutes}, 'e2e', '${reason}', '' `
+    + `from cockatrice_users where name = '${E2E_ADMIN.username}'`,
+  );
+
+  ban(60, 'Testing bans');
+  await login.login(user.username, user.password);
+  await expect(page.getByText(/^You are banned until .+\. Reason: Testing bans$/)).toBeVisible({ timeout: 15_000 });
+  await expect(login.loginButton).toBeEnabled({ timeout: 15_000 });
+
+  queryServerDb(`delete from cockatrice_bans where user_name = '${user.username}'`);
+  ban(0, 'Testing long bans');
+  await login.login(user.username, user.password);
+  await expect(page.getByText('You are banned indefinitely. Reason: Testing long bans')).toBeVisible({ timeout: 15_000 });
+});
+
+test('a reset token requested from the login page sets a new password', async ({ page }) => {
+  const { login, rooms, user } = await registerAndReachRooms(page);
+  await page.reload();
+  await login.selectHost(E2E_HOST_LABEL);
+
+  await page.getByRole('button', { name: /forgot password/i }).click();
+  await page.getByRole('dialog').getByLabel(/^username$/i).fill(user.username);
+  await page.getByRole('button', { name: 'Request Reset Token' }).click();
+
+  const reset = page.getByRole('dialog').filter({ has: page.getByRole('button', { name: 'Reset Password' }) });
+  await expect(reset).toBeVisible({ timeout: 15_000 });
+  await expect(reset.getByLabel(/^username$/i)).toHaveValue(user.username);
+  const token = queryServerDb(`select token from cockatrice_users where name = '${user.username}'`);
+  expect(token).not.toBe('');
+
+  const newPassword = `${user.password}new`;
+  await reset.getByLabel(/^token$/i).fill(token);
+  await reset.getByLabel(/^password$/i).fill(newPassword);
+  await reset.getByLabel(/password again/i).fill(newPassword);
+  await reset.getByRole('button', { name: 'Reset Password' }).click();
+  await expect(page.getByText('Password Reset Successfully')).toBeVisible({ timeout: 15_000 });
+  await expect(reset).toBeHidden();
+
+  await login.login(user.username, newPassword);
+  await rooms.waitForRoomList();
 });
 
 test('repeated wrong passwords name the time to try again', async ({ page }) => {

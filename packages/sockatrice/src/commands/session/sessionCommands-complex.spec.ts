@@ -43,11 +43,12 @@ import {
   Response_Register_ext,
   Response_RegisterSchema,
   Response_ResponseCode,
+  Response_LoginSchema,
   ResponseSchema,
 } from '../../generated';
 import { hashPassword, generateSalt, passwordSaltSupported } from '../../utils';
 
-import { create, setExtension } from '@bufbuild/protobuf';
+import { create, setExtension, type MessageInitShape } from '@bufbuild/protobuf';
 
 import { connect, testConnect } from './connect';
 import { updateStatus } from './updateStatus';
@@ -200,10 +201,19 @@ describe('login', () => {
     expect(calledWith).toHaveProperty('missingFeatures', ['new_feature']);
   });
 
-  it('onResponseCode RespClientUpdateRequired calls onLoginError', () => {
+  const deniedLogin = (responseCode: number, details: MessageInitShape<typeof Response_LoginSchema>) => {
+    const raw = create(ResponseSchema, { responseCode });
+    setExtension(raw, Response_Login_ext, create(Response_LoginSchema, details));
+    invokeResponseCode(responseCode, raw);
+  };
+
+  it('onResponseCode RespClientUpdateRequired reports the missing features', () => {
     login(makeLoginOpts(), 'pw');
-    invokeResponseCode(Response_ResponseCode.RespClientUpdateRequired);
-    expect(WebClient.instance.response.session.loginFailed).toHaveBeenCalled();
+    deniedLogin(Response_ResponseCode.RespClientUpdateRequired, { missingFeatures: ['new_feature'] });
+    expect(WebClient.instance.response.session.loginFailed).toHaveBeenCalledWith(expect.objectContaining({
+      responseCode: Response_ResponseCode.RespClientUpdateRequired,
+      missingFeatures: ['new_feature'],
+    }));
     expect(SessionIndexMocks.disconnect).toHaveBeenCalled();
   });
 
@@ -215,8 +225,11 @@ describe('login', () => {
 
   it('onResponseCode RespUsernameInvalid', () => {
     login(makeLoginOpts(), 'pw');
-    invokeResponseCode(Response_ResponseCode.RespUsernameInvalid);
-    expect(WebClient.instance.response.session.loginFailed).toHaveBeenCalled();
+    deniedLogin(Response_ResponseCode.RespUsernameInvalid, { deniedReasonStr: '3|12|1|1|1|0|_' });
+    expect(WebClient.instance.response.session.loginFailed).toHaveBeenCalledWith(expect.objectContaining({
+      responseCode: Response_ResponseCode.RespUsernameInvalid,
+      deniedReason: '3|12|1|1|1|0|_',
+    }));
   });
 
   it('onResponseCode RespWouldOverwriteOldSession', () => {
@@ -225,10 +238,14 @@ describe('login', () => {
     expect(WebClient.instance.response.session.loginFailed).toHaveBeenCalled();
   });
 
-  it('onResponseCode RespUserIsBanned', () => {
+  it('onResponseCode RespUserIsBanned reports the end time and reason', () => {
     login(makeLoginOpts(), 'pw');
-    invokeResponseCode(Response_ResponseCode.RespUserIsBanned);
-    expect(WebClient.instance.response.session.loginFailed).toHaveBeenCalled();
+    deniedLogin(Response_ResponseCode.RespUserIsBanned, { deniedEndTime: 2000000000n, deniedReasonStr: 'Spamming' });
+    expect(WebClient.instance.response.session.loginFailed).toHaveBeenCalledWith(expect.objectContaining({
+      responseCode: Response_ResponseCode.RespUserIsBanned,
+      deniedEndTime: 2000000000,
+      deniedReason: 'Spamming',
+    }));
   });
 
   it('onResponseCode RespRegistrationRequired', () => {
@@ -261,20 +278,22 @@ describe('login', () => {
   it('onError calls onLoginError with unknown error message', () => {
     login(makeLoginOpts(), 'pw');
     invokeOnError(999);
-    expect(WebClient.instance.response.session.loginFailed).toHaveBeenCalledWith(999);
+    expect(WebClient.instance.response.session.loginFailed).toHaveBeenCalledWith({ responseCode: 999 });
   });
 
   it('reports the rejecting response code to loginFailed', () => {
     login(makeLoginOpts(), 'pw');
     invokeResponseCode(Response_ResponseCode.RespWrongPassword);
-    expect(WebClient.instance.response.session.loginFailed).toHaveBeenCalledWith(Response_ResponseCode.RespWrongPassword);
+    expect(WebClient.instance.response.session.loginFailed).toHaveBeenCalledWith({ responseCode: Response_ResponseCode.RespWrongPassword });
   });
 
   it('onResponseCode RespPasswordChangeRequired fails the login with its code and disconnects', () => {
     login(makeLoginOpts(), 'pw');
     invokeResponseCode(Response_ResponseCode.RespPasswordChangeRequired);
     expect(SessionIndexMocks.updateStatus).toHaveBeenCalledWith(StatusEnum.DISCONNECTED, 'Login failed: password change required');
-    expect(WebClient.instance.response.session.loginFailed).toHaveBeenCalledWith(Response_ResponseCode.RespPasswordChangeRequired);
+    expect(WebClient.instance.response.session.loginFailed).toHaveBeenCalledWith({
+      responseCode: Response_ResponseCode.RespPasswordChangeRequired,
+    });
     expect(SessionIndexMocks.disconnect).toHaveBeenCalled();
   });
 
@@ -282,7 +301,7 @@ describe('login', () => {
     login(makeLoginOpts(), 'pw');
     invokeResponseCode(Response_ResponseCode.RespServerFull);
     expect(SessionIndexMocks.updateStatus).toHaveBeenCalledWith(StatusEnum.DISCONNECTED, 'Login failed: server is full');
-    expect(WebClient.instance.response.session.loginFailed).toHaveBeenCalledWith(Response_ResponseCode.RespServerFull);
+    expect(WebClient.instance.response.session.loginFailed).toHaveBeenCalledWith({ responseCode: Response_ResponseCode.RespServerFull });
     expect(SessionIndexMocks.disconnect).toHaveBeenCalled();
   });
 
@@ -290,7 +309,7 @@ describe('login', () => {
     login(makeLoginOpts(), 'pw');
     invokeOnError(Response_ResponseCode.RespNotConnected, {}, CommandFailure.Timeout);
     expect(SessionIndexMocks.updateStatus).toHaveBeenCalledWith(StatusEnum.DISCONNECTED, 'Login failed: the server did not respond');
-    expect(WebClient.instance.response.session.loginFailed).toHaveBeenCalled();
+    expect(WebClient.instance.response.session.loginFailed).toHaveBeenCalledWith({});
     expect(SessionIndexMocks.disconnect).toHaveBeenCalled();
   });
 
@@ -608,7 +627,7 @@ describe('requestPasswordSalt', () => {
     requestPasswordSalt({ host: 'h', port: '1', userName: 'alice' }, onSaltReceived, onFailure);
     invokeResponseCode(Response_ResponseCode.RespRegistrationRequired);
     expect(SessionIndexMocks.updateStatus).toHaveBeenCalledWith(StatusEnum.DISCONNECTED, expect.any(String));
-    expect(onFailure).toHaveBeenCalled();
+    expect(onFailure).toHaveBeenCalledWith(undefined, Response_ResponseCode.RespRegistrationRequired);
   });
 
   it('onError calls updateStatus DISCONNECTED and onFailure', () => {

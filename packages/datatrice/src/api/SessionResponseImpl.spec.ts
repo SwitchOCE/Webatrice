@@ -49,43 +49,58 @@ describe('SessionResponseImpl.registrationFailed', () => {
 describe('SessionResponseImpl.loginFailed', () => {
   it('keeps local refusal separate from server replies through disconnect, then clears it on retry', () => {
     const { store, impl } = setup();
-    impl.loginFailed(undefined, undefined, 'authenticationDowngrade');
+    impl.loginFailed({ localFailure: 'authenticationDowngrade' });
     impl.updateStatus(WebsocketTypes.StatusEnum.DISCONNECTED, 'Connection Closed');
     expect(store.getState().server.loginFailureCode).toBeNull();
     expect(store.getState().server.loginLocalFailure).toBe('authenticationDowngrade');
     impl.connectionAttempted();
     expect(store.getState().server.loginLocalFailure).toBeNull();
-    impl.loginFailed(undefined, undefined, 'passwordRequired');
-    impl.loginFailed(Response_ResponseCode.RespClientUpdateRequired);
+    impl.loginFailed({ localFailure: 'passwordRequired' });
+    impl.loginFailed({ responseCode: Response_ResponseCode.RespClientUpdateRequired });
     expect(store.getState().server.loginFailureCode).toBe(Response_ResponseCode.RespClientUpdateRequired);
     expect(store.getState().server.loginLocalFailure).toBeNull();
   });
 
   it('keeps a login limit deadline through disconnect and clears it on the next attempt', () => {
     const { store, impl } = setup();
-    impl.loginFailed(Response_ResponseCode.RespTooManyRequests, 1800000000);
+    impl.loginFailed({ responseCode: Response_ResponseCode.RespTooManyRequests, deniedEndTime: 1800000000 });
     impl.updateStatus(WebsocketTypes.StatusEnum.DISCONNECTED, 'Too many login attempts');
     expect(store.getState().server.loginFailureCode).toBe(Response_ResponseCode.RespTooManyRequests);
     expect(store.getState().server.loginDeniedEndTime).toBe(1800000000);
     impl.connectionAttempted();
     expect(store.getState().server.loginDeniedEndTime).toBeNull();
-    impl.loginFailed(Response_ResponseCode.RespTooManyRequests, 1800000000);
+    impl.loginFailed({ responseCode: Response_ResponseCode.RespTooManyRequests, deniedEndTime: 1800000000 });
     impl.loginFailed();
     expect(store.getState().server.loginDeniedEndTime).toBeNull();
+  });
+
+  it('keeps the denial details through disconnect and clears them on the next attempt', () => {
+    const { store, impl } = setup();
+    impl.loginFailed({
+      responseCode: Response_ResponseCode.RespUserIsBanned,
+      deniedReason: 'Spamming',
+      missingFeatures: ['a'],
+    });
+    impl.updateStatus(WebsocketTypes.StatusEnum.DISCONNECTED, 'Login failed: banned user');
+    expect(store.getState().server.loginDeniedReason).toBe('Spamming');
+    expect(store.getState().server.loginMissingFeatures).toEqual(['a']);
+    impl.connectionAttempted();
+    expect(store.getState().server.loginDeniedReason).toBeNull();
+    expect(store.getState().server.loginMissingFeatures).toBeNull();
   });
 
   it('keeps the rejection code through the disconnect that follows a rejected login', () => {
     const { store, impl } = setup();
     impl.connectionAttempted();
     impl.updateStatus(WebsocketTypes.StatusEnum.DISCONNECTED, 'Login failed: server is full');
-    impl.loginFailed(Response_ResponseCode.RespServerFull);
+    impl.loginFailed({ responseCode: Response_ResponseCode.RespServerFull });
     impl.updateStatus(WebsocketTypes.StatusEnum.DISCONNECTED, 'Login failed: server is full');
     expect(store.getState().server.loginFailureCode).toBe(Response_ResponseCode.RespServerFull);
   });
 
   it('clears the rejection code on the next connection attempt', () => {
     const { store, impl } = setup();
-    impl.loginFailed(Response_ResponseCode.RespPasswordChangeRequired);
+    impl.loginFailed({ responseCode: Response_ResponseCode.RespPasswordChangeRequired });
     impl.connectionAttempted();
     expect(store.getState().server.loginFailureCode).toBeNull();
   });
@@ -164,7 +179,7 @@ describe('SessionResponseImpl forwards', () => {
 
   it('loginFailed forwards the rejecting response code', () => {
     const { impl, dispatch } = setup();
-    impl.loginFailed(Response_ResponseCode.RespServerFull);
+    impl.loginFailed({ responseCode: Response_ResponseCode.RespServerFull });
     expect(dispatch).toHaveBeenCalledWith(ServerActions.loginFailed({ responseCode: Response_ResponseCode.RespServerFull }));
   });
 

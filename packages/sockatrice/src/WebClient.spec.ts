@@ -607,6 +607,29 @@ describe('WebClient', () => {
       expect(client.status).toBe(StatusEnum.CONNECTED);
     });
 
+    it('keeps the reason already shown when the socket then closes', () => {
+      client.updateStatus(StatusEnum.DISCONNECTED);
+      mockResponse.session.updateStatus.mockClear();
+      captured.wsOptions!.onStatusChange(StatusEnum.DISCONNECTED, 'Connection Closed');
+      expect(mockResponse.session.updateStatus).not.toHaveBeenCalled();
+    });
+
+    it('still fires a pending authentication loss when the socket closes after a reported disconnect', () => {
+      const onLost = vi.fn();
+      client.updateStatus(StatusEnum.DISCONNECTED);
+      client.beginAuthentication(onLost);
+      captured.wsOptions!.onStatusChange(StatusEnum.DISCONNECTED, 'Connection Closed');
+      expect(onLost).toHaveBeenCalledTimes(1);
+    });
+
+    it('reports a failure of the next connection after an earlier disconnect', () => {
+      client.updateStatus(StatusEnum.DISCONNECTED);
+      client.connect({ host: 'localhost', port: '4748' });
+      mockResponse.session.updateStatus.mockClear();
+      captured.wsOptions!.onStatusChange(StatusEnum.DISCONNECTED, 'Connection Failed');
+      expect(mockResponse.session.updateStatus).toHaveBeenCalledExactlyOnceWith(StatusEnum.DISCONNECTED, 'Connection Failed');
+    });
+
     it('onConnectionFailed routes to response.session.connectionFailed', () => {
       captured.wsOptions!.onConnectionFailed();
       expect(mockResponse.session.connectionFailed).toHaveBeenCalled();

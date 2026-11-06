@@ -6,11 +6,13 @@ import {
   Response_Login_ext,
   Response_ResponseCode,
   type LoginParams,
+  type Response,
 } from '../../generated';
 
 import { CommandFailure } from '../../services/command-options';
 import { StatusEnum } from '../../types/StatusEnum';
 import { WebClient } from '../../WebClient';
+import type { LoginFailure } from '../../types/SignalContexts';
 import type { ConnectTarget } from '../../types/WebClientConfig';
 import { PasswordRequiredError } from '../../utils/passwordChallenge';
 import { rejectLocalLogin } from './loginFailure';
@@ -40,15 +42,25 @@ export function login(options: ConnectTarget & LoginParams, password?: string, c
       : { password }),
   };
 
-  const onLoginError = (responseCode: number, message: string, extra?: () => void) => {
+  const onLoginError = (failure: LoginFailure, message: string, extra?: () => void) => {
     updateStatus(StatusEnum.DISCONNECTED, message);
     extra?.();
-    WebClient.instance.response.session.loginFailed(responseCode);
+    WebClient.instance.response.session.loginFailed(failure);
     disconnect();
   };
 
   const rejectWith = (message: string, extra?: () => void) =>
-    (raw: { responseCode: number }) => onLoginError(raw.responseCode, message, extra);
+    (raw: Response) => onLoginError({ responseCode: raw.responseCode }, message, extra);
+
+  const rejectWithDetails = (message: string) => (raw: Response) => {
+    const { deniedEndTime, deniedReasonStr, missingFeatures } = getExtension(raw, Response_Login_ext);
+    onLoginError({
+      responseCode: raw.responseCode,
+      deniedEndTime: Number(deniedEndTime),
+      deniedReason: deniedReasonStr,
+      missingFeatures,
+    }, message);
+  };
 
   WebClient.instance.protobuf.sendSessionCommand(Command_Login_ext, create(Command_LoginSchema, loginConfig), {
     responseExt: Response_Login_ext,
@@ -69,22 +81,17 @@ export function login(options: ConnectTarget & LoginParams, password?: string, c
       updateStatus(StatusEnum.LOGGED_IN, 'Logged in.');
     },
     onResponseCode: {
-      [Response_ResponseCode.RespClientUpdateRequired]: rejectWith('Login failed: missing features'),
+      [Response_ResponseCode.RespClientUpdateRequired]: rejectWithDetails('Login failed: missing features'),
       [Response_ResponseCode.RespWrongPassword]: rejectWith('Login failed: incorrect username or password'),
-      [Response_ResponseCode.RespUsernameInvalid]: rejectWith('Login failed: incorrect username or password'),
+      [Response_ResponseCode.RespUsernameInvalid]: rejectWithDetails('Login failed: invalid username'),
       [Response_ResponseCode.RespWouldOverwriteOldSession]: rejectWith('Login failed: duplicated user session'),
-      [Response_ResponseCode.RespUserIsBanned]: rejectWith('Login failed: banned user'),
+      [Response_ResponseCode.RespUserIsBanned]: rejectWithDetails('Login failed: banned user'),
       [Response_ResponseCode.RespRegistrationRequired]: rejectWith('Login failed: registration required'),
       [Response_ResponseCode.RespClientIdRequired]: rejectWith('Login failed: missing client ID'),
       [Response_ResponseCode.RespContextError]: rejectWith('Login failed: server error'),
       [Response_ResponseCode.RespPasswordChangeRequired]: rejectWith('Login failed: password change required'),
       [Response_ResponseCode.RespServerFull]: rejectWith('Login failed: server is full'),
-      [Response_ResponseCode.RespTooManyRequests]: (raw) => {
-        const { deniedEndTime } = getExtension(raw, Response_Login_ext);
-        updateStatus(StatusEnum.DISCONNECTED, 'Login failed: too many attempts. Please try again later.');
-        WebClient.instance.response.session.loginFailed(raw.responseCode, Number(deniedEndTime));
-        disconnect();
-      },
+      [Response_ResponseCode.RespTooManyRequests]: rejectWithDetails('Login failed: too many attempts. Please try again later.'),
       [Response_ResponseCode.RespAccountNotActivated]: rejectWith('Login failed: account not activated',
         () => {
           WebClient.instance.response.session.accountAwaitingActivation({
@@ -97,10 +104,14 @@ export function login(options: ConnectTarget & LoginParams, password?: string, c
     },
     onError: (responseCode, _raw, failure) => {
       if (failure === CommandFailure.Disconnected) {
-        WebClient.instance.response.session.loginFailed(responseCode);
+        WebClient.instance.response.session.loginFailed();
         return;
       }
-      onLoginError(responseCode, failure === CommandFailure.Timeout
+      if (failure === undefined) {
+        onLoginError({ responseCode }, `Login failed: unknown error: ${responseCode}`);
+        return;
+      }
+      onLoginError({}, failure === CommandFailure.Timeout
         ? 'Login failed: the server did not respond'
         : `Login failed: unknown error: ${responseCode}`);
     },

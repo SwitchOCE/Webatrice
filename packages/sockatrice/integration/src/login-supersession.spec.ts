@@ -83,7 +83,7 @@ it.each(['legacy', 'challenge', 'fresh'] as const)('settles %s salt login when t
   const socket = getMockWebSocket();
   socket.readyState = WebSocket.CLOSED;
   socket.onclose?.({ code: 1006, reason: '', wasClean: false } as CloseEvent);
-  expect(getMockResponse().session.loginFailed).toHaveBeenCalledExactlyOnceWith();
+  expect(getMockResponse().session.loginFailed).toHaveBeenCalledExactlyOnceWith(undefined);
   expect(getWebClient().status).toBe(StatusEnum.RECONNECTING);
   expect(socket.close).not.toHaveBeenCalled();
   vi.advanceTimersByTime(1000);

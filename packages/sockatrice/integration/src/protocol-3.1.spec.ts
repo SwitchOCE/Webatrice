@@ -96,7 +96,7 @@ describe('Cockatrice 3.1 protocol', () => {
     SessionCommands.login({ host: 'localhost', port: '4748', userName: 'alice' }, 'password');
     const { cmdId } = findLastSessionCommand(Data.Command_Login_ext);
     deliverMessage(buildResponseMessage(buildResponse({ cmdId, responseCode })));
-    expect(getMockResponse().session.loginFailed).toHaveBeenCalledExactlyOnceWith(responseCode);
+    expect(getMockResponse().session.loginFailed).toHaveBeenCalledExactlyOnceWith(expect.objectContaining({ responseCode }));
     expect(getMockResponse().session.loginSuccessful).not.toHaveBeenCalled();
     expect(getMockResponse().session.updateStatus).toHaveBeenCalledWith(StatusEnum.DISCONNECTED, message);
     if (responseCode === Data.Response_ResponseCode.RespAccountNotActivated) {
@@ -223,9 +223,9 @@ describe('Cockatrice 3.1 protocol', () => {
       responseCode: Data.Response_ResponseCode.RespPasswordChangeRequired,
     })));
 
-    expect(getMockResponse().session.loginFailed).toHaveBeenCalledWith(
-      Data.Response_ResponseCode.RespPasswordChangeRequired,
-    );
+    expect(getMockResponse().session.loginFailed).toHaveBeenCalledWith({
+      responseCode: Data.Response_ResponseCode.RespPasswordChangeRequired,
+    });
   });
 
   it('Event_GameLogNotice reaches game.gameLogNotice with the acting player', () => {

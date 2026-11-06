@@ -64,6 +64,26 @@ it('cleans modules before remount, cancels requests synchronously and preserves 
   }
 });
 
+it('keeps what a signed-out page holds when its socket closes', () => {
+  const cleanup = vi.fn();
+  const unsubscribe = onSessionEnd(cleanup);
+  function Probe() {
+    const [draft, setDraft] = useState('');
+    return <input aria-label="draft" value={draft} onChange={(event) => setDraft(event.target.value)} />;
+  }
+  const { store } = renderWithProviders(<SessionScope><Probe /></SessionScope>, { preloadedState: disconnectedState });
+  try {
+    fireEvent.change(screen.getByRole('textbox'), { target: { value: 'typed username' } });
+    act(() => store.dispatch(server.Actions.updateStatus({
+      status: { state: WebsocketTypes.StatusEnum.DISCONNECTED, description: 'Connection Closed' },
+    })));
+    expect(screen.getByRole('textbox')).toHaveValue('typed username');
+    expect(cleanup).not.toHaveBeenCalled();
+  } finally {
+    unsubscribe();
+  }
+});
+
 it('remounts the real moderation provider with no dialog after a session reset', () => {
   function Trigger() {
     const { open } = useModerationMenu('alice');

@@ -46,12 +46,8 @@ export class SessionResponseImpl implements WebsocketTypes.ISessionResponse {
     this.store.dispatch(ServerActions.loginSuccessful({ options }));
   }
 
-  loginFailed(responseCode?: number, deniedEndTime?: number, localFailure?: WebsocketTypes.LocalLoginFailure): void {
-    this.store.dispatch(ServerActions.loginFailed(responseCode === undefined && localFailure === undefined ? undefined : {
-      ...(responseCode === undefined ? {} : { responseCode }),
-      ...(deniedEndTime === undefined ? {} : { deniedEndTime }),
-      ...(localFailure === undefined ? {} : { localFailure }),
-    }));
+  loginFailed(failure?: WebsocketTypes.LoginFailure): void {
+    this.store.dispatch(ServerActions.loginFailed(failure));
   }
 
   connectionFailed(): void {
