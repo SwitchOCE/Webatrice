@@ -77,11 +77,18 @@ describe('FeatureDetection', () => {
     expect(hoisted.pushToast).not.toHaveBeenCalled();
   });
 
-  it('names the missing optional features in one warning notice', async () => {
-    hoisted.getBrowserSupport.mockReturnValue({
-      missingRequired: [],
+  it.each([
+    {
       missingOptional: ['worker', 'clipboard'],
-    });
+      expected: `${browserMessages.BrowserFeature.worker}; ${browserMessages.BrowserFeature.clipboard}`,
+    },
+    {
+      missingOptional: ['webCrypto'],
+      expected: 'Web Crypto, which needs a page served over https://; challenge-response login remains available, '
+        + 'while older servers may receive passwords unhashed',
+    },
+  ])('names missing optional features accurately ($missingOptional)', async ({ missingOptional, expected }) => {
+    hoisted.getBrowserSupport.mockReturnValue({ missingRequired: [], missingOptional });
 
     const i18n = i18next.createInstance();
     await i18n.use(ICU).init({
@@ -97,8 +104,7 @@ describe('FeatureDetection', () => {
 
     expect(hoisted.pushToast).toHaveBeenCalledTimes(1);
     expect(hoisted.pushToast).toHaveBeenCalledWith(
-      'Some features are unavailable in this browser: '
-        + `${browserMessages.BrowserFeature.worker}; ${browserMessages.BrowserFeature.clipboard}.`,
+      `Some features are unavailable in this browser: ${expected}.`,
       { severity: 'warning' },
     );
   });

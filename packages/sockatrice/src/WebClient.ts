@@ -54,6 +54,7 @@ export class WebClient {
     }
     const client = WebClient._instance;
     client.disposed = true;
+    client.connectionGeneration++;
     try {
       client.socket.dispose();
       client.retireTestSocket();
@@ -70,6 +71,7 @@ export class WebClient {
   status: StatusEnum;
   serverSupportsPasswordHash = false;
   serverSupportsChallengeResponse = false;
+  connectionGeneration = 0;
   private testSocket: WebSocket | null = null;
   private clearTestTimer: (() => void) | undefined;
   private disposed = false;
@@ -100,6 +102,9 @@ export class WebClient {
       onStatusChange: (status, description) => {
         if (this.disposed) {
           return;
+        }
+        if (status === StatusEnum.DISCONNECTED || status === StatusEnum.RECONNECTING) {
+          this.connectionGeneration++;
         }
         this.updateStatus(status);
         this.response.session.updateStatus(status, description);
@@ -147,6 +152,7 @@ export class WebClient {
       return;
     }
     this.resetting = true;
+    this.connectionGeneration++;
     try {
       this.protobuf.resetCommands();
       if (!this.disposed) {
@@ -239,6 +245,7 @@ export class WebClient {
   }
 
   public disconnect(): void {
+    this.connectionGeneration++;
     this.socket.disconnect();
   }
 

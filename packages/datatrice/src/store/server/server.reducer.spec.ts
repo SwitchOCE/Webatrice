@@ -114,6 +114,13 @@ describe('Account & Connection', () => {
 });
 
 describe('Login failure code', () => {
+  it('clears a local authentication refusal on error reset and store initialization', () => {
+    const state = makeServerState({ loginLocalFailure: 'passwordRequired' });
+    for (const action of [Actions.loginFailed(), Actions.clearStore(), Actions.initialized()]) {
+      expect(serverReducer(state, action).loginLocalFailure).toBeNull();
+    }
+  });
+
   it('retains a limit deadline on disconnect and clears it when the store is reset', () => {
     const state = makeServerState({ loginFailureCode: 38, loginDeniedEndTime: 1800000000 });
     expect(serverReducer(state, Actions.disconnected()).loginDeniedEndTime).toBe(1800000000);

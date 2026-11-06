@@ -1,7 +1,7 @@
 vi.mock('../../WebClient');
 vi.mock('../../utils/connectionState', () => ({ consumePendingOptions: vi.fn() }));
 
-import { create, setExtension } from '@bufbuild/protobuf';
+import { create, fromJson, setExtension } from '@bufbuild/protobuf';
 import { createHash, createHmac, scryptSync } from 'node:crypto';
 import type { Mock } from 'vitest';
 import * as Data from '../../generated';
@@ -10,6 +10,10 @@ import { consumePendingOptions } from '../../utils/connectionState';
 import { WebSocketConnectReason } from '../../types/ConnectOptions';
 import { StatusEnum } from '../../types/StatusEnum';
 import { accountPassword } from '../../commands/session/accountPassword';
+import { activate } from '../../commands/session/activate';
+import { register } from '../../commands/session/register';
+import { loginWithFreshSalt } from '../../commands/session/loginWithChallenge';
+import { CommandFailure } from '../../types/CommandFailure';
 import { serverIdentification } from './serverIdentification';
 
 const send = WebClient.instance.protobuf.sendSessionCommand as Mock;
@@ -35,17 +39,17 @@ const responseFor = (secret: Uint8Array) =>
 const challenge = (overrides = {}) => create(Data.Response_PasswordSaltSchema, {
   passwordSalt: saltBytes.toString('base64'), scryptSalt: saltBytes.toString('base64'), n: 1024, r: 8, p: 1, nonce, ...overrides,
 });
-const info = (supportsChallengeResponse = true) => create(Data.Event_ServerIdentificationSchema, {
-  protocolVersion: 14, serverOptions: 1, serverVersion: '3.1.2', supportsChallengeResponse,
+const info = (supportsChallengeResponse = true, serverOptions = 1) => create(Data.Event_ServerIdentificationSchema, {
+  protocolVersion: 14, serverOptions, serverVersion: '3.1.2', supportsChallengeResponse,
 });
 const last = () => send.mock.calls.at(-1)!;
 const waitForLogin = () => vi.waitFor(() => expect(last()[0]).toBe(Data.Command_Login_ext));
 
-async function begin(overrides = {}, supportsChallengeResponse = true) {
+async function begin(overrides = {}, supportsChallengeResponse = true, serverOptions = 1) {
   (consumePendingOptions as Mock).mockReturnValue({
     ...target, reason: WebSocketConnectReason.LOGIN, password, ...overrides,
   });
-  await serverIdentification(info(supportsChallengeResponse));
+  await serverIdentification(info(supportsChallengeResponse, serverOptions));
 }
 
 function assertStored(credential: string) {
@@ -56,6 +60,11 @@ function assertStored(credential: string) {
 beforeEach(() => {
   vi.clearAllMocks();
   WebClient.instance.serverSupportsChallengeResponse = false;
+  WebClient.instance.connectionGeneration = 0;
+});
+
+afterEach(() => {
+  vi.unstubAllGlobals();
 });
 
 it('logs in a scrypt row with a typed password and remembers its verifier', async () => {
@@ -96,7 +105,7 @@ it.each(unusableCredentials)('requires plaintext for unusable remembered credent
   await begin({ password: undefined, hashedPassword });
   await last()[2].onSuccess(challenge());
   await vi.waitFor(() => expect(WebClient.instance.response.session.loginFailed).toHaveBeenCalledTimes(1));
-  expect(WebClient.instance.response.session.loginFailed).toHaveBeenCalledWith(Data.Response_ResponseCode.RespLoginNeeded);
+  expect(WebClient.instance.response.session.loginFailed).toHaveBeenCalledWith(undefined, undefined, 'passwordRequired');
   expect(send).toHaveBeenCalledTimes(1);
   expect(WebClient.instance.disconnect).toHaveBeenCalledTimes(1);
   expect(WebClient.instance.response.session.updateStatus).toHaveBeenCalledWith(
@@ -104,11 +113,11 @@ it.each(unusableCredentials)('requires plaintext for unusable remembered credent
   );
 });
 
-it.each([undefined, password])('refuses a stored verifier downgrade, including with typed plaintext (%s)', async (plain) => {
-  await begin({ password: plain, hashedPassword: verifier });
+it('refuses a stored verifier downgrade for remembered login', async () => {
+  await begin({ password: undefined, hashedPassword: verifier });
   await last()[2].onSuccess(challenge({ passwordSalt: legacySalt, needsMigration: true }));
   await vi.waitFor(() => expect(WebClient.instance.response.session.loginFailed).toHaveBeenCalledTimes(1));
-  expect(WebClient.instance.response.session.loginFailed).toHaveBeenCalledWith(Data.Response_ResponseCode.RespClientUpdateRequired);
+  expect(WebClient.instance.response.session.loginFailed).toHaveBeenCalledWith(undefined, undefined, 'authenticationDowngrade');
   expect(send).toHaveBeenCalledTimes(1);
   expect(WebClient.instance.response.session.updateStatus).toHaveBeenCalledWith(
     StatusEnum.DISCONNECTED, expect.stringContaining('weaker authentication')
@@ -205,4 +214,109 @@ it('reports login rate-limit expiry through loginFailed', async () => {
   last()[2].onResponseCode[Data.Response_ResponseCode.RespTooManyRequests](raw);
   expect(WebClient.instance.response.session.loginFailed).toHaveBeenCalledWith(Data.Response_ResponseCode.RespTooManyRequests, 2000000000);
   expect(WebClient.instance.disconnect).toHaveBeenCalledTimes(1);
+});
+
+it.each([
+  { name: 'no nonce', supports: true, options: 1, response: challenge({ nonce: new Uint8Array() }) },
+  { name: 'empty salt', supports: true, options: 1, response: challenge({ passwordSalt: '' }) },
+  { name: 'no challenge support', supports: false, options: 1, response: challenge() },
+  { name: 'no authentication capabilities', supports: false, options: 0, response: undefined },
+])('never sends a saved verifier during login with $name', async ({ supports, options, response }) => {
+  await begin({ password: undefined, hashedPassword: verifier }, supports, options);
+  if (response) {
+    await last()[2].onSuccess(response);
+  }
+  await vi.waitFor(() => expect(WebClient.instance.response.session.loginFailed)
+    .toHaveBeenCalledWith(undefined, undefined, 'passwordRequired'));
+  expect(send.mock.calls.some(([extension]) => extension === Data.Command_Login_ext)).toBe(false);
+  expect(WebClient.instance.response.session.loginSuccessful).not.toHaveBeenCalled();
+});
+
+const autoLoginFallbacks = [
+  { name: 'no nonce', supports: true, response: challenge({ nonce: new Uint8Array() }) },
+  { name: 'empty salt', supports: true, response: challenge({ passwordSalt: '' }) },
+  { name: 'no challenge support', supports: false, response: undefined },
+];
+
+describe.each(['register', 'activate'] as const)('%s auto-login', (action) => {
+  it.each(autoLoginFallbacks)('never sends a saved verifier with $name', async ({ supports, response }) => {
+    WebClient.instance.serverSupportsChallengeResponse = supports;
+    if (action === 'register') {
+      register({ ...target, hashedPassword: verifier, email: '', country: '', realName: '' }, password);
+      last()[2].onResponseCode[Data.Response_ResponseCode.RespRegistrationAccepted]();
+    } else {
+      activate({ ...target, token: 'token' }, password, verifier);
+      last()[2].onResponseCode[Data.Response_ResponseCode.RespActivationAccepted]();
+    }
+    if (response) {
+      expect(last()[0]).toBe(Data.Command_RequestPasswordSalt_ext);
+      await last()[2].onSuccess(response);
+    }
+    await vi.waitFor(() => expect(WebClient.instance.response.session.loginFailed)
+      .toHaveBeenCalledWith(undefined, undefined, 'passwordRequired'));
+    expect(send.mock.calls.some(([extension]) => extension === Data.Command_Login_ext)).toBe(false);
+    expect(WebClient.instance.response.session.loginSuccessful).not.toHaveBeenCalled();
+  });
+});
+
+it.each([true, false])('hashes a legacy row without Web Crypto, nonce present: %s', async (withNonce) => {
+  vi.stubGlobal('crypto', { getRandomValues: globalThis.crypto.getRandomValues.bind(globalThis.crypto) });
+  await begin();
+  expect(last()[0]).toBe(Data.Command_RequestPasswordSalt_ext);
+  await last()[2].onSuccess(challenge({
+    passwordSalt: legacySalt, needsMigration: true, nonce: withNonce ? nonce : new Uint8Array(),
+  }));
+  await waitForLogin();
+  expect(last()[1]).toMatchObject({ hashedPassword: withNonce ? responseFor(Buffer.from(legacy)) : legacy, password: '' });
+});
+
+it('keeps plaintext login without Web Crypto on a server without challenge support', async () => {
+  vi.stubGlobal('crypto', { getRandomValues: globalThis.crypto.getRandomValues.bind(globalThis.crypto) });
+  await begin({}, false);
+  expect(send).toHaveBeenCalledTimes(1);
+  expect(last()[0]).toBe(Data.Command_Login_ext);
+  expect(last()[1]).toMatchObject({ hashedPassword: '', password });
+});
+
+it('does not publish credentials after a wrong password', async () => {
+  await begin();
+  await last()[2].onSuccess(challenge());
+  await waitForLogin();
+  last()[2].onResponseCode[Data.Response_ResponseCode.RespWrongPassword]({
+    responseCode: Data.Response_ResponseCode.RespWrongPassword,
+  });
+  expect(WebClient.instance.response.session.loginSuccessful).not.toHaveBeenCalled();
+  expect(WebClient.instance.response.session.loginFailed).toHaveBeenCalledWith(Data.Response_ResponseCode.RespWrongPassword);
+});
+
+it.each([CommandFailure.Timeout, CommandFailure.Disconnected])('settles fresh-salt login on salt failure %s', (failure) => {
+  loginWithFreshSalt(target, password);
+  last()[2].onError(Data.Response_ResponseCode.RespNotConnected, {}, failure);
+  expect(WebClient.instance.response.session.loginFailed).toHaveBeenCalledTimes(1);
+  expect(WebClient.instance.disconnect).toHaveBeenCalledTimes(failure === CommandFailure.Disconnected ? 0 : 1);
+  expect(send.mock.calls.some(([extension]) => extension === Data.Command_Login_ext)).toBe(false);
+});
+
+it('rejects malformed base64 salt without submitting login', async () => {
+  await begin();
+  await last()[2].onSuccess(challenge({ scryptSalt: '!invalid-base64!' }));
+  await vi.waitFor(() => expect(WebClient.instance.response.session.loginFailed)
+    .toHaveBeenCalledWith(undefined, undefined, 'authenticationUnsupported'));
+  expect(send).toHaveBeenCalledTimes(1);
+});
+
+it('rejects malformed base64 nonce at the protobuf JSON boundary', () => {
+  expect(() => fromJson(Data.Response_PasswordSaltSchema, { nonce: '!invalid-base64!' })).toThrow();
+  expect(send).not.toHaveBeenCalled();
+});
+
+it.each([true, false])('activation without a password asks for it locally, legacy row: %s', async (needsMigration) => {
+  await begin({ reason: WebSocketConnectReason.ACTIVATE_ACCOUNT, token: 'token', password: undefined });
+  expect(last()[0]).toBe(Data.Command_Activate_ext);
+  last()[2].onResponseCode[Data.Response_ResponseCode.RespActivationAccepted]();
+  expect(last()[0]).toBe(Data.Command_RequestPasswordSalt_ext);
+  await last()[2].onSuccess(challenge({ needsMigration }));
+  await vi.waitFor(() => expect(WebClient.instance.response.session.loginFailed)
+    .toHaveBeenCalledWith(undefined, undefined, 'passwordRequired'));
+  expect(send.mock.calls.some(([extension]) => extension === Data.Command_Login_ext)).toBe(false);
 });

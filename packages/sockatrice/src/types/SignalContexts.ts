@@ -12,3 +12,5 @@ export interface LoginSuccessContext {
   hashedPassword?: string;
   missingFeatures?: string[];
 }
+
+export type LocalLoginFailure = 'passwordRequired' | 'authenticationUnsupported' | 'authenticationDowngrade';

@@ -3508,7 +3508,9 @@
       "passwordRequired": "Please enter your password to sign in again. Your saved credentials cannot be used for this account.",
       "authenticationUnsupported": "The server requested authentication settings this client cannot safely use. Login was stopped.",
       "tooManyRequests": "Too many login attempts. Please try again later.",
-      "tooManyRequestsUntil": "Too many login attempts. Please try again after {until}."
+      "tooManyRequestsUntil": "Too many login attempts. Please try again after {until}.",
+      "missingFeatures": "The server requires features this client does not support. Please update the client and try again.",
+      "authenticationDowngrade": "The server uses an older password format for this account. Untick “Save password” and try again with your password."
     },
     "art": {
       "label": "Art:",
@@ -3579,7 +3581,7 @@
     "error": {
       "tooManyRequests": "Too many registration requests. Please try again later.",
       "tooManyRequestsUntil": "Too many registration requests. Please try again after {until}.",
-      "retryAfter": "{reason} Please try again after {until}."
+      "retryAfter": "{reason}. Please try again after {until}."
     }
   },
   "RequestPasswordResetForm": {
@@ -4944,7 +4946,7 @@
     "fetch": "Fetch, used to load translations, servers and card data",
     "indexedDB": "IndexedDB storage, used for cards, decks and settings",
     "resizeObserver": "Resize observers, used to lay out the game board",
-    "webCrypto": "Password hashing, which needs a page served over https://; passwords are sent to the server unhashed instead",
+    "webCrypto": "Web Crypto, which needs a page served over https://; challenge-response login remains available, while older servers may receive passwords unhashed",
     "worker": "Web Workers, used to keep the connection alive in a background tab",
     "broadcastChannel": "Broadcast channels, used by the pop-out card preview",
     "clipboard": "The clipboard, used by copy buttons (needs a page served over https://)"

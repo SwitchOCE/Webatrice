@@ -49,6 +49,20 @@ describe('SessionResponseImpl.registrationFailed', () => {
 });
 
 describe('SessionResponseImpl.loginFailed', () => {
+  it('keeps local refusal separate from server replies through disconnect, then clears it on retry', () => {
+    const { store, impl } = setup();
+    impl.loginFailed(undefined, undefined, 'authenticationDowngrade');
+    impl.updateStatus(WebsocketTypes.StatusEnum.DISCONNECTED, 'Connection Closed');
+    expect(store.getState().server.loginFailureCode).toBeNull();
+    expect(store.getState().server.loginLocalFailure).toBe('authenticationDowngrade');
+    impl.connectionAttempted();
+    expect(store.getState().server.loginLocalFailure).toBeNull();
+    impl.loginFailed(undefined, undefined, 'passwordRequired');
+    impl.loginFailed(Response_ResponseCode.RespClientUpdateRequired);
+    expect(store.getState().server.loginFailureCode).toBe(Response_ResponseCode.RespClientUpdateRequired);
+    expect(store.getState().server.loginLocalFailure).toBeNull();
+  });
+
   it('keeps a login limit deadline through disconnect and clears it on the next attempt', () => {
     const { store, impl } = setup();
     impl.loginFailed(Response_ResponseCode.RespTooManyRequests, 1800000000);

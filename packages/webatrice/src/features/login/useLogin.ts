@@ -53,8 +53,13 @@ export interface Login {
 const LOGIN_FAILURE_MESSAGE_KEYS: Partial<Record<number, string>> = {
   [Response_ResponseCode.RespPasswordChangeRequired]: 'Login.status.passwordChangeRequired',
   [Response_ResponseCode.RespServerFull]: 'Login.status.serverFull',
-  [Response_ResponseCode.RespLoginNeeded]: 'Login.status.passwordRequired',
-  [Response_ResponseCode.RespClientUpdateRequired]: 'Login.status.authenticationUnsupported',
+  [Response_ResponseCode.RespClientUpdateRequired]: 'Login.status.missingFeatures',
+};
+
+const LOCAL_LOGIN_FAILURE_KEYS: Record<WebsocketTypes.LocalLoginFailure, string> = {
+  passwordRequired: 'Login.status.passwordRequired',
+  authenticationUnsupported: 'Login.status.authenticationUnsupported',
+  authenticationDowngrade: 'Login.status.authenticationDowngrade',
 };
 
 export function useLogin(): Login {
@@ -64,6 +69,7 @@ export function useLogin(): Login {
   const connectUnreachable = useAppSelector(server.Selectors.getConnectUnreachable);
   const loginFailureCode = useAppSelector(server.Selectors.getLoginFailureCode);
   const loginDeniedEndTime = useAppSelector(server.Selectors.getLoginDeniedEndTime);
+  const loginLocalFailure = useAppSelector(server.Selectors.getLoginLocalFailure);
   const webClient = useWebClient();
   const { t } = useTranslation();
 
@@ -73,6 +79,8 @@ export function useLogin(): Login {
   let description = rawDescription;
   if (!isConnected && connectUnreachable) {
     description = t('Login.status.serverUnreachable');
+  } else if (!isConnected && loginLocalFailure) {
+    description = t(LOCAL_LOGIN_FAILURE_KEYS[loginLocalFailure]);
   } else if (!isConnected && loginFailureCode === Response_ResponseCode.RespTooManyRequests) {
     const deniedUntil = new Date((loginDeniedEndTime ?? 0) * 1000);
     description = loginDeniedEndTime !== null && loginDeniedEndTime > 0 && Number.isFinite(deniedUntil.getTime())
@@ -175,8 +183,11 @@ export function useLogin(): Login {
       password,
     };
 
-    if (remember && !password) {
-      options.hashedPassword = selectedHost.hashedPassword;
+    const storedCredential = selectedHost.hashedPassword;
+    const savedVerifier = storedCredential?.startsWith('$scrypt$');
+    const sameAccount = selectedHost.userName?.toLowerCase() === userName.toLowerCase();
+    if (remember && (savedVerifier ? sameAccount : !password)) {
+      options.hashedPassword = storedCredential;
     }
 
     loginAttempt.started(getHostKey(selectedHost));

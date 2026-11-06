@@ -198,8 +198,8 @@
       fetch: 'Fetch, used to load translations, servers and card data',
       indexedDB: 'IndexedDB storage, used for cards, decks and settings',
       resizeObserver: 'Resize observers, used to lay out the game board',
-      webCrypto: 'Password hashing, which needs a page served over https://; '
-        + 'passwords are sent to the server unhashed instead',
+      webCrypto: 'Web Crypto, which needs a page served over https://; challenge-response login remains available, '
+        + 'while older servers may receive passwords unhashed',
       worker: 'Web Workers, used to keep the connection alive in a background tab',
       broadcastChannel: 'Broadcast channels, used by the pop-out card preview',
       clipboard: 'The clipboard, used by copy buttons (needs a page served over https://)',

@@ -395,14 +395,12 @@ describe('register', () => {
     expect(WebClient.instance.response.session.registrationEmailError).not.toHaveBeenCalled();
   });
 
-  it('RespTooManyRequests without details still reports a registration limit', () => {
+  it('RespTooManyRequests without a reason reports the email account cap', () => {
     register(makeRegisterOpts(), 'pw');
     const raw = create(ResponseSchema, { responseCode: Response_ResponseCode.RespTooManyRequests });
     invokeResponseCode(Response_ResponseCode.RespTooManyRequests, raw);
-    expect(WebClient.instance.response.session.registrationFailed).toHaveBeenCalledWith(
-      '', 0, Response_ResponseCode.RespTooManyRequests
-    );
-    expect(WebClient.instance.response.session.registrationEmailError).not.toHaveBeenCalled();
+    expect(WebClient.instance.response.session.registrationEmailError).toHaveBeenCalledWith('Max accounts reached for this email');
+    expect(WebClient.instance.response.session.registrationFailed).not.toHaveBeenCalled();
   });
 
   it('RespRegistrationDisabled calls registrationFailed', () => {

@@ -61,7 +61,7 @@ import type {
 import type { StatusEnum } from './StatusEnum';
 import type { CommandFailure } from './CommandFailure';
 import type { LatencyStats } from './LatencyStats';
-import type { LoginSuccessContext, PendingActivationContext } from './SignalContexts';
+import type { LocalLoginFailure, LoginSuccessContext, PendingActivationContext } from './SignalContexts';
 import type {
   KeyOf,
   ReplayEventOptions,
@@ -73,7 +73,7 @@ export interface ISessionResponse {
   connectionAttempted(): void;
   clearStore(): void;
   loginSuccessful(options: LoginSuccessContext): void;
-  loginFailed(responseCode?: number, deniedEndTime?: number): void;
+  loginFailed(responseCode?: number, deniedEndTime?: number, localFailure?: LocalLoginFailure): void;
   connectionFailed(): void;
   connectionUnreachable(): void;
   testConnectionSuccessful(supportsHashedPassword: boolean): void;

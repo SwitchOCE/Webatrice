@@ -72,9 +72,13 @@ export function register(options: ConnectTarget & RegisterParams, password?: str
       ),
       [Response_ResponseCode.RespTooManyRequests]: (raw) => {
         const { deniedReasonStr, deniedEndTime } = getExtension(raw, Response_Register_ext);
-        onRegistrationError(() => WebClient.instance.response.session.registrationFailed(
-          deniedReasonStr, Number(deniedEndTime), raw.responseCode
-        ));
+        onRegistrationError(() => {
+          if (deniedReasonStr) {
+            WebClient.instance.response.session.registrationFailed(deniedReasonStr, Number(deniedEndTime), raw.responseCode);
+          } else {
+            WebClient.instance.response.session.registrationEmailError('Max accounts reached for this email');
+          }
+        });
       },
       [Response_ResponseCode.RespRegistrationDisabled]: () => onRegistrationError(
         () => WebClient.instance.response.session.registrationFailed('Registration is currently disabled')

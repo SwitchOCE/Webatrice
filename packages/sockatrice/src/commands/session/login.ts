@@ -12,6 +12,8 @@ import { CommandFailure } from '../../services/command-options';
 import { StatusEnum } from '../../types/StatusEnum';
 import { WebClient } from '../../WebClient';
 import type { ConnectTarget } from '../../types/WebClientConfig';
+import { PasswordRequiredError } from '../../utils/passwordChallenge';
+import { rejectLocalLogin } from './loginFailure';
 import {
   disconnect,
   listUsers,
@@ -21,6 +23,11 @@ import {
 
 export function login(options: ConnectTarget & LoginParams, password?: string, credential = options.hashedPassword): void {
   const { userName, hashedPassword } = options;
+
+  if (hashedPassword?.startsWith('$scrypt$')) {
+    rejectLocalLogin(new PasswordRequiredError('Login failed: please enter your password to sign in again'));
+    return;
+  }
 
   const { clientConfig } = WebClient.instance;
   const loginConfig: MessageInitShape<typeof Command_LoginSchema> = {

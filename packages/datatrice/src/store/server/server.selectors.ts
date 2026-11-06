@@ -47,6 +47,7 @@ export const Selectors = {
   getConnectUnreachable: ({ server }: State) => server.connectUnreachable ?? false,
   getLoginFailureCode: ({ server }: State) => server.loginFailureCode ?? null,
   getLoginDeniedEndTime: ({ server }: State) => server.loginDeniedEndTime ?? null,
+  getLoginLocalFailure: ({ server }: State) => server.loginLocalFailure ?? null,
   supports: ({ server }: State, capability: ServerCapability): boolean =>
     serverSupports(server.info.version, capability),
   getUser: ({ server }: State) => server.user,

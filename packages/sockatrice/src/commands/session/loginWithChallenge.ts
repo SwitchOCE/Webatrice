@@ -1,39 +1,59 @@
-import { Response_ResponseCode, type LoginParams, type Response_PasswordSalt } from '../../generated';
+import type { LoginParams, Response_PasswordSalt } from '../../generated';
 import { WebClient } from '../../WebClient';
 import type { ConnectTarget } from '../../types/WebClientConfig';
-import { StatusEnum } from '../../types/StatusEnum';
 import { CommandFailure } from '../../types/CommandFailure';
 import { hashPassword, PasswordRequiredError, prepareChallengeLogin } from '../../utils';
-import { disconnect, login, requestPasswordSalt, updateStatus } from './';
+import { disconnect, login, requestPasswordSalt } from './';
+import { rejectLocalLogin } from './loginFailure';
 
 export async function loginWithPasswordSalt(
   options: ConnectTarget & LoginParams,
   password: string | undefined,
   salt: Response_PasswordSalt,
 ): Promise<void> {
+  const client = WebClient.instance;
+  const generation = client.connectionGeneration;
+  const isCurrent = () => client.connectionGeneration === generation;
   try {
-    if (salt.passwordSalt && WebClient.instance.serverSupportsChallengeResponse && salt.nonce?.length) {
+    if (salt.passwordSalt && client.serverSupportsChallengeResponse && salt.nonce?.length) {
       const { hashedPassword, credential } = await prepareChallengeLogin(salt, password, options.hashedPassword);
+      if (!isCurrent()) {
+        return;
+      }
       login({ ...options, hashedPassword }, undefined, credential);
-    } else if (salt.passwordSalt) {
-      const hashedPassword = options.hashedPassword || await hashPassword(salt.passwordSalt, password);
-      login({ ...options, hashedPassword }, password);
     } else {
-      login(options, password);
+      if (options.hashedPassword?.startsWith('$scrypt$')) {
+        throw new PasswordRequiredError('Login failed: please enter your password to sign in again');
+      }
+      if (salt.passwordSalt) {
+        const hashedPassword = options.hashedPassword || await hashPassword(salt.passwordSalt, password);
+        if (isCurrent()) {
+          login({ ...options, hashedPassword }, password);
+        }
+      } else {
+        login(options, password);
+      }
     }
   } catch (error) {
-    updateStatus(StatusEnum.DISCONNECTED, error instanceof Error ? error.message : 'Login failed: unable to prepare authentication');
-    WebClient.instance.response.session.loginFailed(error instanceof PasswordRequiredError
-      ? Response_ResponseCode.RespLoginNeeded : Response_ResponseCode.RespClientUpdateRequired);
-    disconnect();
+    if (isCurrent()) {
+      rejectLocalLogin(error);
+    }
   }
 }
 
 export function loginWithFreshSalt(options: ConnectTarget & LoginParams, password?: string): void {
+  const client = WebClient.instance;
+  const generation = client.connectionGeneration;
+  const isCurrent = () => client.connectionGeneration === generation;
   const { host, port, userName } = options;
   requestPasswordSalt({ host, port, userName }, (_salt, response) => {
-    void loginWithPasswordSalt(options, password, response);
+    if (isCurrent()) {
+      void loginWithPasswordSalt(options, password, response);
+    }
   }, (failure) => {
+    if (!isCurrent()) {
+      return;
+    }
     WebClient.instance.response.session.loginFailed();
     if (failure !== CommandFailure.Disconnected) {
       disconnect();

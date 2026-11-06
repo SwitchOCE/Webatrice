@@ -46,10 +46,11 @@ export class SessionResponseImpl implements WebsocketTypes.ISessionResponse {
     this.store.dispatch(ServerActions.loginSuccessful({ options }));
   }
 
-  loginFailed(responseCode?: number, deniedEndTime?: number): void {
-    this.store.dispatch(ServerActions.loginFailed(responseCode === undefined ? undefined : {
-      responseCode,
+  loginFailed(responseCode?: number, deniedEndTime?: number, localFailure?: WebsocketTypes.LocalLoginFailure): void {
+    this.store.dispatch(ServerActions.loginFailed(responseCode === undefined && localFailure === undefined ? undefined : {
+      ...(responseCode === undefined ? {} : { responseCode }),
       ...(deniedEndTime === undefined ? {} : { deniedEndTime }),
+      ...(localFailure === undefined ? {} : { localFailure }),
     }));
   }
 

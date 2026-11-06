@@ -10,6 +10,7 @@ const encode = (bytes: Uint8Array): string => btoa(String.fromCharCode(...bytes)
 const decode = (value: string): Uint8Array => Uint8Array.from(atob(value), (c) => c.charCodeAt(0));
 
 export class PasswordRequiredError extends Error {}
+export class AuthenticationDowngradeError extends Error {}
 
 export function costParamsAreSane(n: number, r: number, p: number): boolean {
   return Number.isInteger(n) && n >= 1024 && n <= 2 ** 20 && (n & (n - 1)) === 0
@@ -61,7 +62,7 @@ export async function prepareChallengeLogin(
   let credential: string;
   if (salt.needsMigration) {
     if (storedKey) {
-      throw new Error('Login failed: the server requested weaker authentication for a saved verifier');
+      throw new AuthenticationDowngradeError('Login failed: the server requested weaker authentication for a saved verifier');
     }
     if (!password && (!stored || stored.startsWith('$'))) {
       throw new PasswordRequiredError('Login failed: please enter your password to sign in again');

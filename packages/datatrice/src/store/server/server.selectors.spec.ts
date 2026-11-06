@@ -89,6 +89,11 @@ describe('Selectors', () => {
     expect(Selectors.getLoginDeniedEndTime(rootState(makeServerState({ loginDeniedEndTime: undefined })))).toBeNull();
   });
 
+  it('getLoginLocalFailure returns local refusal and tolerates older persisted state', () => {
+    expect(Selectors.getLoginLocalFailure(rootState(makeServerState({ loginLocalFailure: 'passwordRequired' })))).toBe('passwordRequired');
+    expect(Selectors.getLoginLocalFailure(rootState(makeServerState({ loginLocalFailure: undefined })))).toBeNull();
+  });
+
   it('getLoginFailureCode → returns the rejecting response code', () => {
     const state = makeServerState({ loginFailureCode: Response_ResponseCode.RespPasswordChangeRequired });
     expect(Selectors.getLoginFailureCode(rootState(state))).toBe(Response_ResponseCode.RespPasswordChangeRequired);

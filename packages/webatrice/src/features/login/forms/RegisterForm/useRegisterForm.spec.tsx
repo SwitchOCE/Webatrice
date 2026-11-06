@@ -44,7 +44,7 @@ describe('useRegisterForm', () => {
       store.dispatch(server.Actions.disconnected());
     });
     expect(screen.getByTestId('error')).toHaveTextContent(
-      `Too many registration attempts Please try again after ${new Date(1800000000 * 1000).toLocaleString()}.`,
+      `Too many registration attempts. Please try again after ${new Date(1800000000 * 1000).toLocaleString()}.`,
     );
     expect(screen.getByTestId('error')).not.toHaveTextContent(/banned/i);
     act(() => {

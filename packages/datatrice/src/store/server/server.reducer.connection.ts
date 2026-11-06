@@ -2,7 +2,7 @@ import { CaseReducer, PayloadAction } from '@reduxjs/toolkit';
 import { App } from '../../types';
 import { Event_ServerShutdown } from '@cockatrice/sockatrice/generated';
 import { WebsocketTypes } from '@cockatrice/sockatrice/types';
-import { ServerConnectionHealth, ServerLatency, ServerState, ServerStateStatus } from './server.interfaces';
+import { LoginFailurePayload, ServerConnectionHealth, ServerLatency, ServerState, ServerStateStatus } from './server.interfaces';
 import { initialStaffState } from './server.reducer.staff';
 import { initialReportsState } from './server.reducer.reports';
 
@@ -33,6 +33,7 @@ export const initialState: ServerState = {
   connectUnreachable: false,
   loginFailureCode: null,
   loginDeniedEndTime: null,
+  loginLocalFailure: null,
   info: {
     message: null,
     name: null,
@@ -94,6 +95,7 @@ export const connectionReducers = {
     state.connectUnreachable = false;
     state.loginFailureCode = null;
     state.loginDeniedEndTime = null;
+    state.loginLocalFailure = null;
     state.registrationError = null;
     state.registrationFailureCode = null;
     state.registrationDeniedEndTime = null;
@@ -102,7 +104,8 @@ export const connectionReducers = {
   loginFailed: ((state, action) => {
     state.loginFailureCode = action.payload?.responseCode ?? null;
     state.loginDeniedEndTime = action.payload?.deniedEndTime ?? null;
-  }) as CaseReducer<ServerState, PayloadAction<{ responseCode?: number; deniedEndTime?: number } | undefined>>,
+    state.loginLocalFailure = action.payload?.localFailure ?? null;
+  }) as CaseReducer<ServerState, PayloadAction<LoginFailurePayload | undefined>>,
 
   connectUnreachable: ((state) => {
     state.connectUnreachable = true;
@@ -142,6 +145,7 @@ export const connectionReducers = {
     connectUnreachable: state.connectUnreachable,
     loginFailureCode: state.loginFailureCode,
     loginDeniedEndTime: state.loginDeniedEndTime,
+    loginLocalFailure: state.loginLocalFailure,
     registrationError: state.registrationError,
     registrationFailureCode: state.registrationFailureCode,
     registrationDeniedEndTime: state.registrationDeniedEndTime,

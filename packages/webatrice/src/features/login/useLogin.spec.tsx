@@ -192,6 +192,30 @@ describe('useLogin', () => {
     expect(call.hashedPassword).toBe('hp');
   });
 
+  it.each([
+    ['alice', 'alice', true],
+    ['ALICE', 'alice', true],
+    ['bob', 'alice', false],
+    ['alice', undefined, false],
+  ])('uses the saved verifier with typed password only for its saved account (%s / %s)', (userName, savedUserName, expected) => {
+    const { result, webClient } = setup(disconnectedState);
+    const host = makeHost({ userName: savedUserName, hashedPassword: '$scrypt$saved-verifier' });
+    act(() => {
+      result.current.handleLogin(makeLoginValues({ userName, password: 'typed', remember: true, selectedHost: host }));
+    });
+    expect(vi.mocked(webClient.request.authentication.login).mock.calls[0][0].hashedPassword)
+      .toBe(expected ? host.hashedPassword : undefined);
+  });
+
+  it('does not use another account’s saved verifier with an empty password', () => {
+    const { result, webClient } = setup(disconnectedState);
+    const host = makeHost({ userName: 'alice', hashedPassword: '$scrypt$saved-verifier' });
+    act(() => {
+      result.current.handleLogin(makeLoginValues({ userName: 'bob', password: '', remember: true, selectedHost: host }));
+    });
+    expect(vi.mocked(webClient.request.authentication.login).mock.calls[0][0].hashedPassword).toBeUndefined();
+  });
+
   it('RESET_PASSWORD_REQUESTED closes the request dialog and opens the reset dialog', () => {
     const { result, store } = setup(disconnectedState);
 
@@ -401,18 +425,30 @@ describe('useLogin', () => {
   });
 
   it.each([
-    [Response_ResponseCode.RespLoginNeeded, 'Login.status.passwordRequired'],
-    [Response_ResponseCode.RespClientUpdateRequired, 'Login.status.authenticationUnsupported'],
-  ])('keeps the explanation for stopped authentication %s after the socket closes', (responseCode, key) => {
+    ['passwordRequired', 'Login.status.passwordRequired'],
+    ['authenticationUnsupported', 'Login.status.authenticationUnsupported'],
+    ['authenticationDowngrade', 'Login.status.authenticationDowngrade'],
+  ] as const)('keeps the explanation for local authentication refusal %s after the socket closes', (localFailure, key) => {
     const { result, store } = setup(disconnectedState);
     act(() => {
-      store.dispatch(server.Actions.loginFailed({ responseCode }));
+      store.dispatch(server.Actions.loginFailed({ localFailure }));
       store.dispatch(server.Actions.updateStatus({
         status: { state: WebsocketTypes.StatusEnum.DISCONNECTED, description: 'Connection Closed' },
       }));
     });
     expect(result.current.description).toBe(key);
     expect(result.current.showDescription()).toBe(true);
+  });
+
+  it('retains the missing-features explanation for a real server reply after socket closure', () => {
+    const { result, store } = setup(disconnectedState);
+    act(() => {
+      store.dispatch(server.Actions.loginFailed({ responseCode: Response_ResponseCode.RespClientUpdateRequired }));
+      store.dispatch(server.Actions.updateStatus({
+        status: { state: WebsocketTypes.StatusEnum.DISCONNECTED, description: 'Connection Closed' },
+      }));
+    });
+    expect(result.current.description).toBe('Login.status.missingFeatures');
   });
 
   it('shows a login limit deadline supplied in epoch seconds', () => {

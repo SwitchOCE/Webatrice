@@ -166,11 +166,11 @@ describe('authentication', () => {
       expect(getMockResponse().session.registrationEmailError).toHaveBeenCalledWith('This email provider has been blocked');
     });
 
-    it('reports a registration limit on RespTooManyRequests even without denial details', () => {
+    it('reports the email account cap on RespTooManyRequests without a reason', () => {
       registerThenRespond(Data.Response_ResponseCode.RespTooManyRequests);
 
-      expect(getMockResponse().session.registrationFailed).toHaveBeenCalledWith('', 0, Data.Response_ResponseCode.RespTooManyRequests);
-      expect(getMockResponse().session.registrationEmailError).not.toHaveBeenCalled();
+      expect(getMockResponse().session.registrationEmailError).toHaveBeenCalledWith('Max accounts reached for this email');
+      expect(getMockResponse().session.registrationFailed).not.toHaveBeenCalled();
     });
 
     it('reports a registration limit reason and epoch deadline from the wire', () => {
