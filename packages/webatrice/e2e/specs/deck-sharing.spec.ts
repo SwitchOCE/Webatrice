@@ -75,7 +75,7 @@ test.describe('on a 3.1 server', () => {
     await expect(linkField).toHaveValue(/#share=/, { timeout: 15_000 });
     const link = await linkField.inputValue();
     expect(new URL(link).search).toBe('');
-    expect(new URLSearchParams(new URL(link).hash.slice(1)).get('hostname')).toBe(E2E_HOST.host);
+    expect(new URL(new URLSearchParams(new URL(link).hash.slice(1)).get('hostname')!).hostname).toBe(E2E_HOST.host);
     await shareDialog.getByRole('button', { name: 'Close', exact: true }).click();
 
     await viewerPage.goto(link);
