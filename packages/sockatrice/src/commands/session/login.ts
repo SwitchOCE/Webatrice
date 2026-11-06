@@ -1,4 +1,4 @@
-import { create } from '@bufbuild/protobuf';
+import { create, getExtension } from '@bufbuild/protobuf';
 import type { MessageInitShape } from '@bufbuild/protobuf';
 import {
   Command_Login_ext,
@@ -19,7 +19,7 @@ import {
   updateStatus,
 } from './';
 
-export function login(options: ConnectTarget & LoginParams, password?: string): void {
+export function login(options: ConnectTarget & LoginParams, password?: string, credential = options.hashedPassword): void {
   const { userName, hashedPassword } = options;
 
   const { clientConfig } = WebClient.instance;
@@ -52,7 +52,7 @@ export function login(options: ConnectTarget & LoginParams, password?: string): 
       WebClient.instance.response.session.updateIgnoreList(ignoreList);
       WebClient.instance.response.session.updateUser(userInfo);
       WebClient.instance.response.session.loginSuccessful({
-        hashedPassword: loginConfig.hashedPassword,
+        hashedPassword: credential?.startsWith('$challenge$') ? undefined : credential,
         missingFeatures,
       });
 
@@ -72,6 +72,12 @@ export function login(options: ConnectTarget & LoginParams, password?: string): 
       [Response_ResponseCode.RespContextError]: rejectWith('Login failed: server error'),
       [Response_ResponseCode.RespPasswordChangeRequired]: rejectWith('Login failed: password change required'),
       [Response_ResponseCode.RespServerFull]: rejectWith('Login failed: server is full'),
+      [Response_ResponseCode.RespTooManyRequests]: (raw) => {
+        const { deniedEndTime } = getExtension(raw, Response_Login_ext);
+        updateStatus(StatusEnum.DISCONNECTED, 'Login failed: too many attempts. Please try again later.');
+        WebClient.instance.response.session.loginFailed(raw.responseCode, Number(deniedEndTime));
+        disconnect();
+      },
       [Response_ResponseCode.RespAccountNotActivated]: rejectWith('Login failed: account not activated',
         () => {
           WebClient.instance.response.session.accountAwaitingActivation({

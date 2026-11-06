@@ -166,10 +166,27 @@ describe('authentication', () => {
       expect(getMockResponse().session.registrationEmailError).toHaveBeenCalledWith('This email provider has been blocked');
     });
 
-    it('reports the per-email account cap on RespTooManyRequests', () => {
+    it('reports a registration limit on RespTooManyRequests even without denial details', () => {
       registerThenRespond(Data.Response_ResponseCode.RespTooManyRequests);
 
-      expect(getMockResponse().session.registrationEmailError).toHaveBeenCalledWith('Max accounts reached for this email');
+      expect(getMockResponse().session.registrationFailed).toHaveBeenCalledWith('', 0, Data.Response_ResponseCode.RespTooManyRequests);
+      expect(getMockResponse().session.registrationEmailError).not.toHaveBeenCalled();
+    });
+
+    it('reports a registration limit reason and epoch deadline from the wire', () => {
+      connectAndHandshake(registerOptions);
+      const register = findLastSessionCommand(Data.Command_Register_ext);
+      deliverMessage(buildResponseMessage(buildResponse({
+        cmdId: register.cmdId,
+        responseCode: Data.Response_ResponseCode.RespTooManyRequests,
+        ext: Data.Response_Register_ext,
+        value: create(Data.Response_RegisterSchema, { deniedReasonStr: 'Too many registrations', deniedEndTime: 2000000000n }),
+      })));
+
+      expect(getMockResponse().session.registrationFailed).toHaveBeenCalledWith(
+        'Too many registrations', 2000000000, Data.Response_ResponseCode.RespTooManyRequests
+      );
+      expect(getWebClient().status).toBe(WebsocketTypes.StatusEnum.DISCONNECTED);
     });
 
     it('reports disabled registration on RespRegistrationDisabled', () => {

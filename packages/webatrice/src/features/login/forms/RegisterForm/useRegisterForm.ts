@@ -5,6 +5,7 @@ import { useTranslation } from 'react-i18next';
 import { useToast } from '@app/components';
 import { useReduxEffect } from '@app/hooks';
 import { server } from '@cockatrice/datatrice';
+import { Response_ResponseCode } from '@cockatrice/sockatrice/generated';
 
 export interface RegisterForm {
   emailRequired: boolean;
@@ -24,7 +25,20 @@ export function useRegisterForm(): RegisterForm {
   const [emailError, setEmailError] = useState<string | null>(null);
   const [passwordError, setPasswordError] = useState<string | null>(null);
   const [userNameError, setUserNameError] = useState<string | null>(null);
-  const error = useSelector(server.Selectors.getRegistrationError);
+  const rawError = useSelector(server.Selectors.getRegistrationError);
+  const failureCode = useSelector(server.Selectors.getRegistrationFailureCode);
+  const deniedEndTime = useSelector(server.Selectors.getRegistrationDeniedEndTime);
+  let error = rawError;
+  if (failureCode === Response_ResponseCode.RespTooManyRequests) {
+    const reason = rawError?.trim();
+    const until = new Date((deniedEndTime ?? 0) * 1000);
+    error = reason || t('RegisterForm.error.tooManyRequests');
+    if (deniedEndTime !== null && deniedEndTime > 0 && Number.isFinite(until.getTime())) {
+      error = reason
+        ? t('RegisterForm.error.retryAfter', { reason, until: until.toLocaleString() })
+        : t('RegisterForm.error.tooManyRequestsUntil', { until: until.toLocaleString() });
+    }
+  }
   const { openToast } = useToast({
     key: 'registration-success',
     children: t('RegisterForm.toast.registerSuccess'),

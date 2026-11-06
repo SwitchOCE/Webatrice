@@ -5,6 +5,7 @@ import {
   Response_PasswordSalt_ext,
   Response_ResponseCode,
   type RequestPasswordSaltParams,
+  type Response_PasswordSalt,
 } from '../../generated';
 
 import { CommandFailure } from '../../services/command-options';
@@ -15,7 +16,7 @@ import { updateStatus } from './';
 
 export function requestPasswordSalt(
   options: ConnectTarget & RequestPasswordSaltParams,
-  onSaltReceived: (passwordSalt: string) => void,
+  onSaltReceived: (passwordSalt: string, response: Response_PasswordSalt) => void,
   onFailure: (failure?: CommandFailure) => void,
 ): void {
   const { userName } = options;
@@ -26,7 +27,7 @@ export function requestPasswordSalt(
   }), {
     responseExt: Response_PasswordSalt_ext,
     onSuccess: (resp) => {
-      onSaltReceived(resp?.passwordSalt);
+      onSaltReceived(resp.passwordSalt, resp);
     },
     onResponseCode: {
       [Response_ResponseCode.RespRegistrationRequired]: () => {

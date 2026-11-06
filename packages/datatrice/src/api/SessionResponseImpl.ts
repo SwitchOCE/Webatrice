@@ -46,8 +46,11 @@ export class SessionResponseImpl implements WebsocketTypes.ISessionResponse {
     this.store.dispatch(ServerActions.loginSuccessful({ options }));
   }
 
-  loginFailed(responseCode?: number): void {
-    this.store.dispatch(ServerActions.loginFailed(responseCode === undefined ? undefined : { responseCode }));
+  loginFailed(responseCode?: number, deniedEndTime?: number): void {
+    this.store.dispatch(ServerActions.loginFailed(responseCode === undefined ? undefined : {
+      responseCode,
+      ...(deniedEndTime === undefined ? {} : { deniedEndTime }),
+    }));
   }
 
   connectionFailed(): void {
@@ -146,8 +149,12 @@ export class SessionResponseImpl implements WebsocketTypes.ISessionResponse {
     this.store.dispatch(ServerActions.registrationSuccess());
   }
 
-  registrationFailed(reason: string, endTime?: number): void {
-    this.store.dispatch(ServerActions.registrationFailed({ reason, endTime }));
+  registrationFailed(reason: string, endTime?: number, responseCode?: number): void {
+    this.store.dispatch(ServerActions.registrationFailed({
+      reason,
+      endTime,
+      ...(responseCode === undefined ? {} : { responseCode }),
+    }));
   }
 
   registrationEmailError(error: string): void {

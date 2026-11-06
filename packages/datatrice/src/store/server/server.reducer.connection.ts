@@ -32,6 +32,7 @@ export const initialState: ServerState = {
   latency: EMPTY_LATENCY,
   connectUnreachable: false,
   loginFailureCode: null,
+  loginDeniedEndTime: null,
   info: {
     message: null,
     name: null,
@@ -70,6 +71,8 @@ export const initialState: ServerState = {
   gamesOfUserRoomNames: {},
   gamesOfUserStatus: {},
   registrationError: null,
+  registrationFailureCode: null,
+  registrationDeniedEndTime: null,
   staff: initialStaffState,
   reports: initialReportsState,
 };
@@ -90,11 +93,16 @@ export const connectionReducers = {
     state.status.connectionAttemptMade = true;
     state.connectUnreachable = false;
     state.loginFailureCode = null;
+    state.loginDeniedEndTime = null;
+    state.registrationError = null;
+    state.registrationFailureCode = null;
+    state.registrationDeniedEndTime = null;
   }) as CaseReducer<ServerState>,
 
   loginFailed: ((state, action) => {
     state.loginFailureCode = action.payload?.responseCode ?? null;
-  }) as CaseReducer<ServerState, PayloadAction<{ responseCode?: number } | undefined>>,
+    state.loginDeniedEndTime = action.payload?.deniedEndTime ?? null;
+  }) as CaseReducer<ServerState, PayloadAction<{ responseCode?: number; deniedEndTime?: number } | undefined>>,
 
   connectUnreachable: ((state) => {
     state.connectUnreachable = true;
@@ -133,6 +141,10 @@ export const connectionReducers = {
     testConnectionStatus: state.testConnectionStatus,
     connectUnreachable: state.connectUnreachable,
     loginFailureCode: state.loginFailureCode,
+    loginDeniedEndTime: state.loginDeniedEndTime,
+    registrationError: state.registrationError,
+    registrationFailureCode: state.registrationFailureCode,
+    registrationDeniedEndTime: state.registrationDeniedEndTime,
   })) as CaseReducer<ServerState>,
 
   serverMessage: ((state, action) => {

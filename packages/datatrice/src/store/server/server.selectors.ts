@@ -46,6 +46,7 @@ export const Selectors = {
   getLatency: ({ server }: State) => server.latency ?? EMPTY_LATENCY,
   getConnectUnreachable: ({ server }: State) => server.connectUnreachable ?? false,
   getLoginFailureCode: ({ server }: State) => server.loginFailureCode ?? null,
+  getLoginDeniedEndTime: ({ server }: State) => server.loginDeniedEndTime ?? null,
   supports: ({ server }: State, capability: ServerCapability): boolean =>
     serverSupports(server.info.version, capability),
   getUser: ({ server }: State) => server.user,
@@ -144,6 +145,8 @@ export const Selectors = {
   getPublicDecks: ({ server }: State, userName: string): Response_DeckList | undefined => server.publicDecks[userName],
   getDownloadedReplay: ({ server }: State) => server.downloadedReplay,
   getRegistrationError: ({ server }: State) => server.registrationError,
+  getRegistrationFailureCode: ({ server }: State) => server.registrationFailureCode ?? null,
+  getRegistrationDeniedEndTime: ({ server }: State) => server.registrationDeniedEndTime ?? null,
   getNotifications: ({ server }: State) => server.notifications,
   getServerShutdown: ({ server }: State) => server.serverShutdown,
   getSortUsersBy: ({ server }: State) => server.sortUsersBy,

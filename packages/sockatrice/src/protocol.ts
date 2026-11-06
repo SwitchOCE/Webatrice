@@ -12,4 +12,6 @@ export const SOCKATRICE_FEATURES = [
   'mod_log_lookup',
   'user_ban_history',
   'websocket',
+  'hashed_password_login',
+  'challenge_response_auth',
 ] as const;

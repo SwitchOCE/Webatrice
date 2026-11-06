@@ -12,7 +12,7 @@ import { CommandFailure } from '../../services/command-options';
 import { StatusEnum } from '../../types/StatusEnum';
 import { WebClient } from '../../WebClient';
 import type { ConnectTarget } from '../../types/WebClientConfig';
-import { login, disconnect, updateStatus } from './';
+import { login, loginWithFreshSalt, disconnect, updateStatus } from './';
 
 export function register(options: ConnectTarget & RegisterParams, password?: string): void {
   const { userName, email, country, realName, hashedPassword } = options;
@@ -37,7 +37,8 @@ export function register(options: ConnectTarget & RegisterParams, password?: str
   WebClient.instance.protobuf.sendSessionCommand(Command_Register_ext, create(Command_RegisterSchema, params), {
     onResponseCode: {
       [Response_ResponseCode.RespRegistrationAccepted]: () => {
-        login({
+        const logIn = WebClient.instance.serverSupportsChallengeResponse ? loginWithFreshSalt : login;
+        logIn({
           host: options.host,
           port: options.port,
           userName: options.userName,
@@ -69,9 +70,12 @@ export function register(options: ConnectTarget & RegisterParams, password?: str
       [Response_ResponseCode.RespEmailBlackListed]: () => onRegistrationError(
         () => WebClient.instance.response.session.registrationEmailError('This email provider has been blocked')
       ),
-      [Response_ResponseCode.RespTooManyRequests]: () => onRegistrationError(
-        () => WebClient.instance.response.session.registrationEmailError('Max accounts reached for this email')
-      ),
+      [Response_ResponseCode.RespTooManyRequests]: (raw) => {
+        const { deniedReasonStr, deniedEndTime } = getExtension(raw, Response_Register_ext);
+        onRegistrationError(() => WebClient.instance.response.session.registrationFailed(
+          deniedReasonStr, Number(deniedEndTime), raw.responseCode
+        ));
+      },
       [Response_ResponseCode.RespRegistrationDisabled]: () => onRegistrationError(
         () => WebClient.instance.response.session.registrationFailed('Registration is currently disabled')
       ),

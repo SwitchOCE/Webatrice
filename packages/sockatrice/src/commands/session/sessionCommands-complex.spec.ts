@@ -382,10 +382,27 @@ describe('register', () => {
     expect(WebClient.instance.response.session.registrationEmailError).toHaveBeenCalled();
   });
 
-  it('RespTooManyRequests calls registrationEmailError', () => {
+  it('RespTooManyRequests reports the registration limit reason and expiry', () => {
     register(makeRegisterOpts(), 'pw');
-    invokeResponseCode(Response_ResponseCode.RespTooManyRequests);
-    expect(WebClient.instance.response.session.registrationEmailError).toHaveBeenCalled();
+    const raw = create(ResponseSchema, { responseCode: Response_ResponseCode.RespTooManyRequests });
+    setExtension(raw, Response_Register_ext, create(Response_RegisterSchema, {
+      deniedReasonStr: 'Registration rate limit exceeded', deniedEndTime: 9999n,
+    }));
+    invokeResponseCode(Response_ResponseCode.RespTooManyRequests, raw);
+    expect(WebClient.instance.response.session.registrationFailed).toHaveBeenCalledWith(
+      'Registration rate limit exceeded', 9999, Response_ResponseCode.RespTooManyRequests
+    );
+    expect(WebClient.instance.response.session.registrationEmailError).not.toHaveBeenCalled();
+  });
+
+  it('RespTooManyRequests without details still reports a registration limit', () => {
+    register(makeRegisterOpts(), 'pw');
+    const raw = create(ResponseSchema, { responseCode: Response_ResponseCode.RespTooManyRequests });
+    invokeResponseCode(Response_ResponseCode.RespTooManyRequests, raw);
+    expect(WebClient.instance.response.session.registrationFailed).toHaveBeenCalledWith(
+      '', 0, Response_ResponseCode.RespTooManyRequests
+    );
+    expect(WebClient.instance.response.session.registrationEmailError).not.toHaveBeenCalled();
   });
 
   it('RespRegistrationDisabled calls registrationFailed', () => {
@@ -575,13 +592,16 @@ describe('requestPasswordSalt', () => {
     );
   });
 
-  it('onSuccess calls onSaltReceived with the salt', () => {
+  it('onSuccess passes the salt and all challenge parameters to callers', () => {
     const onSaltReceived = vi.fn();
     const onFailure = vi.fn();
     requestPasswordSalt({ host: 'h', port: '1', userName: 'alice' }, onSaltReceived, onFailure);
-    const resp = { passwordSalt: 'salt123' };
+    const resp = {
+      passwordSalt: 'salt123', n: 1024, r: 8, p: 1,
+      nonce: new Uint8Array([0, 128, 255]), needsMigration: true, scryptSalt: 'c2FsdA==',
+    };
     invokeOnSuccess(resp, { responseCode: 0 });
-    expect(onSaltReceived).toHaveBeenCalledWith('salt123');
+    expect(onSaltReceived).toHaveBeenCalledWith('salt123', resp);
   });
 
   it('onResponseCode RespRegistrationRequired calls updateStatus and onFailure', () => {

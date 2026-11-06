@@ -38,6 +38,7 @@ export interface ServerState {
   latency: ServerLatency;
   connectUnreachable: boolean;
   loginFailureCode?: number | null;
+  loginDeniedEndTime?: number | null;
   logs: ServerStateLogs;
   user: ServerInfo_User | null;
   users: { [userName: string]: ServerInfo_User };
@@ -74,6 +75,8 @@ export interface ServerState {
   gamesOfUserRoomNames: { [userName: string]: { [roomId: number]: string } };
   gamesOfUserStatus: { [userName: string]: GamesOfUserStatus };
   registrationError: string | null;
+  registrationFailureCode?: number | null;
+  registrationDeniedEndTime?: number | null;
   staff: ServerStateStaff;
   reports: ServerStateReports;
 }

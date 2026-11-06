@@ -53,6 +53,8 @@ export interface Login {
 const LOGIN_FAILURE_MESSAGE_KEYS: Partial<Record<number, string>> = {
   [Response_ResponseCode.RespPasswordChangeRequired]: 'Login.status.passwordChangeRequired',
   [Response_ResponseCode.RespServerFull]: 'Login.status.serverFull',
+  [Response_ResponseCode.RespLoginNeeded]: 'Login.status.passwordRequired',
+  [Response_ResponseCode.RespClientUpdateRequired]: 'Login.status.authenticationUnsupported',
 };
 
 export function useLogin(): Login {
@@ -61,6 +63,7 @@ export function useLogin(): Login {
   const connectionAttemptMade = useAppSelector(server.Selectors.getConnectionAttemptMade);
   const connectUnreachable = useAppSelector(server.Selectors.getConnectUnreachable);
   const loginFailureCode = useAppSelector(server.Selectors.getLoginFailureCode);
+  const loginDeniedEndTime = useAppSelector(server.Selectors.getLoginDeniedEndTime);
   const webClient = useWebClient();
   const { t } = useTranslation();
 
@@ -70,6 +73,11 @@ export function useLogin(): Login {
   let description = rawDescription;
   if (!isConnected && connectUnreachable) {
     description = t('Login.status.serverUnreachable');
+  } else if (!isConnected && loginFailureCode === Response_ResponseCode.RespTooManyRequests) {
+    const deniedUntil = new Date((loginDeniedEndTime ?? 0) * 1000);
+    description = loginDeniedEndTime !== null && loginDeniedEndTime > 0 && Number.isFinite(deniedUntil.getTime())
+      ? t('Login.status.tooManyRequestsUntil', { until: deniedUntil.toLocaleString() })
+      : t('Login.status.tooManyRequests');
   } else if (!isConnected && loginFailureKey) {
     description = t(loginFailureKey);
   }

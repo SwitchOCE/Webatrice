@@ -69,6 +69,7 @@ export class WebClient {
   socket: WebSocketService;
   status: StatusEnum;
   serverSupportsPasswordHash = false;
+  serverSupportsChallengeResponse = false;
   private testSocket: WebSocket | null = null;
   private clearTestTimer: (() => void) | undefined;
   private disposed = false;

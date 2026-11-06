@@ -33,7 +33,35 @@ function setup() {
   return { store, impl: new SessionResponseImpl(store), dispatch };
 }
 
+describe('SessionResponseImpl.registrationFailed', () => {
+  it('keeps a registration limit reason and epoch deadline visible through disconnect', () => {
+    const { store, impl } = setup();
+    impl.registrationFailed('Too many registration attempts', 1800000000, Response_ResponseCode.RespTooManyRequests);
+    impl.updateStatus(WebsocketTypes.StatusEnum.DISCONNECTED, 'Registration failed');
+    expect(store.getState().server.registrationError).toBe('Too many registration attempts');
+    expect(store.getState().server.registrationFailureCode).toBe(Response_ResponseCode.RespTooManyRequests);
+    expect(store.getState().server.registrationDeniedEndTime).toBe(1800000000);
+    impl.connectionAttempted();
+    expect(store.getState().server.registrationError).toBeNull();
+    expect(store.getState().server.registrationFailureCode).toBeNull();
+    expect(store.getState().server.registrationDeniedEndTime).toBeNull();
+  });
+});
+
 describe('SessionResponseImpl.loginFailed', () => {
+  it('keeps a login limit deadline through disconnect and clears it on the next attempt', () => {
+    const { store, impl } = setup();
+    impl.loginFailed(Response_ResponseCode.RespTooManyRequests, 1800000000);
+    impl.updateStatus(WebsocketTypes.StatusEnum.DISCONNECTED, 'Too many login attempts');
+    expect(store.getState().server.loginFailureCode).toBe(Response_ResponseCode.RespTooManyRequests);
+    expect(store.getState().server.loginDeniedEndTime).toBe(1800000000);
+    impl.connectionAttempted();
+    expect(store.getState().server.loginDeniedEndTime).toBeNull();
+    impl.loginFailed(Response_ResponseCode.RespTooManyRequests, 1800000000);
+    impl.loginFailed();
+    expect(store.getState().server.loginDeniedEndTime).toBeNull();
+  });
+
   it('keeps the rejection code through the disconnect that follows a rejected login', () => {
     const { store, impl } = setup();
     impl.connectionAttempted();

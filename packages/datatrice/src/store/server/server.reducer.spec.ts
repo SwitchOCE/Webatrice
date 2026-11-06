@@ -114,6 +114,13 @@ describe('Account & Connection', () => {
 });
 
 describe('Login failure code', () => {
+  it('retains a limit deadline on disconnect and clears it when the store is reset', () => {
+    const state = makeServerState({ loginFailureCode: 38, loginDeniedEndTime: 1800000000 });
+    expect(serverReducer(state, Actions.disconnected()).loginDeniedEndTime).toBe(1800000000);
+    expect(serverReducer(state, Actions.clearStore()).loginDeniedEndTime).toBeNull();
+    expect(serverReducer(state, Actions.initialized()).loginDeniedEndTime).toBeNull();
+  });
+
   it('LOGIN_FAILED → records the rejecting response code', () => {
     const result = serverReducer(makeServerState(), Actions.loginFailed({ responseCode: 36 }));
     expect(result.loginFailureCode).toBe(36);
@@ -189,6 +196,24 @@ describe('Connect Unreachable', () => {
 });
 
 describe('Registration', () => {
+  it('stores rate limits separately from bans and clears them with registration errors', () => {
+    const limited = serverReducer(makeServerState(), Actions.registrationFailed({
+      reason: 'Too many registration attempts', endTime: 1800000000, responseCode: Response_ResponseCode.RespTooManyRequests,
+    }));
+    expect(limited.registrationError).toBe('Too many registration attempts');
+    expect(limited.registrationDeniedEndTime).toBe(1800000000);
+    expect(limited.registrationFailureCode).toBe(Response_ResponseCode.RespTooManyRequests);
+    for (const action of [Actions.clearRegistrationErrors(), Actions.clearStore(), Actions.initialized()]) {
+      const cleared = serverReducer(limited, action);
+      expect(cleared.registrationError).toBeNull();
+      expect(cleared.registrationDeniedEndTime).toBeNull();
+      expect(cleared.registrationFailureCode).toBeNull();
+    }
+    const nextFailure = serverReducer(limited, Actions.registrationFailed({ reason: 'Registration disabled' }));
+    expect(nextFailure.registrationFailureCode).toBeNull();
+    expect(nextFailure.registrationDeniedEndTime).toBeNull();
+  });
+
   it('REGISTRATION_FAILED → stores normalized error (plain reason)', () => {
     const state = makeServerState({ registrationError: null });
     const result = serverReducer(state, Actions.registrationFailed({ reason: 'Server is disabled', endTime: undefined }));

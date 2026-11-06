@@ -3,6 +3,9 @@ import { act, fireEvent, screen } from '@testing-library/react';
 import { renderWithProviders, disconnectedState } from '../../../../__test-utils__';
 import { useRegisterForm, type RegisterForm } from './useRegisterForm';
 import { server } from '@cockatrice/datatrice';
+import { Response_ResponseCode } from '@cockatrice/sockatrice/generated';
+import { testI18n } from '../../../../__test-utils__/renderWithProviders';
+import messages from './RegisterForm.i18n.json';
 
 // Probe component: surfaces the hook's return value and exposes buttons that
 // invoke each imperative callback so we can assert state transitions.
@@ -26,6 +29,67 @@ const Probe = () => {
 };
 
 describe('useRegisterForm', () => {
+  beforeAll(() => {
+    testI18n.addResourceBundle('en-US', 'translation', messages, true, true);
+  });
+
+  test('shows a registration limit reason and retry deadline after disconnect without a ban label', () => {
+    const { store } = renderWithProviders(<Probe />, { preloadedState: disconnectedState });
+    act(() => {
+      store.dispatch(server.Actions.registrationFailed({
+        reason: 'Too many registration attempts',
+        endTime: 1800000000,
+        responseCode: Response_ResponseCode.RespTooManyRequests,
+      }));
+      store.dispatch(server.Actions.disconnected());
+    });
+    expect(screen.getByTestId('error')).toHaveTextContent(
+      `Too many registration attempts Please try again after ${new Date(1800000000 * 1000).toLocaleString()}.`,
+    );
+    expect(screen.getByTestId('error')).not.toHaveTextContent(/banned/i);
+    act(() => {
+      store.dispatch(server.Actions.clearRegistrationErrors());
+    });
+    expect(screen.getByTestId('error')).toHaveTextContent('null');
+  });
+
+  test('localizes a timed registration limit when the server supplies no reason', () => {
+    const { store } = renderWithProviders(<Probe />, { preloadedState: disconnectedState });
+    act(() => {
+      store.dispatch(server.Actions.registrationFailed({
+        reason: '', endTime: 1800000000, responseCode: Response_ResponseCode.RespTooManyRequests,
+      }));
+    });
+    expect(screen.getByTestId('error')).toHaveTextContent(
+      `Too many registration requests. Please try again after ${new Date(1800000000 * 1000).toLocaleString()}.`,
+    );
+  });
+
+  test.each([undefined, 0, -1, Number.NaN, Infinity, Number.MAX_SAFE_INTEGER])(
+    'localizes a registration limit with no reason or usable deadline (%s)',
+    (endTime) => {
+      const { store } = renderWithProviders(<Probe />, { preloadedState: disconnectedState });
+      act(() => {
+        store.dispatch(server.Actions.registrationFailed({
+          reason: '', endTime, responseCode: Response_ResponseCode.RespTooManyRequests,
+        }));
+      });
+      expect(screen.getByTestId('error')).toHaveTextContent('Too many registration requests. Please try again later.');
+      expect(screen.getByTestId('error')).not.toHaveTextContent(/banned|Invalid Date/i);
+    },
+  );
+
+  test('preserves a server limit reason without inventing a deadline', () => {
+    const { store } = renderWithProviders(<Probe />, { preloadedState: disconnectedState });
+    act(() => {
+      store.dispatch(server.Actions.registrationFailed({
+        reason: 'Account limit reached for this email', responseCode: Response_ResponseCode.RespTooManyRequests,
+      }));
+    });
+    expect(screen.getByTestId('error')).toHaveTextContent('Account limit reached for this email');
+    expect(screen.getByTestId('error')).not.toHaveTextContent(/banned|after/i);
+  });
+
   test('starts with cleared state', () => {
     renderWithProviders(<Probe />, { preloadedState: disconnectedState });
     expect(screen.getByTestId('emailRequired').textContent).toBe('false');

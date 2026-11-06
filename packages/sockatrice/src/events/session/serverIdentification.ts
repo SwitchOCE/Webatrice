@@ -3,7 +3,8 @@ import { WebClient } from '../../WebClient';
 import { StatusEnum } from '../../types/StatusEnum';
 import { consumePendingOptions } from '../../utils/connectionState';
 import { WebSocketConnectReason } from '../../types/ConnectOptions';
-import { generateSalt, hashPassword, passwordHashAvailable, passwordSaltSupported } from '../../utils';
+import { generateSalt, generatePasswordVerifier, hashPassword, passwordHashAvailable, passwordSaltSupported } from '../../utils';
+import { loginWithPasswordSalt } from '../../commands/session/loginWithChallenge';
 import * as SessionCommands from '../../commands/session';
 import { CommandFailure } from '../../types/CommandFailure';
 
@@ -28,6 +29,7 @@ export async function serverIdentification(info: Event_ServerIdentification): Pr
 
   const serverSupportsPasswordHash = passwordSaltSupported(serverOptions);
   WebClient.instance.serverSupportsPasswordHash = serverSupportsPasswordHash;
+  WebClient.instance.serverSupportsChallengeResponse = info.supportsChallengeResponse;
   const getPasswordSalt = serverSupportsPasswordHash && passwordHashAvailable();
   const options = consumePendingOptions();
 
@@ -41,12 +43,12 @@ export async function serverIdentification(info: Event_ServerIdentification): Pr
     case WebSocketConnectReason.LOGIN: {
       const { password, ...rest } = options;
       SessionCommands.updateStatus(StatusEnum.LOGGING_IN, 'Logging In...');
-      if (getPasswordSalt) {
+      if (getPasswordSalt || info.supportsChallengeResponse) {
         SessionCommands.requestPasswordSalt(rest,
-          // Empty salt → fall through to plain password.
-          // See .github/instructions/sockatrice.instructions.md#protocol-version-and-feature-flags.
-          async (salt) => {
-            if (salt) {
+          async (salt, response) => {
+            if (salt && info.supportsChallengeResponse && response.nonce?.length) {
+              await loginWithPasswordSalt(rest, password, response);
+            } else if (salt) {
               const hashedPassword = rest.hashedPassword || await hashPassword(salt, password);
               SessionCommands.login({ ...rest, hashedPassword }, password);
             } else {
@@ -62,7 +64,16 @@ export async function serverIdentification(info: Event_ServerIdentification): Pr
     }
     case WebSocketConnectReason.REGISTER: {
       const { password, ...rest } = options;
-      if (getPasswordSalt) {
+      if (info.supportsChallengeResponse) {
+        try {
+          const hashedPassword = await generatePasswordVerifier(password);
+          SessionCommands.register({ ...rest, hashedPassword }, password);
+        } catch {
+          response.session.registrationFailed('Unable to prepare the password verifier. Please try again.');
+          SessionCommands.updateStatus(StatusEnum.DISCONNECTED, 'Registration failed');
+          SessionCommands.disconnect();
+        }
+      } else if (getPasswordSalt) {
         const passwordSalt = generateSalt();
         const hashedPassword = await hashPassword(passwordSalt, password);
         SessionCommands.register({ ...rest, hashedPassword }, password);
@@ -73,7 +84,9 @@ export async function serverIdentification(info: Event_ServerIdentification): Pr
     }
     case WebSocketConnectReason.ACTIVATE_ACCOUNT: {
       const { password, ...rest } = options;
-      if (getPasswordSalt) {
+      if (info.supportsChallengeResponse) {
+        SessionCommands.activate(rest, password);
+      } else if (getPasswordSalt) {
         SessionCommands.requestPasswordSalt(rest,
           async (salt) => {
             const hashedPassword = salt ? await hashPassword(salt, password) : undefined;
@@ -94,7 +107,16 @@ export async function serverIdentification(info: Event_ServerIdentification): Pr
       break;
     case WebSocketConnectReason.PASSWORD_RESET: {
       const { newPassword, ...rest } = options;
-      if (getPasswordSalt) {
+      if (info.supportsChallengeResponse) {
+        try {
+          const hashedNewPassword = await generatePasswordVerifier(newPassword);
+          SessionCommands.forgotPasswordReset({ ...rest, hashedNewPassword }, newPassword);
+        } catch {
+          response.session.resetPasswordFailed();
+          SessionCommands.updateStatus(StatusEnum.DISCONNECTED, 'Unable to prepare the password verifier. Please try again.');
+          SessionCommands.disconnect();
+        }
+      } else if (getPasswordSalt) {
         SessionCommands.requestPasswordSalt(rest,
           async (salt) => {
             if (salt) {

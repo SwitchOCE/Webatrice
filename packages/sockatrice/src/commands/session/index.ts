@@ -29,6 +29,7 @@ export * from './joinRoom';
 export * from './listRooms';
 export * from './listUsers';
 export * from './login';
+export * from './loginWithChallenge';
 export * from './message';
 export * from './ping';
 export * from './register';

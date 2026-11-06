@@ -73,7 +73,7 @@ export interface ISessionResponse {
   connectionAttempted(): void;
   clearStore(): void;
   loginSuccessful(options: LoginSuccessContext): void;
-  loginFailed(responseCode?: number): void;
+  loginFailed(responseCode?: number, deniedEndTime?: number): void;
   connectionFailed(): void;
   connectionUnreachable(): void;
   testConnectionSuccessful(supportsHashedPassword: boolean): void;
@@ -98,7 +98,7 @@ export interface ISessionResponse {
   accountActivationFailed(failure?: CommandFailure): void;
   registrationRequiresEmail(): void;
   registrationSuccess(): void;
-  registrationFailed(reason: string, endTime?: number): void;
+  registrationFailed(reason: string, endTime?: number, responseCode?: number): void;
   registrationEmailError(error: string): void;
   registrationPasswordError(error: string): void;
   registrationUserNameError(error: string): void;

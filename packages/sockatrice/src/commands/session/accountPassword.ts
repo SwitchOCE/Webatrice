@@ -3,7 +3,7 @@ import { WebClient } from '../../WebClient';
 import type { CommandFailure } from '../../types/CommandFailure';
 
 import { Command_AccountPassword_ext, Command_AccountPasswordSchema, type AccountPasswordParams } from '../../generated';
-import { generateSalt, hashPassword, passwordHashAvailable } from '../../utils';
+import { generateSalt, generatePasswordVerifier, hashPassword, passwordHashAvailable } from '../../utils';
 
 export function accountPassword(oldPassword: string, newPassword: string, hashedNewPassword: string): void;
 export function accountPassword(
@@ -35,9 +35,11 @@ async function changePassword(
   onChanged?: () => void,
   onFailure?: (responseCode: number, failure?: CommandFailure) => void,
 ): Promise<void> {
-  const credential = WebClient.instance.serverSupportsPasswordHash && passwordHashAvailable()
-    ? { hashedNewPassword: await hashPassword(generateSalt(), newPassword) }
-    : { newPassword };
+  const credential = WebClient.instance.serverSupportsChallengeResponse
+    ? { hashedNewPassword: await generatePasswordVerifier(newPassword) }
+    : WebClient.instance.serverSupportsPasswordHash && passwordHashAvailable()
+      ? { hashedNewPassword: await hashPassword(generateSalt(), newPassword) }
+      : { newPassword };
 
   sendAccountPassword({ oldPassword, ...credential }, onChanged, onFailure);
 }

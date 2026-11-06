@@ -24,7 +24,11 @@
       "serverUnreachable": "Trouble reaching the server. Wait a minute and try again.",
       "passwordChangeRequired": "An administrator has reset your password. The server will not sign you in until you choose a new one: use “Forgot password?” to set it, then sign in with the new password.",
       "passwordChangeRequiredAction": "Reset password",
-      "serverFull": "The server has reached its maximum number of users. Please check back later."
+      "serverFull": "The server has reached its maximum number of users. Please check back later.",
+      "passwordRequired": "Please enter your password to sign in again. Your saved credentials cannot be used for this account.",
+      "authenticationUnsupported": "The server requested authentication settings this client cannot safely use. Login was stopped.",
+      "tooManyRequests": "Too many login attempts. Please try again later.",
+      "tooManyRequestsUntil": "Too many login attempts. Please try again after {until}."
     },
     "art": {
       "label": "Art:",

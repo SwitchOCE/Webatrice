@@ -6,6 +6,7 @@ import { Provider } from 'react-redux';
 import { createStore, server } from '@cockatrice/datatrice';
 import { WebClientContext } from '@cockatrice/datatrice/react';
 import { Response_ResponseCode } from '@cockatrice/sockatrice/generated';
+import { WebsocketTypes } from '@cockatrice/sockatrice/types';
 
 import { rootReducerMap, type RootState } from '../../store';
 import {
@@ -20,7 +21,12 @@ vi.mock('./useAutoLogin', () => ({ useAutoLogin: vi.fn() }));
 vi.mock('../../feature-widgets/known-hosts/useKnownHosts');
 vi.mock('react-i18next', async (orig) => {
   const actual = await orig<typeof import('react-i18next')>();
-  return { ...actual, useTranslation: () => ({ t: (k: string) => k }) };
+  return {
+    ...actual,
+    useTranslation: () => ({
+      t: (k: string, values?: { until?: string }) => values?.until ? `${k}: ${values.until}` : k,
+    }),
+  };
 });
 
 import { useKnownHosts } from '../../feature-widgets/known-hosts/useKnownHosts';
@@ -392,6 +398,63 @@ describe('useLogin', () => {
 
     expect(result.current.description).toBe(key);
     expect(result.current.showDescription()).toBe(true);
+  });
+
+  it.each([
+    [Response_ResponseCode.RespLoginNeeded, 'Login.status.passwordRequired'],
+    [Response_ResponseCode.RespClientUpdateRequired, 'Login.status.authenticationUnsupported'],
+  ])('keeps the explanation for stopped authentication %s after the socket closes', (responseCode, key) => {
+    const { result, store } = setup(disconnectedState);
+    act(() => {
+      store.dispatch(server.Actions.loginFailed({ responseCode }));
+      store.dispatch(server.Actions.updateStatus({
+        status: { state: WebsocketTypes.StatusEnum.DISCONNECTED, description: 'Connection Closed' },
+      }));
+    });
+    expect(result.current.description).toBe(key);
+    expect(result.current.showDescription()).toBe(true);
+  });
+
+  it('shows a login limit deadline supplied in epoch seconds', () => {
+    const deadline = 1800000000;
+    const { result } = setup({
+      ...disconnectedState,
+      server: {
+        ...disconnectedState.server!,
+        loginFailureCode: Response_ResponseCode.RespTooManyRequests,
+        loginDeniedEndTime: deadline,
+      },
+    });
+    expect(result.current.description).toBe(`Login.status.tooManyRequestsUntil: ${new Date(deadline * 1000).toLocaleString()}`);
+    expect(result.current.showDescription()).toBe(true);
+  });
+
+  it.each([undefined, null, 0, -1, Infinity, Number.NaN, Number.MAX_SAFE_INTEGER])(
+    'uses a generic login limit message without a usable deadline (%s)',
+    (loginDeniedEndTime) => {
+      const { result } = setup({
+        ...disconnectedState,
+        server: {
+          ...disconnectedState.server!,
+          loginFailureCode: Response_ResponseCode.RespTooManyRequests,
+          loginDeniedEndTime,
+        },
+      });
+      expect(result.current.description).toBe('Login.status.tooManyRequests');
+    },
+  );
+
+  it('does not show a lingering login limit after connecting', () => {
+    const { result } = setup({
+      ...connectedState,
+      server: {
+        ...connectedState.server!,
+        loginFailureCode: Response_ResponseCode.RespTooManyRequests,
+        loginDeniedEndTime: 1800000000,
+      },
+    });
+    expect(result.current.description).toBe(connectedState.server?.status.description);
+    expect(result.current.showDescription()).toBe(false);
   });
 
   it('offers the password reset only for a password-change-required rejection', () => {

@@ -42,6 +42,8 @@ describe('Protocol negotiation', () => {
       'mod_log_lookup',
       'user_ban_history',
       'websocket',
+      'hashed_password_login',
+      'challenge_response_auth',
     ];
 
     it('contains every protocol-layer feature flag the desktop client advertises', () => {

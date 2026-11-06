@@ -1,20 +1,25 @@
 import { CaseReducer, PayloadAction } from '@reduxjs/toolkit';
 import { create } from '@bufbuild/protobuf';
-import { ServerInfo_User, ServerInfo_UserSchema } from '@cockatrice/sockatrice/generated';
+import { Response_ResponseCode, ServerInfo_User, ServerInfo_UserSchema } from '@cockatrice/sockatrice/generated';
 import { normalizeBannedUserError } from '../../common';
 import { ServerState } from './server.interfaces';
 
 export const accountReducers = {
   registrationFailed: ((state, action) => {
-    const { reason, endTime } = action.payload;
-    const error = endTime
+    const { reason, endTime, responseCode } = action.payload;
+    const limited = responseCode === Response_ResponseCode.RespTooManyRequests;
+    const error = endTime && !limited
       ? normalizeBannedUserError(reason, endTime)
       : reason;
     state.registrationError = error;
-  }) as CaseReducer<ServerState, PayloadAction<{ reason: string; endTime?: number }>>,
+    state.registrationFailureCode = responseCode ?? null;
+    state.registrationDeniedEndTime = limited ? endTime ?? null : null;
+  }) as CaseReducer<ServerState, PayloadAction<{ reason: string; endTime?: number; responseCode?: number }>>,
 
   clearRegistrationErrors: ((state) => {
     state.registrationError = null;
+    state.registrationFailureCode = null;
+    state.registrationDeniedEndTime = null;
   }) as CaseReducer<ServerState>,
 
   accountEditChanged: ((state, action) => {

@@ -84,6 +84,11 @@ describe('Selectors', () => {
     expect(Selectors.getConnectUnreachable(rootState(state))).toBe(false);
   });
 
+  it('getLoginDeniedEndTime returns a deadline and tolerates older persisted state', () => {
+    expect(Selectors.getLoginDeniedEndTime(rootState(makeServerState({ loginDeniedEndTime: 1800000000 })))).toBe(1800000000);
+    expect(Selectors.getLoginDeniedEndTime(rootState(makeServerState({ loginDeniedEndTime: undefined })))).toBeNull();
+  });
+
   it('getLoginFailureCode → returns the rejecting response code', () => {
     const state = makeServerState({ loginFailureCode: Response_ResponseCode.RespPasswordChangeRequired });
     expect(Selectors.getLoginFailureCode(rootState(state))).toBe(Response_ResponseCode.RespPasswordChangeRequired);
@@ -265,6 +270,17 @@ describe('Selectors', () => {
     const downloadedReplay = { replayId: 99, replayData: new Uint8Array([1, 2, 3]) };
     const state = makeServerState({ downloadedReplay });
     expect(Selectors.getDownloadedReplay(rootState(state))).toEqual(downloadedReplay);
+  });
+
+  it('returns registration limit details and tolerates older state without them', () => {
+    const limited = rootState(makeServerState({
+      registrationFailureCode: Response_ResponseCode.RespTooManyRequests, registrationDeniedEndTime: 1800000000,
+    }));
+    expect(Selectors.getRegistrationFailureCode(limited)).toBe(Response_ResponseCode.RespTooManyRequests);
+    expect(Selectors.getRegistrationDeniedEndTime(limited)).toBe(1800000000);
+    const older = rootState(makeServerState({ registrationFailureCode: undefined, registrationDeniedEndTime: undefined }));
+    expect(Selectors.getRegistrationFailureCode(older)).toBeNull();
+    expect(Selectors.getRegistrationDeniedEndTime(older)).toBeNull();
   });
 
   it('getRegistrationError → returns registrationError', () => {

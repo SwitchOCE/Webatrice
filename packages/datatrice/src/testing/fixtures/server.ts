@@ -176,6 +176,7 @@ export function makeServerState(overrides: Partial<ServerState> = {}): ServerSta
     latency: EMPTY_LATENCY,
     connectUnreachable: false,
     loginFailureCode: null,
+    loginDeniedEndTime: null,
     info: {
       message: null,
       name: null,
@@ -214,6 +215,8 @@ export function makeServerState(overrides: Partial<ServerState> = {}): ServerSta
     gamesOfUserRoomNames: {},
     gamesOfUserStatus: {},
     registrationError: null,
+    registrationFailureCode: null,
+    registrationDeniedEndTime: null,
     staff: { investigation: null, moderatorLastLogins: null, cardArtRules: null, serverStats: null },
     reports: makeReportsState(),
     ...overrides,

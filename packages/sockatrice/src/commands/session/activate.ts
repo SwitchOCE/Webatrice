@@ -10,7 +10,7 @@ import { CommandFailure } from '../../services/command-options';
 import { StatusEnum } from '../../types/StatusEnum';
 import { WebClient } from '../../WebClient';
 import type { ConnectTarget } from '../../types/WebClientConfig';
-import { disconnect, login, updateStatus } from './';
+import { disconnect, login, loginWithFreshSalt, updateStatus } from './';
 
 export function activate(options: ConnectTarget & ActivateParams, password?: string, hashedPassword?: string): void {
   const { userName, token } = options;
@@ -23,7 +23,8 @@ export function activate(options: ConnectTarget & ActivateParams, password?: str
     onResponseCode: {
       [Response_ResponseCode.RespActivationAccepted]: () => {
         WebClient.instance.response.session.accountActivationSuccess();
-        login({
+        const logIn = WebClient.instance.serverSupportsChallengeResponse ? loginWithFreshSalt : login;
+        logIn({
           host: options.host,
           port: options.port,
           userName: options.userName,
