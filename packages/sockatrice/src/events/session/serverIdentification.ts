@@ -60,6 +60,8 @@ export async function serverIdentification(info: Event_ServerIdentification): Pr
     return;
   }
 
+  response.session.updateInfo(serverName, serverVersion, serverSupportsPasswordHash);
+
   switch (options.reason) {
     case WebSocketConnectReason.LOGIN: {
       const { password, ...rest } = options;
@@ -159,6 +161,4 @@ export async function serverIdentification(info: Event_ServerIdentification): Pr
       break;
     }
   }
-
-  response.session.updateInfo(serverName, serverVersion, serverSupportsPasswordHash);
 }

@@ -140,3 +140,22 @@ it.each([
   expect(getMockResponse().session[failure]).toHaveBeenCalledTimes(1);
   expect(reconnectedSocket.send).not.toHaveBeenCalled();
 });
+
+it('keeps the new server info when a replaced registration finishes its verifier', async () => {
+  let resolve!: (verifier: string) => void;
+  const pending = new Promise<string>((onResolve) => {
+    resolve = onResolve;
+  });
+  vi.spyOn(utils, 'generatePasswordVerifier').mockReturnValueOnce(pending);
+  connectRaw({ reason: WebSocketConnectReason.REGISTER, password: 'secret', email: '', country: '', realName: '' } as never);
+  identifyServer();
+  const updateInfo = getMockResponse().session.updateInfo;
+  expect(updateInfo).toHaveBeenCalledTimes(1);
+
+  connectRaw({ host: 'new-server', userName: 'bob' });
+  resolve('$scrypt$32768$8$1$c2FsdA==$a2V5');
+  await pending;
+  await Promise.resolve();
+  expect(updateInfo).toHaveBeenCalledTimes(1);
+  expect(getMockWebSocket().send).not.toHaveBeenCalled();
+});
