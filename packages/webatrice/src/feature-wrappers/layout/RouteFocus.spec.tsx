@@ -91,6 +91,23 @@ it('preserves focus in an open dialog during a route change', () => {
   expect(input).toHaveFocus();
 });
 
+it('preserves focus in an open menu during a route change', () => {
+  const portal = document.createElement('div');
+  portal.setAttribute('role', 'menu');
+  const item = document.createElement('button');
+  item.setAttribute('role', 'menuitem');
+  portal.append(item);
+  document.body.append(portal);
+  try {
+    setup();
+    item.focus();
+    fireEvent.click(screen.getByRole('button', { name: 'Next page' }));
+    expect(item).toHaveFocus();
+  } finally {
+    portal.remove();
+  }
+});
+
 it.each(['Game', 'Replay'])('leaves the %s board focused', (name) => {
   setup();
   fireEvent.click(screen.getByRole('button', { name }));

@@ -19,7 +19,7 @@ export default function RouteFocus() {
     const activeElement = document.activeElement;
     if (!main || main.closest('[inert]')
       || (activeElement !== main && main.contains(activeElement))
-      || activeElement?.closest('[data-game-board]')) {
+      || activeElement?.closest('[data-game-board],[role="menu"]')) {
       return;
     }
 
