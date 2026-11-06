@@ -503,6 +503,14 @@ describe('activate', () => {
 });
 
 describe('forgotPasswordChallenge', () => {
+  it('a request cut off by a disconnect leaves the status and the reconnect alone', () => {
+    forgotPasswordChallenge(makeForgotChallengeOpts());
+    invokeOnError(Response_ResponseCode.RespNotConnected, {}, CommandFailure.Disconnected);
+    expect(WebClient.instance.response.session.resetPasswordFailed).toHaveBeenCalled();
+    expect(SessionIndexMocks.updateStatus).not.toHaveBeenCalled();
+    expect(SessionIndexMocks.disconnect).not.toHaveBeenCalled();
+  });
+
 
   it('sends Command_ForgotPasswordChallenge', () => {
     forgotPasswordChallenge(makeForgotChallengeOpts());
@@ -527,6 +535,14 @@ describe('forgotPasswordChallenge', () => {
 });
 
 describe('forgotPasswordRequest', () => {
+  it('a request cut off by a disconnect leaves the status and the reconnect alone', () => {
+    forgotPasswordRequest(makeForgotRequestOpts());
+    invokeOnError(Response_ResponseCode.RespNotConnected, {}, CommandFailure.Disconnected);
+    expect(WebClient.instance.response.session.resetPasswordFailed).toHaveBeenCalled();
+    expect(SessionIndexMocks.updateStatus).not.toHaveBeenCalled();
+    expect(SessionIndexMocks.disconnect).not.toHaveBeenCalled();
+  });
+
 
   it('sends Command_ForgotPasswordRequest', () => {
     forgotPasswordRequest(makeForgotRequestOpts());
@@ -562,6 +578,14 @@ describe('forgotPasswordRequest', () => {
 });
 
 describe('forgotPasswordReset', () => {
+
+  it('a reset cut off by a disconnect leaves the status and the reconnect alone', () => {
+    forgotPasswordReset(makeForgotResetOpts(), 'newpw');
+    invokeOnError(Response_ResponseCode.RespNotConnected, {}, CommandFailure.Disconnected);
+    expect(WebClient.instance.response.session.resetPasswordFailed).toHaveBeenCalled();
+    expect(SessionIndexMocks.updateStatus).not.toHaveBeenCalled();
+    expect(SessionIndexMocks.disconnect).not.toHaveBeenCalled();
+  });
 
   it('sends Command_ForgotPasswordReset with plain newPassword when no salt', () => {
     forgotPasswordReset(makeForgotResetOpts(), 'newpw');

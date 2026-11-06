@@ -261,6 +261,7 @@ describe('connectionClosed', () => {
   it('reports a failed connection, so the reason is not hidden behind a dialog', () => {
     connectionClosed(create(Event_ConnectionClosedSchema, { reasonStr: 'custom' }));
     expect(WebClient.instance.response.session.connectionFailed).toHaveBeenCalled();
+    expect(SessionCmds.disconnect).toHaveBeenCalled();
   });
 
   it('uses reasonStr when provided', () => {

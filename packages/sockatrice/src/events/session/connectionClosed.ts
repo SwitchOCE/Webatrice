@@ -1,6 +1,6 @@
 import { Event_ConnectionClosed_CloseReason, type Event_ConnectionClosed } from '../../generated';
 import { StatusEnum } from '../../types/StatusEnum';
-import { updateStatus } from '../../commands/session';
+import { disconnect, updateStatus } from '../../commands/session';
 import { WebClient } from '../../WebClient';
 
 export function connectionClosed({ reason, reasonStr, endTime }: Event_ConnectionClosed): void {
@@ -42,4 +42,5 @@ export function connectionClosed({ reason, reasonStr, endTime }: Event_Connectio
 
   updateStatus(StatusEnum.DISCONNECTED, message);
   WebClient.instance.response.session.connectionFailed();
+  disconnect();
 }

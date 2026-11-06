@@ -39,9 +39,9 @@ export function forgotPasswordReset(
       onError: (_responseCode, _raw, failure) => {
         if (failure !== CommandFailure.Disconnected) {
           updateStatus(StatusEnum.DISCONNECTED, null);
+          disconnect();
         }
         WebClient.instance.response.session.resetPasswordFailed();
-        disconnect();
       },
     }
   );

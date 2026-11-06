@@ -1,6 +1,6 @@
 import type { Page } from '@playwright/test';
 
-import { E2E_ADMIN, E2E_HOST_LABEL, E2E_JUDGE, reachHost, registerAndReachRooms } from '../fixtures/flows';
+import { E2E_ADMIN, E2E_HOST_LABEL, E2E_JUDGE, reachHost, reachRoomsAs, registerAndReachRooms } from '../fixtures/flows';
 import { queryServerDb } from '../fixtures/serverDb';
 import { serverHas } from '../fixtures/serverVersion';
 import { expect, test } from '../fixtures/test';
@@ -98,6 +98,17 @@ test('a ban shows its end time and reason, and is indefinite without one', async
   ban(0, 'Testing long bans');
   await login.login(user.username, user.password);
   await expect(page.getByText('You are banned indefinitely. Reason: Testing long bans')).toBeVisible({ timeout: 15_000 });
+});
+
+test('signing in elsewhere signs the first page out and says why', async ({ page, newContext }) => {
+  const { login, user } = await registerAndReachRooms(page);
+
+  const secondPage = await (await newContext()).newPage();
+  await reachRoomsAs(secondPage, user);
+
+  await expect(page.getByText(/logged out due to logging in at another location/i)).toBeVisible({ timeout: 15_000 });
+  await expect(login.hostPicker).toBeVisible();
+  await new RoomsPage(secondPage).waitForRoomList();
 });
 
 test('a reset token requested from the login page sets a new password', async ({ page }) => {
