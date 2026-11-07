@@ -1,0 +1,1 @@
+import{Sc as e}from"./vendor-BabDHGDG.js";import{s as t}from"./vendor-react-L_aWEnJo.js";import{Ca as n,c as r}from"./layout-CGJWgp88.js";var i=e();function a({tool:e,children:a}){return r(e)?(0,i.jsx)(i.Fragment,{children:a}):(0,i.jsx)(t,{to:n.SERVER,replace:!0})}export{a as t};

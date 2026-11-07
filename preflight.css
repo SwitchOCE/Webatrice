@@ -18,6 +18,7 @@
   color: rgb(var(--text-primary));
 }
 .Unsupported-paper {
+  box-sizing: border-box;
   width: 600px;
   max-width: 100%;
   padding: 40px;
